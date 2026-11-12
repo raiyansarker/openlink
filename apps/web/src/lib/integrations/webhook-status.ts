@@ -31,7 +31,7 @@ export function webhookStatusMeta(webhook: WorkspaceWebhook): WebhookStatusMeta 
     }
   }
   return {
-    label: 'Waiting for first event',
+    label: 'No deliveries yet',
     description: 'Nothing has been delivered to this endpoint yet.',
     dotVariant: 'neutral',
   }
