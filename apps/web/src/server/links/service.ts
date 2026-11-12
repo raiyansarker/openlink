@@ -1,14 +1,10 @@
 import { and, eq } from 'drizzle-orm'
-import { createHash } from 'node:crypto'
 import { link } from '@openlink/db/schema'
 import { getDb } from '../db'
+import { hashLinkPassword } from './password'
 import { generateSlug } from './rules'
 
 export { deriveLinkStatus, generateSlug } from './rules'
-
-function hashPassword(password: string) {
-  return createHash('sha256').update(password).digest('hex')
-}
 
 export async function createLinkRecord(input: {
   organizationId: string
@@ -50,7 +46,7 @@ export async function createLinkRecord(input: {
         activateAt: input.activateAt,
         expiresAt: input.expiresAt,
         maxClicks: input.maxClicks,
-        passwordHash: input.password ? hashPassword(input.password) : null,
+        passwordHash: input.password ? await hashLinkPassword(input.password) : null,
         expiredDestinationUrl: input.expiredDestinationUrl,
         fallbackDestinationUrl: input.fallbackDestinationUrl,
         tagsJson: JSON.stringify(input.tags ?? []),
