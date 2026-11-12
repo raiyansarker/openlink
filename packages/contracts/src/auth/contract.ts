@@ -1,13 +1,13 @@
 import { oc } from '@orpc/contract'
 import { type } from 'arktype'
 
+import { EmptyResponse } from '../system/schema'
 import {
   AuthSessionResponse,
-  EmptyResponse,
   SessionResponse,
   SignInRequest,
   SignUpRequest,
-} from '../models'
+} from './schema'
 
 export const signUp = oc
   .route({
@@ -54,3 +54,10 @@ export const getSession = oc
     tags: ['Auth'],
   })
   .output(SessionResponse)
+
+export const contract = {
+  signUp,
+  signIn,
+  signOut,
+  getSession,
+} as const

@@ -6,4 +6,8 @@
  * @see https://orpc.dev/docs/openapi/routing
  */
 export { contract } from './contract'
-export * from './models'
+export * from './auth'
+export * from './domains'
+export * from './links'
+export * from './organizations'
+export * from './system'

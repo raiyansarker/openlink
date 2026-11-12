@@ -1,14 +1,14 @@
 import { oc } from '@orpc/contract'
 import { type } from 'arktype'
 
+import { EmptyResponse } from '../system/schema'
 import {
   AddDomainRequest,
   CustomDomain,
   DomainIdPath,
-  EmptyResponse,
   ListDomainsResponse,
   OrganizationIdPath,
-} from '../models'
+} from './schema'
 
 export const listDomains = oc
   .route({
@@ -67,3 +67,11 @@ export const refreshDomainStatus = oc
   })
   .input(type({ params: DomainIdPath }))
   .output(CustomDomain)
+
+export const contract = {
+  listDomains,
+  addDomain,
+  removeDomain,
+  getDomain,
+  refreshDomainStatus,
+} as const

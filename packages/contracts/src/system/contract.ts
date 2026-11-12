@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 
-import { HealthResponse, OpenApiDocument } from '../models'
+import { HealthResponse, OpenApiDocument } from './schema'
 
 export const getHealth = oc
   .route({
@@ -25,3 +25,8 @@ export const getOpenApiDocument = oc
     tags: ['System'],
   })
   .output(OpenApiDocument)
+
+export const contract = {
+  getHealth,
+  getOpenApiDocument,
+} as const

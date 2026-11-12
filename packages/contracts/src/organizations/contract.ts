@@ -10,7 +10,7 @@ import {
   OrganizationIdPath,
   OrganizationInvite,
   OrganizationMembership,
-} from '../models'
+} from './schema'
 
 export const listOrganizations = oc
   .route({
@@ -73,3 +73,11 @@ export const createOrganizationInvite = oc
     }),
   )
   .output(OrganizationInvite)
+
+export const contract = {
+  listOrganizations,
+  createOrganization,
+  acceptOrganizationInvite,
+  getOrganization,
+  createOrganizationInvite,
+} as const

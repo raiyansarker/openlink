@@ -4,13 +4,20 @@ HTTP API **contract-first** definitions for OpenLink using [oRPC](https://orpc.d
 
 ## Layout
 
-| Path | Purpose |
-|------|---------|
-| `src/models/` | Shared ArkType types (request/response bodies) |
-| `src/procedures/*.ts` | One module per API area (`system`, `auth`, `organizations`, `domains`, `links`) |
-| `src/contract.ts` | Nested router contract consumed by `implement(contract)` |
+Each API area is a folder with colocated `schema.ts` (ArkType types) and `contract.ts` (oRPC routes + local `contract` object):
 
-There is **no checked-in OpenAPI JSON**. The Worker serves `GET /api/v1/openapi.json` by running `OpenAPIGenerator` on this contract at request time (see `apps/web/src/server/orpc/router.ts`).
+```
+src/
+  auth/           schema.ts, contract.ts, index.ts
+  system/
+  organizations/
+  domains/
+  links/
+  contract.ts     # root router: { system, auth, organizations, domains, links }
+  index.ts
+```
+
+OpenAPI is **not** checked in. The Worker serves `GET /api/v1/openapi.json` via `OpenAPIGenerator` at runtime.
 
 ## Commands
 

@@ -1,15 +1,15 @@
 import { oc } from '@orpc/contract'
 import { type } from 'arktype'
 
+import { EmptyResponse } from '../system/schema'
 import {
   CreateLinkRequest,
   DomainIdPath,
-  EmptyResponse,
   Link,
   LinkIdPath,
   ListLinksResponse,
   UpdateLinkRequest,
-} from '../models'
+} from './schema'
 
 export const listLinks = oc
   .route({
@@ -67,3 +67,11 @@ export const updateLink = oc
   })
   .input(type({ body: UpdateLinkRequest, params: LinkIdPath }))
   .output(Link)
+
+export const contract = {
+  listLinks,
+  createLink,
+  deleteLink,
+  getLink,
+  updateLink,
+} as const

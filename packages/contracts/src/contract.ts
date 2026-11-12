@@ -1,8 +1,8 @@
-import * as auth from './procedures/auth'
-import * as domains from './procedures/domains'
-import * as links from './procedures/links'
-import * as organizations from './procedures/organizations'
-import * as system from './procedures/system'
+import { contract as auth } from './auth'
+import { contract as domains } from './domains'
+import { contract as links } from './links'
+import { contract as organizations } from './organizations'
+import { contract as system } from './system'
 
 export const contract = {
   system,

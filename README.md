@@ -54,7 +54,7 @@ cd apps/web && bun run deploy
 
 ## Backend API (local only)
 
-Contract: `packages/contracts/src/` (nested by `system`, `auth`, `organizations`, `domains`, `links`). Live OpenAPI: `/api/v1/openapi.json`. Interactive docs: `/api/docs` (Stoplight Elements).
+Contract: `packages/contracts/src/{auth,system,...}/` (`schema.ts` + `contract.ts` per area). Live OpenAPI: `/api/v1/openapi.json`. Interactive docs: `/api/docs` (Stoplight Elements).
 
 ### One-time local setup
 
@@ -82,7 +82,7 @@ GitHub Actions runs `test`, `check-types`, and `lint` on pushes and pull request
 
 ### Change the API contract
 
-Edit the relevant file under `packages/contracts/src/procedures/` and shared types in `packages/contracts/src/models/`. Restart the app to pick up changes; `/api/v1/openapi.json` updates automatically.
+Edit `schema.ts` / `contract.ts` in the matching folder under `packages/contracts/src/`. Restart the app to pick up changes; `/api/v1/openapi.json` updates automatically.
 
 ## Worktrees
 
