@@ -302,6 +302,16 @@ export function MonitorIcon({ size = 16, ...p }: SvgProps) {
   )
 }
 
+export function MoreHorizontalIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p} fill="currentColor" stroke="none">
+      <circle cx="3.25" cy="8" r="0.75" />
+      <circle cx="8" cy="8" r="0.75" />
+      <circle cx="12.75" cy="8" r="0.75" />
+    </svg>
+  )
+}
+
 export function HelpIcon({ size = 16, ...p }: SvgProps) {
   return (
     <svg {...base(size)} {...p}>
