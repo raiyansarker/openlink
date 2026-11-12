@@ -1,7 +1,9 @@
+import { demoCustomDomains } from './domains'
 import { demoLinks } from './links'
 import { demoMembers } from './members'
 import { demoOrganizations } from './organizations'
 import { demoStatsByOrg } from './stats'
+import type { WorkspaceCustomDomain } from './domains'
 import type {
   Organization,
   OrgDashboardStats,
@@ -12,6 +14,15 @@ import { withDemoMemberAvatar } from '#/lib/members/demo-avatar'
 
 export function getLinksForOrg(orgId: string): ShortLink[] {
   return demoLinks.filter((link) => link.orgId === orgId)
+}
+
+export function getCustomDomainsForOrg(orgId: string): WorkspaceCustomDomain[] {
+  return demoCustomDomains
+    .filter((domain) => domain.orgId === orgId)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
 }
 
 export function getMembersForOrg(orgId: string): WorkspaceMember[] {
