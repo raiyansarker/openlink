@@ -14,7 +14,8 @@
     "db:migrate:local": "wrangler d1 migrations apply openlink-local --local",
     "db:seed:bootstrap-invite": "wrangler d1 execute openlink-local --local --file ./scripts/seed-bootstrap-invite.sql",
     "check-types": "tsc --noEmit",
-    "lint": "eslint . --max-warnings 0"
+    "lint": "eslint src --max-warnings 0",
+    "test": "bun test src"
   },
   "dependencies": {
     "@openlink/contracts": "workspace:*",

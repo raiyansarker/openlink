@@ -1,6 +1,7 @@
 {
   "extends": "@repo/typescript-config/base.json",
-  "include": ["scripts/**/*.ts", "generated/**/*.ts"],
+  "include": ["scripts/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"],
   "compilerOptions": {
     "noEmit": true
   }

@@ -5,7 +5,13 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", ".wrangler/**", ".output/**", "src/routeTree.gen.ts"],
+    ignores: [
+      "dist/**",
+      ".wrangler/**",
+      ".output/**",
+      "src/routeTree.gen.ts",
+      "worker-configuration.d.ts",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

@@ -9,7 +9,8 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test src"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1"

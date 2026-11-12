@@ -1,31 +1,13 @@
 import { and, eq } from 'drizzle-orm'
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import { link } from '@openlink/db/schema'
 import { getDb } from '../db'
+import { generateSlug } from './rules'
 
-const SLUG_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-
-export function generateSlug(length = 8) {
-  const bytes = randomBytes(length)
-  let output = ''
-  for (let i = 0; i < length; i += 1) {
-    output += SLUG_ALPHABET[bytes[i]! % SLUG_ALPHABET.length]
-  }
-  return output
-}
+export { deriveLinkStatus, generateSlug } from './rules'
 
 function hashPassword(password: string) {
   return createHash('sha256').update(password).digest('hex')
-}
-
-export function deriveLinkStatus(row: typeof link.$inferSelect, now = new Date()) {
-  if (!row.enabled || row.status === 'disabled' || row.status === 'paused') {
-    return row.status === 'paused' ? 'paused' : 'disabled'
-  }
-  if (row.activateAt && row.activateAt > now) return 'scheduled'
-  if (row.expiresAt && row.expiresAt <= now) return 'expired'
-  if (row.maxClicks != null && row.clickCount >= row.maxClicks) return 'expired'
-  return row.status === 'draft' ? 'draft' : 'active'
 }
 
 export async function createLinkRecord(input: {
@@ -83,7 +65,7 @@ export async function createLinkRecord(input: {
     return row!
   } catch (error) {
     if (error instanceof Error && error.message.includes('UNIQUE')) {
-      throw new Error('slug_conflict')
+      throw new Error('slug_conflict', { cause: error })
     }
     throw error
   }

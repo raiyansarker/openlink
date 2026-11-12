@@ -36,6 +36,7 @@ bun run dev          # all apps (web on port 3000)
 bun run build
 bun run check-types
 bun run lint
+bun run test
 ```
 
 Run only the web app:
@@ -70,6 +71,14 @@ Bootstrap org creation uses invite token `local-bootstrap-invite-token` (see see
 ### Custom domains in development
 
 `wrangler.jsonc` sets `DOMAIN_PROVIDER=memory`. Domains verify in-process with Domain SDK’s memory adapter—no Cloudflare API calls. For real SaaS hostnames, copy Cloudflare values into `.dev.vars` and set `DOMAIN_PROVIDER=cloudflare`.
+
+### Tests (Bun)
+
+```sh
+bun run test
+```
+
+GitHub Actions runs `test`, `check-types`, and `lint` on pushes and pull requests (see `.github/workflows/ci.yml`).
 
 ### Regenerate API types after contract changes
 

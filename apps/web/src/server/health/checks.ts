@@ -2,6 +2,7 @@ import openApiDocument from '@openlink/contracts/openapi.json'
 import { createOpenLinkDomainClient } from '@openlink/domain'
 import { getAuth } from '../auth/instance'
 import { getBindings } from '../env'
+import { resolveHealthReportStatus } from './report'
 
 export type HealthCheckResult = {
   name: string
@@ -156,12 +157,7 @@ export async function runHealthChecks(): Promise<HealthReport> {
     checkOpenApiContract(),
   ])
 
-  const requiredFailed = checks.some((c) => c.required && c.status === 'error')
-  const anyFailed = checks.some((c) => c.status === 'error')
-
-  let status: HealthReport['status'] = 'ok'
-  if (requiredFailed) status = 'error'
-  else if (anyFailed) status = 'degraded'
+  const status = resolveHealthReportStatus(checks)
 
   return {
     status,

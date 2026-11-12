@@ -7,7 +7,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test src"
   },
   "dependencies": {
     "@opencoredev/domain-sdk": "^0.3.0"

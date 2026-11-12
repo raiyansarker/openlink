@@ -5,13 +5,17 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**", ".output/**"]
+      "outputs": ["dist/**", ".output/**", "generated/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["^check-types", "^build"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.test.ts"]
     },
     "dev": {
       "cache": false,

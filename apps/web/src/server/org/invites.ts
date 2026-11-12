@@ -1,15 +1,9 @@
-import { createHash, randomBytes } from 'node:crypto'
 import { and, eq, isNull } from 'drizzle-orm'
 import { organizationInvite } from '@openlink/db/schema'
 import { getDb } from '../db'
+import { hashInviteToken } from './invite-tokens'
 
-export function hashInviteToken(token: string) {
-  return createHash('sha256').update(token).digest('hex')
-}
-
-export function createInviteToken() {
-  return randomBytes(24).toString('base64url')
-}
+export { createInviteToken, hashInviteToken } from './invite-tokens'
 
 export async function findBootstrapInviteByToken(token: string) {
   const tokenHash = hashInviteToken(token)

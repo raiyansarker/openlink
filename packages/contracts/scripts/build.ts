@@ -17,7 +17,6 @@ await writeFile(join(outDir, 'openapi.json'), JSON.stringify(document, null, 2))
 const types = await openapiTS(document as never, {
   exportType: true,
   rootTypes: true,
-  rootTypesNoResolve: true,
 })
 
 await writeFile(
