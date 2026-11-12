@@ -1,3 +1,7 @@
+/**
+ * @deprecated Replaced by OrganizationIconRail + DashboardNavColumn.
+ * Kept for history; do not use in new UI.
+ */
 import { TopNav, TopNavHeading, TopNavItem } from '@astryxdesign/core/TopNav'
 import { dashboardPaths } from '#/lib/dashboard/route-paths'
 import CreateLinkButton from './CreateLinkButton'
