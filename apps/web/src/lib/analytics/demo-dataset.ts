@@ -60,16 +60,7 @@ export type BreakdownRow = {
 
 export type CountryRow = BreakdownRow & { code: string; lat: number; lng: number }
 
-export type LinkRow = BreakdownRow & {
-  slug: string
-  destination: string
-  unique: number
-  /** Most common source for this link in the window. */
-  topReferrer: string
-  topCountry: string
-  /** Daily (or hourly) clicks for an inline trend. */
-  trend: { time: Date; value: number }[]
-}
+export type LinkRow = BreakdownRow & { slug: string; destination: string }
 
 export type DestinationRow = BreakdownRow & { url: string; host: string; linkCount: number; slugs: string[] }
 
@@ -97,8 +88,6 @@ export type AnalyticsReport = {
   heatmapWindowLabel: string
   links: LinkRow[]
   destinations: DestinationRow[]
-  /** Links with the biggest gains and drops against the previous period. */
-  movers: { rising: LinkRow[]; falling: LinkRow[] }
   channels: BreakdownRow[]
   referrers: BreakdownRow[]
   countries: CountryRow[]
@@ -473,33 +462,14 @@ export function buildAnalyticsReport(query: AnalyticsQuery): AnalyticsReport {
       const momentum = 0.55 + noise(orgId, link.id, 'momentum') * 0.9
       const clicks = Math.round(totals.clicks * share * wobble)
       const previousClicks = Math.round(previousTotals.clicks * share * wobble * momentum)
-      const trend = totalsSeries.map((p, t) => ({
-        time: p.time,
-        value: Math.round(
-          p.clicks * share * (0.75 + noise(windowSeed, link.id, t) * 0.5),
-        ),
-      }))
-      const referrerPool = REFERRERS.filter(
-        (r) => noise(orgId, link.id, r.key) > 0.35,
-      )
-      const topReferrer =
-        noise(orgId, link.id, 'direct') < 0.3 || referrerPool.length === 0
-          ? 'Direct'
-          : referrerPool[Math.floor(noise(orgId, link.id, 'ref') * referrerPool.length)].key
-      const topCountry =
-        COUNTRIES[Math.floor(noise(orgId, link.id, 'geo') ** 2 * COUNTRIES.length)].label
       return {
         key: link.id,
         label: link.title,
         slug: link.slug,
         destination: link.destination,
         clicks,
-        unique: Math.round(clicks * (totals.clicks ? totals.unique / totals.clicks : 0.7)),
         previousClicks,
         share: 0,
-        topReferrer,
-        topCountry,
-        trend,
       }
     })
     .sort((a, b) => b.clicks - a.clicks)
@@ -541,14 +511,6 @@ export function buildAnalyticsReport(query: AnalyticsQuery): AnalyticsReport {
   const destinations = [...destinationMap.values()].sort((a, b) => b.clicks - a.clicks)
   destinations.forEach((row) => (row.share = row.clicks / linkClickSum))
 
-  const change = (row: LinkRow) =>
-    row.previousClicks > 0 ? (row.clicks - row.previousClicks) / row.previousClicks : 0
-  const byChange = [...linkRows].sort((a, b) => change(b) - change(a))
-  const movers = {
-    rising: byChange.filter((r) => change(r) > 0.02).slice(0, 3),
-    falling: byChange.filter((r) => change(r) < -0.02).reverse().slice(0, 3),
-  }
-
   // Cities inside each country, so totals reconcile with the country table.
   const cities: CityRow[] = countries
     .flatMap((country) => {
@@ -582,7 +544,6 @@ export function buildAnalyticsReport(query: AnalyticsQuery): AnalyticsReport {
     heatmapWindowLabel: range === '24h' ? 'Last 7 days' : `Last ${range.replace('d', ' days')}`,
     links: linkRows,
     destinations,
-    movers,
     channels,
     referrers,
     countries,

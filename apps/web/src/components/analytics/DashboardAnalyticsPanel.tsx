@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button } from '@astryxdesign/core/Button'
-import { Grid, GridSpan } from '@astryxdesign/core/Grid'
+import { Grid } from '@astryxdesign/core/Grid'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
+import { Link } from '@astryxdesign/core/Link'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import AnalyticsCard from '#/components/analytics/AnalyticsCard'
@@ -11,10 +11,9 @@ import DestinationsCard from '#/components/analytics/DestinationsCard'
 import HourHeatmap from '#/components/analytics/HourHeatmap'
 import LocationsCard from '#/components/analytics/LocationsCard'
 import MetricTiles from '#/components/analytics/MetricTiles'
-import MoversCard from '#/components/analytics/MoversCard'
 import SourcesCard from '#/components/analytics/SourcesCard'
+import TopLinksCard from '#/components/analytics/TopLinksCard'
 import TechnologyCard from '#/components/analytics/TechnologyCard'
-import TopLinksTable from '#/components/analytics/TopLinksTable'
 import TrafficChart from '#/components/analytics/TrafficChart'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import {
@@ -100,12 +99,20 @@ export default function DashboardAnalyticsPanel() {
         </Text>
       </VStack>
 
+      {selectedLink ? (
+        <HStack gap={2} vAlign="center">
+          <Text type="supporting" color="secondary">
+            Showing one link.
+          </Text>
+          <Link color="accent" onClick={() => setLinkId(ALL_LINKS)}>
+            Show all links
+          </Link>
+        </HStack>
+      ) : null}
+
       <AnalyticsToolbar
         range={range}
         onRangeChange={setRange}
-        linkId={linkId}
-        onLinkChange={setLinkId}
-        links={trackedLinks}
         isComparing={isComparing}
         onCompareChange={setIsComparing}
       />
@@ -114,64 +121,33 @@ export default function DashboardAnalyticsPanel() {
         <VStack gap={5} hAlign="stretch" width="fill">
           <MetricTiles report={report} isComparing={isComparing} />
 
-          <Grid columns={{ minWidth: 300, max: 3 }} gap={5} width="100%">
-            <GridSpan columns={selectedLink ? 'full' : 2}>
-              <AnalyticsCard
-                title="Clicks over time"
-                description={`Per ${report.bucket}, stacked by channel${isComparing ? ' · dashed line is the previous period' : ''}`}
-              >
-                <TrafficChart report={report} isComparing={isComparing} height={380} />
-              </AnalyticsCard>
-            </GridSpan>
-            {selectedLink ? null : (
-              <MoversCard movers={report.movers} onSelect={drillInto} />
-            )}
-          </Grid>
-
           <AnalyticsCard
-            title={selectedLink ? 'This link' : 'Top short links'}
-            description={
-              selectedLink
-                ? undefined
-                : `Ranked by clicks · ${report.links.length} links · select one to drill in`
-            }
-            actions={
-              selectedLink ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  label="Show all links"
-                  onClick={() => setLinkId(ALL_LINKS)}
-                />
-              ) : undefined
-            }
+            title="Clicks over time"
+            description={`Per ${report.bucket}, stacked by channel${isComparing ? ' · dashed line is the previous period' : ''}`}
           >
-            <TopLinksTable rows={report.links} isComparing={isComparing} onSelect={drillInto} />
+            <TrafficChart report={report} isComparing={isComparing} />
           </AnalyticsCard>
 
           <Grid columns={{ minWidth: 360, max: 2 }} gap={5} width="100%">
-            <DestinationsCard rows={report.destinations} isComparing={isComparing} />
+            {/* One link drills in, so its own ranking and destination would be a single row each. */}
+            {selectedLink ? null : (
+              <TopLinksCard rows={report.links} isComparing={isComparing} onSelect={drillInto} />
+            )}
+            {selectedLink ? null : (
+              <DestinationsCard rows={report.destinations} isComparing={isComparing} />
+            )}
             <SourcesCard report={report} isComparing={isComparing} />
+            <TechnologyCard report={report} isComparing={isComparing} />
           </Grid>
 
           <LocationsCard report={report} isComparing={isComparing} />
 
-          <Grid columns={{ minWidth: 360, max: 2 }} gap={5} width="100%">
-            <TechnologyCard report={report} isComparing={isComparing} />
-            <AnalyticsCard
-              title="When people click"
-              description={`${report.heatmapWindowLabel} · by weekday and hour, in your timezone`}
-            >
-              <HourHeatmap report={report} />
-            </AnalyticsCard>
-          </Grid>
-
-          <HStack>
-            <Text type="supporting" color="secondary">
-              Demo data. Numbers are generated for this workspace and will be replaced by live
-              click events.
-            </Text>
-          </HStack>
+          <AnalyticsCard
+            title="When people click"
+            description={`${report.heatmapWindowLabel} · by weekday and hour, in your timezone`}
+          >
+            <HourHeatmap report={report} />
+          </AnalyticsCard>
         </VStack>
       ) : null}
     </VStack>

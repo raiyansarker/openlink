@@ -127,7 +127,7 @@ export default function MetricTiles({ report, isComparing }: MetricTilesProps) {
   }, [report])
 
   return (
-    <Grid columns={{ minWidth: 220 }} gap={4} width="100%">
+    <Grid columns={{ minWidth: 220, max: 4 }} gap={4} width="100%">
       {tiles.map((tile) => (
         <Card key={tile.key} padding={4} style={{ minWidth: 0 }}>
           <VStack gap={3} hAlign="stretch" width="100%">
