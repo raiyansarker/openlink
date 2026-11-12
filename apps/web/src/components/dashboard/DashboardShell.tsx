@@ -7,21 +7,24 @@ import ThreeColumnDashboardLayout from './layout/ThreeColumnDashboardLayout'
 import type { ReactNode } from 'react'
 
 type DashboardShellProps = {
+  orgIdFromRoute: string
   children: ReactNode
 }
 
 /** App chrome: org icon rail, org nav column, detail column. */
-export default function DashboardShell({ children }: DashboardShellProps) {
+export default function DashboardShell({
+  orgIdFromRoute,
+  children,
+}: DashboardShellProps) {
   return (
-    <OrganizationProvider>
+    <OrganizationProvider orgIdFromRoute={orgIdFromRoute}>
       <DashboardChrome>{children}</DashboardChrome>
     </OrganizationProvider>
   )
 }
 
 function DashboardChrome({ children }: { children: ReactNode }) {
-  const { organizations, activeOrg, activeOrgId, setActiveOrgId } =
-    useOrganization()
+  const { organizations, activeOrg, activeOrgId } = useOrganization()
   const pathname = useActivePathname()
 
   return (
@@ -30,7 +33,7 @@ function DashboardChrome({ children }: { children: ReactNode }) {
         <OrganizationIconRail
           organizations={organizations}
           activeOrgId={activeOrgId}
-          onSelectOrg={setActiveOrgId}
+          pathname={pathname}
         />
       }
       navigation={
