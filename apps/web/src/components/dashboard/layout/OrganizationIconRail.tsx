@@ -14,6 +14,7 @@ import { useOrganization } from '#/contexts/OrganizationContext'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import type { CSSProperties, ReactNode } from 'react'
 import {
+  DASHBOARD_CHROME_TOP_PADDING,
   DASHBOARD_RAIL_BG,
   DASHBOARD_RAIL_HOVER_BG,
   DASHBOARD_RAIL_SELECTED_BG,
@@ -120,7 +121,7 @@ export default function OrganizationIconRail({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        paddingTop: 14,
+        paddingTop: DASHBOARD_CHROME_TOP_PADDING,
         paddingBottom: 12,
         backgroundColor: DASHBOARD_RAIL_BG,
         flexShrink: 0,

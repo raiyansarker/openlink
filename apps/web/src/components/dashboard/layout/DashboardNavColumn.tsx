@@ -22,6 +22,8 @@ import {
 import type { CSSProperties, ReactNode } from 'react'
 import type { DashboardSection } from '#/lib/dashboard/build-org-path'
 import {
+  DASHBOARD_CHROME_TOP_PADDING,
+  DASHBOARD_NAV_HORIZONTAL_PADDING,
   DASHBOARD_NAV_HOVER_BG,
   DASHBOARD_NAV_SELECTED_BG,
   DASHBOARD_SURFACE_BG,
@@ -161,11 +163,18 @@ export default function DashboardNavColumn() {
         flexDirection: 'column',
         flexShrink: 0,
         backgroundColor: DASHBOARD_SURFACE_BG,
-        padding: '20px 10px 24px 8px',
+        paddingTop: DASHBOARD_CHROME_TOP_PADDING,
+        paddingRight: 10,
+        paddingBottom: 24,
+        paddingLeft: DASHBOARD_NAV_HORIZONTAL_PADDING,
         boxSizing: 'border-box',
       }}
     >
-      <div style={{ padding: '0 0 14px' }}>
+      <div
+        style={{
+          padding: `0 ${DASHBOARD_NAV_HORIZONTAL_PADDING}px 14px 0`,
+        }}
+      >
         <button
           type="button"
           style={{
@@ -174,7 +183,8 @@ export default function DashboardNavColumn() {
             justifyContent: 'center',
             gap: 10,
             width: '100%',
-            padding: '7px 10px',
+            height: 34,
+            padding: '0 10px',
             border: '1px solid rgba(0, 0, 0, 0.12)',
             borderRadius: 9,
             cursor: 'pointer',
