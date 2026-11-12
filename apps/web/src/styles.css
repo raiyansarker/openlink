@@ -13,6 +13,7 @@
 }
 
 @import './styles/dashboard-three-column.css';
+@import './styles/dashboard-detail.css';
 
 /* OpenLink — light product accent layered on neutral Astryx tokens */
 :root,
