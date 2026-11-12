@@ -15,6 +15,8 @@ import {
   demoDnsRecordsForHostname,
   isValidCustomHostname,
 } from '#/lib/domains/demo-dns'
+import DomainIllustration from './DomainIllustration'
+
 export default function AddDomainForm() {
   const { activeOrg } = useOrganization()
   const { addDomain } = useDomainsWorkspace()
@@ -59,6 +61,7 @@ export default function AddDomainForm() {
 
   return (
     <VStack gap={5} hAlign="stretch" width="100%">
+      <DomainIllustration state="add" width={160} />
       <VStack gap={1} hAlign="start" width="100%">
         <Heading level={2}>Add domain</Heading>
         <Text type="supporting" color="secondary">
