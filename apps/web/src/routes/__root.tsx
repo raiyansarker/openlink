@@ -8,6 +8,7 @@ import type { ReactNode } from 'react'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import AstryxProviders from '#/components/AstryxProviders'
+import { COLOR_MODE_BOOTSTRAP_SCRIPT } from '#/lib/settings/color-mode-bootstrap'
 
 import appCss from '../styles.css?url'
 
@@ -47,6 +48,7 @@ function RootDocument({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: COLOR_MODE_BOOTSTRAP_SCRIPT }} />
         <HeadContent />
       </head>
       <body

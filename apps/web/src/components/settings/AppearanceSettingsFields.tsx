@@ -1,7 +1,7 @@
-import { useState } from 'react'
 import { VStack } from '@astryxdesign/core/VStack'
 import { HStack } from '@astryxdesign/core/HStack'
 import ThemePreviewCard, { type ThemePreviewMode } from '#/components/settings/ThemePreviewCard'
+import { useAppearancePreference } from '#/contexts/AppearancePreferenceContext'
 
 const MODES: { mode: ThemePreviewMode; label: string }[] = [
   { mode: 'system', label: 'System' },
@@ -10,7 +10,7 @@ const MODES: { mode: ThemePreviewMode; label: string }[] = [
 ]
 
 export default function AppearanceSettingsFields() {
-  const [prototypeSelection, setPrototypeSelection] = useState<ThemePreviewMode>('system')
+  const { colorMode, setColorMode } = useAppearancePreference()
 
   return (
     <VStack paddingBlockStart={3} hAlign="start" width="fill">
@@ -26,8 +26,8 @@ export default function AppearanceSettingsFields() {
             key={mode}
             mode={mode}
             label={label}
-            isSelected={prototypeSelection === mode}
-            onSelect={() => setPrototypeSelection(mode)}
+            isSelected={colorMode === mode}
+            onSelect={() => setColorMode(mode)}
           />
         ))}
       </HStack>

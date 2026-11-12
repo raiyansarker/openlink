@@ -1,6 +1,6 @@
 export type ColorMode = 'system' | 'light' | 'dark'
 
-const COLOR_MODE_KEY = 'openlink.color-mode'
+export const COLOR_MODE_STORAGE_KEY = 'openlink.color-mode'
 
 const DEFAULT_COLOR_MODE: ColorMode = 'system'
 
@@ -16,12 +16,12 @@ function readStorage(key: string, allowed: readonly ColorMode[], fallback: Color
 }
 
 export function loadColorMode(): ColorMode {
-  return readStorage(COLOR_MODE_KEY, ['system', 'light', 'dark'], DEFAULT_COLOR_MODE)
+  return readStorage(COLOR_MODE_STORAGE_KEY, ['system', 'light', 'dark'], DEFAULT_COLOR_MODE)
 }
 
 export function saveColorMode(mode: ColorMode) {
   try {
-    window.localStorage.setItem(COLOR_MODE_KEY, mode)
+    window.localStorage.setItem(COLOR_MODE_STORAGE_KEY, mode)
   } catch {
     /* ignore */
   }
