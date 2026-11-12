@@ -39,7 +39,7 @@ function RootDocument() {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body style={{ margin: 0, minHeight: '100dvh' }}>
         <AstryxProviders>
           <Outlet />
         </AstryxProviders>
