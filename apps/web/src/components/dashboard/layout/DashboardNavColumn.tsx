@@ -3,7 +3,6 @@ import { useNavigate } from '@tanstack/react-router'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import {
   getDashboardNavGroups,
-  getDashboardSettingsItem,
   type DashboardNavItem,
 } from '#/lib/dashboard/nav-items'
 import { dashboardSectionFromPathname } from '#/lib/dashboard/build-org-path'
@@ -14,11 +13,11 @@ import {
   LinkIcon,
   BarChartIcon,
   UsersIcon,
-  SettingsIcon,
   ReportIcon,
   GlobeIcon,
   ActivityIcon,
   BellIcon,
+  SettingsIcon,
 } from '#/components/icons/IcnMcp'
 import type { CSSProperties, ReactNode } from 'react'
 import type { DashboardSection } from '#/lib/dashboard/build-org-path'
@@ -28,6 +27,10 @@ import {
   DASHBOARD_NAV_HOVER_BG,
   DASHBOARD_NAV_SELECTED_BG,
   DASHBOARD_SURFACE_BG,
+  SHELL_NAV_GROUP_LABEL,
+  SHELL_NAV_ICON_COLOR,
+  SHELL_NAV_TEXT_PRIMARY,
+  SHELL_NAV_TEXT_SECONDARY,
 } from './dashboard-shell-colors'
 
 const NAV_ITEM_TRANSITION = 'background-color 0.14s ease, color 0.14s ease'
@@ -84,7 +87,7 @@ function NavLinkItem({
       style={{
         ...navLinkBaseStyle,
         fontWeight: isSelected ? 600 : 400,
-        color: isSelected ? '#0a0a0a' : 'rgba(0, 0, 0, 0.68)',
+        color: isSelected ? SHELL_NAV_TEXT_PRIMARY : SHELL_NAV_TEXT_SECONDARY,
         backgroundColor: navItemBackground(isSelected, hovered),
       }}
       onMouseEnter={() => setHovered(true)}
@@ -95,7 +98,7 @@ function NavLinkItem({
       <span
         style={{
           display: 'flex',
-          color: isSelected ? '#0a0a0a' : 'rgba(0, 0, 0, 0.55)',
+          color: isSelected ? SHELL_NAV_TEXT_PRIMARY : SHELL_NAV_ICON_COLOR,
           flexShrink: 0,
         }}
       >
@@ -117,7 +120,7 @@ function NavGroupLabel({ label, isFirst }: { label: string; isFirst: boolean }) 
         lineHeight: 1.2,
         letterSpacing: '0.07em',
         textTransform: 'uppercase',
-        color: 'rgba(0, 0, 0, 0.48)',
+        color: SHELL_NAV_GROUP_LABEL,
       }}
     >
       {label}
@@ -130,8 +133,6 @@ export default function DashboardNavColumn() {
   const pathname = useActivePathname()
   const section = dashboardSectionFromPathname(pathname, activeOrg.slug)
   const groups = getDashboardNavGroups(activeOrg.slug)
-  const settingsItem = getDashboardSettingsItem(activeOrg.slug)
-
   return (
     <div
       style={{
@@ -181,13 +182,6 @@ export default function DashboardNavColumn() {
           </div>
         ))}
       </nav>
-
-      <div style={{ paddingTop: 8 }}>
-        <NavLinkItem
-          item={settingsItem}
-          isSelected={section === 'settings'}
-        />
-      </div>
     </div>
   )
 }

@@ -27,7 +27,7 @@ export default function DashboardOverviewMetrics({
             <Heading level={3} maxLines={1}>
               {String(card.value)}
             </Heading>
-            <Text type="supporting" color="placeholder">
+            <Text type="supporting" color="secondary">
               {card.detail}
             </Text>
           </VStack>

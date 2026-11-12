@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
-import { DASHBOARD_SURFACE_BG } from '#/components/dashboard/layout/dashboard-shell-colors'
+import {
+  DASHBOARD_SURFACE_BG,
+  SHELL_NAV_TEXT_PRIMARY,
+} from '#/components/dashboard/layout/dashboard-shell-colors'
 
 /** Compact centered column for the create-organization form (~23–24rem). */
 const CREATE_ORGANIZATION_FORM_MAX_WIDTH = '24rem'
@@ -63,7 +66,7 @@ export default function CreateOrganizationShell({
             borderRadius: 0,
             cursor: 'pointer',
             backgroundColor: 'transparent',
-            color: '#0a0a0a',
+            color: SHELL_NAV_TEXT_PRIMARY,
             fontSize: 16,
             fontWeight: 600,
             fontFamily: 'inherit',

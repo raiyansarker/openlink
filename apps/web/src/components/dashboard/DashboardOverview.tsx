@@ -31,7 +31,7 @@ export default function DashboardOverview() {
 
       <VStack gap={4} width="fill">
         <HStack hAlign="between" vAlign="center" gap={4} width="fill" wrap="wrap">
-          <Heading level={3} color="secondary">
+          <Heading level={3}>
             Recent links
           </Heading>
           <Button

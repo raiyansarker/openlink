@@ -4,6 +4,8 @@ import { buildSettingsPath } from '#/lib/settings/sections'
 import {
   DASHBOARD_RAIL_BG,
   DEMO_USER_AVATAR_URL,
+  SHELL_CHROME_BORDER,
+  SHELL_POPOVER_SURFACE,
 } from './dashboard-shell-colors'
 
 const PROFILE_SIZE = 38
@@ -39,11 +41,11 @@ export default function DashboardAccountMenu({
             borderRadius: 10,
             border: onRail
               ? '2px solid rgba(255, 255, 255, 0.14)'
-              : '1px solid rgba(0, 0, 0, 0.12)',
+              : SHELL_CHROME_BORDER,
             padding: 0,
             overflow: 'hidden',
             cursor: 'pointer',
-            backgroundColor: onRail ? DASHBOARD_RAIL_BG : '#ffffff',
+            backgroundColor: onRail ? DASHBOARD_RAIL_BG : SHELL_POPOVER_SURFACE,
             flexShrink: 0,
             display: 'flex',
             alignItems: 'center',

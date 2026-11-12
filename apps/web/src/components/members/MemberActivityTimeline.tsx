@@ -10,7 +10,7 @@ type ActivityDayGroup = {
   events: MemberActivityEvent[]
 }
 
-const TRACK_COLOR = 'rgba(0, 0, 0, 0.14)'
+const TRACK_COLOR = 'var(--color-border-emphasized)'
 const NODE_SIZE_PX = 8
 
 function startOfDay(date: Date): number {
@@ -87,7 +87,7 @@ function TimelineEventNode({ event, showConnector }: TimelineEventNodeProps) {
             marginTop: 6,
             borderRadius: '50%',
             border: `2px solid ${TRACK_COLOR}`,
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--color-background-surface)',
             boxSizing: 'border-box',
           }}
         />
@@ -115,7 +115,7 @@ function TimelineEventNode({ event, showConnector }: TimelineEventNodeProps) {
           wrap="wrap"
         >
           <Text weight="semibold">{event.title}</Text>
-          <Text type="supporting" color="placeholder">
+          <Text type="supporting" color="secondary">
             {formatEventTime(event.occurredAt)}
           </Text>
         </HStack>
