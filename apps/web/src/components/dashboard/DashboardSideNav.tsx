@@ -1,3 +1,7 @@
+/**
+ * @deprecated Replaced by layout/DashboardNavColumn + three-column shell.
+ * Kept for history; do not use in new UI.
+ */
 import { Icon } from '@astryxdesign/core/Icon'
 import { Badge } from '@astryxdesign/core/Badge'
 import {
