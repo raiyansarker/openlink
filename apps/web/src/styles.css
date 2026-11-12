@@ -115,3 +115,84 @@ elements-api {
   border-radius: 9px;
   overflow: hidden;
 }
+
+/*
+ * Activity timeline — a vertical track through the actor avatars. Each row
+ * draws its own segments (above and below its 32px avatar, centred 24px in),
+ * so the line survives the rounded hover and never covers an avatar.
+ */
+.activity-timeline .astryx-list-item {
+  position: relative;
+  overflow: visible;
+}
+.activity-timeline .astryx-list-item::before,
+.activity-timeline .astryx-list-item::after {
+  content: '';
+  position: absolute;
+  left: 23.5px;
+  width: 1px;
+  background: var(--color-border-emphasized);
+  pointer-events: none;
+}
+.activity-timeline .astryx-list-item::before {
+  top: 0;
+  height: 8px;
+}
+.activity-timeline .astryx-list-item::after {
+  top: 48px;
+  bottom: -2px;
+}
+.activity-timeline .astryx-list-item:first-child::before,
+.activity-timeline .astryx-list-item:last-child::after {
+  display: none;
+}
+
+/*
+ * Connected input groups — the theme gives every input a 5px radius on all
+ * corners, which breaks InputGroup's "one shape" look. Square the inner
+ * edges and round only the outer ends, so the group reads as one field.
+ */
+.ol-connected-group > :is(.astryx-selector, .astryx-text-input, .astryx-input-group-text, .astryx-button) {
+  border-radius: 0;
+}
+.ol-connected-group > :is(.astryx-selector, .astryx-text-input, .astryx-input-group-text):first-child {
+  border-start-start-radius: 5px;
+  border-end-start-radius: 5px;
+}
+.ol-connected-group > .astryx-button:last-of-type {
+  border: 1px solid var(--color-border-emphasized);
+  border-inline-start: 0;
+  border-start-end-radius: 5px;
+  border-end-end-radius: 5px;
+}
+.ol-connected-group > .astryx-input-group-text {
+  color: var(--color-text-secondary);
+  background: var(--color-background-muted);
+}
+
+/* Create link — split view (form | preview); stacks on narrow screens. */
+@media (max-width: 960px) {
+  .ol-create-split {
+    flex-direction: column;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .ol-create-split-main {
+    flex: none !important;
+    width: 100% !important;
+    height: auto !important;
+    padding-right: 10px !important;
+  }
+  .ol-create-split-main > .settings-content-scroll,
+  .ol-create-split-aside > .settings-content-scroll {
+    overflow: visible !important;
+  }
+  .ol-create-split-aside {
+    height: auto !important;
+  }
+}
+/* First form block sits right under the page title — no rule above it. */
+.ol-form-section:first-child {
+  border-top: 0 !important;
+  padding-top: 8px !important;
+}

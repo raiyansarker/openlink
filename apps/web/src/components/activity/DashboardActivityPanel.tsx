@@ -136,7 +136,7 @@ export default function DashboardActivityPanel() {
                   <Heading level={5} weight="bold" color="secondary">
                     {group.label}
                   </Heading>
-                  <List className="activity-list" density="balanced">
+                  <List className="activity-list activity-timeline" density="balanced">
                     {group.items.map((event) => (
                       <ListItem
                         key={event.id}
