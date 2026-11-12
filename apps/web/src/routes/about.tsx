@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { createPageHead } from '#/lib/page-title'
 
 export const Route = createFileRoute('/about')({
+  head: createPageHead('About'),
   component: About,
 })
 

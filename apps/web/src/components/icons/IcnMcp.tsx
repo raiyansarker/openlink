@@ -138,6 +138,170 @@ export function BellIcon({ size = 16, ...p }: SvgProps) {
   )
 }
 
+/** iconmcp: user */
+export function UserIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <circle cx="8" cy="5" r="2.75" />
+      <path d="M2.75 13.75 C3.3 11.15 5.4 9.5 8 9.5 C10.6 9.5 12.7 11.15 13.25 13.75" />
+    </svg>
+  )
+}
+
+/** iconmcp: timeline-view */
+export function TimelineViewIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <rect x="2.25" y="2.75" width="11.5" height="10.5" rx="2" />
+      <line x1="2.25" y1="5.75" x2="13.75" y2="5.75" />
+      <line x1="4.75" y1="8.25" x2="8.75" y2="8.25" />
+      <line x1="7.25" y1="10.75" x2="11.25" y2="10.75" />
+    </svg>
+  )
+}
+
+/** iconmcp: day-and-night */
+export function DayAndNightIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <circle cx="6" cy="6" r="1.75" />
+      <line x1="6" y1="2.125" x2="6" y2="1.625" />
+      <line x1="2.125" y1="6" x2="1.625" y2="6" />
+      <line x1="3.26" y1="3.26" x2="2.906" y2="2.906" />
+      <path d="M13.5 11.5 A2.875 2.875 0 1 1 10 8 A2.5 2.5 0 0 0 13.5 11.5 Z" />
+    </svg>
+  )
+}
+
+/** iconmcp: at-sign */
+export function AtSignIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <circle cx="8" cy="8" r="2.5" />
+      <path d="M10.5 8 V9 A1.75 1.75 0 0 0 14 9 V8 A6 6 0 1 0 11.6 12.8" />
+    </svg>
+  )
+}
+
+/** iconmcp: building */
+export function BuildingIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <rect x="3" y="2" width="10" height="12" rx="2" />
+      <path d="M5.75 5 H7 M9 5 H10.25 M5.75 8 H7 M9 8 H10.25" />
+      <path d="M6.5 14 L6.5 11.8 C6.5 11.358 6.858 11 7.3 11 L8.7 11 C9.142 11 9.5 11.358 9.5 11.8 L9.5 14" />
+    </svg>
+  )
+}
+
+/** iconmcp: app-integration */
+export function AppIntegrationIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <rect x="2.25" y="2.25" width="4.25" height="4.25" rx="1" />
+      <rect x="2.25" y="9.5" width="4.25" height="4.25" rx="1" />
+      <rect x="9.5" y="9.5" width="4.25" height="4.25" rx="1" />
+      <path d="M11.625 1.875 Q11.625 4.375 14.125 4.375 Q11.625 4.375 11.625 6.875 Q11.625 4.375 9.125 4.375 Q11.625 4.375 11.625 1.875 Z" />
+    </svg>
+  )
+}
+
+/** iconmcp: code-window */
+export function CodeWindowIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2" />
+      <line x1="1.75" y1="5.75" x2="14.25" y2="5.75" />
+      <path d="M6.5 8 L5 9.5 L6.5 11" />
+      <path d="M9.5 8 L11 9.5 L9.5 11" />
+    </svg>
+  )
+}
+
+/** iconmcp: circle-check (outline) */
+export function CircleCheckIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <circle cx="8" cy="8" r="6" />
+      <path d="M5.25 8.25 L7.25 10.25 L10.75 6.25" />
+    </svg>
+  )
+}
+
+/** iconmcp: circle-check (solid / filled) */
+export function CircleCheckSolidIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      stroke="none"
+      {...p}
+    >
+      <path
+        fillRule="evenodd"
+        d="M14 8 A6 6 0 0 1 2 8 A6 6 0 0 1 14 8 Z M7.042 10.611 L7.25 10.667 L7.458 10.611 L7.564 10.524 L11.064 6.524 L11.111 6.458 L11.167 6.25 L11.111 6.042 L10.958 5.889 L10.75 5.833 L10.542 5.889 L10.436 5.976 L7.23 9.64 L5.545 7.955 L5.458 7.889 L5.25 7.833 L5.042 7.889 L4.889 8.042 L4.833 8.25 L4.889 8.458 L4.955 8.545 L6.955 10.545 Z"
+      />
+    </svg>
+  )
+}
+
+/** iconmcp: log-out */
+export function LogOutIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M6.25 2.25 L4.75 2.25 C3.922 2.25 3.25 2.922 3.25 3.75 L3.25 12.25 C3.25 13.078 3.922 13.75 4.75 13.75 L6.25 13.75" />
+      <line x1="6.75" y1="8" x2="13.5" y2="8" />
+      <path d="M10.5 5 L13.5 8 L10.5 11" />
+    </svg>
+  )
+}
+
+/** iconmcp: exit-sign */
+export function ExitSignIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <rect x="1.75" y="3.25" width="12.5" height="9.5" rx="2" />
+      <rect x="4" y="5.5" width="2.5" height="5" rx="0.6" />
+      <line x1="9" y1="8" x2="12" y2="8" />
+      <path d="M10.76 9.24 L12 8 L10.76 6.76" />
+    </svg>
+  )
+}
+
+/** iconmcp: laptop */
+export function LaptopIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p} strokeWidth={0.833}>
+      <rect x="3" y="3" width="10" height="7.25" rx="2" />
+      <path d="M3 10.25 L2.184 11.882 C1.985 12.281 2.275 12.75 2.721 12.75 L13.279 12.75 C13.725 12.75 14.015 12.281 13.816 11.882 L13 10.25" />
+    </svg>
+  )
+}
+
+/** iconmcp: smartphone */
+export function SmartphoneIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p} strokeWidth={0.833}>
+      <rect x="4" y="1.75" width="8" height="12.5" rx="2" />
+      <line x1="7" y1="11.75" x2="9" y2="11.75" />
+    </svg>
+  )
+}
+
+/** iconmcp: monitor */
+export function MonitorIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p} strokeWidth={0.833}>
+      <rect x="1.75" y="2.5" width="12.5" height="8.5" rx="2" />
+      <line x1="8" y1="11" x2="8" y2="13.5" />
+      <line x1="5.25" y1="13.5" x2="10.75" y2="13.5" />
+    </svg>
+  )
+}
+
 export function HelpIcon({ size = 16, ...p }: SvgProps) {
   return (
     <svg {...base(size)} {...p}>
