@@ -54,3 +54,10 @@ export const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, string> = {
   'link.deleted': 'Link deleted',
   'click.milestone': 'Click milestone',
 }
+
+export const WEBHOOK_EVENT_DESCRIPTIONS: Record<WebhookEvent, string> = {
+  'link.created': 'A new short link is created',
+  'link.updated': 'A link destination or settings change',
+  'link.deleted': 'A short link is removed',
+  'click.milestone': 'A link reaches a click milestone',
+}
