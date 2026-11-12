@@ -5,6 +5,9 @@
     },
     "context7": {
       "url": "https://mcp.context7.com/mcp"
+    },
+    "orpc": {
+      "url": "https://orpc.dev/mcp"
     }
   }
 }

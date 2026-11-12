@@ -3,6 +3,12 @@
 @import '@astryxdesign/core/reset.css';
 @import '@astryxdesign/core/astryx.css';
 
+elements-api {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 html,
 body {
   margin: 0;

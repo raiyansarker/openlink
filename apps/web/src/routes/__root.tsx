@@ -1,4 +1,10 @@
-import { HeadContent, Scripts, createRootRoute, Outlet } from '@tanstack/react-router'
+import {
+  HeadContent,
+  Scripts,
+  createRootRoute,
+  useRouterState,
+} from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import AstryxProviders from '#/components/AstryxProviders'
@@ -30,30 +36,42 @@ export const Route = createRootRoute({
       },
     ],
   }),
-  component: RootDocument,
+  shellComponent: RootDocument,
 })
 
-function RootDocument() {
+function RootDocument({ children }: { children: ReactNode }) {
+  const isApiDocs = useRouterState({
+    select: (state) => state.location.pathname === '/api/docs',
+  })
+
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
-      <body>
-        <AstryxProviders>
-          <Outlet />
-        </AstryxProviders>
-        <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
-          plugins={[
-            {
-              name: 'Tanstack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
+      <body
+        className={
+          isApiDocs ? 'm-0 h-dvh overflow-hidden' : undefined
+        }
+      >
+        {isApiDocs ? (
+          children
+        ) : (
+          <AstryxProviders>{children}</AstryxProviders>
+        )}
+        {!isApiDocs ? (
+          <TanStackDevtools
+            config={{
+              position: 'bottom-right',
+            }}
+            plugins={[
+              {
+                name: 'Tanstack Router',
+                render: <TanStackRouterDevtoolsPanel />,
+              },
+            ]}
+          />
+        ) : null}
         <Scripts />
       </body>
     </html>
