@@ -1,7 +1,9 @@
 import { contract } from '@openlink/contracts'
+import '@orpc/effect/extensions/effect'
+import { ArkTypeToJsonSchemaConverter } from '@orpc/arktype'
 import { OpenAPIGenerator } from '@orpc/openapi'
 import { implement, ORPCError } from '@orpc/server'
-import { experimental_ArkTypeToJsonSchemaConverter } from '@orpc/arktype'
+import { Effect } from 'effect'
 import { createHash } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import { customDomain, link } from '@openlink/db/schema'
@@ -37,12 +39,13 @@ import { badRequest, conflict, forbidden, notFound, unauthorized } from './error
 const os = implement(contract).$context<ApiContext>()
 
 const openApiGenerator = new OpenAPIGenerator({
-  schemaConverters: [new experimental_ArkTypeToJsonSchemaConverter()],
+  converters: [new ArkTypeToJsonSchemaConverter()],
 })
 
 export const router = os.router({
   system: {
-    getHealth: os.system.getHealth.handler(async () => {
+    getHealth: os.system.getHealth.effect(function* () {
+      return yield* Effect.promise(async () => {
     const report = await runHealthChecks()
     if (report.status === 'error') {
       throw new ORPCError('SERVICE_UNAVAILABLE', {
@@ -51,22 +54,31 @@ export const router = os.router({
       })
     }
     return report
+    
+      })
     }),
 
-    getOpenApiDocument: os.system.getOpenApiDocument.handler(async () => {
-      return openApiGenerator.generate(contract, {
-        info: {
-          title: 'OpenLink API',
-          version: '0.1.0',
-          description: 'OpenLink API — served via oRPC OpenAPI handler',
+    getOpenApiDocument: os.system.getOpenApiDocument.effect(function* () {
+      return yield* Effect.promise(async () => {
+      const document = await openApiGenerator.generate(contract, {
+        base: {
+          info: {
+            title: 'OpenLink API',
+            version: '0.1.0',
+            description: 'OpenLink API — served via oRPC OpenAPI handler',
+          },
+          servers: [{ url: '/api/v1', description: 'Local and production Worker' }],
         },
-        servers: [{ url: '/api/v1', description: 'Local and production Worker' }],
+      })
+      return document as unknown as { [key: string]: unknown }
+    
       })
     }),
   },
 
   auth: {
-    signUp: os.auth.signUp.handler(async ({ input, context }) => {
+    signUp: os.auth.signUp.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const response = await getAuth().api.signUpEmail({
       body: input.body,
       asResponse: true,
@@ -87,9 +99,12 @@ export const router = os.router({
         createdAt: new Date(payload.user.createdAt),
       }),
     }
-  }),
+  
+      })
+    }),
 
-    signIn: os.auth.signIn.handler(async ({ input, context }) => {
+    signIn: os.auth.signIn.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const response = await getAuth().api.signInEmail({
       body: input.body,
       asResponse: true,
@@ -108,35 +123,47 @@ export const router = os.router({
         createdAt: new Date(payload.user.createdAt),
       }),
     }
-  }),
+  
+      })
+    }),
 
-    signOut: os.auth.signOut.handler(async ({ context }) => {
+    signOut: os.auth.signOut.effect(function* ({ context }) {
+      return yield* Effect.promise(async () => {
     const response = await getAuth().api.signOut({
       headers: context.request.headers,
       asResponse: true,
     })
     mergeAuthResponseCookies(context, response)
     return {}
-  }),
+  
+      })
+    }),
 
-    getSession: os.auth.getSession.handler(async ({ context }) => {
+    getSession: os.auth.getSession.effect(function* ({ context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) return { authenticated: false as const }
     return { authenticated: true as const, user: session.user }
-  }),
+  
+      })
+    }),
   },
 
   organizations: {
-    listOrganizations: os.organizations.listOrganizations.handler(async ({ context }) => {
+    listOrganizations: os.organizations.listOrganizations.effect(function* ({ context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const rows = await listOrganizationsForUser(session.session.user.id)
     return {
       items: rows.map((row) => toMembershipDto(row.organization, row.member)),
     }
-  }),
+  
+      })
+    }),
 
-    createOrganization: os.organizations.createOrganization.handler(async ({ input, context }) => {
+    createOrganization: os.organizations.createOrganization.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     try {
@@ -153,9 +180,12 @@ export const router = os.router({
       }
       throw conflict('Unable to create organization')
     }
-  }),
+  
+      })
+    }),
 
-    acceptOrganizationInvite: os.organizations.acceptOrganizationInvite.handler(async ({ input, context }) => {
+    acceptOrganizationInvite: os.organizations.acceptOrganizationInvite.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     try {
@@ -167,9 +197,12 @@ export const router = os.router({
     } catch {
       throw badRequest('Invalid or expired invite')
     }
-  }),
+  
+      })
+    }),
 
-    getOrganization: os.organizations.getOrganization.handler(async ({ input, context }) => {
+    getOrganization: os.organizations.getOrganization.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -180,10 +213,12 @@ export const router = os.router({
     const org = await getOrganizationById(input.params.organizationId)
     if (!org) throw notFound('Organization not found')
     return toOrganizationDto(org)
-  }),
+  
+      })
+    }),
 
-    createOrganizationInvite: os.organizations.createOrganizationInvite.handler(
-    async ({ input, context }) => {
+    createOrganizationInvite: os.organizations.createOrganizationInvite.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
       const session = await requireSession(context.request)
       if (!session) throw unauthorized()
       const membership = await getMembership(
@@ -207,12 +242,14 @@ export const router = os.router({
         expiresAt: invite.expiresAt.toISOString(),
         token,
       }
+      })
     },
   ),
   },
 
   domains: {
-    listDomains: os.domains.listDomains.handler(async ({ input, context }) => {
+    listDomains: os.domains.listDomains.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -225,9 +262,12 @@ export const router = os.router({
       .from(customDomain)
       .where(eq(customDomain.organizationId, input.params.organizationId))
     return { items: rows.map(toDomainDto) }
-  }),
+  
+      })
+    }),
 
-    addDomain: os.domains.addDomain.handler(async ({ input, context }) => {
+    addDomain: os.domains.addDomain.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -244,9 +284,12 @@ export const router = os.router({
     } catch {
       throw badRequest('Unable to register domain')
     }
-  }),
+  
+      })
+    }),
 
-    getDomain: os.domains.getDomain.handler(async ({ input, context }) => {
+    getDomain: os.domains.getDomain.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -266,9 +309,12 @@ export const router = os.router({
       .limit(1)
     if (!row) throw notFound('Domain not found')
     return toDomainDto(row)
-  }),
+  
+      })
+    }),
 
-    removeDomain: os.domains.removeDomain.handler(async ({ input, context }) => {
+    removeDomain: os.domains.removeDomain.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -281,9 +327,12 @@ export const router = os.router({
     const removed = await removeCustomDomain(input.params.domainId)
     if (!removed) throw notFound('Domain not found')
     return {}
-  }),
+  
+      })
+    }),
 
-    refreshDomainStatus: os.domains.refreshDomainStatus.handler(async ({ input, context }) => {
+    refreshDomainStatus: os.domains.refreshDomainStatus.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -304,11 +353,14 @@ export const router = os.router({
     if (!row) throw notFound('Domain not found')
     const updated = await refreshCustomDomain(input.params.domainId)
     return toDomainDto(updated ?? row)
-  }),
+  
+      })
+    }),
   },
 
   links: {
-    listLinks: os.links.listLinks.handler(async ({ input, context }) => {
+    listLinks: os.links.listLinks.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -318,9 +370,12 @@ export const router = os.router({
     if (!membership) throw unauthorized()
     const rows = await listLinksForDomain(input.params.domainId)
     return { items: rows.map(toLinkDto) }
-  }),
+  
+      })
+    }),
 
-    createLink: os.links.createLink.handler(async ({ input, context }) => {
+    createLink: os.links.createLink.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -366,9 +421,12 @@ export const router = os.router({
       }
       throw badRequest('Unable to create link')
     }
-  }),
+  
+      })
+    }),
 
-    getLink: os.links.getLink.handler(async ({ input, context }) => {
+    getLink: os.links.getLink.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -381,9 +439,12 @@ export const router = os.router({
       throw notFound('Link not found')
     }
     return toLinkDto(row)
-  }),
+  
+      })
+    }),
 
-    updateLink: os.links.updateLink.handler(async ({ input, context }) => {
+    updateLink: os.links.updateLink.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -435,9 +496,12 @@ export const router = os.router({
       .returning()
 
     return toLinkDto(updated!)
-  }),
+  
+      })
+    }),
 
-    deleteLink: os.links.deleteLink.handler(async ({ input, context }) => {
+    deleteLink: os.links.deleteLink.effect(function* ({ input, context }) {
+      return yield* Effect.promise(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -451,6 +515,8 @@ export const router = os.router({
     }
     await getDb().delete(link).where(eq(link.id, input.params.linkId))
     return {}
-  }),
+  
+      })
+    }),
   },
 })
