@@ -34,7 +34,7 @@ export const SETTINGS_WORKSPACE_SECTIONS: {
   label: string
   description: string
 }[] = [
-  { id: 'general', label: 'General', description: 'Workspace name and defaults' },
+  { id: 'general', label: 'General', description: 'Name, URL, region, and workspace controls' },
   { id: 'members', label: 'Members', description: 'People and roles' },
   {
     id: 'integrations',
