@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
+import { Route as CreateOrganizationRouteImport } from './routes/create/organization'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardOrgSlugRouteRouteImport } from './routes/dashboard/$orgSlug/route'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analytics'
@@ -51,6 +52,11 @@ const DashboardRouteRoute = DashboardRouteRouteImport.update({
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateOrganizationRoute = CreateOrganizationRouteImport.update({
+  id: '/create/organization',
+  path: '/create/organization',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/dashboard/$orgSlug': typeof DashboardOrgSlugRouteRouteWithChildren
+  '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/links': typeof DashboardLinksRoute
   '/dashboard/members': typeof DashboardMembersRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/links': typeof DashboardLinksRoute
   '/dashboard/members': typeof DashboardMembersRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/dashboard/$orgSlug': typeof DashboardOrgSlugRouteRouteWithChildren
+  '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/links': typeof DashboardLinksRoute
   '/dashboard/members': typeof DashboardMembersRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/about'
     | '/dashboard/$orgSlug'
+    | '/create/organization'
     | '/dashboard/analytics'
     | '/dashboard/links'
     | '/dashboard/members'
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/create/organization'
     | '/dashboard/analytics'
     | '/dashboard/links'
     | '/dashboard/members'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/about'
     | '/dashboard/$orgSlug'
+    | '/create/organization'
     | '/dashboard/analytics'
     | '/dashboard/links'
     | '/dashboard/members'
@@ -306,6 +318,7 @@ export interface RootRouteChildren {
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  CreateOrganizationRoute: typeof CreateOrganizationRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -336,6 +349,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create/organization': {
+      id: '/create/organization'
+      path: '/create/organization'
+      fullPath: '/create/organization'
+      preLoaderRoute: typeof CreateOrganizationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/': {
@@ -561,6 +581,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   SettingsRouteRoute: SettingsRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  CreateOrganizationRoute: CreateOrganizationRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
