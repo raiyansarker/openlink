@@ -38,8 +38,8 @@ export const SETTINGS_WORKSPACE_SECTIONS: {
   { id: 'members', label: 'Members', description: 'People and roles' },
   {
     id: 'integrations',
-    label: 'Integrations',
-    description: 'Apps and webhooks',
+    label: 'Webhooks',
+    description: 'HTTPS endpoints for signed workspace events.',
   },
   {
     id: 'api-keys',

@@ -12,6 +12,7 @@ import ProfileSettingsFields from '#/components/settings/ProfileSettingsFields'
 import AppearanceSettingsFields from '#/components/settings/AppearanceSettingsFields'
 import DevicesSettingsFields from '#/components/settings/DevicesSettingsFields'
 import ApiKeysSettingsFields from '#/components/settings/ApiKeysSettingsFields'
+import IntegrationsSettingsFields from '#/components/settings/IntegrationsSettingsFields'
 import MembersSettingsFields from '#/components/settings/MembersSettingsFields'
 
 type SettingsSectionPanelProps = {
@@ -24,7 +25,9 @@ export default function SettingsSectionPanel({ section }: SettingsSectionPanelPr
 
   return (
     <VStack gap={5} hAlign="start" width="fill">
-      {section === 'members' || section === 'api-keys' ? null : section ===
+      {section === 'members' ||
+      section === 'api-keys' ||
+      section === 'integrations' ? null : section ===
         'appearance' ||
         section === 'devices' ? (
         <VStack gap={1} hAlign="start" width="fill">
@@ -66,11 +69,7 @@ export default function SettingsSectionPanel({ section }: SettingsSectionPanelPr
         </FormLayout>
       )}
       {section === 'members' && <MembersSettingsFields />}
-      {section === 'integrations' && (
-        <Text color="secondary">
-          Slack, webhooks, and third-party connections.
-        </Text>
-      )}
+      {section === 'integrations' && <IntegrationsSettingsFields />}
       {section === 'api-keys' && <ApiKeysSettingsFields />}
     </VStack>
   )
