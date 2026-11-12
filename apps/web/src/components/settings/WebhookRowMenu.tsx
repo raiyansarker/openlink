@@ -7,18 +7,25 @@ import type { WorkspaceWebhook } from '#/data/demo/webhooks'
 
 type WebhookRowMenuProps = {
   webhook: WorkspaceWebhook
+  onOpen: (id: string) => void
   onToggleEnabled: (id: string, enabled: boolean) => void
   onRemove: (id: string) => void
 }
 
 export default function WebhookRowMenu({
   webhook,
+  onOpen,
   onToggleEnabled,
   onRemove,
 }: WebhookRowMenuProps) {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
 
   const items = [
+    {
+      id: 'details',
+      label: 'View details',
+      onClick: () => onOpen(webhook.id),
+    },
     {
       id: 'toggle',
       label: webhook.isEnabled ? 'Disable' : 'Enable',
