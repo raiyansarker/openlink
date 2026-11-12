@@ -18,6 +18,7 @@
         "@astryxdesign/theme-neutral": "^0.7.14",
         "@fontsource-variable/geist": "^5.3.0",
         "@fontsource-variable/geist-mono": "^5.3.0",
+        "@legendapp/state": "^3.0.0-beta.48",
         "@openlink/contracts": "workspace:*",
         "@openlink/db": "workspace:*",
         "@openlink/domain": "workspace:*",
@@ -388,6 +389,8 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.6.0", "", {}, "sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.9", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.0.3", "@jridgewell/sourcemap-codec": "^1.4.10" } }, "sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ=="],
+
+    "@legendapp/state": ["@legendapp/state@3.0.0-beta.48", "", { "dependencies": { "use-sync-external-store": "^1.2.2" }, "peerDependencies": { "expo-sqlite": "^15.0.0" }, "optionalPeers": ["expo-sqlite"] }, "sha512-aa7vpUSoBHnXQhYf2x/10C0w1EiesegRhR7LuxnIcEPyZzZyuSF2mevf1jphlh0zzqwIJm9QxnsayDNn8/kwcA=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.2.6", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1 || 2.0.0-beta.2", "@emnapi/runtime": "^1.7.1 || 2.0.0-beta.2" } }, "sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw=="],
 
