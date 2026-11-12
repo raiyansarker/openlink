@@ -20,6 +20,10 @@ export type CreateLinkInput = {
   title: string
 }
 
+export type CreateOrganizationInput = {
+  name: string
+}
+
 type OrganizationContextValue = {
   organizations: Organization[]
   activeOrg: Organization
@@ -27,6 +31,7 @@ type OrganizationContextValue = {
   links: ShortLink[]
   stats: OrgDashboardStats
   createLink: (input: CreateLinkInput) => Promise<ShortLink>
+  createOrganization: (input: CreateOrganizationInput) => Organization
 }
 
 const OrganizationContext = createContext<OrganizationContextValue | null>(null)
@@ -43,12 +48,37 @@ function normalizeDestination(raw: string): string {
   return `https://${trimmed}`
 }
 
+function slugifyWorkspaceName(name: string): string {
+  const base = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return base || 'workspace'
+}
+
+function uniqueOrgSlug(name: string, existing: Organization[]): string {
+  const base = slugifyWorkspaceName(name)
+  if (!existing.some((org) => org.slug === base)) return base
+  let n = 2
+  while (existing.some((org) => org.slug === `${base}-${n}`)) n += 1
+  return `${base}-${n}`
+}
+
 export function OrganizationProvider({
   orgSlugFromRoute,
   children,
 }: OrganizationProviderProps) {
+  const [extraOrgs, setExtraOrgs] = useState<Organization[]>([])
+  const organizations = useMemo(
+    () => [...demoOrganizations, ...extraOrgs],
+    [extraOrgs],
+  )
+
   const activeOrg =
-    getOrganizationBySlug(orgSlugFromRoute) ?? demoOrganizations[0]
+    organizations.find((org) => org.slug === orgSlugFromRoute) ??
+    getOrganizationBySlug(orgSlugFromRoute) ??
+    organizations[0]
 
   const [extraLinks, setExtraLinks] = useState<ShortLink[]>([])
 
@@ -113,16 +143,37 @@ export function OrganizationProvider({
     [activeOrg.id, extraLinks],
   )
 
+  const createOrganization = useCallback(
+    (input: CreateOrganizationInput) => {
+      const name = input.name.trim()
+      if (!name) {
+        throw new Error('Enter a workspace name.')
+      }
+      const slug = uniqueOrgSlug(name, organizations)
+      const created: Organization = {
+        id: `org_${slug.replace(/-/g, '_')}`,
+        name,
+        slug,
+        plan: 'free',
+        memberCount: 1,
+      }
+      setExtraOrgs((prev) => [...prev, created])
+      return created
+    },
+    [organizations],
+  )
+
   const value = useMemo<OrganizationContextValue>(
     () => ({
-      organizations: demoOrganizations,
+      organizations,
       activeOrg,
       activeOrgId: activeOrg.id,
       links,
       stats,
       createLink,
+      createOrganization,
     }),
-    [activeOrg, links, stats, createLink],
+    [organizations, activeOrg, links, stats, createLink, createOrganization],
   )
 
   return (
