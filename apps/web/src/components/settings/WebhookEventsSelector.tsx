@@ -43,6 +43,7 @@ export default function WebhookEventsSelector({
       onChange={(next) => onChange(next as WebhookEvent[])}
       placeholder="Choose events"
       triggerDisplay="badges"
+      size="sm"
       maxBadges={3}
       hasSearch
       searchPlaceholder="Search events"
