@@ -1,5 +1,7 @@
 import { type } from 'arktype'
 
+import { Email } from '../schema-utils'
+
 export const OrganizationRole = type("'admin' | 'member'")
 
 export const Organization = type({
@@ -22,7 +24,7 @@ export const CreateOrganizationRequest = type({
 })
 
 export const CreateOrganizationInviteRequest = type({
-  email: 'string.email',
+  email: Email,
   role: OrganizationRole,
 })
 
@@ -33,7 +35,7 @@ export const AcceptInviteRequest = type({
 export const OrganizationInvite = type({
   id: 'string',
   organizationId: 'string',
-  email: 'string.email',
+  email: Email,
   role: OrganizationRole,
   expiresAt: 'string',
   token: 'string',

@@ -1,6 +1,6 @@
 import { type } from 'arktype'
 
-import { HttpUrl } from '../system/schema'
+import { HttpUrl } from '../schema-utils'
 import { DomainIdPath, RedirectStatus } from '../domains/schema'
 
 export const LinkStatus = type(

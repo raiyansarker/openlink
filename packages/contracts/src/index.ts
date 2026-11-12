@@ -1,9 +1,6 @@
 /**
- * oRPC OpenAPI contract — source of truth for the HTTP API.
- * The OpenAPI document is generated at runtime from this contract (see `GET /api/v1/openapi.json`).
- *
- * @see https://orpc.dev/docs/contract-first
- * @see https://orpc.dev/docs/openapi/routing
+ * oRPC OpenAPI contract (beta) — ArkType schemas shared with the frontend.
+ * Runtime OpenAPI: GET /api/v1/openapi.json on the Worker.
  */
 export { contract } from './contract'
 export * from './auth'

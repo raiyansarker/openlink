@@ -1,7 +1,7 @@
-import { oc } from '@orpc/contract'
 import { type } from 'arktype'
 
 import { EmptyResponse } from '../system/schema'
+import { oc, openapi } from '../oc'
 import {
   CreateLinkRequest,
   DomainIdPath,
@@ -12,59 +12,69 @@ import {
 } from './schema'
 
 export const listLinks = oc
-  .route({
-    inputStructure: 'detailed',
-    method: 'GET',
-    operationId: 'listLinks',
-    path: '/organizations/{organizationId}/domains/{domainId}/links',
-    tags: ['Links'],
-  })
+  .meta(
+    openapi({
+      method: 'GET',
+      operationId: 'listLinks',
+      path: '/organizations/{organizationId}/domains/{domainId}/links',
+      inputStructure: 'detailed',
+      tags: ['Links'],
+    }),
+  )
   .input(type({ params: DomainIdPath }))
   .output(ListLinksResponse)
 
 export const createLink = oc
-  .route({
-    inputStructure: 'detailed',
-    method: 'POST',
-    operationId: 'createLink',
-    path: '/organizations/{organizationId}/domains/{domainId}/links',
-    successStatus: 201,
-    tags: ['Links'],
-  })
+  .meta(
+    openapi({
+      method: 'POST',
+      operationId: 'createLink',
+      path: '/organizations/{organizationId}/domains/{domainId}/links',
+      successStatus: 201,
+      inputStructure: 'detailed',
+      tags: ['Links'],
+    }),
+  )
   .input(type({ body: CreateLinkRequest, params: DomainIdPath }))
   .output(Link)
 
 export const deleteLink = oc
-  .route({
-    inputStructure: 'detailed',
-    method: 'DELETE',
-    operationId: 'deleteLink',
-    path: '/organizations/{organizationId}/domains/{domainId}/links/{linkId}',
-    successStatus: 204,
-    tags: ['Links'],
-  })
+  .meta(
+    openapi({
+      method: 'DELETE',
+      operationId: 'deleteLink',
+      path: '/organizations/{organizationId}/domains/{domainId}/links/{linkId}',
+      successStatus: 204,
+      inputStructure: 'detailed',
+      tags: ['Links'],
+    }),
+  )
   .input(type({ params: LinkIdPath }))
   .output(EmptyResponse)
 
 export const getLink = oc
-  .route({
-    inputStructure: 'detailed',
-    method: 'GET',
-    operationId: 'getLink',
-    path: '/organizations/{organizationId}/domains/{domainId}/links/{linkId}',
-    tags: ['Links'],
-  })
+  .meta(
+    openapi({
+      method: 'GET',
+      operationId: 'getLink',
+      path: '/organizations/{organizationId}/domains/{domainId}/links/{linkId}',
+      inputStructure: 'detailed',
+      tags: ['Links'],
+    }),
+  )
   .input(type({ params: LinkIdPath }))
   .output(Link)
 
 export const updateLink = oc
-  .route({
-    inputStructure: 'detailed',
-    method: 'PATCH',
-    operationId: 'updateLink',
-    path: '/organizations/{organizationId}/domains/{domainId}/links/{linkId}',
-    tags: ['Links'],
-  })
+  .meta(
+    openapi({
+      method: 'PATCH',
+      operationId: 'updateLink',
+      path: '/organizations/{organizationId}/domains/{domainId}/links/{linkId}',
+      inputStructure: 'detailed',
+      tags: ['Links'],
+    }),
+  )
   .input(type({ body: UpdateLinkRequest, params: LinkIdPath }))
   .output(Link)
 

@@ -1,29 +1,30 @@
-import { oc } from '@orpc/contract'
-
+import { oc, openapi } from '../oc'
 import { HealthResponse, OpenApiDocument } from './schema'
 
 export const getHealth = oc
-  .route({
-    description:
-      'Checks every runtime dependency the API relies on (D1, Analytics Engine, auth configuration, domain provider, and the oRPC OpenAPI contract).',
-    inputStructure: 'detailed',
-    method: 'GET',
-    operationId: 'getHealth',
-    path: '/health',
-    summary: 'Dependency health probe',
-    tags: ['System'],
-  })
+  .meta(
+    openapi({
+      description:
+        'Checks every runtime dependency the API relies on (D1, Analytics Engine, auth configuration, domain provider, and the oRPC OpenAPI contract).',
+      method: 'GET',
+      operationId: 'getHealth',
+      path: '/health',
+      summary: 'Dependency health probe',
+      tags: ['System'],
+    }),
+  )
   .output(HealthResponse)
 
 export const getOpenApiDocument = oc
-  .route({
-    inputStructure: 'detailed',
-    method: 'GET',
-    operationId: 'getOpenApiDocument',
-    path: '/openapi.json',
-    summary: 'OpenAPI document for this API',
-    tags: ['System'],
-  })
+  .meta(
+    openapi({
+      method: 'GET',
+      operationId: 'getOpenApiDocument',
+      path: '/openapi.json',
+      summary: 'OpenAPI document for this API',
+      tags: ['System'],
+    }),
+  )
   .output(OpenApiDocument)
 
 export const contract = {
