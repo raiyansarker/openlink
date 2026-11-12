@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Tooltip } from '@astryxdesign/core/Tooltip'
 import type { Organization } from '#/data/demo/types'
@@ -11,11 +12,15 @@ import { useActivePathname } from '#/hooks/useActivePathname'
 import DashboardAccountMenu from './DashboardAccountMenu'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { PlusIcon } from '#/components/icons/IcnMcp'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
+import {
+  DASHBOARD_RAIL_BG,
+  DASHBOARD_RAIL_HOVER_BG,
+  DASHBOARD_RAIL_SELECTED_BG,
+} from './dashboard-shell-colors'
 
 const ORG_CONTROL_SIZE = 34
 const ORG_LOGO_SIZE = 28
-const RAIL_BACKGROUND = '#0a0a0a'
 
 type OrganizationIconRailProps = {
   organizations: Organization[]
@@ -33,12 +38,62 @@ const orgControlBase: CSSProperties = {
   flexShrink: 0,
   borderRadius: 9,
   padding: 0,
+  border: 'none',
+  cursor: 'pointer',
+  transition: 'background-color 0.14s ease, box-shadow 0.14s ease',
+}
+
+function OrgSwitchButton({
+  orgName,
+  isActive,
+  onClick,
+  children,
+}: {
+  orgName: string
+  isActive: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  const [hovered, setHovered] = useState(false)
+
+  const backgroundColor = isActive
+    ? DASHBOARD_RAIL_SELECTED_BG
+    : hovered
+      ? DASHBOARD_RAIL_HOVER_BG
+      : 'transparent'
+
+  const boxShadow = isActive
+    ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.28)'
+    : 'none'
+
+  return (
+    <Tooltip content={orgName} placement="end">
+      <button
+        type="button"
+        aria-label={`Switch to ${orgName}`}
+        aria-current={isActive ? 'true' : undefined}
+        onClick={onClick}
+        style={{
+          ...orgControlBase,
+          backgroundColor,
+          boxShadow,
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
+      >
+        {children}
+      </button>
+    </Tooltip>
+  )
 }
 
 export default function OrganizationIconRail({
   organizations,
   activeOrgSlug,
 }: OrganizationIconRailProps) {
+  const [createHovered, setCreateHovered] = useState(false)
   const pathname = useActivePathname()
   const navigate = useNavigate()
   const { createOrganization } = useOrganization()
@@ -67,7 +122,7 @@ export default function OrganizationIconRail({
         alignItems: 'center',
         paddingTop: 14,
         paddingBottom: 12,
-        backgroundColor: RAIL_BACKGROUND,
+        backgroundColor: DASHBOARD_RAIL_BG,
         flexShrink: 0,
       }}
     >
@@ -90,32 +145,18 @@ export default function OrganizationIconRail({
           const isActive = org.slug === activeOrgSlug
 
           return (
-            <Tooltip key={org.id} content={org.name} placement="end">
-              <button
-                type="button"
-                aria-label={`Switch to ${org.name}`}
-                aria-current={isActive ? 'true' : undefined}
-                onClick={() => void navigate({ to: target })}
-                style={{
-                  ...orgControlBase,
-                  border: 'none',
-                  cursor: 'pointer',
-                  backgroundColor: isActive
-                    ? 'rgba(255,255,255,0.08)'
-                    : 'transparent',
-                  boxShadow: isActive
-                    ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.28)'
-                    : 'none',
-                  transition: 'background-color 0.16s ease, box-shadow 0.16s ease',
-                }}
-              >
-                <OrganizationLogo
-                  name={org.name}
-                  brand={brand}
-                  size={ORG_LOGO_SIZE}
-                />
-              </button>
-            </Tooltip>
+            <OrgSwitchButton
+              key={org.id}
+              orgName={org.name}
+              isActive={isActive}
+              onClick={() => void navigate({ to: target })}
+            >
+              <OrganizationLogo
+                name={org.name}
+                brand={brand}
+                size={ORG_LOGO_SIZE}
+              />
+            </OrgSwitchButton>
           )
         })}
 
@@ -129,8 +170,8 @@ export default function OrganizationIconRail({
             paddingTop: 6,
             paddingBottom: 2,
             marginTop: 2,
-            backgroundColor: RAIL_BACKGROUND,
-            boxShadow: `0 -10px 12px ${RAIL_BACKGROUND}`,
+            backgroundColor: DASHBOARD_RAIL_BG,
+            boxShadow: `0 -10px 12px ${DASHBOARD_RAIL_BG}`,
           }}
         >
           <Tooltip content="Create organization" placement="end">
@@ -140,23 +181,16 @@ export default function OrganizationIconRail({
               onClick={handleCreateOrganization}
               style={{
                 ...orgControlBase,
-                border: '1px dashed rgba(255,255,255,0.22)',
-                cursor: 'pointer',
-                backgroundColor: RAIL_BACKGROUND,
-                color: 'rgba(255,255,255,0.55)',
-                transition:
-                  'background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease',
+                border: '1px dashed rgba(255, 255, 255, 0.22)',
+                backgroundColor: createHovered
+                  ? DASHBOARD_RAIL_HOVER_BG
+                  : 'transparent',
+                color: createHovered ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.55)',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.9)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = RAIL_BACKGROUND
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
-              }}
+              onMouseEnter={() => setCreateHovered(true)}
+              onMouseLeave={() => setCreateHovered(false)}
+              onFocus={() => setCreateHovered(true)}
+              onBlur={() => setCreateHovered(false)}
             >
               <PlusIcon size={16} />
             </button>
@@ -165,7 +199,7 @@ export default function OrganizationIconRail({
       </div>
 
       <div style={{ flexShrink: 0, marginTop: 10 }}>
-        <DashboardAccountMenu />
+        <DashboardAccountMenu variant="rail" />
       </div>
     </div>
   )

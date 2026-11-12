@@ -2,7 +2,12 @@ import type { ReactNode } from 'react'
 import type { Organization } from '#/data/demo/types'
 import OrganizationIconRail from './OrganizationIconRail'
 import DashboardNavColumn from './DashboardNavColumn'
-import { DASHBOARD_PANEL_BACKGROUND } from './dashboard-shell-colors'
+import {
+  DASHBOARD_CONTENT_PANEL_BG,
+  DASHBOARD_CONTENT_PANEL_BORDER,
+  DASHBOARD_CONTENT_PANEL_RADIUS,
+  DASHBOARD_SURFACE_BG,
+} from './dashboard-shell-colors'
 
 type ThreeColumnDashboardLayoutProps = {
   organizations: Organization[]
@@ -22,7 +27,7 @@ export default function ThreeColumnDashboardLayout({
         width: '100%',
         height: '100dvh',
         overflow: 'hidden',
-        backgroundColor: '#0a0a0a',
+        backgroundColor: DASHBOARD_SURFACE_BG,
       }}
     >
       <OrganizationIconRail
@@ -38,31 +43,26 @@ export default function ThreeColumnDashboardLayout({
           minWidth: 0,
           height: '100%',
           padding: 10,
+          paddingLeft: 0,
+          boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: DASHBOARD_PANEL_BACKGROUND,
+          backgroundColor: DASHBOARD_SURFACE_BG,
         }}
       >
         <div
+          className="settings-content-scroll"
           style={{
             flex: 1,
             minHeight: 0,
-            backgroundColor: '#ffffff',
-            borderRadius: 14,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
+            overflowY: 'auto',
+            backgroundColor: DASHBOARD_CONTENT_PANEL_BG,
+            borderRadius: DASHBOARD_CONTENT_PANEL_RADIUS,
+            border: DASHBOARD_CONTENT_PANEL_BORDER,
+            boxShadow: 'none',
           }}
         >
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              overflowY: 'auto',
-            }}
-          >
-            {children}
-          </div>
+          {children}
         </div>
       </div>
     </div>

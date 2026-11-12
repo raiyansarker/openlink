@@ -1,11 +1,21 @@
 import { useNavigate } from '@tanstack/react-router'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { buildSettingsPath } from '#/lib/settings/sections'
-import { DEMO_USER_AVATAR_URL } from './dashboard-shell-colors'
+import {
+  DASHBOARD_RAIL_BG,
+  DEMO_USER_AVATAR_URL,
+} from './dashboard-shell-colors'
 
 const PROFILE_SIZE = 38
 
-export default function DashboardAccountMenu() {
+type DashboardAccountMenuProps = {
+  variant?: 'default' | 'rail'
+}
+
+export default function DashboardAccountMenu({
+  variant = 'default',
+}: DashboardAccountMenuProps) {
+  const onRail = variant === 'rail'
   const navigate = useNavigate()
 
   const goToProfile = () => {
@@ -27,11 +37,13 @@ export default function DashboardAccountMenu() {
             width: PROFILE_SIZE,
             height: PROFILE_SIZE,
             borderRadius: 10,
-            border: '2px solid rgba(255,255,255,0.14)',
+            border: onRail
+              ? '2px solid rgba(255, 255, 255, 0.14)'
+              : '1px solid rgba(0, 0, 0, 0.12)',
             padding: 0,
             overflow: 'hidden',
             cursor: 'pointer',
-            backgroundColor: '#141414',
+            backgroundColor: onRail ? DASHBOARD_RAIL_BG : '#ffffff',
             flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
