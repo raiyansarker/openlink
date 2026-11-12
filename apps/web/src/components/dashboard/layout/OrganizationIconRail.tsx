@@ -10,7 +10,9 @@ import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
 import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { useActivePathname } from '#/hooks/useActivePathname'
 import DashboardAccountMenu from './DashboardAccountMenu'
-import { PlusIcon } from '#/components/icons/IcnMcp'
+import { PlusIcon, SettingsIcon } from '#/components/icons/IcnMcp'
+import { buildSettingsPath } from '#/lib/settings/sections'
+import { isDashboardSettingsPath } from '#/lib/dashboard/paths/settings'
 import type { CSSProperties, ReactNode } from 'react'
 import {
   DASHBOARD_CHROME_TOP_PADDING,
@@ -84,6 +86,46 @@ function OrgSwitchButton({
         onBlur={() => setHovered(false)}
       >
         {children}
+      </button>
+    </Tooltip>
+  )
+}
+
+function RailSettingsButton() {
+  const [hovered, setHovered] = useState(false)
+  const pathname = useActivePathname()
+  const navigate = useNavigate()
+  const isActive = isDashboardSettingsPath(pathname)
+
+  const backgroundColor = isActive
+    ? DASHBOARD_RAIL_SELECTED_BG
+    : hovered
+      ? DASHBOARD_RAIL_HOVER_BG
+      : 'transparent'
+
+  const boxShadow = isActive
+    ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.28)'
+    : 'none'
+
+  return (
+    <Tooltip content="Settings" placement="end">
+      <button
+        type="button"
+        aria-label="Settings"
+        aria-current={isActive ? 'page' : undefined}
+        onClick={() => void navigate({ to: buildSettingsPath('profile') })}
+        style={{
+          ...orgControlBase,
+          backgroundColor,
+          boxShadow,
+          color: isActive || hovered ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.72)',
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
+      >
+        <SettingsIcon size={17} strokeWidth={1.15} />
       </button>
     </Tooltip>
   )
@@ -176,7 +218,7 @@ export default function OrganizationIconRail({
                 backgroundColor: createHovered
                   ? DASHBOARD_RAIL_HOVER_BG
                   : 'transparent',
-                color: createHovered ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.55)',
+                color: createHovered ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.72)',
               }}
               onMouseEnter={() => setCreateHovered(true)}
               onMouseLeave={() => setCreateHovered(false)}
@@ -189,7 +231,17 @@ export default function OrganizationIconRail({
         </div>
       </div>
 
-      <div style={{ flexShrink: 0, marginTop: 10 }}>
+      <div
+        style={{
+          flexShrink: 0,
+          marginTop: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <RailSettingsButton />
         <DashboardAccountMenu variant="rail" />
       </div>
     </div>
