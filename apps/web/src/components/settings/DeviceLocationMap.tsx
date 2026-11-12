@@ -3,11 +3,8 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import { Card } from '@astryxdesign/core/Card'
 import { Text } from '@astryxdesign/core/Text'
 import { useResolvedColorScheme } from '#/hooks/use-resolved-color-scheme'
+import { OPENFREEMAP_STYLES, loadMapLibre } from '#/lib/maps/load-maplibre'
 
-const STYLE_URLS = {
-  light: 'https://tiles.openfreemap.org/styles/positron',
-  dark: 'https://tiles.openfreemap.org/styles/dark',
-} as const
 
 const MAP_HEIGHT = 200
 const ZOOM = 9.5
@@ -59,17 +56,12 @@ export default function DeviceLocationMap({ lat, lng, label }: DeviceLocationMap
 
     void (async () => {
       try {
-        const [maplibre, worker] = await Promise.all([
-          import('maplibre-gl'),
-          import('maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'),
-          import('maplibre-gl/dist/maplibre-gl.css'),
-        ])
+        const maplibre = await loadMapLibre()
         if (isCancelled) return
-        maplibre.setWorkerUrl(worker.default)
 
         const map = new maplibre.Map({
           container,
-          style: STYLE_URLS[scheme],
+          style: OPENFREEMAP_STYLES[scheme],
           center: [lng, lat],
           zoom: ZOOM,
           interactive: false,
@@ -125,7 +117,7 @@ export default function DeviceLocationMap({ lat, lng, label }: DeviceLocationMap
   }, [lat, lng])
 
   useEffect(() => {
-    mapRef.current?.setStyle(STYLE_URLS[scheme])
+    mapRef.current?.setStyle(OPENFREEMAP_STYLES[scheme])
   }, [scheme])
 
   return (

@@ -7,6 +7,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import DeviceLocationMap from '#/components/settings/DeviceLocationMap'
+import { OPENFREEMAP_CREDIT } from '#/lib/maps/load-maplibre'
 import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
@@ -82,7 +83,7 @@ export default function DeviceDetailSheet({
                       Approximate location from the IP address.
                     </Text>
                     <Text type="supporting" color="secondary">
-                      © OpenFreeMap · OpenMapTiles · OpenStreetMap contributors
+                      {OPENFREEMAP_CREDIT}
                     </Text>
                   </VStack>
                 </VStack>
