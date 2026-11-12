@@ -6,12 +6,14 @@ import { implement } from '@orpc/server'
 import { Effect } from 'effect'
 
 import { io } from '#/server/effect/io'
-import { createHash } from 'node:crypto'
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { customDomain, link } from '@openlink/db/schema'
+import { getDomainInOrganization, requireOrgMembership } from '#/server/api/access'
 import { getAuth } from '#/server/auth/instance'
 import { requireSession } from '#/server/auth/session'
 import { getDb } from '#/server/db'
+import { getBindings } from '#/server/env'
+import { hashLinkPassword } from '#/server/links/password'
 import {
   registerCustomDomain,
   refreshCustomDomain,
@@ -19,7 +21,7 @@ import {
 } from '#/server/domain/service'
 import { runHealthChecks } from '#/server/health/checks'
 import { createLinkRecord, getLinkInDomain, listLinksForDomain } from '#/server/links/service'
-import { getMembership, isAdmin } from '#/server/org/access'
+import { isAdmin } from '#/server/org/access'
 import {
   acceptMemberInvite,
   createMemberInvite,
@@ -183,10 +185,14 @@ export const router = os.router({
     try {
       const { org, member } = await acceptMemberInvite({
         userId: session.session.user.id,
+        userEmail: session.session.user.email,
         token: input.body.token,
       })
       return toMembershipDto(org, member)
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'invite_email_mismatch') {
+        throw errors.FORBIDDEN({ message: 'This invite was sent to a different email address' })
+      }
       throw errors.BAD_REQUEST({ message: 'Invalid or expired invite' })
     }
   
@@ -197,11 +203,11 @@ export const router = os.router({
       return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw errors.UNAUTHORIZED()
-    const membership = await getMembership(
+    const membership = await requireOrgMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw errors.NOT_FOUND({ message: 'Organization not found' })
+    if (!membership) throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
     const org = await getOrganizationById(input.params.organizationId)
     if (!org) throw errors.NOT_FOUND({ message: 'Organization not found' })
     return toOrganizationDto(org)
@@ -213,11 +219,14 @@ export const router = os.router({
       return yield* io(async () => {
       const session = await requireSession(context.request)
       if (!session) throw errors.UNAUTHORIZED()
-      const membership = await getMembership(
+      const membership = await requireOrgMembership(
         session.session.user.id,
         input.params.organizationId,
       )
-      if (!membership || !isAdmin(membership.role)) {
+      if (!membership) {
+        throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
+      }
+      if (!isAdmin(membership.role)) {
         throw errors.FORBIDDEN({ message: 'Admin role required' })
       }
       const { invite, token } = await createMemberInvite({
@@ -226,13 +235,14 @@ export const router = os.router({
         role: input.body.role,
         createdByUserId: session.session.user.id,
       })
+      const exposeToken = getBindings().EXPOSE_INVITE_TOKENS_IN_API === 'true'
       return {
         id: invite.id,
         organizationId: invite.organizationId!,
         email: invite.email,
         role: invite.role,
         expiresAt: invite.expiresAt.toISOString(),
-        token,
+        ...(exposeToken ? { token } : {}),
       }
       })
     }),
@@ -243,11 +253,13 @@ export const router = os.router({
       return yield* io(async () => {
         const session = await requireSession(context.request)
         if (!session) throw errors.UNAUTHORIZED()
-        const membership = await getMembership(
+        const membership = await requireOrgMembership(
           session.session.user.id,
           input.params.organizationId,
         )
-        if (!membership) throw errors.UNAUTHORIZED()
+        if (!membership) {
+          throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
+        }
         const rows = await getDb()
           .select()
           .from(customDomain)
@@ -260,11 +272,13 @@ export const router = os.router({
       return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw errors.UNAUTHORIZED()
-    const membership = await getMembership(
+    const membership = await requireOrgMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw errors.FORBIDDEN()
+    if (!membership) {
+      throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
+    }
     try {
       const row = await registerCustomDomain({
         organizationId: input.params.organizationId,
@@ -282,24 +296,19 @@ export const router = os.router({
       return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw errors.UNAUTHORIZED()
-    const membership = await getMembership(
+    const membership = await requireOrgMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw errors.NOT_FOUND({ message: 'Domain not found' })
-    const [row] = await getDb()
-      .select()
-      .from(customDomain)
-      .where(
-        and(
-          eq(customDomain.id, input.params.domainId),
-          eq(customDomain.organizationId, input.params.organizationId),
-        ),
-      )
-      .limit(1)
+    if (!membership) {
+      throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
+    }
+    const row = await getDomainInOrganization(
+      input.params.domainId,
+      input.params.organizationId,
+    )
     if (!row) throw errors.NOT_FOUND({ message: 'Domain not found' })
     return toDomainDto(row)
-  
       })
     }),
 
@@ -307,14 +316,17 @@ export const router = os.router({
       return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw errors.UNAUTHORIZED()
-    const membership = await getMembership(
+    const membership = await requireOrgMembership(
       session.session.user.id,
       input.params.organizationId,
     )
     if (!membership || !isAdmin(membership.role)) {
       throw errors.FORBIDDEN({ message: 'Admin role required' })
     }
-    const removed = await removeCustomDomain(input.params.domainId)
+    const removed = await removeCustomDomain(
+      input.params.domainId,
+      input.params.organizationId,
+    )
     if (!removed) throw errors.NOT_FOUND({ message: 'Domain not found' })
     return {}
   
@@ -325,21 +337,17 @@ export const router = os.router({
       return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw errors.UNAUTHORIZED()
-    const membership = await getMembership(
+    const membership = await requireOrgMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw errors.NOT_FOUND({ message: 'Domain not found' })
-    const [row] = await getDb()
-      .select()
-      .from(customDomain)
-      .where(
-        and(
-          eq(customDomain.id, input.params.domainId),
-          eq(customDomain.organizationId, input.params.organizationId),
-        ),
-      )
-      .limit(1)
+    if (!membership) {
+      throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
+    }
+    const row = await getDomainInOrganization(
+      input.params.domainId,
+      input.params.organizationId,
+    )
     if (!row) throw errors.NOT_FOUND({ message: 'Domain not found' })
     const updated = await refreshCustomDomain(input.params.domainId)
     return toDomainDto(updated ?? row)
@@ -353,11 +361,18 @@ export const router = os.router({
       return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw errors.UNAUTHORIZED()
-    const membership = await getMembership(
+    const membership = await requireOrgMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw errors.UNAUTHORIZED()
+    if (!membership) {
+      throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
+    }
+    const domain = await getDomainInOrganization(
+      input.params.domainId,
+      input.params.organizationId,
+    )
+    if (!domain) throw errors.NOT_FOUND({ message: 'Domain not found' })
     const rows = await listLinksForDomain(input.params.domainId)
     return { items: rows.map(toLinkDto) }
   
@@ -368,21 +383,17 @@ export const router = os.router({
       return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw errors.UNAUTHORIZED()
-    const membership = await getMembership(
+    const membership = await requireOrgMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw errors.FORBIDDEN()
-    const [domain] = await getDb()
-      .select()
-      .from(customDomain)
-      .where(
-        and(
-          eq(customDomain.id, input.params.domainId),
-          eq(customDomain.organizationId, input.params.organizationId),
-        ),
-      )
-      .limit(1)
+    if (!membership) {
+      throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
+    }
+    const domain = await getDomainInOrganization(
+      input.params.domainId,
+      input.params.organizationId,
+    )
     if (!domain) throw errors.NOT_FOUND({ message: 'Domain not found' })
     try {
       const row = await createLinkRecord({
@@ -419,11 +430,18 @@ export const router = os.router({
       return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw errors.UNAUTHORIZED()
-    const membership = await getMembership(
+    const membership = await requireOrgMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw errors.NOT_FOUND({ message: 'Link not found' })
+    if (!membership) {
+      throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
+    }
+    const domain = await getDomainInOrganization(
+      input.params.domainId,
+      input.params.organizationId,
+    )
+    if (!domain) throw errors.NOT_FOUND({ message: 'Domain not found' })
     const row = await getLinkInDomain(input.params.domainId, input.params.linkId)
     if (!row || row.organizationId !== input.params.organizationId) {
       throw errors.NOT_FOUND({ message: 'Link not found' })
@@ -437,11 +455,18 @@ export const router = os.router({
       return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw errors.UNAUTHORIZED()
-    const membership = await getMembership(
+    const membership = await requireOrgMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw errors.FORBIDDEN()
+    if (!membership) {
+      throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
+    }
+    const domain = await getDomainInOrganization(
+      input.params.domainId,
+      input.params.organizationId,
+    )
+    if (!domain) throw errors.NOT_FOUND({ message: 'Domain not found' })
     const existing = await getLinkInDomain(input.params.domainId, input.params.linkId)
     if (!existing || existing.organizationId !== input.params.organizationId) {
       throw errors.NOT_FOUND({ message: 'Link not found' })
@@ -451,7 +476,7 @@ export const router = os.router({
       input.body.clearPassword === true
         ? null
         : input.body.password
-          ? createHash('sha256').update(input.body.password).digest('hex')
+          ? await hashLinkPassword(input.body.password)
           : existing.passwordHash
 
     const [updated] = await getDb()
@@ -494,11 +519,18 @@ export const router = os.router({
       return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw errors.UNAUTHORIZED()
-    const membership = await getMembership(
+    const membership = await requireOrgMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw errors.FORBIDDEN()
+    if (!membership) {
+      throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
+    }
+    const domain = await getDomainInOrganization(
+      input.params.domainId,
+      input.params.organizationId,
+    )
+    if (!domain) throw errors.NOT_FOUND({ message: 'Domain not found' })
     const existing = await getLinkInDomain(input.params.domainId, input.params.linkId)
     if (!existing || existing.organizationId !== input.params.organizationId) {
       throw errors.NOT_FOUND({ message: 'Link not found' })
