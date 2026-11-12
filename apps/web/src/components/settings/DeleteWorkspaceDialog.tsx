@@ -48,7 +48,6 @@ export default function DeleteWorkspaceDialog({
               </Text>
               <TextInput
                 label={`Type ${workspaceName} to confirm`}
-                size="sm"
                 value={confirmation}
                 onChange={setConfirmation}
                 autoComplete="off"

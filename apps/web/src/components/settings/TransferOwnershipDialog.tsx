@@ -58,7 +58,6 @@ export default function TransferOwnershipDialog({
               ) : (
                 <Selector
                   label="New owner"
-                  size="sm"
                   options={options}
                   value={memberId}
                   onChange={setMemberId}
