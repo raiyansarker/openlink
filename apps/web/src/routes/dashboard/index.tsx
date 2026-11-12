@@ -1,6 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
-import DashboardOverview from '#/components/dashboard/DashboardOverview'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { getDefaultOrgId } from '#/lib/dashboard/default-org'
 
 export const Route = createFileRoute('/dashboard/')({
-  component: DashboardOverview,
+  beforeLoad: () => {
+    throw redirect({
+      to: '/dashboard/$orgId',
+      params: { orgId: getDefaultOrgId() },
+    })
+  },
 })
