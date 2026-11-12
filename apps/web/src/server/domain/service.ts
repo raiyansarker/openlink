@@ -1,5 +1,5 @@
 import { createOpenLinkDomainClient, type DnsRecord } from '@openlink/domain'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { customDomain } from '@openlink/db/schema'
 import { getBindings } from '../env'
 import { getDb } from '../db'
@@ -84,9 +84,15 @@ export async function registerCustomDomain(input: {
   return row!
 }
 
-export async function removeCustomDomain(domainId: string) {
+export async function removeCustomDomain(domainId: string, organizationId: string) {
   const db = getDb()
-  const [row] = await db.select().from(customDomain).where(eq(customDomain.id, domainId)).limit(1)
+  const [row] = await db
+    .select()
+    .from(customDomain)
+    .where(
+      and(eq(customDomain.id, domainId), eq(customDomain.organizationId, organizationId)),
+    )
+    .limit(1)
   if (!row) return false
 
   const client = createOpenLinkDomainClient(getBindings())
