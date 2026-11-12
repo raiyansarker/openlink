@@ -1,26 +1,20 @@
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
-import { InputGroup } from '@astryxdesign/core/InputGroup'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { StatusDot } from '@astryxdesign/core/StatusDot'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
-import ApiKeySecretField from '#/components/settings/ApiKeySecretField'
 import WebhookEventsSelector from '#/components/settings/WebhookEventsSelector'
 import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
 import type { WebhookEvent, WorkspaceWebhook } from '#/data/demo/webhooks'
-import {
-  buildFullWebhookSecret,
-  randomWebhookPrefix,
-} from '#/lib/integrations/webhook-secret'
 import { webhookStatusMeta } from '#/lib/integrations/webhook-status'
 
 type WebhookDetailSheetProps = {
@@ -58,24 +52,10 @@ export default function WebhookDetailSheet({
   onRemove,
 }: WebhookDetailSheetProps) {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
-  const [rollAlertOpen, setRollAlertOpen] = useState(false)
-  const [newSecret, setNewSecret] = useState<string | null>(null)
-
-  const webhookId = webhook?.id
-  useEffect(() => {
-    setNewSecret(null)
-  }, [webhookId])
 
   if (!webhook) return null
 
   const meta = webhookStatusMeta(webhook)
-
-  const rollSecret = () => {
-    const prefix = randomWebhookPrefix()
-    setNewSecret(buildFullWebhookSecret(prefix))
-    onUpdate(webhook.id, { signingSecretPrefix: prefix })
-    setRollAlertOpen(false)
-  }
 
   return (
     <>
@@ -144,36 +124,6 @@ export default function WebhookDetailSheet({
                   description="Changes apply right away."
                 />
 
-                <InputGroup
-                  label="Signing secret"
-                  description="Only shown when created or rolled."
-                  size="sm"
-                >
-                  <TextInput
-                    label="Signing secret"
-                    isLabelHidden
-                    size="sm"
-                    value="••••••••••••••••••••••••"
-                    onChange={() => {}}
-                    isDisabled
-                    width="100%"
-                    controlStyle={{ flex: '1 1 0', minWidth: 0 }}
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    label="Roll secret"
-                    onClick={() => setRollAlertOpen(true)}
-                  />
-                </InputGroup>
-
-                {newSecret ? (
-                  <ApiKeySecretField
-                    label="New signing secret"
-                    value={newSecret}
-                    description="Shown once. Update your server before closing."
-                  />
-                ) : null}
               </VStack>
             </LayoutContent>
           }
@@ -199,15 +149,6 @@ export default function WebhookDetailSheet({
           }
         />
       </Drawer>
-
-      <AlertDialog
-        isOpen={rollAlertOpen}
-        onOpenChange={setRollAlertOpen}
-        title="Roll signing secret?"
-        description="The current secret stops working immediately. Requests your server receives will be signed with the new one."
-        actionLabel="Roll secret"
-        onAction={rollSecret}
-      />
 
       <AlertDialog
         isOpen={deleteAlertOpen}
