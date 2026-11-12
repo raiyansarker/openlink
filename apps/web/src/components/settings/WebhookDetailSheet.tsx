@@ -1,18 +1,15 @@
 import { useEffect, useState } from 'react'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Button } from '@astryxdesign/core/Button'
-import { Divider } from '@astryxdesign/core/Divider'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
-import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
-import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList'
 import { StatusDot } from '@astryxdesign/core/StatusDot'
 import { Text } from '@astryxdesign/core/Text'
+import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
-import CopyValueButton from '#/components/common/CopyValueButton'
 import ApiKeySecretField from '#/components/settings/ApiKeySecretField'
-import WebhookEventSwitches from '#/components/settings/WebhookEventSwitches'
+import WebhookEventsSelector from '#/components/settings/WebhookEventsSelector'
 import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
@@ -86,49 +83,45 @@ export default function WebhookDetailSheet({
           }
           content={
             <LayoutContent>
-              <VStack gap={8} width="100%" hAlign="stretch">
-                <MetadataList label={{ position: 'top' }}>
-                  <MetadataListItem label="Endpoint">
-                    <CopyValueButton display={webhook.endpointUrl} />
-                  </MetadataListItem>
-                  <MetadataListItem label="Signing secret">
-                    <HStack gap={3} vAlign="center" hAlign="between" width="100%">
-                      <Text color="secondary">
-                        Hidden · only shown when created or rolled
-                      </Text>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        label="Roll secret"
-                        onClick={() => setRollAlertOpen(true)}
-                      />
-                    </HStack>
-                  </MetadataListItem>
-                </MetadataList>
+              <VStack gap={6} width="100%" hAlign="stretch">
+                <TextInput
+                  label="Endpoint URL"
+                  value={webhook.endpointUrl}
+                  onChange={() => {}}
+                  isDisabled
+                  disabledMessage="Create a new webhook to send events to a different URL."
+                  width="100%"
+                />
 
-                {newSecret ? (
-                  <ApiKeySecretField
-                    label="New signing secret"
-                    value={newSecret}
-                    description="Shown once. Update your server before closing."
-                  />
-                ) : null}
+                <WebhookEventsSelector
+                  value={webhook.events}
+                  onChange={(next: WebhookEvent[]) => {
+                    if (next.length > 0) onUpdate(webhook.id, { events: next })
+                  }}
+                  description="Changes apply right away."
+                />
 
-                <Divider variant="subtle" />
-
-                <VStack gap={3} width="100%" hAlign="stretch">
-                  <VStack gap={1} hAlign="start">
-                    <Heading level={4}>Events</Heading>
-                    <Text type="supporting" color="secondary">
-                      Changes apply right away.
-                    </Text>
-                  </VStack>
-                  <WebhookEventSwitches
-                    value={webhook.events}
-                    onChange={(next: WebhookEvent[]) =>
-                      onUpdate(webhook.id, { events: next })
-                    }
-                  />
+                <VStack gap={2} width="100%" hAlign="stretch">
+                  <Text weight="semibold">Signing secret</Text>
+                  <Text type="supporting" color="secondary">
+                    The secret is never shown again after it is created. Roll it
+                    to get a new one; the old one stops working at once.
+                  </Text>
+                  <HStack gap={2} width="100%">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      label="Roll signing secret"
+                      onClick={() => setRollAlertOpen(true)}
+                    />
+                  </HStack>
+                  {newSecret ? (
+                    <ApiKeySecretField
+                      label="New signing secret"
+                      value={newSecret}
+                      description="Shown once. Update your server before closing."
+                    />
+                  ) : null}
                 </VStack>
               </VStack>
             </LayoutContent>
