@@ -1,88 +1,121 @@
-import { Icon } from '@astryxdesign/core/Icon'
-import type { OrganizationBrandIconKey } from '#/data/demo/organization-branding'
-import { getOrganizationBrand } from '#/data/demo/organization-branding'
+import { useId } from 'react'
+import { VStack } from '@astryxdesign/core/VStack'
+import type { OrganizationBrand } from '#/data/demo/organization-branding'
+import { organizationInitials } from '#/lib/dashboard/org-initials'
 
 type OrganizationLogoProps = {
-  orgId: string
-  icon: OrganizationBrandIconKey
+  name: string
+  brand: OrganizationBrand
   size?: number
 }
 
-function OpenLinkGlyph() {
+function OpenLinkGlyph({ gradId }: { gradId: string }) {
   return (
-    <svg viewBox="0 0 32 32" width="100%" height="100%" aria-hidden>
-      <rect width="32" height="32" rx="8" fill="var(--openlink-brand)" />
+    <svg viewBox="0 0 40 40" width="100%" height="100%" aria-hidden>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="40" y2="40">
+          <stop offset="0%" stopColor="#FF6B33" />
+          <stop offset="100%" stopColor="#FF4602" />
+        </linearGradient>
+      </defs>
+      <rect width="40" height="40" rx="11" fill={`url(#${gradId})`} />
       <path
-        d="M10 16.5c0-2.8 2.2-5 5-5h2.2V9H15c-4.1 0-7.5 3.4-7.5 7.5S10.9 24 15 24h2.2v-2.5H15c-2.8 0-5-2.2-5-5Z"
-        fill="#ffffff"
-      />
-      <path
-        d="M17 11.5h2.2c2.8 0 5 2.2 5 5s-2.2 5-5 5H17V24h2.2c4.1 0 7.5-3.4 7.5-7.5S23.3 9 19.2 9H17v2.5Z"
-        fill="#ffffff"
-      />
-    </svg>
-  )
-}
-
-function AcmeGlyph() {
-  return (
-    <svg viewBox="0 0 32 32" width="100%" height="100%" aria-hidden>
-      <rect width="32" height="32" rx="8" fill="#4f46e5" />
-      <path
-        d="M11 22 16 9l5 13h-2.6l-.9-2.5h-3.1l-.9 2.5H11Zm5-7.5-1.1-3.1-1.1 3.1h2.2Z"
         fill="#fff"
+        fillRule="evenodd"
+        d="M14 20.2a5.2 5.2 0 0 1 5.2-5.2h1.8V12H19.2A7.2 7.2 0 0 0 12 19.2 7.2 7.2 0 0 0 19.2 26.4h1.8v-2.9H19.2a5.2 5.2 0 0 1-5.2-5.3Zm11.8-7.1h1.8A7.2 7.2 0 0 1 34 20.2a7.2 7.2 0 0 1-7.2 7.1H25.2v2.9h1.8A10 10 0 0 0 37 20.2 10 10 0 0 0 27 10.1h-1.8v3Z"
       />
     </svg>
   )
 }
 
-function DevRelGlyph() {
+function AcmeGlyph({ gradId }: { gradId: string }) {
   return (
-    <svg viewBox="0 0 32 32" width="100%" height="100%" aria-hidden>
-      <rect width="32" height="32" rx="8" fill="#0d9488" />
+    <svg viewBox="0 0 40 40" width="100%" height="100%" aria-hidden>
+      <defs>
+        <linearGradient id={gradId} x1="8" y1="8" x2="32" y2="34">
+          <stop offset="0%" stopColor="#6366f1" />
+          <stop offset="100%" stopColor="#312e81" />
+        </linearGradient>
+      </defs>
+      <rect width="40" height="40" rx="11" fill={`url(#${gradId})`} />
       <path
-        d="M9 12h14v3H9v-3Zm0 5h14v3H9v-3Zm0 5h10v3H9v-3Z"
         fill="#fff"
+        d="M12 28 20 11l8 17h-3.2l-1.2-3.2H16.4L15.2 28H12Zm8-10.8-2-5.4-2 5.4h4Z"
       />
-      <circle cx="23" cy="21" r="3" fill="#fbbf24" />
     </svg>
   )
 }
 
-function FallbackGlyph({ accent }: { accent: string }) {
+function DevRelGlyph({ gradId }: { gradId: string }) {
   return (
-    <svg viewBox="0 0 32 32" width="100%" height="100%" aria-hidden>
-      <rect width="32" height="32" rx="8" fill="var(--color-background-muted)" />
-      <circle cx="16" cy="16" r="8" fill={accent} />
+    <svg viewBox="0 0 40 40" width="100%" height="100%" aria-hidden>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="40" x2="40" y2="0">
+          <stop offset="0%" stopColor="#0f766e" />
+          <stop offset="100%" stopColor="#2dd4bf" />
+        </linearGradient>
+      </defs>
+      <rect width="40" height="40" rx="11" fill={`url(#${gradId})`} />
+      <path
+        fill="#fff"
+        d="M13 14h3.6l4.4 6.2L25.4 14H29l-6.2 8.6 6.4 9H26l-4.6-6.6L16.6 32H13l6.3-8.8L13 14Z"
+      />
     </svg>
   )
 }
 
-function glyphFor(icon: OrganizationBrandIconKey, orgId: string) {
-  switch (icon) {
-    case 'openlink':
-      return OpenLinkGlyph
-    case 'acme':
-      return AcmeGlyph
-    case 'devrel':
-      return DevRelGlyph
-    default:
-      return () => <FallbackGlyph accent={getOrganizationBrand(orgId).accent} />
-  }
+function InitialsGlyph({
+  initials,
+  accent,
+}: {
+  initials: string
+  accent: string
+}) {
+  return (
+    <svg viewBox="0 0 40 40" width="100%" height="100%" aria-hidden>
+      <rect width="40" height="40" rx="11" fill={accent} />
+      <text
+        x="20"
+        y="24"
+        textAnchor="middle"
+        fill="#ffffff"
+        fontSize="14"
+        fontWeight="600"
+        fontFamily="Geist Variable, sans-serif"
+      >
+        {initials}
+      </text>
+    </svg>
+  )
 }
 
 export default function OrganizationLogo({
-  orgId,
-  icon,
-  size = 32,
+  name,
+  brand,
+  size = 40,
 }: OrganizationLogoProps) {
-  const Glyph = glyphFor(icon, orgId)
+  const gradId = useId().replace(/:/g, '')
+  const glyph = (() => {
+    switch (brand.icon) {
+      case 'openlink':
+        return <OpenLinkGlyph gradId={gradId} />
+      case 'acme':
+        return <AcmeGlyph gradId={`${gradId}-acme`} />
+      case 'devrel':
+        return <DevRelGlyph gradId={`${gradId}-dev`} />
+      default:
+        return (
+          <InitialsGlyph
+            initials={organizationInitials(name)}
+            accent={brand.accent}
+          />
+        )
+    }
+  })()
+
   return (
-    <Icon
-      icon={Glyph}
-      size="lg"
-      label=""
-      style={{ width: size, height: size }}
-    />
+    <VStack width={size} height={size} hAlign="center" vAlign="center">
+      {glyph}
+    </VStack>
   )
 }

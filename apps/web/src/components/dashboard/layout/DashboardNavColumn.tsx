@@ -60,15 +60,16 @@ export default function DashboardNavColumn() {
     <Section variant="section" height="fill" padding={0} dividers={['end']}>
       <SideNav
         collapsible
-        resizable={{ defaultWidth: 260, minWidth: 220, maxWidth: 360 }}
+        resizable={{ defaultWidth: 272, minWidth: 232, maxWidth: 360 }}
         header={
           <SideNavHeading
             heading={activeOrg.name}
+            subheading="Workspace"
             headerEndContent={<Badge variant="neutral" label={planLabel(activeOrg.plan)} />}
           />
         }
       >
-        <SideNavSection title="Workspace">
+        <SideNavSection title="Navigation">
           {items.map((item) => (
             <NavLinkItem
               key={item.id}

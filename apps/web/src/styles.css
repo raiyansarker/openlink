@@ -2,3 +2,10 @@
 @import '@fontsource-variable/geist-mono/wght.css';
 @import '@astryxdesign/core/reset.css';
 @import '@astryxdesign/core/astryx.css';
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  min-height: 100dvh;
+}

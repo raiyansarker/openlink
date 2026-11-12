@@ -1,5 +1,6 @@
 import { AppShell } from '@astryxdesign/core/AppShell'
 import { HStack } from '@astryxdesign/core/HStack'
+import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
 import type { ReactNode } from 'react'
 import type { Organization } from '#/data/demo/types'
 import OrganizationIconRail from './OrganizationIconRail'
@@ -19,8 +20,10 @@ export default function ThreeColumnDashboardLayout({
   return (
     <AppShell
       height="fill"
+      variant="wash"
+      contentPadding={0}
       sideNav={
-        <HStack gap={0} height="fill">
+        <HStack gap={0} height="fill" vAlign="stretch" width="auto">
           <OrganizationIconRail
             organizations={organizations}
             activeOrgSlug={activeOrgSlug}
@@ -29,7 +32,10 @@ export default function ThreeColumnDashboardLayout({
         </HStack>
       }
     >
-      {children}
+      <Layout
+        height="fill"
+        content={<LayoutContent isScrollable>{children}</LayoutContent>}
+      />
     </AppShell>
   )
 }

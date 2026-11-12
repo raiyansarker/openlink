@@ -3,6 +3,7 @@ import { Tooltip } from '@astryxdesign/core/Tooltip'
 import { VStack } from '@astryxdesign/core/VStack'
 import { Section } from '@astryxdesign/core/Section'
 import { Button } from '@astryxdesign/core/Button'
+import { Text } from '@astryxdesign/core/Text'
 import type { Organization } from '#/data/demo/types'
 import { getOrganizationBrand } from '#/data/demo/organization-branding'
 import { replaceOrgInPathname } from '#/lib/dashboard/build-org-path'
@@ -22,14 +23,11 @@ export default function OrganizationIconRail({
   const navigate = useNavigate()
 
   return (
-    <Section
-      variant="muted"
-      padding={2}
-      width={72}
-      height="fill"
-      dividers={['end']}
-    >
-      <VStack gap={2} vAlign="start" hAlign="center">
+    <Section variant="muted" padding={3} width={80} height="fill" dividers={['end']}>
+      <VStack gap={3} vAlign="start" hAlign="center" height="fill">
+        <Text type="supporting" color="secondary">
+          Workspaces
+        </Text>
         {organizations.map((org) => {
           const brand = getOrganizationBrand(org.id)
           const target = replaceOrgInPathname(pathname, org.slug)
@@ -42,9 +40,7 @@ export default function OrganizationIconRail({
                 elevation={isActive ? 'low' : 'none'}
                 label={`Switch to ${org.name}`}
                 isIconOnly
-                icon={
-                  <OrganizationLogo orgId={org.id} icon={brand.icon} size={36} />
-                }
+                icon={<OrganizationLogo name={org.name} brand={brand} size={40} />}
                 onClick={() => {
                   void navigate({ to: target })
                 }}
