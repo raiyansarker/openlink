@@ -1,0 +1,20 @@
+{
+  "name": "@openlink/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./openapi.json": "./generated/openapi.json",
+    "./types": "./generated/types.ts"
+  },
+  "scripts": {
+    "build": "bun run scripts/build.ts",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "openapi-typescript": "^7.10.1",
+    "typescript": "^6.0.2",
+    "yaml": "^2.8.2"
+  }
+}
