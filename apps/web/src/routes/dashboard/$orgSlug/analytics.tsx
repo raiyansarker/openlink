@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import DashboardSectionPlaceholder from '#/components/dashboard/DashboardSectionPlaceholder'
+import DashboardAnalyticsPanel from '#/components/analytics/DashboardAnalyticsPanel'
 import { createPageHead } from '#/lib/page-title'
 
 export const Route = createFileRoute('/dashboard/$orgSlug/analytics')({
@@ -8,7 +8,5 @@ export const Route = createFileRoute('/dashboard/$orgSlug/analytics')({
 })
 
 function DashboardAnalyticsPage() {
-  return (
-    <DashboardSectionPlaceholder title="Analytics" />
-  )
+  return <DashboardAnalyticsPanel />
 }
