@@ -68,11 +68,18 @@ export const openlinkTheme = defineTheme({
     },
     'field-label': {
       base: {
-        fontSize: 'var(--font-size-xs)',
+        fontSize: 'var(--font-size-sm)',
         fontWeight: 'var(--font-weight-semibold)',
         color:
           'color-mix(in oklab, var(--color-text-secondary) 72%, var(--color-background-surface))',
         cursor: 'pointer',
+      },
+    },
+    'field-description': {
+      base: {
+        fontSize: 'var(--font-size-sm)',
+        fontWeight: 'var(--font-weight-regular)',
+        lineHeight: 'var(--line-height-snug)',
       },
     },
     section: {
