@@ -15,7 +15,7 @@ type DeviceDonutProps = {
   isComparing: boolean
 }
 
-const DONUT_SIZE = 168
+const DONUT_SIZE = 200
 
 /** Device split as a donut, with an exact-value legend beside it. */
 export default function DeviceDonut({ rows, isComparing }: DeviceDonutProps) {

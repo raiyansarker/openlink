@@ -44,7 +44,7 @@ export default function SourcesCard({ report, isComparing }: SourcesCardProps) {
         color={SERIES_COLORS[1]}
         label={view === 'referrers' ? 'Clicks by referrer' : 'Clicks by channel'}
         isComparing={isComparing}
-        limit={9}
+        limit={7}
       />
     </AnalyticsCard>
   )
