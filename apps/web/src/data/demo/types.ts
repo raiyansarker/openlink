@@ -31,3 +31,28 @@ export type OrgDashboardStats = {
   uniqueVisitorsWeek: number
   topReferrer: string
 }
+
+export type WorkspaceMemberRole = 'owner' | 'admin' | 'member' | 'viewer'
+
+export type WorkspaceMemberStatus = 'active' | 'pending'
+
+export type WorkspaceMember = {
+  id: string
+  orgId: string
+  name: string
+  email: string
+  role: WorkspaceMemberRole
+  status: WorkspaceMemberStatus
+  joinedAt: string
+  lastLoginAt?: string
+  lastActiveAt?: string
+  avatarUrl?: string
+}
+
+export type MemberActivityEvent = {
+  id: string
+  memberId: string
+  title: string
+  description?: string
+  occurredAt: string
+}
