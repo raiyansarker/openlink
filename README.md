@@ -8,9 +8,9 @@ Turborepo monorepo for [OpenLink](https://github.com/) — a Cloudflare Workers 
 - **Monorepo:** [Turborepo](https://turborepo.dev)
 - **App (`apps/web`):** [TanStack Start](https://tanstack.com/start) on [Cloudflare Workers](https://developers.cloudflare.com/workers/) — API + SSR in one Worker
 - **Database:** [Drizzle ORM](https://orm.drizzle.team) on Cloudflare **D1** (local via Wrangler)
-- **Contracts:** [oRPC OpenAPI contract](https://orpc.dev/docs/openapi) in `@openlink/contracts` (`oc.route` + [ArkType](https://arktype.io)) — **not** a hand-maintained OpenAPI YAML file
+- **Contracts:** [oRPC 2 beta OpenAPI contract](https://orpc.dev/docs/openapi) in `@openlink/contracts` (`oc.meta(openapi({...}))` + [ArkType](https://arktype.io)) — shared with a future frontend; **not** hand-maintained OpenAPI YAML
 - **OpenAPI spec:** generated at runtime from the contract (`GET /api/v1/openapi.json`)
-- **API runtime:** [`OpenAPIHandler`](https://orpc.dev/docs/openapi/openapi-handler) + `implement(contract)` in `apps/web`
+- **API runtime:** [`OpenAPIHandler`](https://orpc.dev/docs/openapi/openapi-handler) + `implement(contract)` in `apps/web`, with [**Effect**](https://orpc.dev/docs/integrations/effect) for handlers only (not in contracts)
 - **Custom domains:** [@opencoredev/domain-sdk](https://domain-sdk.dev) — `memory` provider locally, `cloudflare` SaaS when configured
 - **Auth:** Email + password today ([Better Auth](https://www.better-auth.com)); social / magic link later
 

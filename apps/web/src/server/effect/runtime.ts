@@ -1,13 +1,8 @@
-import { Layer, ManagedRuntime, Scheduler } from 'effect'
+import { ManagedRuntime } from 'effect'
 
-/** Effect on Cloudflare Workers: sync scheduler + module-scoped runtime. */
-const SyncScheduler = Layer.succeed(
-  Scheduler.Scheduler,
-  new Scheduler.MixedScheduler('sync'),
-)
+import { AppLayer } from './layer'
 
-const AppLayer = Layer.empty.pipe(Layer.provideMerge(SyncScheduler))
-
+/** Module-scoped runtime (Workers): sync scheduler + shared services. */
 export const effectRuntime = ManagedRuntime.make(AppLayer)
 
 export async function getRequestEffectContext() {

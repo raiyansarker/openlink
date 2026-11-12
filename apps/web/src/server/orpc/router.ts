@@ -45,34 +45,32 @@ const openApiGenerator = new OpenAPIGenerator({
 export const router = os.router({
   system: {
     getHealth: os.system.getHealth.effect(function* () {
-      return yield* Effect.promise(async () => {
-    const report = await runHealthChecks()
-    if (report.status === 'error') {
-      throw new ORPCError('SERVICE_UNAVAILABLE', {
-        message: 'One or more dependencies are unhealthy',
-        data: report,
-      })
-    }
-    return report
-    
-      })
+      const report = yield* Effect.promise(() => runHealthChecks())
+      if (report.status === 'error') {
+        return yield* Effect.fail(
+          new ORPCError('SERVICE_UNAVAILABLE', {
+            message: 'One or more dependencies are unhealthy',
+            data: report,
+          }),
+        )
+      }
+      return report
     }),
 
     getOpenApiDocument: os.system.getOpenApiDocument.effect(function* () {
-      return yield* Effect.promise(async () => {
-      const document = await openApiGenerator.generate(contract, {
-        base: {
-          info: {
-            title: 'OpenLink API',
-            version: '0.1.0',
-            description: 'OpenLink API — served via oRPC OpenAPI handler',
+      const document = yield* Effect.promise(() =>
+        openApiGenerator.generate(contract, {
+          base: {
+            info: {
+              title: 'OpenLink API',
+              version: '0.1.0',
+              description: 'OpenLink API — served via oRPC OpenAPI handler',
+            },
+            servers: [{ url: '/api/v1', description: 'Local and production Worker' }],
           },
-          servers: [{ url: '/api/v1', description: 'Local and production Worker' }],
-        },
-      })
+        }),
+      )
       return document as unknown as { [key: string]: unknown }
-    
-      })
     }),
   },
 
@@ -141,10 +139,9 @@ export const router = os.router({
 
     getSession: os.auth.getSession.effect(function* ({ context }) {
       return yield* Effect.promise(async () => {
-    const session = await requireSession(context.request)
-    if (!session) return { authenticated: false as const }
-    return { authenticated: true as const, user: session.user }
-  
+        const session = await requireSession(context.request)
+        if (!session) return { authenticated: false as const }
+        return { authenticated: true as const, user: session.user }
       })
     }),
   },
@@ -152,13 +149,12 @@ export const router = os.router({
   organizations: {
     listOrganizations: os.organizations.listOrganizations.effect(function* ({ context }) {
       return yield* Effect.promise(async () => {
-    const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
-    const rows = await listOrganizationsForUser(session.session.user.id)
-    return {
-      items: rows.map((row) => toMembershipDto(row.organization, row.member)),
-    }
-  
+        const session = await requireSession(context.request)
+        if (!session) throw unauthorized()
+        const rows = await listOrganizationsForUser(session.session.user.id)
+        return {
+          items: rows.map((row) => toMembershipDto(row.organization, row.member)),
+        }
       })
     }),
 
@@ -250,19 +246,18 @@ export const router = os.router({
   domains: {
     listDomains: os.domains.listDomains.effect(function* ({ input, context }) {
       return yield* Effect.promise(async () => {
-    const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
-    const membership = await getMembership(
-      session.session.user.id,
-      input.params.organizationId,
-    )
-    if (!membership) throw unauthorized()
-    const rows = await getDb()
-      .select()
-      .from(customDomain)
-      .where(eq(customDomain.organizationId, input.params.organizationId))
-    return { items: rows.map(toDomainDto) }
-  
+        const session = await requireSession(context.request)
+        if (!session) throw unauthorized()
+        const membership = await getMembership(
+          session.session.user.id,
+          input.params.organizationId,
+        )
+        if (!membership) throw unauthorized()
+        const rows = await getDb()
+          .select()
+          .from(customDomain)
+          .where(eq(customDomain.organizationId, input.params.organizationId))
+        return { items: rows.map(toDomainDto) }
       })
     }),
 
