@@ -8,6 +8,8 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_URL: string
   BOOTSTRAP_ORG_INVITE_TOKEN?: string
+  /** When `"true"`, create-invite responses include the raw token (local dev only). */
+  EXPOSE_INVITE_TOKENS_IN_API?: string
 }
 
 export function getBindings(): WorkerBindings {

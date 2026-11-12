@@ -23,6 +23,7 @@
   ],
   "vars": {
     "DOMAIN_PROVIDER": "memory",
-    "BETTER_AUTH_URL": "http://localhost:3000"
+    "BETTER_AUTH_URL": "http://localhost:3000",
+    "EXPOSE_INVITE_TOKENS_IN_API": "true"
   }
 }

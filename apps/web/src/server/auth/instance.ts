@@ -5,6 +5,7 @@ import { getBindings } from '../env'
 import { getDb } from '../db'
 
 let auth: ReturnType<typeof createAuth> | undefined
+let authConfigKey: string | undefined
 
 function createAuth() {
   const bindings = getBindings()
@@ -33,6 +34,11 @@ function createAuth() {
 }
 
 export function getAuth() {
-  auth ??= createAuth()
+  const bindings = getBindings()
+  const configKey = `${bindings.BETTER_AUTH_URL}:${bindings.BETTER_AUTH_SECRET}`
+  if (!auth || authConfigKey !== configKey) {
+    auth = createAuth()
+    authConfigKey = configKey
+  }
   return auth
 }

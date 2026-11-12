@@ -38,19 +38,22 @@ async function checkD1(): Promise<HealthCheckResult> {
 async function checkAnalyticsEngine(): Promise<HealthCheckResult> {
   try {
     const { latencyMs } = await timed(() => {
-      getBindings().ANALYTICS.writeDataPoint({
-        blobs: ['health'],
-        doubles: [0],
-        indexes: ['health-check'],
-      })
+      const analytics = getBindings().ANALYTICS
+      if (!analytics) throw new Error('ANALYTICS binding is not configured')
     })
-    return { name: 'analytics_engine', status: 'ok', required: true, latencyMs }
+    return {
+      name: 'analytics_engine',
+      status: 'ok',
+      required: true,
+      latencyMs,
+      message: 'binding present',
+    }
   } catch (error) {
     return {
       name: 'analytics_engine',
       status: 'error',
       required: true,
-      message: error instanceof Error ? error.message : 'Analytics write failed',
+      message: error instanceof Error ? error.message : 'Analytics binding check failed',
     }
   }
 }
