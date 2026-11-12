@@ -53,12 +53,6 @@ export function getDashboardNavGroups(orgSlug: string): DashboardNavGroup[] {
           description: 'Short URLs and destinations',
         },
         {
-          id: 'members',
-          label: 'Users',
-          href: path('members'),
-          description: 'People and roles',
-        },
-        {
           id: 'domains',
           label: 'Domains',
           href: path('domains'),

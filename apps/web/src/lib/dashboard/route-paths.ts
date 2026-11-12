@@ -2,7 +2,6 @@ export const dashboardPaths = {
   root: '/dashboard',
   links: '/dashboard/links',
   analytics: '/dashboard/analytics',
-  members: '/dashboard/members',
   settings: '/settings',
 } as const
 
