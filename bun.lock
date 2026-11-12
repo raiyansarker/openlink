@@ -52,6 +52,7 @@
       "name": "@openlink/contracts",
       "version": "0.0.0",
       "dependencies": {
+        "@orpc/arktype": "^1.16.2",
         "@orpc/contract": "^1.16.2",
         "@orpc/openapi": "^1.16.2",
         "arktype": "^2.2.9",
