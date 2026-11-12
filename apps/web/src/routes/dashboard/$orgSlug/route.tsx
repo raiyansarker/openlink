@@ -1,7 +1,15 @@
-import { createFileRoute, notFound, Outlet, redirect } from '@tanstack/react-router'
-import DashboardShell from '#/components/DashboardShell'
+import {
+  createFileRoute,
+  notFound,
+  Outlet,
+  redirect,
+} from '@tanstack/react-router'
+import { OrganizationProvider } from '#/contexts/OrganizationContext'
+import ThreeColumnDashboardLayout from '#/components/dashboard/layout/ThreeColumnDashboardLayout'
 import { getOrganizationById, isValidOrgSlug } from '#/data/demo/queries'
 import { persistActiveOrgSlug } from '#/lib/dashboard/org-slug'
+import { useOrganization } from '#/contexts/OrganizationContext'
+import type { ReactNode } from 'react'
 
 export const Route = createFileRoute('/dashboard/$orgSlug')({
   beforeLoad: ({ params }) => {
@@ -24,11 +32,26 @@ export const Route = createFileRoute('/dashboard/$orgSlug')({
   component: OrgDashboardLayout,
 })
 
+function DashboardChrome({ children }: { children: ReactNode }) {
+  const { organizations, activeOrg } = useOrganization()
+  return (
+    <ThreeColumnDashboardLayout
+      organizations={organizations}
+      activeOrgSlug={activeOrg.slug}
+    >
+      {children}
+    </ThreeColumnDashboardLayout>
+  )
+}
+
 function OrgDashboardLayout() {
   const { orgSlug } = Route.useParams()
+
   return (
-    <DashboardShell orgSlugFromRoute={orgSlug}>
-      <Outlet />
-    </DashboardShell>
+    <OrganizationProvider orgSlugFromRoute={orgSlug}>
+      <DashboardChrome>
+        <Outlet />
+      </DashboardChrome>
+    </OrganizationProvider>
   )
 }

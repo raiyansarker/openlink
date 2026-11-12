@@ -1,4 +1,5 @@
 import { buildDashboardOrgPath } from './build-org-path'
+import { buildSettingsPath } from '#/lib/settings/sections'
 import type { DashboardSection } from './build-org-path'
 
 export type DashboardNavItem = {
@@ -87,11 +88,11 @@ export function getDashboardNavGroups(orgSlug: string): DashboardNavGroup[] {
   ]
 }
 
-export function getDashboardSettingsItem(orgSlug: string): DashboardNavItem {
+export function getDashboardSettingsItem(_orgSlug: string): DashboardNavItem {
   return {
     id: 'settings',
     label: 'Settings',
-    href: buildDashboardOrgPath(orgSlug, 'settings'),
+    href: buildSettingsPath('profile'),
     description: 'Workspace preferences',
   }
 }

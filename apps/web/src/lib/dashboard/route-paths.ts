@@ -3,7 +3,7 @@ export const dashboardPaths = {
   links: '/dashboard/links',
   analytics: '/dashboard/analytics',
   members: '/dashboard/members',
-  settings: '/dashboard/settings',
+  settings: '/settings',
 } as const
 
 export type DashboardPath =

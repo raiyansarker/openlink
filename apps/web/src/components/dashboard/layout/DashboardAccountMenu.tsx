@@ -1,9 +1,17 @@
+import { useNavigate } from '@tanstack/react-router'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
+import { buildSettingsPath } from '#/lib/settings/sections'
 import { DEMO_USER_AVATAR_URL } from './dashboard-shell-colors'
 
 const PROFILE_SIZE = 38
 
 export default function DashboardAccountMenu() {
+  const navigate = useNavigate()
+
+  const goToProfile = () => {
+    void navigate({ to: buildSettingsPath('profile') })
+  }
+
   return (
     <DropdownMenu
       hasChevron={false}
@@ -50,17 +58,13 @@ export default function DashboardAccountMenu() {
         {
           id: 'profile',
           label: 'My Profile',
-          onClick: () => {},
+          onClick: goToProfile,
         },
         {
           id: 'preferences',
           label: 'Preferences',
-          onClick: () => {},
-        },
-        {
-          id: 'billing',
-          label: 'Billing',
-          onClick: () => {},
+          onClick: () =>
+            void navigate({ to: buildSettingsPath('appearance') }),
         },
         { type: 'divider' },
         {

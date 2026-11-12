@@ -62,9 +62,6 @@ export function dashboardSectionFromPathname(
   if (pathname.startsWith(`${prefix}/reports`)) {
     return 'reports'
   }
-  if (pathname.startsWith(`${prefix}/settings`)) {
-    return 'settings'
-  }
   return 'overview'
 }
 
