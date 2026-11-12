@@ -1,7 +1,7 @@
 import { contract } from '@openlink/contracts'
 import { OpenAPIGenerator } from '@orpc/openapi'
 import { implement, ORPCError } from '@orpc/server'
-import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4'
+import { experimental_ArkTypeToJsonSchemaConverter } from '@orpc/arktype'
 import { createHash } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import { customDomain, link } from '@openlink/db/schema'
@@ -37,11 +37,12 @@ import { badRequest, conflict, forbidden, notFound, unauthorized } from './error
 const os = implement(contract).$context<ApiContext>()
 
 const openApiGenerator = new OpenAPIGenerator({
-  schemaConverters: [new ZodToJsonSchemaConverter()],
+  schemaConverters: [new experimental_ArkTypeToJsonSchemaConverter()],
 })
 
 export const router = os.router({
-  getHealth: os.getHealth.handler(async () => {
+  system: {
+    getHealth: os.system.getHealth.handler(async () => {
     const report = await runHealthChecks()
     if (report.status === 'error') {
       throw new ORPCError('SERVICE_UNAVAILABLE', {
@@ -50,20 +51,22 @@ export const router = os.router({
       })
     }
     return report
-  }),
+    }),
 
-  getOpenApiDocument: os.getOpenApiDocument.handler(async () => {
-    return openApiGenerator.generate(contract, {
-      info: {
-        title: 'OpenLink API',
-        version: '0.1.0',
-        description: 'OpenLink API — served via oRPC OpenAPI handler',
-      },
-      servers: [{ url: '/api/v1', description: 'Local and production Worker' }],
-    })
-  }),
+    getOpenApiDocument: os.system.getOpenApiDocument.handler(async () => {
+      return openApiGenerator.generate(contract, {
+        info: {
+          title: 'OpenLink API',
+          version: '0.1.0',
+          description: 'OpenLink API — served via oRPC OpenAPI handler',
+        },
+        servers: [{ url: '/api/v1', description: 'Local and production Worker' }],
+      })
+    }),
+  },
 
-  signUp: os.signUp.handler(async ({ input, context }) => {
+  auth: {
+    signUp: os.auth.signUp.handler(async ({ input, context }) => {
     const response = await getAuth().api.signUpEmail({
       body: input.body,
       asResponse: true,
@@ -86,7 +89,7 @@ export const router = os.router({
     }
   }),
 
-  signIn: os.signIn.handler(async ({ input, context }) => {
+    signIn: os.auth.signIn.handler(async ({ input, context }) => {
     const response = await getAuth().api.signInEmail({
       body: input.body,
       asResponse: true,
@@ -107,7 +110,7 @@ export const router = os.router({
     }
   }),
 
-  signOut: os.signOut.handler(async ({ context }) => {
+    signOut: os.auth.signOut.handler(async ({ context }) => {
     const response = await getAuth().api.signOut({
       headers: context.request.headers,
       asResponse: true,
@@ -116,13 +119,15 @@ export const router = os.router({
     return undefined
   }),
 
-  getSession: os.getSession.handler(async ({ context }) => {
+    getSession: os.auth.getSession.handler(async ({ context }) => {
     const session = await requireSession(context.request)
-    if (!session) return { authenticated: false as const, user: null }
+    if (!session) return { authenticated: false as const }
     return { authenticated: true as const, user: session.user }
   }),
+  },
 
-  listOrganizations: os.listOrganizations.handler(async ({ context }) => {
+  organizations: {
+    listOrganizations: os.organizations.listOrganizations.handler(async ({ context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const rows = await listOrganizationsForUser(session.session.user.id)
@@ -131,7 +136,7 @@ export const router = os.router({
     }
   }),
 
-  createOrganization: os.createOrganization.handler(async ({ input, context }) => {
+    createOrganization: os.organizations.createOrganization.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     try {
@@ -150,7 +155,7 @@ export const router = os.router({
     }
   }),
 
-  acceptOrganizationInvite: os.acceptOrganizationInvite.handler(async ({ input, context }) => {
+    acceptOrganizationInvite: os.organizations.acceptOrganizationInvite.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     try {
@@ -164,7 +169,7 @@ export const router = os.router({
     }
   }),
 
-  getOrganization: os.getOrganization.handler(async ({ input, context }) => {
+    getOrganization: os.organizations.getOrganization.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -177,7 +182,7 @@ export const router = os.router({
     return toOrganizationDto(org)
   }),
 
-  createOrganizationInvite: os.createOrganizationInvite.handler(
+    createOrganizationInvite: os.organizations.createOrganizationInvite.handler(
     async ({ input, context }) => {
       const session = await requireSession(context.request)
       if (!session) throw unauthorized()
@@ -204,8 +209,10 @@ export const router = os.router({
       }
     },
   ),
+  },
 
-  listDomains: os.listDomains.handler(async ({ input, context }) => {
+  domains: {
+    listDomains: os.domains.listDomains.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -220,7 +227,7 @@ export const router = os.router({
     return { items: rows.map(toDomainDto) }
   }),
 
-  addDomain: os.addDomain.handler(async ({ input, context }) => {
+    addDomain: os.domains.addDomain.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -239,7 +246,7 @@ export const router = os.router({
     }
   }),
 
-  getDomain: os.getDomain.handler(async ({ input, context }) => {
+    getDomain: os.domains.getDomain.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -261,7 +268,7 @@ export const router = os.router({
     return toDomainDto(row)
   }),
 
-  removeDomain: os.removeDomain.handler(async ({ input, context }) => {
+    removeDomain: os.domains.removeDomain.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -276,7 +283,7 @@ export const router = os.router({
     return undefined
   }),
 
-  refreshDomainStatus: os.refreshDomainStatus.handler(async ({ input, context }) => {
+    refreshDomainStatus: os.domains.refreshDomainStatus.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -298,8 +305,10 @@ export const router = os.router({
     const updated = await refreshCustomDomain(input.params.domainId)
     return toDomainDto(updated ?? row)
   }),
+  },
 
-  listLinks: os.listLinks.handler(async ({ input, context }) => {
+  links: {
+    listLinks: os.links.listLinks.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -311,7 +320,7 @@ export const router = os.router({
     return { items: rows.map(toLinkDto) }
   }),
 
-  createLink: os.createLink.handler(async ({ input, context }) => {
+    createLink: os.links.createLink.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -359,7 +368,7 @@ export const router = os.router({
     }
   }),
 
-  getLink: os.getLink.handler(async ({ input, context }) => {
+    getLink: os.links.getLink.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -374,7 +383,7 @@ export const router = os.router({
     return toLinkDto(row)
   }),
 
-  updateLink: os.updateLink.handler(async ({ input, context }) => {
+    updateLink: os.links.updateLink.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -428,7 +437,7 @@ export const router = os.router({
     return toLinkDto(updated!)
   }),
 
-  deleteLink: os.deleteLink.handler(async ({ input, context }) => {
+    deleteLink: os.links.deleteLink.handler(async ({ input, context }) => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -443,4 +452,5 @@ export const router = os.router({
     await getDb().delete(link).where(eq(link.id, input.params.linkId))
     return undefined
   }),
+  },
 })

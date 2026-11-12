@@ -1,9 +1,9 @@
 /**
  * oRPC OpenAPI contract — source of truth for the HTTP API.
- * OpenAPI 3.x is generated from this contract (see `bun run build` in this package).
+ * The OpenAPI document is generated at runtime from this contract (see `GET /api/v1/openapi.json`).
  *
  * @see https://orpc.dev/docs/contract-first
  * @see https://orpc.dev/docs/openapi/routing
  */
-export { contract } from './openapi-contract'
-export * from './schemas'
+export { contract } from './contract'
+export * from './models'

@@ -126,7 +126,7 @@ async function checkDomainProvider(): Promise<HealthCheckResult> {
 async function checkOpenApiContract(): Promise<HealthCheckResult> {
   try {
     const { latencyMs } = await timed(() => {
-      if (!contract.getHealth || !contract.getOpenApiDocument) {
+      if (!contract.system?.getHealth || !contract.system?.getOpenApiDocument) {
         throw new Error('oRPC OpenAPI contract is missing required procedures')
       }
     })
