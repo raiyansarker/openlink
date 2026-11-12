@@ -2,13 +2,37 @@ import { useNavigate } from '@tanstack/react-router'
 import { Tooltip } from '@astryxdesign/core/Tooltip'
 import type { Organization } from '#/data/demo/types'
 import { getOrganizationBrand } from '#/data/demo/organization-branding'
-import { replaceOrgInPathname } from '#/lib/dashboard/build-org-path'
+import {
+  buildDashboardOrgPath,
+  replaceOrgInPathname,
+} from '#/lib/dashboard/build-org-path'
 import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
 import { useActivePathname } from '#/hooks/useActivePathname'
+import DashboardAccountMenu from './DashboardAccountMenu'
+import { useOrganization } from '#/contexts/OrganizationContext'
+import { PlusIcon } from '#/components/icons/IcnMcp'
+import type { CSSProperties } from 'react'
+
+const ORG_CONTROL_SIZE = 34
+const ORG_LOGO_SIZE = 28
+const RAIL_BACKGROUND = '#0a0a0a'
 
 type OrganizationIconRailProps = {
   organizations: Organization[]
   activeOrgSlug: string
+}
+
+const orgControlBase: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: ORG_CONTROL_SIZE,
+  height: ORG_CONTROL_SIZE,
+  minWidth: ORG_CONTROL_SIZE,
+  minHeight: ORG_CONTROL_SIZE,
+  flexShrink: 0,
+  borderRadius: 9,
+  padding: 0,
 }
 
 export default function OrganizationIconRail({
@@ -17,82 +41,132 @@ export default function OrganizationIconRail({
 }: OrganizationIconRailProps) {
   const pathname = useActivePathname()
   const navigate = useNavigate()
+  const { createOrganization } = useOrganization()
+
+  function handleCreateOrganization() {
+    const name = window.prompt('Workspace name')?.trim()
+    if (!name) return
+    try {
+      const org = createOrganization({ name })
+      void navigate({ to: buildDashboardOrgPath(org.slug) })
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Could not create workspace.'
+      window.alert(message)
+    }
+  }
 
   return (
     <div
       style={{
-        width: 64,
-        minWidth: 64,
+        width: 52,
+        minWidth: 52,
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        paddingTop: 20,
-        paddingBottom: 20,
-        gap: 10,
-        /* Darkest column */
-        backgroundColor: '#0a0a0a',
+        paddingTop: 14,
+        paddingBottom: 12,
+        backgroundColor: RAIL_BACKGROUND,
         flexShrink: 0,
       }}
     >
-      {/* App logo mark */}
       <div
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          backgroundColor: '#FF4602',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 8,
-          flexShrink: 0,
+          gap: 6,
+          width: '100%',
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
         }}
       >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-        </svg>
-      </div>
+        {organizations.map((org) => {
+          const brand = getOrganizationBrand(org.id)
+          const target = replaceOrgInPathname(pathname, org.slug)
+          const isActive = org.slug === activeOrgSlug
 
-      {/* Divider */}
-      <div style={{ width: 28, height: 1, backgroundColor: '#1f1f1f', marginBottom: 4 }} />
+          return (
+            <Tooltip key={org.id} content={org.name} placement="end">
+              <button
+                type="button"
+                aria-label={`Switch to ${org.name}`}
+                aria-current={isActive ? 'true' : undefined}
+                onClick={() => void navigate({ to: target })}
+                style={{
+                  ...orgControlBase,
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: isActive
+                    ? 'rgba(255,255,255,0.08)'
+                    : 'transparent',
+                  boxShadow: isActive
+                    ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.28)'
+                    : 'none',
+                  transition: 'background-color 0.16s ease, box-shadow 0.16s ease',
+                }}
+              >
+                <OrganizationLogo
+                  name={org.name}
+                  brand={brand}
+                  size={ORG_LOGO_SIZE}
+                />
+              </button>
+            </Tooltip>
+          )
+        })}
 
-      {/* Org icons */}
-      {organizations.map((org) => {
-        const brand = getOrganizationBrand(org.id)
-        const target = replaceOrgInPathname(pathname, org.slug)
-        const isActive = org.slug === activeOrgSlug
-
-        return (
-          <Tooltip key={org.id} content={org.name} placement="end">
+        <div
+          style={{
+            position: 'sticky',
+            bottom: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            width: '100%',
+            paddingTop: 6,
+            paddingBottom: 2,
+            marginTop: 2,
+            backgroundColor: RAIL_BACKGROUND,
+            boxShadow: `0 -10px 12px ${RAIL_BACKGROUND}`,
+          }}
+        >
+          <Tooltip content="Create organization" placement="end">
             <button
               type="button"
-              aria-label={`Switch to ${org.name}`}
-              aria-current={isActive ? 'page' : undefined}
-              onClick={() => void navigate({ to: target })}
+              aria-label="Create organization"
+              onClick={handleCreateOrganization}
               style={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                border: 'none',
+                ...orgControlBase,
+                border: '1px dashed rgba(255,255,255,0.22)',
                 cursor: 'pointer',
-                padding: 0,
-                backgroundColor: isActive ? '#1a1a1a' : 'transparent',
-                outline: isActive ? '2px solid #FF4602' : '2px solid transparent',
-                outlineOffset: 2,
-                transition: 'outline 0.12s ease, background-color 0.12s ease',
+                backgroundColor: RAIL_BACKGROUND,
+                color: 'rgba(255,255,255,0.55)',
+                transition:
+                  'background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.9)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = RAIL_BACKGROUND
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.55)'
               }}
             >
-              <OrganizationLogo name={org.name} brand={brand} size={34} />
+              <PlusIcon size={16} />
             </button>
           </Tooltip>
-        )
-      })}
+        </div>
+      </div>
+
+      <div style={{ flexShrink: 0, marginTop: 10 }}>
+        <DashboardAccountMenu />
+      </div>
     </div>
   )
 }

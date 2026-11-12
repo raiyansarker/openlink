@@ -1,26 +1,62 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { getDashboardNavItems } from '#/lib/dashboard/nav-items'
+import {
+  getDashboardNavGroups,
+  getDashboardSettingsItem,
+  type DashboardNavItem,
+} from '#/lib/dashboard/nav-items'
 import { dashboardSectionFromPathname } from '#/lib/dashboard/build-org-path'
 import { useActivePathname } from '#/hooks/useActivePathname'
-import { getOrganizationBrand } from '#/data/demo/organization-branding'
 import {
-  HomeIcon,
+  DashboardIcon,
   LinkIcon,
   BarChartIcon,
   UsersIcon,
   SettingsIcon,
-  PlusIcon,
+  ReportIcon,
+  GlobeIcon,
+  ActivityIcon,
+  BellIcon,
 } from '#/components/icons/IcnMcp'
-import type { DashboardNavItem } from '#/lib/dashboard/nav-items'
 import type { ReactNode } from 'react'
+import { DASHBOARD_SHELL_ACCENT } from './dashboard-shell-accent'
+import type { DashboardSection } from '#/lib/dashboard/build-org-path'
+import { DASHBOARD_PANEL_BACKGROUND } from './dashboard-shell-colors'
 
-const NAV_ICONS: Record<string, ReactNode> = {
-  overview:  <HomeIcon size={16} />,
-  links:     <LinkIcon size={16} />,
-  analytics: <BarChartIcon size={16} />,
-  members:   <UsersIcon size={16} />,
-  settings:  <SettingsIcon size={16} />,
+const NAV_RADIUS = 9
+const NAV_TRANSITION = 'color 0.16s ease, background-color 0.16s ease, border-radius 0.16s ease'
+
+function ShortcutChip({ children }: { children: string }) {
+  return (
+    <span
+      style={{
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.42)',
+        fontWeight: 500,
+        letterSpacing: '0.04em',
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 5,
+        padding: '2px 5px',
+        lineHeight: 1.4,
+        flexShrink: 0,
+      }}
+    >
+      {children}
+    </span>
+  )
+}
+
+const NAV_ICONS: Record<DashboardSection, ReactNode> = {
+  overview: <DashboardIcon size={15} />,
+  activity: <ActivityIcon size={15} />,
+  notifications: <BellIcon size={15} />,
+  links: <LinkIcon size={15} />,
+  analytics: <BarChartIcon size={15} />,
+  members: <UsersIcon size={15} />,
+  domains: <GlobeIcon size={15} />,
+  reports: <ReportIcon size={15} />,
+  settings: <SettingsIcon size={15} />,
 }
 
 function NavLinkItem({
@@ -41,79 +77,80 @@ function NavLinkItem({
         position: 'relative',
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
+        gap: 8,
         width: '100%',
-        padding: '9px 14px 9px 18px',
+        padding: '6px 10px 6px 8px',
         border: 'none',
-        borderRadius: 7,
+        borderRadius: NAV_RADIUS,
         cursor: 'pointer',
-        /* Only a left border accent — no background tint */
-        backgroundColor: isSelected ? 'rgba(255,255,255,0.05)' : 'transparent',
-        color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.45)',
+        backgroundColor: isSelected ? 'rgba(255,255,255,0.08)' : 'transparent',
+        color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.55)',
         fontFamily: 'inherit',
-        fontSize: '13.5px',
+        fontSize: 13,
         fontWeight: isSelected ? 500 : 400,
         textAlign: 'left',
-        transition: 'color 0.12s ease, background-color 0.12s ease',
-        marginBottom: 1,
+        transition: NAV_TRANSITION,
+        marginBottom: 2,
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
-          ;(e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.75)'
-          ;(e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.04)'
+          const el = e.currentTarget
+          el.style.color = 'rgba(255,255,255,0.92)'
+          el.style.backgroundColor = 'rgba(255,255,255,0.07)'
+          el.style.borderRadius = `${NAV_RADIUS}px`
         }
       }}
       onMouseLeave={(e) => {
         if (!isSelected) {
-          ;(e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.45)'
-          ;(e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'
+          const el = e.currentTarget
+          el.style.color = 'rgba(255,255,255,0.55)'
+          el.style.backgroundColor = 'transparent'
         }
       }}
     >
-      {/* #FF4602 left border — ONLY on active items */}
-      <div
+      <span
+        aria-hidden
         style={{
           position: 'absolute',
           left: 0,
           top: '50%',
           transform: 'translateY(-50%)',
-          width: 3,
-          height: isSelected ? 18 : 0,
-          borderRadius: '0 3px 3px 0',
-          backgroundColor: '#FF4602',
-          transition: 'height 0.15s ease',
+          width: 2,
+          height: isSelected ? 14 : 0,
+          borderRadius: '0 2px 2px 0',
+          backgroundColor: DASHBOARD_SHELL_ACCENT,
+          transition: 'height 0.16s ease',
         }}
       />
-      {/* Icon */}
       <span
         style={{
           display: 'flex',
           alignItems: 'center',
-          color: isSelected ? '#FF4602' : 'rgba(255,255,255,0.4)',
-          transition: 'color 0.12s ease',
+          color: 'inherit',
           flexShrink: 0,
         }}
       >
         {NAV_ICONS[item.id]}
       </span>
       <span style={{ flex: 1 }}>{item.label}</span>
-      {/* Hotkey chip */}
-      <span
-        style={{
-          fontSize: 10,
-          color: 'rgba(255,255,255,0.25)',
-          fontWeight: 400,
-          letterSpacing: '0.03em',
-          backgroundColor: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 4,
-          padding: '1px 5px',
-          lineHeight: 1.6,
-        }}
-      >
-        {item.hotkey}
-      </span>
     </button>
+  )
+}
+
+function NavGroupLabel({ label, isFirst }: { label: string; isFirst: boolean }) {
+  return (
+    <p
+      style={{
+        margin: isFirst ? '4px 4px 4px' : '22px 4px 6px',
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: '0.07em',
+        textTransform: 'uppercase',
+        color: 'rgba(255,255,255,0.32)',
+      }}
+    >
+      {label}
+    </p>
   )
 }
 
@@ -121,149 +158,76 @@ export default function DashboardNavColumn() {
   const { activeOrg } = useOrganization()
   const pathname = useActivePathname()
   const section = dashboardSectionFromPathname(pathname, activeOrg.slug)
-  const items = getDashboardNavItems(activeOrg.slug)
-  const brand = getOrganizationBrand(activeOrg.id)
-
-  const mainNavItems = items.filter((i) => i.id !== 'settings')
-  const settingsItem = items.find((i) => i.id === 'settings')
-
-  const initials = activeOrg.name
-    .split(' ')
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
+  const groups = getDashboardNavGroups(activeOrg.slug)
+  const settingsItem = getDashboardSettingsItem(activeOrg.slug)
 
   return (
     <div
       style={{
-        width: 240,
+        width: 232,
         minWidth: 200,
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        /* Slightly lighter dark than the rail */
-        backgroundColor: '#111111',
+        backgroundColor: DASHBOARD_PANEL_BACKGROUND,
         flexShrink: 0,
-        borderRight: '1px solid rgba(255,255,255,0.06)',
       }}
     >
-      {/* Workspace header */}
-      <div
-        style={{
-          padding: '18px 14px 14px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            backgroundColor: brand.accentMuted,
-            border: `1.5px solid ${brand.accent}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 12,
-            fontWeight: 700,
-            color: brand.accent,
-            flexShrink: 0,
-            letterSpacing: 0,
-          }}
-        >
-          {initials}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 13.5,
-              fontWeight: 600,
-              color: '#fff',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {activeOrg.name}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
-            Workspace
-          </div>
-        </div>
-      </div>
-
-      {/* Quick create */}
-      <div style={{ padding: '12px 14px 6px' }}>
+      <div style={{ padding: '14px 12px 10px 16px' }}>
         <button
           type="button"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 6,
+            gap: 10,
             width: '100%',
-            padding: '8px 14px',
-            border: 'none',
-            borderRadius: 8,
+            padding: '7px 12px',
+            border: '1px solid rgba(255,255,255,0.14)',
+            borderRadius: 10,
             cursor: 'pointer',
-            backgroundColor: '#FF4602',
-            color: '#fff',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            color: '#f4f4f5',
             fontFamily: 'inherit',
-            fontSize: 13.5,
-            fontWeight: 600,
+            fontSize: 13,
+            fontWeight: 500,
             letterSpacing: '0.01em',
+            transition: 'background-color 0.16s ease, border-color 0.16s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.09)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
           }}
         >
-          <PlusIcon size={14} />
-          Create link
+          <span>Create link</span>
+          <ShortcutChip>C</ShortcutChip>
         </button>
       </div>
 
-      {/* Divider */}
-      <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', margin: '8px 14px' }} />
-
-      {/* Nav section label */}
-      <div style={{ padding: '0 14px 6px' }}>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 600,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase' as const,
-            color: 'rgba(255,255,255,0.25)',
-            padding: '4px 4px',
-          }}
-        >
-          Navigation
-        </div>
-      </div>
-
-      {/* Nav items */}
-      <div style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
-        {mainNavItems.map((item) => (
-          <NavLinkItem
-            key={item.id}
-            item={item}
-            isSelected={
-              item.id === 'overview' ? section === 'overview' : section === item.id
-            }
-          />
+      <div style={{ flex: 1, padding: '0 8px 0 16px', overflowY: 'auto' }}>
+        {groups.map((group, groupIndex) => (
+          <div key={group.id}>
+            <NavGroupLabel label={group.label} isFirst={groupIndex === 0} />
+            {group.items.map((item) => (
+              <NavLinkItem
+                key={item.id}
+                item={item}
+                isSelected={section === item.id}
+              />
+            ))}
+          </div>
         ))}
       </div>
 
-      {/* Footer — settings */}
-      <div style={{ padding: '8px 8px 16px' }}>
-        <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginBottom: 8 }} />
-        {settingsItem && (
-          <NavLinkItem
-            item={settingsItem}
-            isSelected={section === 'settings'}
-          />
-        )}
+      <div style={{ padding: '6px 8px 14px 16px' }}>
+        <NavLinkItem
+          item={settingsItem}
+          isSelected={section === 'settings'}
+        />
       </div>
     </div>
   )
