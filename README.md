@@ -1,92 +1,129 @@
 # OpenLink
 
-Turborepo monorepo for [OpenLink](https://github.com/) — a Cloudflare Workers link shortener.
+OpenLink is a **link shortener and redirect platform** built for [Cloudflare Workers](https://developers.cloudflare.com/workers/). Organizations manage custom domains, create rich short links (scheduling, passwords, UTM, fallbacks), and expose a versioned HTTP API from a single Worker that handles both SSR and API traffic.
 
-## Stack
+This repository is a [Turborepo](https://turborepo.dev) monorepo managed with [Bun](https://bun.sh).
 
-- **Package manager:** [Bun](https://bun.sh)
-- **Monorepo:** [Turborepo](https://turborepo.dev)
-- **App (`apps/web`):** [TanStack Start](https://tanstack.com/start) on [Cloudflare Workers](https://developers.cloudflare.com/workers/) — API + SSR in one Worker
-- **Database:** [Drizzle ORM](https://orm.drizzle.team) on Cloudflare **D1** (local via Wrangler)
-- **Contracts:** [oRPC 2 beta OpenAPI contract](https://orpc.dev/docs/openapi) in `@openlink/contracts` (`oc.meta(openapi({...}))` + [ArkType](https://arktype.io)) — shared with a future frontend; **not** hand-maintained OpenAPI YAML
-- **OpenAPI spec:** generated at runtime from the contract (`GET /api/v1/openapi.json`)
-- **API runtime:** [`OpenAPIHandler`](https://orpc.dev/docs/openapi/openapi-handler) + `implement(contract)` in `apps/web`, with [**Effect**](https://orpc.dev/docs/integrations/effect) for handlers only (not in contracts)
-- **Custom domains:** [@opencoredev/domain-sdk](https://domain-sdk.dev) — `memory` provider locally, `cloudflare` SaaS when configured
-- **Auth:** Email + password today ([Better Auth](https://www.better-auth.com)); social / magic link later
+## Features
 
-## Repository layout
+- **Organizations & invites** — create orgs behind invite tokens; members join via accept-invite flow
+- **Custom domains** — attach hostnames per org ([`@opencoredev/domain-sdk`](https://domain-sdk.dev)); memory provider locally, Cloudflare SaaS in production
+- **Links** — slugs, aliases, schedules, click limits, optional password protection, expired/fallback destinations, tags, and UTM parameters
+- **Auth** — email + password via [Better Auth](https://www.better-auth.com) (social / magic link planned)
+- **Contract-first API** — [oRPC](https://orpc.dev) OpenAPI contracts in TypeScript with [ArkType](https://arktype.io); live spec at `GET /api/v1/openapi.json` and interactive docs at `/api/docs`
+- **Edge data** — [Drizzle ORM](https://orm.drizzle.team) on Cloudflare **D1** with checked-in migrations
 
-```
-openlink/main.backend/   # backend worktree (`backend` branch)
-├── apps/
-│   └── web/             # TanStack Start Worker (implements the API)
-└── packages/
-    ├── contracts/       # oRPC contract (ArkType) per API area
-    ├── db/              # Drizzle schema + SQL migrations
-    ├── domain/          # Domain SDK factory (memory | cloudflare)
-    └── typescript-config/
-```
+## Requirements
 
-## Commands
+| Tool   | Version                          |
+|--------|----------------------------------|
+| Bun    | 1.4.4 (see `package.json`)       |
+| Node   | ≥ 24 (for tooling compatibility) |
 
-From `openlink/main`:
+## Quick start
 
 ```sh
 bun install
-bun run dev          # all apps (web on port 3000)
-bun run build
-bun run check-types
-bun run lint
-bun run test
-```
-
-Run only the web app:
-
-```sh
+cp apps/web/.dev.vars.example apps/web/.dev.vars   # set BETTER_AUTH_SECRET
+cd apps/web
+bun run check-types                                  # wrangler types + tsc
+bun run db:migrate:local
+bun run db:seed:bootstrap-invite
+cd ../..
 bun run dev --filter=web
 ```
 
-Deploy the web app (requires Cloudflare auth):
+The web app listens on **port 3000**. After bootstrap, create your first organization using invite token `local-bootstrap-invite-token` (see `apps/web/scripts/seed-bootstrap-invite.sql`).
 
-```sh
-cd apps/web && bun run deploy
+| Resource            | URL                          |
+|---------------------|------------------------------|
+| OpenAPI JSON        | http://localhost:3000/api/v1/openapi.json |
+| API docs (Stoplight)| http://localhost:3000/api/docs |
+
+## Monorepo layout
+
+```
+openlink/
+├── apps/
+│   └── web/                 # TanStack Start app on Cloudflare Workers (API + app shell)
+└── packages/
+    ├── contracts/           # oRPC OpenAPI contract + ArkType schemas (shared with clients)
+    ├── db/                  # Drizzle schema and D1 migrations
+    ├── domain/              # Domain SDK client (memory | cloudflare)
+    └── typescript-config/   # Shared TS configs
 ```
 
-## Backend API (local only)
+### API surface (contract packages)
 
-Contract: `packages/contracts/src/{auth,system,...}/` (`schema.ts` + `contract.ts` per area). Live OpenAPI: `/api/v1/openapi.json`. Interactive docs: `/api/docs` (Stoplight Elements).
+Contracts live under `packages/contracts/src/` and are composed in `contract.ts`:
 
-### One-time local setup
+| Area            | Tags / scope                                      |
+|-----------------|---------------------------------------------------|
+| `system`        | Health, metadata                                  |
+| `auth`          | Sign-up, sign-in, session                         |
+| `organizations` | Orgs, membership, invites                         |
+| `domains`       | Custom domains per org                            |
+| `links`         | CRUD under `/organizations/{id}/domains/{id}/links` |
 
-```sh
-bun install
-cp apps/web/.dev.vars.example apps/web/.dev.vars   # edit BETTER_AUTH_SECRET
-cd apps/web
-bun run check-types   # runs `wrangler types` then tsc (generates worker-configuration.d.ts locally)
-bun run db:migrate:local
-bun run db:seed:bootstrap-invite
-```
+The Worker implements the contract with `implement(contract)` and an [OpenAPI handler](https://orpc.dev/docs/openapi/openapi-handler). Business logic uses [**Effect**](https://effect.website) in `apps/web/src/server/effect/`; contracts stay Effect-free so frontends can import types only.
 
-`worker-configuration.d.ts` is generated by Wrangler and gitignored; CI and local typecheck run `wrangler types` before `tsc`.
+## Commands
 
-Bootstrap org creation uses invite token `local-bootstrap-invite-token` (see seed SQL).
-
-### Custom domains in development
-
-`wrangler.jsonc` sets `DOMAIN_PROVIDER=memory`. Domains verify in-process with Domain SDK’s memory adapter—no Cloudflare API calls. For real SaaS hostnames, copy Cloudflare values into `.dev.vars` and set `DOMAIN_PROVIDER=cloudflare`.
-
-### Tests (Bun)
+From the repository root:
 
 ```sh
+bun run dev            # all apps (web → :3000)
+bun run build
 bun run test
+bun run check-types
+bun run lint
+bun run format         # Prettier on ts, tsx, md
 ```
 
-GitHub Actions runs `test`, `check-types`, and `lint` on pushes and pull requests (see `.github/workflows/ci.yml`).
+Web-only or database:
 
-### Change the API contract
+```sh
+bun run dev --filter=web
+cd apps/web && bun run db:migrate:local
+cd apps/web && bun run deploy    # build + wrangler deploy (Cloudflare auth required)
+```
 
-Edit `schema.ts` / `contract.ts` in the matching folder under `packages/contracts/src/`. Restart the app to pick up changes; `/api/v1/openapi.json` updates automatically.
+## Local development notes
 
-## Worktrees
+### Environment
 
-Use additional git worktrees from this repo when you want parallel backend/frontend workstreams; merge back into `main` when ready.
+- Copy `apps/web/.dev.vars.example` → `apps/web/.dev.vars` and set a strong `BETTER_AUTH_SECRET` (e.g. `openssl rand -base64 32`).
+- `wrangler.jsonc` sets `DOMAIN_PROVIDER=memory` and `EXPOSE_INVITE_TOKENS_IN_API=true` for local dev so domain verification stays in-process and invite tokens appear in API responses.
+- `worker-configuration.d.ts` is generated by `wrangler types` and is gitignored; `bun run check-types` in `apps/web` runs types generation before `tsc`.
+
+### Custom domains in dev vs production
+
+With `DOMAIN_PROVIDER=memory`, hostname verification uses the in-memory Domain SDK adapter—no Cloudflare API calls. To exercise real SaaS hostnames, set `DOMAIN_PROVIDER=cloudflare` and add `CF_API_TOKEN`, `CF_ZONE_ID`, `CF_SAAS_CNAME_TARGET`, and `CF_SAAS_CUSTOM_ORIGIN` in `.dev.vars`.
+
+### Changing the API
+
+Edit `schema.ts` and `contract.ts` in the relevant folder under `packages/contracts/src/`. Restart the dev server; `/api/v1/openapi.json` updates from the contract—there is no hand-edited OpenAPI YAML.
+
+Package-level notes: [`packages/contracts/README.md`](packages/contracts/README.md).
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) on `main`, `backend`, and pull requests:
+
+1. `bun run test`
+2. `bun run check-types`
+3. `bun run lint`
+
+## Stack reference
+
+| Layer        | Choice |
+|--------------|--------|
+| Runtime      | Cloudflare Workers |
+| App framework| [TanStack Start](https://tanstack.com/start) + React 19 |
+| API          | oRPC 2 (OpenAPI) + ArkType |
+| Database     | D1 + Drizzle |
+| Auth         | Better Auth |
+| Domains      | domain-sdk (memory / cloudflare) |
+| Monorepo     | Turborepo |
+| Tooling      | Vite 8, Wrangler 4, oxlint, TypeScript |
+
