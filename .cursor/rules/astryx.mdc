@@ -26,7 +26,7 @@ RULES:
 - No <div> — components handle all layout and spacing.
 - Read `astryx docs layout` before changing a template's frame.
 - Dense data = rows (Table, List/Item), not Card-wrapped lists. Badge = counts only.
-- Style with component props first, then Tailwind utilities backed by tokens. No raw hex/px.
+- Style with component props first, then StyleX (xstyle) and theme tokens. No Tailwind. No raw hex/px in components (brand accent lives in theme only).
 - Palettes and custom colors go through the theme, never :root overrides. Run `astryx theme add <slug>` to import; `theme eject <slug>` only forks source. See `astryx docs theme`.
 - SELF-CHECK: re-read the file; replace any style={{…}}, raw <div>/<span>, imported .css/@apply, or hardcoded/arbitrary value (bg-[#fff], p-[13px]) with the component or a token-backed utility.
 
