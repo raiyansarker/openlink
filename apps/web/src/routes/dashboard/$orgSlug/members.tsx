@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import DashboardSectionPlaceholder from '#/components/dashboard/DashboardSectionPlaceholder'
+import DashboardMembersPanel from '#/components/dashboard/DashboardMembersPanel'
 import { createPageHead } from '#/lib/page-title'
 
 export const Route = createFileRoute('/dashboard/$orgSlug/members')({
@@ -8,7 +8,5 @@ export const Route = createFileRoute('/dashboard/$orgSlug/members')({
 })
 
 function DashboardMembersPage() {
-  return (
-    <DashboardSectionPlaceholder title="Members" />
-  )
+  return <DashboardMembersPanel />
 }

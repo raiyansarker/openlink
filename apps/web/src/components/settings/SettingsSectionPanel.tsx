@@ -10,6 +10,7 @@ import {
 } from '#/lib/settings/sections'
 import ProfileSettingsFields from '#/components/settings/ProfileSettingsFields'
 import AppearanceSettingsFields from '#/components/settings/AppearanceSettingsFields'
+import MembersSettingsFields from '#/components/settings/MembersSettingsFields'
 
 type SettingsSectionPanelProps = {
   section: SettingsSection
@@ -21,7 +22,7 @@ export default function SettingsSectionPanel({ section }: SettingsSectionPanelPr
 
   return (
     <VStack gap={5} hAlign="start" width="fill">
-      {section === 'profile' || section === 'devices' ? (
+      {section === 'members' ? null : section === 'profile' || section === 'devices' ? (
         <Heading level={3} color="secondary">
           {meta.label}
         </Heading>
@@ -68,11 +69,7 @@ export default function SettingsSectionPanel({ section }: SettingsSectionPanelPr
           />
         </FormLayout>
       )}
-      {section === 'members' && (
-        <Text color="secondary">
-          Invite and manage members. This will mirror the dashboard Members area.
-        </Text>
-      )}
+      {section === 'members' && <MembersSettingsFields />}
       {section === 'integrations' && (
         <Text color="secondary">
           Slack, webhooks, and third-party connections.

@@ -41,3 +41,18 @@ body {
 .settings-content-scroll:focus-within::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.22);
 }
+
+/* Members table — rounded row hover (matches 9px dashboard chrome). */
+.members-table .astryx-table-row:hover .astryx-table-cell {
+  background-color: var(--color-overlay-hover, rgba(0, 0, 0, 0.04));
+}
+
+.members-table .astryx-table-row:hover .astryx-table-cell:first-child {
+  border-top-left-radius: 9px;
+  border-bottom-left-radius: 9px;
+}
+
+.members-table .astryx-table-row:hover .astryx-table-cell:last-child {
+  border-top-right-radius: 9px;
+  border-bottom-right-radius: 9px;
+}
