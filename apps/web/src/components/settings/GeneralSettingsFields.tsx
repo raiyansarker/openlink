@@ -25,7 +25,7 @@ import {
   getTimezoneOptions,
 } from '#/lib/settings/timezones'
 
-const FIELDS_MAX_WIDTH = 760
+const FIELDS_MAX_WIDTH = 560
 const LOGO_MAX_BYTES = 2 * 1024 * 1024
 const LOGO_ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml'
 
