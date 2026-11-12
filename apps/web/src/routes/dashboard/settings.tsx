@@ -1,9 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { getDefaultOrgId } from '#/lib/dashboard/default-org'
 
 export const Route = createFileRoute('/dashboard/settings')({
-  component: RouteComponent,
+  beforeLoad: () => {
+    throw redirect({
+      to: '/dashboard/$orgId/settings',
+      params: { orgId: getDefaultOrgId() },
+    })
+  },
 })
-
-function RouteComponent() {
-  return <div>Hello "/dashboard/settings"!</div>
-}
