@@ -8,6 +8,8 @@ Each API area: `schema.ts` (ArkType), `contract.ts` (`oc.meta(openapi(...))`), `
 
 OpenAPI is served at runtime from the Worker (`GET /api/v1/openapi.json`).
 
+Typesafe API errors are defined in `api-errors.ts` and applied with `oc.errors(...).router(...)` so clients can infer `UNAUTHORIZED`, `NOT_FOUND`, etc.
+
 ## Sharing with the frontend
 
 Import schemas and types from this package only — no Effect dependency:

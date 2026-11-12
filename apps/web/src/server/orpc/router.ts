@@ -2,7 +2,7 @@ import { contract } from '@openlink/contracts'
 import '@orpc/effect/extensions/effect'
 import { ArkTypeToJsonSchemaConverter } from '@orpc/arktype'
 import { OpenAPIGenerator } from '@orpc/openapi'
-import { implement, ORPCError } from '@orpc/server'
+import { implement } from '@orpc/server'
 import { Effect } from 'effect'
 
 import { io } from '#/server/effect/io'
@@ -36,7 +36,6 @@ import {
 } from '#/server/api/serializers'
 import type { ApiContext } from './context'
 import { mergeAuthResponseCookies } from './context'
-import { badRequest, conflict, forbidden, notFound, unauthorized } from './errors'
 
 const os = implement(contract).$context<ApiContext>()
 
@@ -46,15 +45,10 @@ const openApiGenerator = new OpenAPIGenerator({
 
 export const router = os.router({
   system: {
-    getHealth: os.system.getHealth.effect(function* () {
+    getHealth: os.system.getHealth.effect(function* ({ errors }) {
       const report = yield* io(() => runHealthChecks())
       if (report.status === 'error') {
-        return yield* Effect.fail(
-          new ORPCError('SERVICE_UNAVAILABLE', {
-            message: 'One or more dependencies are unhealthy',
-            data: report,
-          }),
-        )
+        return yield* Effect.fail(errors.SERVICE_UNAVAILABLE({ data: report }))
       }
       return report
     }),
@@ -77,20 +71,20 @@ export const router = os.router({
   },
 
   auth: {
-    signUp: os.auth.signUp.effect(function* ({ input, context }) {
+    signUp: os.auth.signUp.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const response = await getAuth().api.signUpEmail({
       body: input.body,
       asResponse: true,
     })
     if (!response.ok) {
-      throw conflict('Unable to create account for this email')
+      throw errors.CONFLICT({ message: 'Unable to create account for this email' })
     }
     mergeAuthResponseCookies(context, response)
     const payload = (await response.json()) as {
       user?: { id: string; email: string; name: string; createdAt: string | Date }
     }
-    if (!payload.user) throw badRequest('Sign up failed')
+    if (!payload.user) throw errors.BAD_REQUEST({ message: 'Sign up failed' })
     return {
       user: toUserDto({
         id: payload.user.id,
@@ -103,18 +97,18 @@ export const router = os.router({
       })
     }),
 
-    signIn: os.auth.signIn.effect(function* ({ input, context }) {
+    signIn: os.auth.signIn.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const response = await getAuth().api.signInEmail({
       body: input.body,
       asResponse: true,
     })
-    if (!response.ok) throw unauthorized('Invalid email or password')
+    if (!response.ok) throw errors.UNAUTHORIZED({ message: 'Invalid email or password' })
     mergeAuthResponseCookies(context, response)
     const payload = (await response.json()) as {
       user?: { id: string; email: string; name: string; createdAt: string | Date }
     }
-    if (!payload.user) throw unauthorized('Invalid email or password')
+    if (!payload.user) throw errors.UNAUTHORIZED({ message: 'Invalid email or password' })
     return {
       user: toUserDto({
         id: payload.user.id,
@@ -149,10 +143,10 @@ export const router = os.router({
   },
 
   organizations: {
-    listOrganizations: os.organizations.listOrganizations.effect(function* ({ context }) {
+    listOrganizations: os.organizations.listOrganizations.effect(function* ({ context, errors }) {
       return yield* io(async () => {
         const session = await requireSession(context.request)
-        if (!session) throw unauthorized()
+        if (!session) throw errors.UNAUTHORIZED()
         const rows = await listOrganizationsForUser(session.session.user.id)
         return {
           items: rows.map((row) => toMembershipDto(row.organization, row.member)),
@@ -160,10 +154,10 @@ export const router = os.router({
       })
     }),
 
-    createOrganization: os.organizations.createOrganization.effect(function* ({ input, context }) {
+    createOrganization: os.organizations.createOrganization.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     try {
       const org = await createOrganizationWithBootstrapInvite({
         userId: session.session.user.id,
@@ -174,18 +168,18 @@ export const router = os.router({
       return toOrganizationDto(org)
     } catch (error) {
       if (error instanceof Error && error.message === 'invalid_bootstrap_invite') {
-        throw forbidden('Invalid or expired bootstrap invite token')
+        throw errors.FORBIDDEN({ message: 'Invalid or expired bootstrap invite token' })
       }
-      throw conflict('Unable to create organization')
+      throw errors.CONFLICT({ message: 'Unable to create organization' })
     }
   
       })
     }),
 
-    acceptOrganizationInvite: os.organizations.acceptOrganizationInvite.effect(function* ({ input, context }) {
+    acceptOrganizationInvite: os.organizations.acceptOrganizationInvite.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     try {
       const { org, member } = await acceptMemberInvite({
         userId: session.session.user.id,
@@ -193,38 +187,38 @@ export const router = os.router({
       })
       return toMembershipDto(org, member)
     } catch {
-      throw badRequest('Invalid or expired invite')
+      throw errors.BAD_REQUEST({ message: 'Invalid or expired invite' })
     }
   
       })
     }),
 
-    getOrganization: os.organizations.getOrganization.effect(function* ({ input, context }) {
+    getOrganization: os.organizations.getOrganization.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     const membership = await getMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw notFound('Organization not found')
+    if (!membership) throw errors.NOT_FOUND({ message: 'Organization not found' })
     const org = await getOrganizationById(input.params.organizationId)
-    if (!org) throw notFound('Organization not found')
+    if (!org) throw errors.NOT_FOUND({ message: 'Organization not found' })
     return toOrganizationDto(org)
   
       })
     }),
 
-    createOrganizationInvite: os.organizations.createOrganizationInvite.effect(function* ({ input, context }) {
+    createOrganizationInvite: os.organizations.createOrganizationInvite.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
       const session = await requireSession(context.request)
-      if (!session) throw unauthorized()
+      if (!session) throw errors.UNAUTHORIZED()
       const membership = await getMembership(
         session.session.user.id,
         input.params.organizationId,
       )
       if (!membership || !isAdmin(membership.role)) {
-        throw forbidden('Admin role required')
+        throw errors.FORBIDDEN({ message: 'Admin role required' })
       }
       const { invite, token } = await createMemberInvite({
         organizationId: input.params.organizationId,
@@ -245,15 +239,15 @@ export const router = os.router({
   },
 
   domains: {
-    listDomains: os.domains.listDomains.effect(function* ({ input, context }) {
+    listDomains: os.domains.listDomains.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
         const session = await requireSession(context.request)
-        if (!session) throw unauthorized()
+        if (!session) throw errors.UNAUTHORIZED()
         const membership = await getMembership(
           session.session.user.id,
           input.params.organizationId,
         )
-        if (!membership) throw unauthorized()
+        if (!membership) throw errors.UNAUTHORIZED()
         const rows = await getDb()
           .select()
           .from(customDomain)
@@ -262,15 +256,15 @@ export const router = os.router({
       })
     }),
 
-    addDomain: os.domains.addDomain.effect(function* ({ input, context }) {
+    addDomain: os.domains.addDomain.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     const membership = await getMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw forbidden()
+    if (!membership) throw errors.FORBIDDEN()
     try {
       const row = await registerCustomDomain({
         organizationId: input.params.organizationId,
@@ -278,21 +272,21 @@ export const router = os.router({
       })
       return toDomainDto(row)
     } catch {
-      throw badRequest('Unable to register domain')
+      throw errors.BAD_REQUEST({ message: 'Unable to register domain' })
     }
   
       })
     }),
 
-    getDomain: os.domains.getDomain.effect(function* ({ input, context }) {
+    getDomain: os.domains.getDomain.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     const membership = await getMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw notFound('Domain not found')
+    if (!membership) throw errors.NOT_FOUND({ message: 'Domain not found' })
     const [row] = await getDb()
       .select()
       .from(customDomain)
@@ -303,39 +297,39 @@ export const router = os.router({
         ),
       )
       .limit(1)
-    if (!row) throw notFound('Domain not found')
+    if (!row) throw errors.NOT_FOUND({ message: 'Domain not found' })
     return toDomainDto(row)
   
       })
     }),
 
-    removeDomain: os.domains.removeDomain.effect(function* ({ input, context }) {
+    removeDomain: os.domains.removeDomain.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     const membership = await getMembership(
       session.session.user.id,
       input.params.organizationId,
     )
     if (!membership || !isAdmin(membership.role)) {
-      throw forbidden('Admin role required')
+      throw errors.FORBIDDEN({ message: 'Admin role required' })
     }
     const removed = await removeCustomDomain(input.params.domainId)
-    if (!removed) throw notFound('Domain not found')
+    if (!removed) throw errors.NOT_FOUND({ message: 'Domain not found' })
     return {}
   
       })
     }),
 
-    refreshDomainStatus: os.domains.refreshDomainStatus.effect(function* ({ input, context }) {
+    refreshDomainStatus: os.domains.refreshDomainStatus.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     const membership = await getMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw notFound('Domain not found')
+    if (!membership) throw errors.NOT_FOUND({ message: 'Domain not found' })
     const [row] = await getDb()
       .select()
       .from(customDomain)
@@ -346,7 +340,7 @@ export const router = os.router({
         ),
       )
       .limit(1)
-    if (!row) throw notFound('Domain not found')
+    if (!row) throw errors.NOT_FOUND({ message: 'Domain not found' })
     const updated = await refreshCustomDomain(input.params.domainId)
     return toDomainDto(updated ?? row)
   
@@ -355,30 +349,30 @@ export const router = os.router({
   },
 
   links: {
-    listLinks: os.links.listLinks.effect(function* ({ input, context }) {
+    listLinks: os.links.listLinks.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     const membership = await getMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw unauthorized()
+    if (!membership) throw errors.UNAUTHORIZED()
     const rows = await listLinksForDomain(input.params.domainId)
     return { items: rows.map(toLinkDto) }
   
       })
     }),
 
-    createLink: os.links.createLink.effect(function* ({ input, context }) {
+    createLink: os.links.createLink.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     const membership = await getMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw forbidden()
+    if (!membership) throw errors.FORBIDDEN()
     const [domain] = await getDb()
       .select()
       .from(customDomain)
@@ -389,7 +383,7 @@ export const router = os.router({
         ),
       )
       .limit(1)
-    if (!domain) throw notFound('Domain not found')
+    if (!domain) throw errors.NOT_FOUND({ message: 'Domain not found' })
     try {
       const row = await createLinkRecord({
         organizationId: input.params.organizationId,
@@ -413,44 +407,44 @@ export const router = os.router({
       return toLinkDto(row)
     } catch (error) {
       if (error instanceof Error && error.message === 'slug_conflict') {
-        throw conflict('Slug already exists on this domain')
+        throw errors.CONFLICT({ message: 'Slug already exists on this domain' })
       }
-      throw badRequest('Unable to create link')
+      throw errors.BAD_REQUEST({ message: 'Unable to create link' })
     }
   
       })
     }),
 
-    getLink: os.links.getLink.effect(function* ({ input, context }) {
+    getLink: os.links.getLink.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     const membership = await getMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw notFound('Link not found')
+    if (!membership) throw errors.NOT_FOUND({ message: 'Link not found' })
     const row = await getLinkInDomain(input.params.domainId, input.params.linkId)
     if (!row || row.organizationId !== input.params.organizationId) {
-      throw notFound('Link not found')
+      throw errors.NOT_FOUND({ message: 'Link not found' })
     }
     return toLinkDto(row)
   
       })
     }),
 
-    updateLink: os.links.updateLink.effect(function* ({ input, context }) {
+    updateLink: os.links.updateLink.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     const membership = await getMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw forbidden()
+    if (!membership) throw errors.FORBIDDEN()
     const existing = await getLinkInDomain(input.params.domainId, input.params.linkId)
     if (!existing || existing.organizationId !== input.params.organizationId) {
-      throw notFound('Link not found')
+      throw errors.NOT_FOUND({ message: 'Link not found' })
     }
     const now = new Date()
     const passwordHash =
@@ -496,18 +490,18 @@ export const router = os.router({
       })
     }),
 
-    deleteLink: os.links.deleteLink.effect(function* ({ input, context }) {
+    deleteLink: os.links.deleteLink.effect(function* ({ input, context, errors }) {
       return yield* io(async () => {
     const session = await requireSession(context.request)
-    if (!session) throw unauthorized()
+    if (!session) throw errors.UNAUTHORIZED()
     const membership = await getMembership(
       session.session.user.id,
       input.params.organizationId,
     )
-    if (!membership) throw forbidden()
+    if (!membership) throw errors.FORBIDDEN()
     const existing = await getLinkInDomain(input.params.domainId, input.params.linkId)
     if (!existing || existing.organizationId !== input.params.organizationId) {
-      throw notFound('Link not found')
+      throw errors.NOT_FOUND({ message: 'Link not found' })
     }
     await getDb().delete(link).where(eq(link.id, input.params.linkId))
     return {}
