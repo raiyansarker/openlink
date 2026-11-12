@@ -97,3 +97,53 @@ export function DashboardIcon({ size = 16, ...p }: SvgProps) {
     </svg>
   )
 }
+
+export function ReportIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M5 2.25 H11 A2.75 2.75 0 0 1 13.75 5 V13 A1.25 1.25 0 0 1 12.5 14.25 H3.5 A1.25 1.25 0 0 1 2.25 13 V3.5 A1.25 1.25 0 0 1 3.5 2.25 H5 Z" />
+      <path d="M5.25 2.25 V5.25 H8.25" />
+      <line x1="4.5" y1="8" x2="11.5" y2="8" />
+      <line x1="4.5" y1="10.25" x2="9.5" y2="10.25" />
+    </svg>
+  )
+}
+
+export function GlobeIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <circle cx="8" cy="8" r="5.75" />
+      <ellipse cx="8" cy="8" rx="2.5" ry="5.75" />
+      <line x1="2.25" y1="8" x2="13.75" y2="8" />
+      <path d="M3.4 5.25 H12.6 M3.4 10.75 H12.6" />
+    </svg>
+  )
+}
+
+export function ActivityIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M2.75 11.25 L5.5 7.75 L8.25 9.75 L11.25 4.75 L13.25 6.5" />
+      <circle cx="12" cy="4.25" r="1.25" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function BellIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M6.25 2.5 A3.5 3.5 0 0 1 12.5 2.75 V7.25 C12.5 8 12.85 8.65 13.35 9.1 L13.75 9.45 V10.25 H2.25 V9.45 L2.65 9.1 C3.15 8.65 3.5 8 3.5 7.25 V4.5" />
+      <path d="M6.5 10.25 V10.75 A1.5 1.5 0 0 0 9.5 10.75 V10.25" />
+    </svg>
+  )
+}
+
+export function HelpIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <circle cx="8" cy="8" r="5.75" />
+      <path d="M6.25 6.25 A2.25 2.25 0 0 1 10.75 6.75 C10.75 8 9 8.5 8.5 9.25 V9.75" />
+      <circle cx="8.5" cy="11.5" r="0.65" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
