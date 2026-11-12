@@ -79,6 +79,12 @@
   box-sizing: border-box;
 }
 
+elements-api {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 html,
 body,
 #app {
