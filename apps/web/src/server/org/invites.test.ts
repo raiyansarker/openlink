@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createInviteToken, hashInviteToken } from './invite-tokens'
+import { createInviteToken, hashInviteToken, inviteEmailMatches } from './invite-tokens'
 
 describe('organization invites', () => {
   test('hashInviteToken is deterministic', () => {
@@ -13,5 +13,10 @@ describe('organization invites', () => {
     const token = createInviteToken()
     expect(token.length).toBeGreaterThan(20)
     expect(token).toMatch(/^[A-Za-z0-9_-]+$/)
+  })
+
+  test('inviteEmailMatches is case-insensitive', () => {
+    expect(inviteEmailMatches('User@Example.com', 'user@example.com')).toBe(true)
+    expect(inviteEmailMatches('other@example.com', 'user@example.com')).toBe(false)
   })
 })

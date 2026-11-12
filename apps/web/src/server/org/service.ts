@@ -9,6 +9,7 @@ import {
   createInviteToken,
   findBootstrapInviteByToken,
   hashInviteToken,
+  inviteEmailMatches,
 } from './invites'
 
 export async function listOrganizationsForUser(userId: string) {
@@ -95,7 +96,11 @@ export async function createMemberInvite(input: {
   return { invite: invite!, token }
 }
 
-export async function acceptMemberInvite(input: { userId: string; token: string }) {
+export async function acceptMemberInvite(input: {
+  userId: string
+  userEmail: string
+  token: string
+}) {
   const tokenHash = hashInviteToken(input.token)
   const now = new Date()
 
@@ -113,6 +118,39 @@ export async function acceptMemberInvite(input: { userId: string; token: string 
 
   if (!invite || !invite.organizationId || invite.expiresAt <= now) {
     throw new Error('invalid_invite')
+  }
+
+  if (!inviteEmailMatches(invite.email, input.userEmail)) {
+    throw new Error('invite_email_mismatch')
+  }
+
+  const organizationId = invite.organizationId
+  const existingMember = await getDb()
+    .select()
+    .from(organizationMember)
+    .where(
+      and(
+        eq(organizationMember.organizationId, organizationId),
+        eq(organizationMember.userId, input.userId),
+      ),
+    )
+    .limit(1)
+    .then((rows) => rows[0])
+
+  if (existingMember) {
+    const db = getDb()
+    await db
+      .update(organizationInvite)
+      .set({ acceptedAt: now })
+      .where(eq(organizationInvite.id, invite.id))
+
+    const [org] = await db
+      .select()
+      .from(organization)
+      .where(eq(organization.id, organizationId))
+      .limit(1)
+
+    return { org: org!, member: existingMember }
   }
 
   const db = getDb()

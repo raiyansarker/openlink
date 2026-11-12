@@ -7,3 +7,7 @@ export function hashInviteToken(token: string) {
 export function createInviteToken() {
   return randomBytes(24).toString('base64url')
 }
+
+export function inviteEmailMatches(inviteEmail: string, userEmail: string) {
+  return inviteEmail.trim().toLowerCase() === userEmail.trim().toLowerCase()
+}

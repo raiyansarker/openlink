@@ -3,7 +3,7 @@ import { organizationInvite } from '@openlink/db/schema'
 import { getDb } from '../db'
 import { hashInviteToken } from './invite-tokens'
 
-export { createInviteToken, hashInviteToken } from './invite-tokens'
+export { createInviteToken, hashInviteToken, inviteEmailMatches } from './invite-tokens'
 
 export async function findBootstrapInviteByToken(token: string) {
   const tokenHash = hashInviteToken(token)
