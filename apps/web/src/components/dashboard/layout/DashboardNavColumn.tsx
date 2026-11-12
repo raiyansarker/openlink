@@ -8,6 +8,7 @@ import {
 } from '#/lib/dashboard/nav-items'
 import { dashboardSectionFromPathname } from '#/lib/dashboard/build-org-path'
 import { useActivePathname } from '#/hooks/useActivePathname'
+import CreateLinkChromeButton from '#/components/dashboard/CreateLinkChromeButton'
 import {
   DashboardIcon,
   LinkIcon,
@@ -51,27 +52,6 @@ const navLinkBaseStyle: CSSProperties = {
   textAlign: 'left',
   boxSizing: 'border-box',
   transition: NAV_ITEM_TRANSITION,
-}
-
-function ShortcutChip({ children }: { children: string }) {
-  return (
-    <span
-      style={{
-        fontSize: 10,
-        color: 'rgba(0, 0, 0, 0.45)',
-        fontWeight: 500,
-        letterSpacing: '0.04em',
-        backgroundColor: 'rgba(0, 0, 0, 0.05)',
-        border: '1px solid rgba(0, 0, 0, 0.08)',
-        borderRadius: 5,
-        padding: '2px 5px',
-        lineHeight: 1.4,
-        flexShrink: 0,
-      }}
-    >
-      {children}
-    </span>
-  )
 }
 
 const NAV_ICONS: Record<DashboardSection, ReactNode> = {
@@ -146,7 +126,6 @@ function NavGroupLabel({ label, isFirst }: { label: string; isFirst: boolean }) 
 }
 
 export default function DashboardNavColumn() {
-  const [createHovered, setCreateHovered] = useState(false)
   const { activeOrg } = useOrganization()
   const pathname = useActivePathname()
   const section = dashboardSectionFromPathname(pathname, activeOrg.slug)
@@ -175,37 +154,7 @@ export default function DashboardNavColumn() {
           padding: `0 ${DASHBOARD_NAV_HORIZONTAL_PADDING}px 14px 0`,
         }}
       >
-        <button
-          type="button"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            width: '100%',
-            height: 34,
-            padding: '0 10px',
-            border: '1px solid rgba(0, 0, 0, 0.12)',
-            borderRadius: 9,
-            cursor: 'pointer',
-            backgroundColor: createHovered
-              ? '#ffffff'
-              : 'rgba(255, 255, 255, 0.65)',
-            color: '#0a0a0a',
-            fontFamily: 'inherit',
-            fontSize: 13,
-            fontWeight: 500,
-            letterSpacing: '0.01em',
-            transition: 'background-color 0.14s ease, border-color 0.14s ease',
-          }}
-          onMouseEnter={() => setCreateHovered(true)}
-          onMouseLeave={() => setCreateHovered(false)}
-          onFocus={() => setCreateHovered(true)}
-          onBlur={() => setCreateHovered(false)}
-        >
-          <span>Create link</span>
-          <ShortcutChip>C</ShortcutChip>
-        </button>
+        <CreateLinkChromeButton layout="fill" />
       </div>
 
       <nav
