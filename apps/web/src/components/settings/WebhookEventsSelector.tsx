@@ -26,6 +26,7 @@ type WebhookEventsSelectorProps = {
   value: WebhookEvent[]
   onChange: (next: WebhookEvent[]) => void
   description?: string
+  isRequired?: boolean
 }
 
 /** Searchable, grouped multi-select for webhook event subscriptions. */
@@ -33,6 +34,7 @@ export default function WebhookEventsSelector({
   value,
   onChange,
   description,
+  isRequired = false,
 }: WebhookEventsSelectorProps) {
   return (
     <MultiSelector
@@ -44,12 +46,12 @@ export default function WebhookEventsSelector({
       placeholder="Choose events"
       triggerDisplay="badges"
       size="sm"
-      maxBadges={3}
+      maxBadges={2}
       hasSearch
       searchPlaceholder="Search events"
       hasSelectAll
       selectAllLabel="All events"
-      isRequired
+      isRequired={isRequired}
       status={
         value.length === 0
           ? { type: 'error', message: 'Pick at least one event.' }
