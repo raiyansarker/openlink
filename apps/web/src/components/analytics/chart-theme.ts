@@ -25,15 +25,15 @@ export const CHANNEL_COLORS: Record<string, string> = {
   qr: SERIES_COLORS[4],
 }
 
-/** Sequential ramp (light → dark) for heatmaps. */
-export const BLUE_RAMP = [
-  'var(--color-data-gray-1)',
-  'var(--color-data-blue-1)',
-  'var(--color-data-blue-2)',
-  'var(--color-data-blue-3)',
-  'var(--color-data-blue-4)',
-  'var(--color-data-blue-5)',
-] as const
+/**
+ * Sequential ramp (quiet → strong) for heatmaps. Each step mixes the accent
+ * into the card surface, so the scale reads correctly in light and dark mode
+ * instead of using fixed light tints.
+ */
+export const BLUE_RAMP = [6, 18, 34, 52, 74, 100].map(
+  (pct) =>
+    `color-mix(in oklab, var(--color-data-categorical-blue) ${pct}%, var(--color-background-surface))`,
+)
 
 /** Applied to the element that wraps a chart. */
 export const chartHostStyle = {
