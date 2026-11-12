@@ -66,10 +66,12 @@ function DeltaText({ tile, isComparing }: { tile: Tile; isComparing: boolean }) 
 type MetricTilesProps = {
   report: AnalyticsReport
   isComparing: boolean
+  /** Narrower tiles for side-by-side layouts such as a link's page. */
+  isCompact?: boolean
 }
 
 /** Headline numbers for the window, each with a period delta and a sparkline. */
-export default function MetricTiles({ report, isComparing }: MetricTilesProps) {
+export default function MetricTiles({ report, isComparing, isCompact = false }: MetricTilesProps) {
   const tiles = useMemo<Tile[]>(() => {
     const { totals, previousTotals, totalsSeries } = report
     const linkCount = Math.max(1, report.links.length)
@@ -127,7 +129,7 @@ export default function MetricTiles({ report, isComparing }: MetricTilesProps) {
   }, [report])
 
   return (
-    <Grid columns={{ minWidth: 220, max: 4 }} gap={4} width="100%">
+    <Grid columns={{ minWidth: isCompact ? 150 : 220, max: 4 }} gap={isCompact ? 3 : 4} width="100%">
       {tiles.map((tile) => (
         <Card key={tile.key} padding={4} style={{ minWidth: 0 }}>
           <VStack gap={3} hAlign="stretch" width="100%">
