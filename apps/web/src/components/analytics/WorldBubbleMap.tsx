@@ -84,6 +84,11 @@ export default function WorldBubbleMap({ countries, height = 280 }: WorldBubbleM
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
         const addBubbles = () => {
+          // Place names collide with the bubbles; the list beside the map
+          // already names every country, so hide the basemap's text layers.
+          for (const layer of map.getStyle().layers ?? []) {
+            if (layer.type === 'symbol') map.setLayoutProperty(layer.id, 'visibility', 'none')
+          }
           const accent = resolveCssColor(container, '--color-data-categorical-blue', '#0171E3')
           if (!map.getSource(SOURCE_ID)) {
             map.addSource(SOURCE_ID, { type: 'geojson', data: toGeoJson(dataRef.current) })
