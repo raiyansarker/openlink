@@ -6,7 +6,6 @@ import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { InputGroup, InputGroupText } from '@astryxdesign/core/InputGroup'
-import { Selector } from '@astryxdesign/core/Selector'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
@@ -19,11 +18,6 @@ import {
   slugifyOrganizationSlug,
 } from '#/lib/organization/slugify'
 import { exportLinks, type LinkExportFormat } from '#/lib/settings/export-links'
-import {
-  browserTimezone,
-  currentTimeIn,
-  getTimezoneOptions,
-} from '#/lib/settings/timezones'
 
 const FIELDS_MAX_WIDTH = 560
 const LOGO_MAX_BYTES = 2 * 1024 * 1024
@@ -32,7 +26,6 @@ const LOGO_ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml'
 type GeneralForm = {
   name: string
   slug: string
-  timezone: string
 }
 
 function SettingsBlock({
@@ -91,7 +84,6 @@ export default function GeneralSettingsFields() {
     () => ({
       name: activeOrg.name,
       slug: activeOrg.slug,
-      timezone: browserTimezone(),
     }),
     [activeOrg.name, activeOrg.slug],
   )
@@ -112,7 +104,6 @@ export default function GeneralSettingsFields() {
     setNotice(null)
   }, [initial])
 
-  const timezoneOptions = useMemo(() => getTimezoneOptions(), [])
   const adminCandidates = useMemo(
     () =>
       getMembersForOrg(activeOrg.id).filter(
@@ -132,8 +123,7 @@ export default function GeneralSettingsFields() {
   const slugChanged = form.slug !== saved.slug
   const isDirty =
     form.name !== saved.name ||
-    slugChanged ||
-    form.timezone !== saved.timezone
+    slugChanged
   const canSave = isDirty && !nameError && !slugError
 
   const onLogoFile = (file: File | undefined) => {
@@ -329,24 +319,6 @@ export default function GeneralSettingsFields() {
               Old bookmarks to /{saved.slug} will stop working.
             </Text>
           ) : null}
-        </VStack>
-      </SettingsBlock>
-
-      <SettingsBlock
-        title="Region"
-        description="Used for analytics charts and scheduled reports."
-      >
-        <VStack gap={4} hAlign="stretch" width="100%">
-          <Selector
-            label="Timezone"
-            size="sm"
-            options={timezoneOptions}
-            value={form.timezone}
-            onChange={(value) => update('timezone', value)}
-            hasSearch
-            description={`It's ${currentTimeIn(form.timezone)} there now.`}
-            width="100%"
-          />
         </VStack>
       </SettingsBlock>
 
