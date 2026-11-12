@@ -13,11 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ApiDocsRouteImport } from './routes/api/docs'
 import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
+import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
 import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
 import { Route as ApiV1AuthSignInRouteImport } from './routes/api/v1/auth/sign-in'
 import { Route as ApiV1AuthSignOutRouteImport } from './routes/api/v1/auth/sign-out'
 import { Route as ApiV1AuthSignUpRouteImport } from './routes/api/v1/auth/sign-up'
-import { Route as ApiV1OpenapiJsonRouteImport } from './routes/api/v1/openapi.json'
 import { Route as ApiV1OrganizationsIndexRouteImport } from './routes/api/v1/organizations/index'
 import { Route as ApiV1OrganizationsOrganizationIdIndexRouteImport } from './routes/api/v1/organizations/$organizationId/index'
 import { Route as ApiV1OrganizationsOrganizationIdInvitesRouteImport } from './routes/api/v1/organizations/$organizationId/invites'
@@ -48,6 +48,11 @@ const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
   path: '/api/v1/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1OpenapiDotjsonRoute = ApiV1OpenapiDotjsonRouteImport.update({
+  id: '/api/v1/openapi.json',
+  path: '/api/v1/openapi.json',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1AuthSessionRoute = ApiV1AuthSessionRouteImport.update({
   id: '/api/v1/auth/session',
   path: '/api/v1/auth/session',
@@ -66,11 +71,6 @@ const ApiV1AuthSignOutRoute = ApiV1AuthSignOutRouteImport.update({
 const ApiV1AuthSignUpRoute = ApiV1AuthSignUpRouteImport.update({
   id: '/api/v1/auth/sign-up',
   path: '/api/v1/auth/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1OpenapiJsonRoute = ApiV1OpenapiJsonRouteImport.update({
-  id: '/api/v1/openapi/json',
-  path: '/api/v1/openapi/json',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1OrganizationsIndexRoute = ApiV1OrganizationsIndexRouteImport.update({
@@ -132,11 +132,11 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/api/docs': typeof ApiDocsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/sign-in': typeof ApiV1AuthSignInRoute
   '/api/v1/auth/sign-out': typeof ApiV1AuthSignOutRoute
   '/api/v1/auth/sign-up': typeof ApiV1AuthSignUpRoute
-  '/api/v1/openapi/json': typeof ApiV1OpenapiJsonRoute
   '/api/v1/organizations/': typeof ApiV1OrganizationsIndexRoute
   '/api/v1/organizations/$organizationId/invites': typeof ApiV1OrganizationsOrganizationIdInvitesRoute
   '/api/v1/organizations/invites/accept': typeof ApiV1OrganizationsInvitesAcceptRoute
@@ -152,11 +152,11 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/api/docs': typeof ApiDocsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/sign-in': typeof ApiV1AuthSignInRoute
   '/api/v1/auth/sign-out': typeof ApiV1AuthSignOutRoute
   '/api/v1/auth/sign-up': typeof ApiV1AuthSignUpRoute
-  '/api/v1/openapi/json': typeof ApiV1OpenapiJsonRoute
   '/api/v1/organizations': typeof ApiV1OrganizationsIndexRoute
   '/api/v1/organizations/$organizationId/invites': typeof ApiV1OrganizationsOrganizationIdInvitesRoute
   '/api/v1/organizations/invites/accept': typeof ApiV1OrganizationsInvitesAcceptRoute
@@ -173,11 +173,11 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/api/docs': typeof ApiDocsRoute
   '/api/v1/health': typeof ApiV1HealthRoute
+  '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
   '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
   '/api/v1/auth/sign-in': typeof ApiV1AuthSignInRoute
   '/api/v1/auth/sign-out': typeof ApiV1AuthSignOutRoute
   '/api/v1/auth/sign-up': typeof ApiV1AuthSignUpRoute
-  '/api/v1/openapi/json': typeof ApiV1OpenapiJsonRoute
   '/api/v1/organizations/': typeof ApiV1OrganizationsIndexRoute
   '/api/v1/organizations/$organizationId/invites': typeof ApiV1OrganizationsOrganizationIdInvitesRoute
   '/api/v1/organizations/invites/accept': typeof ApiV1OrganizationsInvitesAcceptRoute
@@ -195,11 +195,11 @@ export interface FileRouteTypes {
     | '/about'
     | '/api/docs'
     | '/api/v1/health'
+    | '/api/v1/openapi.json'
     | '/api/v1/auth/session'
     | '/api/v1/auth/sign-in'
     | '/api/v1/auth/sign-out'
     | '/api/v1/auth/sign-up'
-    | '/api/v1/openapi/json'
     | '/api/v1/organizations/'
     | '/api/v1/organizations/$organizationId/invites'
     | '/api/v1/organizations/invites/accept'
@@ -215,11 +215,11 @@ export interface FileRouteTypes {
     | '/about'
     | '/api/docs'
     | '/api/v1/health'
+    | '/api/v1/openapi.json'
     | '/api/v1/auth/session'
     | '/api/v1/auth/sign-in'
     | '/api/v1/auth/sign-out'
     | '/api/v1/auth/sign-up'
-    | '/api/v1/openapi/json'
     | '/api/v1/organizations'
     | '/api/v1/organizations/$organizationId/invites'
     | '/api/v1/organizations/invites/accept'
@@ -235,11 +235,11 @@ export interface FileRouteTypes {
     | '/about'
     | '/api/docs'
     | '/api/v1/health'
+    | '/api/v1/openapi.json'
     | '/api/v1/auth/session'
     | '/api/v1/auth/sign-in'
     | '/api/v1/auth/sign-out'
     | '/api/v1/auth/sign-up'
-    | '/api/v1/openapi/json'
     | '/api/v1/organizations/'
     | '/api/v1/organizations/$organizationId/invites'
     | '/api/v1/organizations/invites/accept'
@@ -256,11 +256,11 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   ApiDocsRoute: typeof ApiDocsRoute
   ApiV1HealthRoute: typeof ApiV1HealthRoute
+  ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
   ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
   ApiV1AuthSignInRoute: typeof ApiV1AuthSignInRoute
   ApiV1AuthSignOutRoute: typeof ApiV1AuthSignOutRoute
   ApiV1AuthSignUpRoute: typeof ApiV1AuthSignUpRoute
-  ApiV1OpenapiJsonRoute: typeof ApiV1OpenapiJsonRoute
   ApiV1OrganizationsIndexRoute: typeof ApiV1OrganizationsIndexRoute
   ApiV1OrganizationsOrganizationIdInvitesRoute: typeof ApiV1OrganizationsOrganizationIdInvitesRoute
   ApiV1OrganizationsInvitesAcceptRoute: typeof ApiV1OrganizationsInvitesAcceptRoute
@@ -302,6 +302,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/openapi.json': {
+      id: '/api/v1/openapi.json'
+      path: '/api/v1/openapi.json'
+      fullPath: '/api/v1/openapi.json'
+      preLoaderRoute: typeof ApiV1OpenapiDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/auth/session': {
       id: '/api/v1/auth/session'
       path: '/api/v1/auth/session'
@@ -328,13 +335,6 @@ declare module '@tanstack/react-router' {
       path: '/api/v1/auth/sign-up'
       fullPath: '/api/v1/auth/sign-up'
       preLoaderRoute: typeof ApiV1AuthSignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/openapi/json': {
-      id: '/api/v1/openapi/json'
-      path: '/api/v1/openapi/json'
-      fullPath: '/api/v1/openapi/json'
-      preLoaderRoute: typeof ApiV1OpenapiJsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/organizations/': {
@@ -408,11 +408,11 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   ApiDocsRoute: ApiDocsRoute,
   ApiV1HealthRoute: ApiV1HealthRoute,
+  ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
   ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
   ApiV1AuthSignInRoute: ApiV1AuthSignInRoute,
   ApiV1AuthSignOutRoute: ApiV1AuthSignOutRoute,
   ApiV1AuthSignUpRoute: ApiV1AuthSignUpRoute,
-  ApiV1OpenapiJsonRoute: ApiV1OpenapiJsonRoute,
   ApiV1OrganizationsIndexRoute: ApiV1OrganizationsIndexRoute,
   ApiV1OrganizationsOrganizationIdInvitesRoute:
     ApiV1OrganizationsOrganizationIdInvitesRoute,
