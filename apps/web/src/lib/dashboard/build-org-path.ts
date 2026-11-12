@@ -1,15 +1,23 @@
 export type DashboardSection =
   | 'overview'
+  | 'activity'
+  | 'notifications'
   | 'links'
   | 'analytics'
   | 'members'
+  | 'domains'
+  | 'reports'
   | 'settings'
 
 const sectionSegment: Record<DashboardSection, string | null> = {
   overview: null,
+  activity: 'activity',
+  notifications: 'notifications',
   links: 'links',
   analytics: 'analytics',
   members: 'members',
+  domains: 'domains',
+  reports: 'reports',
   settings: 'settings',
 }
 
@@ -33,6 +41,12 @@ export function dashboardSectionFromPathname(
   if (pathname === prefix || pathname === `${prefix}/`) {
     return 'overview'
   }
+  if (pathname.startsWith(`${prefix}/activity`)) {
+    return 'activity'
+  }
+  if (pathname.startsWith(`${prefix}/notifications`)) {
+    return 'notifications'
+  }
   if (pathname.startsWith(`${prefix}/links`)) {
     return 'links'
   }
@@ -41,6 +55,12 @@ export function dashboardSectionFromPathname(
   }
   if (pathname.startsWith(`${prefix}/members`)) {
     return 'members'
+  }
+  if (pathname.startsWith(`${prefix}/domains`)) {
+    return 'domains'
+  }
+  if (pathname.startsWith(`${prefix}/reports`)) {
+    return 'reports'
   }
   if (pathname.startsWith(`${prefix}/settings`)) {
     return 'settings'

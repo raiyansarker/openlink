@@ -19,9 +19,13 @@ import { Route as DashboardLinksRouteImport } from './routes/dashboard/links'
 import { Route as DashboardMembersRouteImport } from './routes/dashboard/members'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as DashboardOrgSlugIndexRouteImport } from './routes/dashboard/$orgSlug/index'
+import { Route as DashboardOrgSlugActivityRouteImport } from './routes/dashboard/$orgSlug/activity'
 import { Route as DashboardOrgSlugAnalyticsRouteImport } from './routes/dashboard/$orgSlug/analytics'
+import { Route as DashboardOrgSlugDomainsRouteImport } from './routes/dashboard/$orgSlug/domains'
 import { Route as DashboardOrgSlugLinksRouteImport } from './routes/dashboard/$orgSlug/links'
 import { Route as DashboardOrgSlugMembersRouteImport } from './routes/dashboard/$orgSlug/members'
+import { Route as DashboardOrgSlugNotificationsRouteImport } from './routes/dashboard/$orgSlug/notifications'
+import { Route as DashboardOrgSlugReportsRouteImport } from './routes/dashboard/$orgSlug/reports'
 import { Route as DashboardOrgSlugSettingsRouteImport } from './routes/dashboard/$orgSlug/settings'
 
 const IndexRoute = IndexRouteImport.update({
@@ -74,12 +78,23 @@ const DashboardOrgSlugIndexRoute = DashboardOrgSlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardOrgSlugRouteRoute,
 } as any)
+const DashboardOrgSlugActivityRoute =
+  DashboardOrgSlugActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => DashboardOrgSlugRouteRoute,
+  } as any)
 const DashboardOrgSlugAnalyticsRoute =
   DashboardOrgSlugAnalyticsRouteImport.update({
     id: '/analytics',
     path: '/analytics',
     getParentRoute: () => DashboardOrgSlugRouteRoute,
   } as any)
+const DashboardOrgSlugDomainsRoute = DashboardOrgSlugDomainsRouteImport.update({
+  id: '/domains',
+  path: '/domains',
+  getParentRoute: () => DashboardOrgSlugRouteRoute,
+} as any)
 const DashboardOrgSlugLinksRoute = DashboardOrgSlugLinksRouteImport.update({
   id: '/links',
   path: '/links',
@@ -88,6 +103,17 @@ const DashboardOrgSlugLinksRoute = DashboardOrgSlugLinksRouteImport.update({
 const DashboardOrgSlugMembersRoute = DashboardOrgSlugMembersRouteImport.update({
   id: '/members',
   path: '/members',
+  getParentRoute: () => DashboardOrgSlugRouteRoute,
+} as any)
+const DashboardOrgSlugNotificationsRoute =
+  DashboardOrgSlugNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => DashboardOrgSlugRouteRoute,
+  } as any)
+const DashboardOrgSlugReportsRoute = DashboardOrgSlugReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => DashboardOrgSlugRouteRoute,
 } as any)
 const DashboardOrgSlugSettingsRoute =
@@ -107,9 +133,13 @@ export interface FileRoutesByFullPath {
   '/dashboard/members': typeof DashboardMembersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
   '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
+  '/dashboard/$orgSlug/domains': typeof DashboardOrgSlugDomainsRoute
   '/dashboard/$orgSlug/links': typeof DashboardOrgSlugLinksRoute
   '/dashboard/$orgSlug/members': typeof DashboardOrgSlugMembersRoute
+  '/dashboard/$orgSlug/notifications': typeof DashboardOrgSlugNotificationsRoute
+  '/dashboard/$orgSlug/reports': typeof DashboardOrgSlugReportsRoute
   '/dashboard/$orgSlug/settings': typeof DashboardOrgSlugSettingsRoute
   '/dashboard/$orgSlug/': typeof DashboardOrgSlugIndexRoute
 }
@@ -121,9 +151,13 @@ export interface FileRoutesByTo {
   '/dashboard/members': typeof DashboardMembersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
   '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
+  '/dashboard/$orgSlug/domains': typeof DashboardOrgSlugDomainsRoute
   '/dashboard/$orgSlug/links': typeof DashboardOrgSlugLinksRoute
   '/dashboard/$orgSlug/members': typeof DashboardOrgSlugMembersRoute
+  '/dashboard/$orgSlug/notifications': typeof DashboardOrgSlugNotificationsRoute
+  '/dashboard/$orgSlug/reports': typeof DashboardOrgSlugReportsRoute
   '/dashboard/$orgSlug/settings': typeof DashboardOrgSlugSettingsRoute
   '/dashboard/$orgSlug': typeof DashboardOrgSlugIndexRoute
 }
@@ -138,9 +172,13 @@ export interface FileRoutesById {
   '/dashboard/members': typeof DashboardMembersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
   '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
+  '/dashboard/$orgSlug/domains': typeof DashboardOrgSlugDomainsRoute
   '/dashboard/$orgSlug/links': typeof DashboardOrgSlugLinksRoute
   '/dashboard/$orgSlug/members': typeof DashboardOrgSlugMembersRoute
+  '/dashboard/$orgSlug/notifications': typeof DashboardOrgSlugNotificationsRoute
+  '/dashboard/$orgSlug/reports': typeof DashboardOrgSlugReportsRoute
   '/dashboard/$orgSlug/settings': typeof DashboardOrgSlugSettingsRoute
   '/dashboard/$orgSlug/': typeof DashboardOrgSlugIndexRoute
 }
@@ -156,9 +194,13 @@ export interface FileRouteTypes {
     | '/dashboard/members'
     | '/dashboard/settings'
     | '/dashboard/'
+    | '/dashboard/$orgSlug/activity'
     | '/dashboard/$orgSlug/analytics'
+    | '/dashboard/$orgSlug/domains'
     | '/dashboard/$orgSlug/links'
     | '/dashboard/$orgSlug/members'
+    | '/dashboard/$orgSlug/notifications'
+    | '/dashboard/$orgSlug/reports'
     | '/dashboard/$orgSlug/settings'
     | '/dashboard/$orgSlug/'
   fileRoutesByTo: FileRoutesByTo
@@ -170,9 +212,13 @@ export interface FileRouteTypes {
     | '/dashboard/members'
     | '/dashboard/settings'
     | '/dashboard'
+    | '/dashboard/$orgSlug/activity'
     | '/dashboard/$orgSlug/analytics'
+    | '/dashboard/$orgSlug/domains'
     | '/dashboard/$orgSlug/links'
     | '/dashboard/$orgSlug/members'
+    | '/dashboard/$orgSlug/notifications'
+    | '/dashboard/$orgSlug/reports'
     | '/dashboard/$orgSlug/settings'
     | '/dashboard/$orgSlug'
   id:
@@ -186,9 +232,13 @@ export interface FileRouteTypes {
     | '/dashboard/members'
     | '/dashboard/settings'
     | '/dashboard/'
+    | '/dashboard/$orgSlug/activity'
     | '/dashboard/$orgSlug/analytics'
+    | '/dashboard/$orgSlug/domains'
     | '/dashboard/$orgSlug/links'
     | '/dashboard/$orgSlug/members'
+    | '/dashboard/$orgSlug/notifications'
+    | '/dashboard/$orgSlug/reports'
     | '/dashboard/$orgSlug/settings'
     | '/dashboard/$orgSlug/'
   fileRoutesById: FileRoutesById
@@ -271,11 +321,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgSlugIndexRouteImport
       parentRoute: typeof DashboardOrgSlugRouteRoute
     }
+    '/dashboard/$orgSlug/activity': {
+      id: '/dashboard/$orgSlug/activity'
+      path: '/activity'
+      fullPath: '/dashboard/$orgSlug/activity'
+      preLoaderRoute: typeof DashboardOrgSlugActivityRouteImport
+      parentRoute: typeof DashboardOrgSlugRouteRoute
+    }
     '/dashboard/$orgSlug/analytics': {
       id: '/dashboard/$orgSlug/analytics'
       path: '/analytics'
       fullPath: '/dashboard/$orgSlug/analytics'
       preLoaderRoute: typeof DashboardOrgSlugAnalyticsRouteImport
+      parentRoute: typeof DashboardOrgSlugRouteRoute
+    }
+    '/dashboard/$orgSlug/domains': {
+      id: '/dashboard/$orgSlug/domains'
+      path: '/domains'
+      fullPath: '/dashboard/$orgSlug/domains'
+      preLoaderRoute: typeof DashboardOrgSlugDomainsRouteImport
       parentRoute: typeof DashboardOrgSlugRouteRoute
     }
     '/dashboard/$orgSlug/links': {
@@ -292,6 +356,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgSlugMembersRouteImport
       parentRoute: typeof DashboardOrgSlugRouteRoute
     }
+    '/dashboard/$orgSlug/notifications': {
+      id: '/dashboard/$orgSlug/notifications'
+      path: '/notifications'
+      fullPath: '/dashboard/$orgSlug/notifications'
+      preLoaderRoute: typeof DashboardOrgSlugNotificationsRouteImport
+      parentRoute: typeof DashboardOrgSlugRouteRoute
+    }
+    '/dashboard/$orgSlug/reports': {
+      id: '/dashboard/$orgSlug/reports'
+      path: '/reports'
+      fullPath: '/dashboard/$orgSlug/reports'
+      preLoaderRoute: typeof DashboardOrgSlugReportsRouteImport
+      parentRoute: typeof DashboardOrgSlugRouteRoute
+    }
     '/dashboard/$orgSlug/settings': {
       id: '/dashboard/$orgSlug/settings'
       path: '/settings'
@@ -303,17 +381,25 @@ declare module '@tanstack/react-router' {
 }
 
 interface DashboardOrgSlugRouteRouteChildren {
+  DashboardOrgSlugActivityRoute: typeof DashboardOrgSlugActivityRoute
   DashboardOrgSlugAnalyticsRoute: typeof DashboardOrgSlugAnalyticsRoute
+  DashboardOrgSlugDomainsRoute: typeof DashboardOrgSlugDomainsRoute
   DashboardOrgSlugLinksRoute: typeof DashboardOrgSlugLinksRoute
   DashboardOrgSlugMembersRoute: typeof DashboardOrgSlugMembersRoute
+  DashboardOrgSlugNotificationsRoute: typeof DashboardOrgSlugNotificationsRoute
+  DashboardOrgSlugReportsRoute: typeof DashboardOrgSlugReportsRoute
   DashboardOrgSlugSettingsRoute: typeof DashboardOrgSlugSettingsRoute
   DashboardOrgSlugIndexRoute: typeof DashboardOrgSlugIndexRoute
 }
 
 const DashboardOrgSlugRouteRouteChildren: DashboardOrgSlugRouteRouteChildren = {
+  DashboardOrgSlugActivityRoute: DashboardOrgSlugActivityRoute,
   DashboardOrgSlugAnalyticsRoute: DashboardOrgSlugAnalyticsRoute,
+  DashboardOrgSlugDomainsRoute: DashboardOrgSlugDomainsRoute,
   DashboardOrgSlugLinksRoute: DashboardOrgSlugLinksRoute,
   DashboardOrgSlugMembersRoute: DashboardOrgSlugMembersRoute,
+  DashboardOrgSlugNotificationsRoute: DashboardOrgSlugNotificationsRoute,
+  DashboardOrgSlugReportsRoute: DashboardOrgSlugReportsRoute,
   DashboardOrgSlugSettingsRoute: DashboardOrgSlugSettingsRoute,
   DashboardOrgSlugIndexRoute: DashboardOrgSlugIndexRoute,
 }

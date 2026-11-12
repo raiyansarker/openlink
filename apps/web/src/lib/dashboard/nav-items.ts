@@ -1,53 +1,100 @@
 import { buildDashboardOrgPath } from './build-org-path'
+import type { DashboardSection } from './build-org-path'
 
 export type DashboardNavItem = {
-  id: string
+  id: DashboardSection
   label: string
   href: string
-  /** Single-key jump hotkey shown in the nav (1–5). */
-  hotkey: string
   description?: string
 }
 
-export function getDashboardNavItems(orgSlug: string): DashboardNavItem[] {
+export type DashboardNavGroup = {
+  id: string
+  label: string
+  items: DashboardNavItem[]
+}
+
+export function getDashboardNavGroups(orgSlug: string): DashboardNavGroup[] {
+  const path = (section: DashboardSection) => buildDashboardOrgPath(orgSlug, section)
+
   return [
     {
       id: 'overview',
-      label: 'Dashboard',
-      href: buildDashboardOrgPath(orgSlug, 'overview'),
-      hotkey: '1',
-      description: 'Metrics and top links',
+      label: 'Overview',
+      items: [
+        {
+          id: 'overview',
+          label: 'Dashboard',
+          href: path('overview'),
+          description: 'Summary and activity',
+        },
+        {
+          id: 'activity',
+          label: 'Activity',
+          href: path('activity'),
+          description: 'Recent events',
+        },
+        {
+          id: 'notifications',
+          label: 'Notifications',
+          href: path('notifications'),
+          description: 'Alerts and mentions',
+        },
+      ],
     },
     {
-      id: 'links',
-      label: 'Links',
-      href: buildDashboardOrgPath(orgSlug, 'links'),
-      hotkey: '2',
-      description: 'Manage short URLs',
+      id: 'workspace',
+      label: 'Workspace',
+      items: [
+        {
+          id: 'links',
+          label: 'Links',
+          href: path('links'),
+          description: 'Short URLs and destinations',
+        },
+        {
+          id: 'members',
+          label: 'Users',
+          href: path('members'),
+          description: 'People and roles',
+        },
+        {
+          id: 'domains',
+          label: 'Domains',
+          href: path('domains'),
+          description: 'Custom domains',
+        },
+      ],
     },
     {
-      id: 'analytics',
-      label: 'Analytics',
-      href: buildDashboardOrgPath(orgSlug, 'analytics'),
-      hotkey: '3',
-      description: 'Traffic and referrers',
-    },
-    {
-      id: 'members',
-      label: 'Members',
-      href: buildDashboardOrgPath(orgSlug, 'members'),
-      hotkey: '4',
-      description: 'Team access',
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      href: buildDashboardOrgPath(orgSlug, 'settings'),
-      hotkey: '5',
-      description: 'Org defaults',
+      id: 'insights',
+      label: 'Insights',
+      items: [
+        {
+          id: 'analytics',
+          label: 'Analytics',
+          href: path('analytics'),
+          description: 'Traffic and trends',
+        },
+        {
+          id: 'reports',
+          label: 'Reports',
+          href: path('reports'),
+          description: 'Exports and scheduled digests',
+        },
+      ],
     },
   ]
 }
 
-/** @deprecated Use getDashboardNavItems(orgId) */
+export function getDashboardSettingsItem(orgSlug: string): DashboardNavItem {
+  return {
+    id: 'settings',
+    label: 'Settings',
+    href: buildDashboardOrgPath(orgSlug, 'settings'),
+    description: 'Workspace preferences',
+  }
+}
+
+/** @deprecated Use getDashboardNavGroups */
 export const dashboardNavItems: DashboardNavItem[] = []
