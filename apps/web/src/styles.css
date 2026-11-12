@@ -108,3 +108,9 @@ elements-api {
 .members-table--clickable-rows .astryx-table-body .astryx-table-row {
   cursor: pointer;
 }
+
+/* Devices list — rounded row hover, same 9px radius as the members table. */
+.devices-list .astryx-list-item {
+  border-radius: 9px;
+  overflow: hidden;
+}
