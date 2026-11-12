@@ -1,21 +1,28 @@
-import type { WebhookEvent } from '#/data/demo/webhooks'
+import {
+  WEBHOOK_EVENT_DEFINITIONS,
+  type WebhookEvent,
+  type WebhookEventGroup,
+} from '#/data/demo/webhooks'
 
-const SAMPLE_DATA: Record<WebhookEvent, Record<string, unknown>> = {
-  'link.created': {
+const SAMPLE_DATA_BY_GROUP: Record<WebhookEventGroup, Record<string, unknown>> = {
+  links: {
     id: 'lnk_8f2k1',
     shortUrl: 'https://opl.ink/launch',
     destination: 'https://example.com/launch',
   },
-  'link.updated': {
-    id: 'lnk_8f2k1',
-    changes: { destination: 'https://example.com/launch-v2' },
+  clicks: {
+    linkId: 'lnk_8f2k1',
+    country: 'US',
+    referrer: 'twitter.com',
   },
-  'link.deleted': {
-    id: 'lnk_8f2k1',
+  domains: {
+    id: 'dom_3k9a',
+    hostname: 'go.example.com',
   },
-  'click.milestone': {
-    id: 'lnk_8f2k1',
-    milestone: 1000,
+  members: {
+    id: 'mem_71bd',
+    email: 'member@example.com',
+    role: 'editor',
   },
 }
 
@@ -25,7 +32,7 @@ export function sampleWebhookPayload(event: WebhookEvent): string {
     {
       type: event,
       createdAt: '2026-11-13T09:30:00.000Z',
-      data: SAMPLE_DATA[event],
+      data: SAMPLE_DATA_BY_GROUP[WEBHOOK_EVENT_DEFINITIONS[event].group],
     },
     null,
     2,
