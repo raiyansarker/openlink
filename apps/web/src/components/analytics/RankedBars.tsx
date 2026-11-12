@@ -12,13 +12,18 @@ import {
   formatPercent,
 } from '#/lib/analytics/format'
 
+/** `detail` is an extra tooltip line, e.g. a destination URL. */
+export type RankedBarRow = BreakdownRow & { detail?: string }
+
 type RankedBarsProps = {
-  rows: BreakdownRow[]
+  rows: RankedBarRow[]
   color: string
   label: string
   isComparing: boolean
   /** Rows shown before the rest are folded away. */
   limit?: number
+  /** Makes bars selectable (click, Enter, or Space). */
+  onSelect?: (key: string) => void
 }
 
 const ROW_HEIGHT = 30
@@ -30,6 +35,7 @@ export default function RankedBars({
   label,
   isComparing,
   limit = 8,
+  onSelect,
 }: RankedBarsProps) {
   const visible = useMemo(() => rows.slice(0, limit), [rows, limit])
   const max = Math.max(1, ...visible.map((r) => r.clicks))
@@ -86,6 +92,7 @@ export default function RankedBars({
             const delta = formatDelta(row.clicks, row.previousClicks)
             return [
               row.label,
+              row.detail ?? null,
               `${formatNumber(row.clicks)} clicks · ${formatPercent(row.share)}`,
               isComparing && delta ? `${delta} vs previous` : null,
             ]
@@ -104,6 +111,13 @@ export default function RankedBars({
       initialWidth={480}
       style={chartHostStyle}
       ariaLabel={label}
+      onSelect={
+        onSelect
+          ? (point) => {
+              if (point) onSelect(point.datum.key)
+            }
+          : undefined
+      }
     />
   )
 }
