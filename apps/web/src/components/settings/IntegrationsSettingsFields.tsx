@@ -3,10 +3,11 @@ import { Button } from '@astryxdesign/core/Button'
 import { EmptyState } from '@astryxdesign/core/EmptyState'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
-import { List, ListItem } from '@astryxdesign/core/List'
 import { StatusDot } from '@astryxdesign/core/StatusDot'
+import { Table, pixel, proportional } from '@astryxdesign/core/Table'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import { handleDomainsTableRowClick } from '#/components/domains/domains-table-row-click'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import CreateWebhookDrawer from '#/components/settings/CreateWebhookDrawer'
 import WebhookDetailSheet from '#/components/settings/WebhookDetailSheet'
@@ -17,10 +18,11 @@ import {
 } from '#/data/demo/webhooks'
 import { webhookStatusMeta } from '#/lib/integrations/webhook-status'
 
+type WebhookRow = WorkspaceWebhook & Record<string, unknown>
+
 function formatRelativeTime(iso: string): string {
   const then = new Date(iso).getTime()
-  const now = Date.now()
-  const diffMin = Math.round((now - then) / 60_000)
+  const diffMin = Math.round((Date.now() - then) / 60_000)
   if (diffMin < 1) return 'Just now'
   if (diffMin < 60) return `${diffMin}m ago`
   const diffHours = Math.round(diffMin / 60)
@@ -31,16 +33,13 @@ function formatRelativeTime(iso: string): string {
   })
 }
 
-function endpointHost(url: string): string {
+function endpointCaption(url: string): string {
   try {
-    return new URL(url).hostname
+    const { hostname, pathname } = new URL(url)
+    return pathname === '/' ? hostname : `${hostname}${pathname}`
   } catch {
     return url
   }
-}
-
-function eventCountLabel(count: number): string {
-  return count === 1 ? '1 event' : `${count} events`
 }
 
 export default function IntegrationsSettingsFields() {
@@ -64,9 +63,14 @@ export default function IntegrationsSettingsFields() {
     )
   }, [])
 
+  const openRowAtIndex = (index: number) => {
+    const row = webhooks[index]
+    if (row) setSelectedId(row.id)
+  }
+
   return (
-    <VStack gap={5} hAlign="stretch" width="100%">
-      <HStack hAlign="between" vAlign="start" gap={3} width="100%">
+    <VStack gap={6} hAlign="stretch" width="100%">
+      <HStack hAlign="between" vAlign="start" gap={3} width="100%" wrap="wrap">
         <VStack gap={1} hAlign="start">
           <Heading level={1}>Webhooks</Heading>
           <Text type="supporting" color="secondary">
@@ -98,41 +102,90 @@ export default function IntegrationsSettingsFields() {
           }
         />
       ) : (
-        <List hasDividers edge="flush" density="balanced">
-          {webhooks.map((webhook) => {
-            const meta = webhookStatusMeta(webhook)
-            return (
-              <ListItem
-                key={webhook.id}
-                itemKey={webhook.id}
-                align="first-line"
-                onClick={() => setSelectedId(webhook.id)}
-                startContent={
-                  <StatusDot variant={meta.dotVariant} label={meta.label} />
-                }
-                label={webhook.name}
-                description={`${endpointHost(webhook.endpointUrl)} · ${eventCountLabel(
-                  webhook.events.length,
-                )}`}
-                endContent={
-                  <HStack gap={1} vAlign="center" hAlign="end">
+        <VStack
+          className="members-table members-table--clickable-rows"
+          width="100%"
+          hAlign="stretch"
+          onClick={(event) =>
+            handleDomainsTableRowClick(event, webhooks.length, openRowAtIndex)
+          }
+        >
+          <Table<WebhookRow>
+            className="members-table__grid"
+            data={webhooks as WebhookRow[]}
+            idKey="id"
+            density="balanced"
+            dividers="rows"
+            hasHover
+            columns={[
+              {
+                key: 'name',
+                header: 'Endpoint',
+                width: proportional(1.6, { minWidth: 200 }),
+                renderCell: (row) => (
+                  <VStack gap={0} hAlign="start">
+                    <Text weight="semibold">{row.name}</Text>
                     <Text type="supporting" color="secondary">
-                      {webhook.lastDeliveryAt
-                        ? formatRelativeTime(webhook.lastDeliveryAt)
-                        : meta.label}
+                      {endpointCaption(row.endpointUrl)}
                     </Text>
-                    <WebhookRowMenu
-                      webhook={webhook}
-                      onOpen={setSelectedId}
-                      onToggleEnabled={toggleWebhook}
-                      onRemove={removeWebhook}
-                    />
-                  </HStack>
-                }
-              />
-            )
-          })}
-        </List>
+                  </VStack>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                width: pixel(150),
+                renderCell: (row) => {
+                  const meta = webhookStatusMeta(row)
+                  return (
+                    <HStack gap={2} vAlign="center">
+                      <StatusDot variant={meta.dotVariant} label={meta.label} />
+                      <Text type="supporting" color="secondary">
+                        {meta.label}
+                      </Text>
+                    </HStack>
+                  )
+                },
+              },
+              {
+                key: 'events',
+                header: 'Events',
+                width: pixel(80),
+                align: 'end',
+                renderCell: (row) => (
+                  <Text weight="medium">{row.events.length}</Text>
+                ),
+              },
+              {
+                key: 'lastDeliveryAt',
+                header: 'Last sent',
+                width: pixel(100),
+                align: 'end',
+                renderCell: (row) => (
+                  <Text type="supporting" color="secondary">
+                    {row.lastDeliveryAt
+                      ? formatRelativeTime(row.lastDeliveryAt)
+                      : '—'}
+                  </Text>
+                ),
+              },
+              {
+                key: 'actions',
+                header: '',
+                width: pixel(56),
+                align: 'end',
+                renderCell: (row) => (
+                  <WebhookRowMenu
+                    webhook={row}
+                    onOpen={setSelectedId}
+                    onToggleEnabled={toggleWebhook}
+                    onRemove={removeWebhook}
+                  />
+                ),
+              },
+            ]}
+          />
+        </VStack>
       )}
 
       <WebhookDetailSheet
