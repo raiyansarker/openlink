@@ -69,7 +69,13 @@ export default function DashboardNavColumn() {
     >
       <SideNavSection title="Workspace">
         {items.map((item) => (
-          <NavLinkItem key={item.id} item={item} isSelected={section === item.id} />
+          <NavLinkItem
+            key={item.id}
+            item={item}
+            isSelected={
+              item.id === 'overview' ? section === 'overview' : section === item.id
+            }
+          />
         ))}
       </SideNavSection>
     </SideNav>
