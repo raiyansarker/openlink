@@ -10,18 +10,15 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import type { WorkspaceMemberRole } from '#/data/demo/types'
+import {
+  ASSIGNABLE_WORKSPACE_ROLES,
+  WORKSPACE_MEMBER_ROLE_HELP,
+} from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
 } from './floating-end-drawer'
-
-const ROLE_HELP: Record<WorkspaceMemberRole, string> = {
-  owner: 'Full workspace control.',
-  admin: 'Manage members, links, and settings.',
-  member: 'Create and edit links.',
-  viewer: 'Read-only access to links and analytics.',
-}
 
 type InviteMemberDrawerProps = {
   isOpen: boolean
@@ -46,8 +43,6 @@ export default function InviteMemberDrawer({
   error,
   onSubmit,
 }: InviteMemberDrawerProps) {
-  const selectableRoles: WorkspaceMemberRole[] = ['admin', 'member', 'viewer']
-
   return (
     <Drawer
       isOpen={isOpen}
@@ -100,7 +95,7 @@ export default function InviteMemberDrawer({
                   layout="fill"
                   size="sm"
                 >
-                  {selectableRoles.map((option) => (
+                  {ASSIGNABLE_WORKSPACE_ROLES.map((option) => (
                     <SegmentedControlItem
                       key={option}
                       value={option}
@@ -108,8 +103,8 @@ export default function InviteMemberDrawer({
                     />
                   ))}
                 </SegmentedControl>
-                <Text type="supporting" color="placeholder">
-                  {ROLE_HELP[role]}
+                <Text type="supporting" color="secondary">
+                  {WORKSPACE_MEMBER_ROLE_HELP[role]}
                 </Text>
               </VStack>
             </VStack>
