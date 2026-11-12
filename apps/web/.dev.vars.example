@@ -1,0 +1,12 @@
+BETTER_AUTH_SECRET=dev-only-change-me-use-openssl-rand-base64-32
+BOOTSTRAP_ORG_INVITE_TOKEN=local-bootstrap-invite-token
+
+# Invite create responses include the raw token only when this is true (keep false in production).
+# EXPOSE_INVITE_TOKENS_IN_API is set to "true" in wrangler.jsonc for local Workers dev.
+
+# Use DOMAIN_PROVIDER=cloudflare with real credentials when testing SaaS hostnames.
+# DOMAIN_PROVIDER=memory is set in wrangler.jsonc for local development.
+CF_API_TOKEN=
+CF_ZONE_ID=
+CF_SAAS_CNAME_TARGET=
+CF_SAAS_CUSTOM_ORIGIN=

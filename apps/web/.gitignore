@@ -4,9 +4,11 @@ dist
 dist-ssr
 *.local
 .env
+.dev.vars
 .nitro
 .tanstack
 .wrangler
+worker-configuration.d.ts
 .output
 .vinxi
 __unconfig*
