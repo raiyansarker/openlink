@@ -1,15 +1,16 @@
-import { AppShell } from '@astryxdesign/core/AppShell'
 import { OrganizationProvider, useOrganization } from '#/contexts/OrganizationContext'
 import { useActivePathname } from '#/hooks/useActivePathname'
-import DashboardContentFrame from './DashboardContentFrame'
-import DashboardSideNav from './DashboardSideNav'
-import DashboardTopNav from './DashboardTopNav'
+import DashboardDetailColumn from './layout/DashboardDetailColumn'
+import DashboardNavColumn from './layout/DashboardNavColumn'
+import OrganizationIconRail from './layout/OrganizationIconRail'
+import ThreeColumnDashboardLayout from './layout/ThreeColumnDashboardLayout'
 import type { ReactNode } from 'react'
 
 type DashboardShellProps = {
   children: ReactNode
 }
 
+/** App chrome: org icon rail, org nav column, detail column. */
 export default function DashboardShell({ children }: DashboardShellProps) {
   return (
     <OrganizationProvider>
@@ -24,18 +25,20 @@ function DashboardChrome({ children }: { children: ReactNode }) {
   const pathname = useActivePathname()
 
   return (
-    <AppShell
-      topNav={
-        <DashboardTopNav
+    <ThreeColumnDashboardLayout
+      rail={
+        <OrganizationIconRail
           organizations={organizations}
           activeOrgId={activeOrgId}
-          onOrgChange={setActiveOrgId}
+          onSelectOrg={setActiveOrgId}
         />
       }
-      sideNav={<DashboardSideNav pathname={pathname} />}
-      contentPadding={4}
-    >
-      <DashboardContentFrame orgId={activeOrg.id}>{children}</DashboardContentFrame>
-    </AppShell>
+      navigation={
+        <DashboardNavColumn organization={activeOrg} pathname={pathname} />
+      }
+      detail={
+        <DashboardDetailColumn orgId={activeOrg.id}>{children}</DashboardDetailColumn>
+      }
+    />
   )
 }
