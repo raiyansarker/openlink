@@ -6,10 +6,6 @@ import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { InputGroup, InputGroupText } from '@astryxdesign/core/InputGroup'
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from '@astryxdesign/core/SegmentedControl'
 import { Selector } from '@astryxdesign/core/Selector'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
@@ -29,17 +25,14 @@ import {
   getTimezoneOptions,
 } from '#/lib/settings/timezones'
 
-const FIELDS_MAX_WIDTH = 560
+const FIELDS_MAX_WIDTH = 760
 const LOGO_MAX_BYTES = 2 * 1024 * 1024
 const LOGO_ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml'
-
-type WeekStart = 'monday' | 'sunday'
 
 type GeneralForm = {
   name: string
   slug: string
   timezone: string
-  weekStart: WeekStart
 }
 
 function SettingsBlock({
@@ -99,7 +92,6 @@ export default function GeneralSettingsFields() {
       name: activeOrg.name,
       slug: activeOrg.slug,
       timezone: browserTimezone(),
-      weekStart: 'monday',
     }),
     [activeOrg.name, activeOrg.slug],
   )
@@ -141,8 +133,7 @@ export default function GeneralSettingsFields() {
   const isDirty =
     form.name !== saved.name ||
     slugChanged ||
-    form.timezone !== saved.timezone ||
-    form.weekStart !== saved.weekStart
+    form.timezone !== saved.timezone
   const canSave = isDirty && !nameError && !slugError
 
   const onLogoFile = (file: File | undefined) => {
@@ -255,7 +246,7 @@ export default function GeneralSettingsFields() {
       gap={8}
       hAlign="stretch"
       width="fill"
-      style={{ width: '100%', maxWidth: FIELDS_MAX_WIDTH }}
+      style={{ width: '100%', maxWidth: FIELDS_MAX_WIDTH, alignSelf: 'stretch' }}
     >
       <SettingsBlock title="Logo" description="Shown in the workspace switcher.">
         <HStack gap={4} vAlign="center" wrap="wrap">
@@ -356,20 +347,6 @@ export default function GeneralSettingsFields() {
             description={`It's ${currentTimeIn(form.timezone)} there now.`}
             width="100%"
           />
-          <HStack hAlign="between" vAlign="center" gap={4} width="100%">
-            <Text type="supporting" weight="semibold">
-              Week starts on
-            </Text>
-            <SegmentedControl
-              label="Week starts on"
-              value={form.weekStart}
-              onChange={(value) => update('weekStart', value as WeekStart)}
-              size="sm"
-            >
-              <SegmentedControlItem value="monday" label="Monday" />
-              <SegmentedControlItem value="sunday" label="Sunday" />
-            </SegmentedControl>
-          </HStack>
         </VStack>
       </SettingsBlock>
 
