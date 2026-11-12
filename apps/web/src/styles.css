@@ -12,6 +12,8 @@
   --font-sans: var(--font-family-body);
 }
 
+@import './styles/dashboard-three-column.css';
+
 /* OpenLink — light product accent layered on neutral Astryx tokens */
 :root,
 [data-astryx-theme='neutral'] {
