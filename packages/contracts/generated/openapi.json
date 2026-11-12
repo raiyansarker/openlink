@@ -35,10 +35,21 @@
         "tags": [
           "System"
         ],
-        "summary": "Liveness probe",
+        "summary": "Dependency health probe",
+        "description": "Checks every runtime dependency the API relies on (D1, Analytics Engine, auth configuration, domain provider, and the bundled OpenAPI contract).\n",
         "responses": {
           "200": {
-            "description": "Service is up",
+            "description": "All required dependencies are healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "One or more required dependencies are unhealthy",
             "content": {
               "application/json": {
                 "schema": {
@@ -872,22 +883,74 @@
       }
     },
     "schemas": {
+      "HealthStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "degraded",
+          "error"
+        ]
+      },
+      "HealthCheckStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "error",
+          "skipped"
+        ]
+      },
+      "HealthCheck": {
+        "type": "object",
+        "required": [
+          "name",
+          "status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Stable identifier for the dependency (e.g. d1, auth)."
+          },
+          "status": {
+            "$ref": "#/components/schemas/HealthCheckStatus"
+          },
+          "required": {
+            "type": "boolean",
+            "default": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "latencyMs": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
       "HealthResponse": {
         "type": "object",
         "required": [
           "status",
-          "service"
+          "service",
+          "checkedAt",
+          "checks"
         ],
         "properties": {
           "status": {
-            "type": "string",
-            "enum": [
-              "ok"
-            ]
+            "$ref": "#/components/schemas/HealthStatus"
           },
           "service": {
             "type": "string",
             "const": "openlink"
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HealthCheck"
+            }
           }
         }
       },
