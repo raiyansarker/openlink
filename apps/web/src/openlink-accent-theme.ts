@@ -4,6 +4,19 @@ import { neutralTheme } from '@astryxdesign/theme-neutral/built'
 const OPENLINK_BRAND = '#FF4602'
 const OPENLINK_BRAND_DARK = '#FF6B33'
 
+const INPUT_FIELD_RADIUS = '5px'
+
+/** Border-only focus — semantic accent (blue), no inset shadow rings on fields. */
+const INPUT_QUIET_FOCUS = {
+  borderRadius: INPUT_FIELD_RADIUS,
+  boxShadow: 'none',
+  ':hover': { boxShadow: 'none' },
+  ':focus-within': {
+    boxShadow: 'none',
+    borderColor: 'var(--color-accent)',
+  },
+} as const
+
 const GEIST_FALLBACKS =
   'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
 const GEIST_MONO_FALLBACKS =
@@ -39,10 +52,29 @@ export const openlinkTheme = defineTheme({
     ],
   },
   tokens: {
-    '--shadow-inset-selected': `inset 0 0 0 2px light-dark(${OPENLINK_BRAND}, ${OPENLINK_BRAND_DARK})`,
+    '--shadow-inset-hover': 'none',
+    '--shadow-inset-selected': 'none',
     '--focus-outline-color': OPENLINK_BRAND,
   },
   components: {
+    'text-input': {
+      base: INPUT_QUIET_FOCUS,
+    },
+    'text-area': {
+      base: INPUT_QUIET_FOCUS,
+    },
+    'number-input': {
+      base: INPUT_QUIET_FOCUS,
+    },
+    'field-label': {
+      base: {
+        fontSize: 'var(--font-size-xs)',
+        fontWeight: 'var(--font-weight-semibold)',
+        color:
+          'color-mix(in oklab, var(--color-text-secondary) 72%, var(--color-background-surface))',
+        cursor: 'pointer',
+      },
+    },
     section: {
       'variant:muted': {
         backgroundColor: 'var(--color-background-body)',
