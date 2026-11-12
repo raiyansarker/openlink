@@ -1,9 +1,9 @@
 import { Button } from '@astryxdesign/core/Button'
-import { EmptyState } from '@astryxdesign/core/EmptyState'
-import { Section } from '@astryxdesign/core/Section'
+import { Card } from '@astryxdesign/core/Card'
 import { Stack } from '@astryxdesign/core/Stack'
 import { Text } from '@astryxdesign/core/Text'
 import { dashboardPaths } from '#/lib/dashboard/route-paths'
+import DashboardPageHeader from './DashboardPageHeader'
 
 type DashboardComingSoonProps = {
   title: string
@@ -15,23 +15,18 @@ export default function DashboardComingSoon({
   description,
 }: DashboardComingSoonProps) {
   return (
-    <Section>
-      <Stack gap={3}>
-        <EmptyState
-          title={title}
-          description={description}
-          actions={
-            <Button
-              label="Back to overview"
-              variant="primary"
-              href={dashboardPaths.root}
-            />
-          }
-        />
-        <Text type="supporting" color="secondary" size="sm">
-          Demo route — API wiring comes later.
-        </Text>
-      </Stack>
-    </Section>
+    <Stack gap={4}>
+      <DashboardPageHeader title={title} subtitle={description} />
+      <Card variant="muted" padding={4}>
+        <Stack gap={2}>
+          <Text type="body">This area is a layout placeholder until APIs ship.</Text>
+          <Button
+            label="Back to overview"
+            variant="secondary"
+            href={dashboardPaths.root}
+          />
+        </Stack>
+      </Card>
+    </Stack>
   )
 }
