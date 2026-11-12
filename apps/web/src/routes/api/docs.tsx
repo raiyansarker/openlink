@@ -16,6 +16,28 @@ function useStoplightElementsScript() {
   }, [])
 }
 
+/** Ensure the Elements host re-measures when the web component boots. */
+function useStoplightElementsFullHeight() {
+  useEffect(() => {
+    const resize = () => {
+      const host = document.querySelector('elements-api')
+      if (!(host instanceof HTMLElement)) return
+      const parent = host.closest('.api-docs-root')
+      if (!(parent instanceof HTMLElement)) return
+      host.style.height = `${parent.clientHeight}px`
+    }
+    resize()
+    const t = window.setTimeout(resize, 0)
+    const t2 = window.setTimeout(resize, 300)
+    window.addEventListener('resize', resize)
+    return () => {
+      window.clearTimeout(t)
+      window.clearTimeout(t2)
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
+}
+
 export const Route = createFileRoute('/api/docs')({
   head: () => ({
     meta: [{ title: 'OpenLink API' }],
@@ -26,14 +48,14 @@ export const Route = createFileRoute('/api/docs')({
 
 function ApiDocsPage() {
   useStoplightElementsScript()
+  useStoplightElementsFullHeight()
 
   return (
-    <main className="h-dvh w-full overflow-hidden bg-white">
+    <main className="api-docs-root">
       <elements-api
         apiDescriptionUrl="/api/v1/openapi.json"
         router="hash"
         layout="sidebar"
-        className="block h-full min-h-0 w-full"
       />
     </main>
   )

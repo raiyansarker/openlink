@@ -3,17 +3,59 @@
 @import '@astryxdesign/core/reset.css';
 @import '@astryxdesign/core/astryx.css';
 
-elements-api {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
 html,
 body {
   margin: 0;
   height: 100%;
   min-height: 100dvh;
+}
+
+/* Stoplight Elements API reference — fill the viewport on every internal view */
+html.api-docs-page,
+html.api-docs-page body {
+  height: 100%;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+body.api-docs-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+body.api-docs-page > * {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+.api-docs-root {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.api-docs-root elements-api {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+}
+
+elements-api {
+  display: block;
+  height: 100%;
+  width: 100%;
 }
 
 /* Settings main panel — scrollbar hidden until hover or scroll */
@@ -61,4 +103,8 @@ body {
 .members-table .astryx-table-row:hover .astryx-table-cell:last-child {
   border-top-right-radius: 9px;
   border-bottom-right-radius: 9px;
+}
+
+.members-table--clickable-rows .astryx-table-body .astryx-table-row {
+  cursor: pointer;
 }

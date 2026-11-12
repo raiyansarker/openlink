@@ -46,16 +46,12 @@ function RootDocument({ children }: { children: ReactNode }) {
   })
 
   return (
-    <html lang="en">
+    <html lang="en" className={isApiDocs ? 'api-docs-page' : undefined}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: COLOR_MODE_BOOTSTRAP_SCRIPT }} />
         <HeadContent />
       </head>
-      <body
-        className={
-          isApiDocs ? 'm-0 h-dvh overflow-hidden' : undefined
-        }
-      >
+      <body className={isApiDocs ? 'api-docs-page' : undefined}>
         {isApiDocs ? (
           children
         ) : (
