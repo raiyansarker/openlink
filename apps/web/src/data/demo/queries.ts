@@ -19,6 +19,14 @@ export function getOrganizationById(orgId: string): Organization | undefined {
   return getOrganization(orgId)
 }
 
+export function getOrganizationBySlug(slug: string): Organization | undefined {
+  return demoOrganizations.find((org) => org.slug === slug)
+}
+
 export function isValidOrgId(orgId: string): boolean {
   return demoOrganizations.some((org) => org.id === orgId)
+}
+
+export function isValidOrgSlug(orgSlug: string): boolean {
+  return demoOrganizations.some((org) => org.slug === orgSlug)
 }

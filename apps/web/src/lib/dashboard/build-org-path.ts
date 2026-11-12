@@ -13,23 +13,23 @@ const sectionSegment: Record<DashboardSection, string | null> = {
   settings: 'settings',
 }
 
-/** Canonical dashboard URL: `/dashboard/{orgId}` or nested section. */
+/** Canonical dashboard URL: `/dashboard/{orgSlug}` or nested section. */
 export function buildDashboardOrgPath(
-  orgId: string,
+  orgSlug: string,
   section: DashboardSection = 'overview',
 ): string {
   const segment = sectionSegment[section]
   if (!segment) {
-    return `/dashboard/${orgId}`
+    return `/dashboard/${orgSlug}`
   }
-  return `/dashboard/${orgId}/${segment}`
+  return `/dashboard/${orgSlug}/${segment}`
 }
 
 export function dashboardSectionFromPathname(
   pathname: string,
-  orgId: string,
+  orgSlug: string,
 ): DashboardSection {
-  const prefix = `/dashboard/${orgId}`
+  const prefix = `/dashboard/${orgSlug}`
   if (pathname === prefix || pathname === `${prefix}/`) {
     return 'overview'
   }
@@ -49,11 +49,11 @@ export function dashboardSectionFromPathname(
 }
 
 /** Preserve section when switching org from the URL bar. */
-export function replaceOrgInPathname(pathname: string, nextOrgId: string): string {
+export function replaceOrgInPathname(pathname: string, nextOrgSlug: string): string {
   const match = pathname.match(/^\/dashboard\/[^/]+(\/.*)?$/)
   if (!match) {
-    return buildDashboardOrgPath(nextOrgId)
+    return buildDashboardOrgPath(nextOrgSlug)
   }
   const suffix = match[1] ?? ''
-  return `/dashboard/${nextOrgId}${suffix}`
+  return `/dashboard/${nextOrgSlug}${suffix}`
 }

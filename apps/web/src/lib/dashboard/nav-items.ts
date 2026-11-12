@@ -9,40 +9,40 @@ export type DashboardNavItem = {
   description?: string
 }
 
-export function getDashboardNavItems(orgId: string): DashboardNavItem[] {
+export function getDashboardNavItems(orgSlug: string): DashboardNavItem[] {
   return [
     {
       id: 'overview',
-      label: 'Overview',
-      href: buildDashboardOrgPath(orgId, 'overview'),
+      label: 'Dashboard',
+      href: buildDashboardOrgPath(orgSlug, 'overview'),
       hotkey: '1',
       description: 'Metrics and top links',
     },
     {
       id: 'links',
       label: 'Links',
-      href: buildDashboardOrgPath(orgId, 'links'),
+      href: buildDashboardOrgPath(orgSlug, 'links'),
       hotkey: '2',
       description: 'Manage short URLs',
     },
     {
       id: 'analytics',
       label: 'Analytics',
-      href: buildDashboardOrgPath(orgId, 'analytics'),
+      href: buildDashboardOrgPath(orgSlug, 'analytics'),
       hotkey: '3',
       description: 'Traffic and referrers',
     },
     {
       id: 'members',
       label: 'Members',
-      href: buildDashboardOrgPath(orgId, 'members'),
+      href: buildDashboardOrgPath(orgSlug, 'members'),
       hotkey: '4',
       description: 'Team access',
     },
     {
       id: 'settings',
       label: 'Settings',
-      href: buildDashboardOrgPath(orgId, 'settings'),
+      href: buildDashboardOrgPath(orgSlug, 'settings'),
       hotkey: '5',
       description: 'Org defaults',
     },

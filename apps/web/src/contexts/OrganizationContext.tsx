@@ -9,7 +9,7 @@ import {
 import { demoOrganizations } from '#/data/demo/organizations'
 import {
   getLinksForOrg,
-  getOrganizationById,
+  getOrganizationBySlug,
   getStatsForOrg,
 } from '#/data/demo/queries'
 import type { Organization, OrgDashboardStats, ShortLink } from '#/data/demo/types'
@@ -32,8 +32,7 @@ type OrganizationContextValue = {
 const OrganizationContext = createContext<OrganizationContextValue | null>(null)
 
 type OrganizationProviderProps = {
-  /** Active organization id from the `/dashboard/:orgId` URL segment. */
-  orgIdFromRoute: string
+  orgSlugFromRoute: string
   children: ReactNode
 }
 
@@ -45,11 +44,11 @@ function normalizeDestination(raw: string): string {
 }
 
 export function OrganizationProvider({
-  orgIdFromRoute,
+  orgSlugFromRoute,
   children,
 }: OrganizationProviderProps) {
   const activeOrg =
-    getOrganizationById(orgIdFromRoute) ?? demoOrganizations[0]
+    getOrganizationBySlug(orgSlugFromRoute) ?? demoOrganizations[0]
 
   const [extraLinks, setExtraLinks] = useState<ShortLink[]>([])
 
