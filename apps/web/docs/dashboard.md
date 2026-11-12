@@ -1,9 +1,11 @@
 # Dashboard (demo)
 
-The dashboard under `/dashboard` uses **Astryx** with demo fixtures in `src/data/demo/`.
+Three-column layout:
 
-- Switch organizations from the top bar selector.
-- Overview shows stats and a sortable links table.
-- Other sidebar routes are placeholders until APIs exist.
+1. **Icon rail** — one glyph per organization (switch workspace).
+2. **Nav column** — routes and actions for the active org.
+3. **Detail column** — page content (overview, links, etc.).
 
-Run locally: `bun run dev --filter=@openlink/web`.
+Data lives in `src/data/demo/`. Styling: `src/styles/dashboard-three-column.css`.
+
+Run: `bun run dev --filter=@openlink/web`.
