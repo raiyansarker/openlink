@@ -11,6 +11,7 @@ import {
 import ProfileSettingsFields from '#/components/settings/ProfileSettingsFields'
 import AppearanceSettingsFields from '#/components/settings/AppearanceSettingsFields'
 import DevicesSettingsFields from '#/components/settings/DevicesSettingsFields'
+import ApiKeysSettingsFields from '#/components/settings/ApiKeysSettingsFields'
 import MembersSettingsFields from '#/components/settings/MembersSettingsFields'
 
 type SettingsSectionPanelProps = {
@@ -23,7 +24,9 @@ export default function SettingsSectionPanel({ section }: SettingsSectionPanelPr
 
   return (
     <VStack gap={5} hAlign="start" width="fill">
-      {section === 'members' ? null : section === 'appearance' || section === 'devices' ? (
+      {section === 'members' || section === 'api-keys' ? null : section ===
+        'appearance' ||
+        section === 'devices' ? (
         <VStack gap={1} hAlign="start" width="fill">
           <Heading level={3}>{meta.label}</Heading>
           <Text color="secondary" type="supporting">
@@ -68,9 +71,7 @@ export default function SettingsSectionPanel({ section }: SettingsSectionPanelPr
           Slack, webhooks, and third-party connections.
         </Text>
       )}
-      {section === 'developers' && (
-        <Text color="secondary">API keys, tokens, and request logs.</Text>
-      )}
+      {section === 'api-keys' && <ApiKeysSettingsFields />}
     </VStack>
   )
 }

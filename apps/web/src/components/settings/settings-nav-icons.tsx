@@ -22,5 +22,5 @@ export const SETTINGS_SECTION_ICONS: Record<SettingsSection, ReactNode> = {
   general: <BuildingIcon {...navIconProps} />,
   members: <UsersIcon {...navIconProps} />,
   integrations: <AppIntegrationIcon {...navIconProps} />,
-  developers: <CodeWindowIcon {...navIconProps} />,
+  'api-keys': <CodeWindowIcon {...navIconProps} />,
 }

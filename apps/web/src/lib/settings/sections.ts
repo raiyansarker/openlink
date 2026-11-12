@@ -3,7 +3,7 @@ export type SettingsWorkspaceSection =
   | 'general'
   | 'members'
   | 'integrations'
-  | 'developers'
+  | 'api-keys'
 
 export type SettingsSection = SettingsUserSection | SettingsWorkspaceSection
 
@@ -42,9 +42,9 @@ export const SETTINGS_WORKSPACE_SECTIONS: {
     description: 'Apps and webhooks',
   },
   {
-    id: 'developers',
-    label: 'Developers',
-    description: 'API keys and audit logs',
+    id: 'api-keys',
+    label: 'API keys',
+    description: 'Create and manage keys for scripts and integrations.',
   },
 ]
 
