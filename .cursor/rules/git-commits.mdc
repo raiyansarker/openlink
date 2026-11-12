@@ -1,0 +1,13 @@
+---
+description: Commit cadence for OpenLink frontend work
+alwaysApply: true
+---
+
+# Git commits (required)
+
+- Commit **often** — prefer many small commits over one large one.
+- Each commit should cover a **narrow slice** (one route, one component, config tweak, etc.).
+- If the slice is **not done yet**, prefix the subject with `WIP:` (e.g. `WIP: feat(web): scaffold dashboard AppShell`).
+- Only create commits when the user is working on this repo in agent mode; use Conventional Commits style (`feat`, `chore`, `refactor`, `style`, `fix`, etc.) with `(web)` scope when touching `apps/web`.
+- Do **not** push unless the user asks.
+- Do **not** use `git reset` to drop history; carry work forward on the branch.

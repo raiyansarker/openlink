@@ -1,0 +1,40 @@
+import type { ShortLink } from '../types'
+
+export const devrelDemoLinks: ShortLink[] = [
+  {
+    id: 'lnk_drib_01',
+    orgId: 'org_dribbble',
+    slug: 'drib-hire',
+    title: 'Hire a designer',
+    targetUrl: 'https://dribbble.com/hiring',
+    clicks: 1156,
+    uniqueClicks: 932,
+    createdAt: '2026-11-08T18:00:00Z',
+    status: 'active',
+    tags: ['talent'],
+  },
+  {
+    id: 'lnk_drib_02',
+    orgId: 'org_dribbble',
+    slug: 'drib-shots',
+    title: 'Weekly popular shots',
+    targetUrl: 'https://dribbble.com/shots/popular',
+    clicks: 2402,
+    uniqueClicks: 2089,
+    createdAt: '2026-02-14T12:00:00Z',
+    status: 'active',
+    tags: ['content'],
+  },
+  {
+    id: 'lnk_drib_03',
+    orgId: 'org_dribbble',
+    slug: 'drib-pro',
+    title: 'Pro membership',
+    targetUrl: 'https://dribbble.com/pro',
+    clicks: 843,
+    uniqueClicks: 712,
+    createdAt: '2026-05-20T10:00:00Z',
+    status: 'active',
+    tags: ['monetization'],
+  },
+]
