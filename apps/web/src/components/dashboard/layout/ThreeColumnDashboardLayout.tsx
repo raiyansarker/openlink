@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { Organization } from '#/data/demo/types'
 import OrganizationIconRail from './OrganizationIconRail'
 import DashboardNavColumn from './DashboardNavColumn'
+import { DASHBOARD_PANEL_BACKGROUND } from './dashboard-shell-colors'
 
 type ThreeColumnDashboardLayoutProps = {
   organizations: Organization[]
@@ -24,16 +25,13 @@ export default function ThreeColumnDashboardLayout({
         backgroundColor: '#0a0a0a',
       }}
     >
-      {/* Column 1 — darkest icon rail */}
       <OrganizationIconRail
         organizations={organizations}
         activeOrgSlug={activeOrgSlug}
       />
 
-      {/* Column 2 — dark nav */}
       <DashboardNavColumn />
 
-      {/* Column 3 — white content area with rounded inset */}
       <div
         style={{
           flex: 1,
@@ -42,6 +40,7 @@ export default function ThreeColumnDashboardLayout({
           padding: 10,
           display: 'flex',
           flexDirection: 'column',
+          backgroundColor: DASHBOARD_PANEL_BACKGROUND,
         }}
       >
         <div
@@ -51,7 +50,6 @@ export default function ThreeColumnDashboardLayout({
             backgroundColor: '#ffffff',
             borderRadius: 14,
             overflow: 'hidden',
-            boxShadow: '0 0 0 1px rgba(0,0,0,0.08)',
             display: 'flex',
             flexDirection: 'column',
           }}
