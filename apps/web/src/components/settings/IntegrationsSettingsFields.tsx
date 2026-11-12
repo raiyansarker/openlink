@@ -14,7 +14,6 @@ import WebhookDetailSheet from '#/components/settings/WebhookDetailSheet'
 import WebhookRowMenu from '#/components/settings/WebhookRowMenu'
 import {
   DEMO_WORKSPACE_WEBHOOKS,
-  WEBHOOK_EVENT_LABELS,
   type WorkspaceWebhook,
 } from '#/data/demo/webhooks'
 import { webhookStatusMeta } from '#/lib/integrations/webhook-status'
@@ -41,13 +40,6 @@ function endpointCaption(url: string): string {
   } catch {
     return url
   }
-}
-
-function eventsSummary(events: WorkspaceWebhook['events']): string {
-  const [first, ...rest] = events
-  if (!first) return '—'
-  const label = WEBHOOK_EVENT_LABELS[first]
-  return rest.length > 0 ? `${label} +${rest.length}` : label
 }
 
 export default function IntegrationsSettingsFields() {
@@ -135,7 +127,7 @@ export default function IntegrationsSettingsFields() {
               {
                 key: 'name',
                 header: 'Endpoint',
-                width: proportional(1.8, { minWidth: 220 }),
+                width: proportional(2, { minWidth: 240 }),
                 renderCell: (row) => (
                   <VStack gap={0} hAlign="start">
                     <Text weight="semibold">{row.name}</Text>
@@ -160,16 +152,6 @@ export default function IntegrationsSettingsFields() {
                     </HStack>
                   )
                 },
-              },
-              {
-                key: 'events',
-                header: 'Events',
-                width: proportional(1, { minWidth: 160 }),
-                renderCell: (row) => (
-                  <Text type="supporting" color="secondary">
-                    {eventsSummary(row.events)}
-                  </Text>
-                ),
               },
               {
                 key: 'lastDeliveryAt',
