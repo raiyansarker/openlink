@@ -1,5 +1,10 @@
 import { type } from 'arktype'
 
+/**
+ * HTTP(S) URL. Avoid ArkType's `string.url` — its predicate cannot convert to OpenAPI JSON Schema.
+ */
+export const HttpUrl = type(/^https?:\/\/\S+$/)
+
 export const HealthStatus = type("'ok' | 'degraded' | 'error'")
 export const HealthCheckStatus = type("'ok' | 'error' | 'skipped'")
 
@@ -29,5 +34,8 @@ export const ErrorResponse = type({
 /** OpenAPI 3.x document returned from `GET /openapi.json`. */
 export const OpenApiDocument = type({ '[string]': 'unknown' })
 
-/** 204 / empty success bodies. */
-export const EmptyResponse = type('undefined')
+/**
+ * 204 / empty success bodies.
+ * ArkType cannot emit JSON Schema for `undefined`; use an empty object in OpenAPI.
+ */
+export const EmptyResponse = type({})

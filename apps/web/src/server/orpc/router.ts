@@ -116,7 +116,7 @@ export const router = os.router({
       asResponse: true,
     })
     mergeAuthResponseCookies(context, response)
-    return undefined
+    return {}
   }),
 
     getSession: os.auth.getSession.handler(async ({ context }) => {
@@ -280,7 +280,7 @@ export const router = os.router({
     }
     const removed = await removeCustomDomain(input.params.domainId)
     if (!removed) throw notFound('Domain not found')
-    return undefined
+    return {}
   }),
 
     refreshDomainStatus: os.domains.refreshDomainStatus.handler(async ({ input, context }) => {
@@ -450,7 +450,7 @@ export const router = os.router({
       throw notFound('Link not found')
     }
     await getDb().delete(link).where(eq(link.id, input.params.linkId))
-    return undefined
+    return {}
   }),
   },
 })

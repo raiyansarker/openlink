@@ -1,5 +1,6 @@
 import { type } from 'arktype'
 
+import { HttpUrl } from '../system/schema'
 import { DomainIdPath, RedirectStatus } from '../domains/schema'
 
 export const LinkStatus = type(
@@ -22,7 +23,7 @@ export const Link = type({
   'alias?': 'string',
   'title?': 'string',
   'description?': 'string',
-  destinationUrl: 'string.url',
+  destinationUrl: HttpUrl,
   redirectStatus: RedirectStatus,
   status: LinkStatus,
   'enabled?': 'boolean',
@@ -31,8 +32,8 @@ export const Link = type({
   'maxClicks?': 'number.integer>=1',
   clickCount: 'number.integer>=0',
   'passwordProtected?': 'boolean',
-  'expiredDestinationUrl?': 'string.url',
-  'fallbackDestinationUrl?': 'string.url',
+  'expiredDestinationUrl?': HttpUrl,
+  'fallbackDestinationUrl?': HttpUrl,
   'tags?': 'string[]',
   'utm?': UtmParameters,
   'metadata?': type({ '[string]': 'unknown' }),
@@ -42,7 +43,7 @@ export const Link = type({
 
 export const CreateLinkRequest = type({
   'slug?': /^[A-Za-z0-9_-]+$/,
-  destinationUrl: 'string.url',
+  destinationUrl: HttpUrl,
   'title?': 'string',
   'description?': 'string',
   'redirectStatus?': RedirectStatus,
@@ -50,15 +51,15 @@ export const CreateLinkRequest = type({
   'expiresAt?': 'string',
   'maxClicks?': 'number.integer>=1',
   'password?': 'string>=4',
-  'expiredDestinationUrl?': 'string.url',
-  'fallbackDestinationUrl?': 'string.url',
+  'expiredDestinationUrl?': HttpUrl,
+  'fallbackDestinationUrl?': HttpUrl,
   'tags?': 'string[]',
   'utm?': UtmParameters,
   'metadata?': type({ '[string]': 'unknown' }),
 })
 
 export const UpdateLinkRequest = type({
-  'destinationUrl?': 'string.url',
+  'destinationUrl?': HttpUrl,
   'title?': 'string',
   'description?': 'string',
   'redirectStatus?': RedirectStatus,
@@ -69,8 +70,8 @@ export const UpdateLinkRequest = type({
   'maxClicks?': 'number.integer>=1',
   'password?': 'string>=4',
   'clearPassword?': 'boolean',
-  'expiredDestinationUrl?': 'string.url',
-  'fallbackDestinationUrl?': 'string.url',
+  'expiredDestinationUrl?': HttpUrl,
+  'fallbackDestinationUrl?': HttpUrl,
   'tags?': 'string[]',
   'utm?': UtmParameters,
   'metadata?': type({ '[string]': 'unknown' }),

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@orpc/contract": "^1.16.2",
+    "@orpc/arktype": "^1.16.2",
     "@orpc/openapi": "^1.16.2",
     "arktype": "^2.2.9"
   },
