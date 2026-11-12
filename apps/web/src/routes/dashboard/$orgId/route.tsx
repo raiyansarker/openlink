@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, Outlet } from '@tanstack/react-router'
-import DashboardShell from '#/components/dashboard/DashboardShell'
+import DashboardShell from '#/components/DashboardShell'
 import { isValidOrgId } from '#/data/demo/queries'
 
 const STORAGE_KEY = 'openlink.active-org'

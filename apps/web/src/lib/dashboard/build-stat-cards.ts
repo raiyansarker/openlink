@@ -12,17 +12,17 @@ export function buildDashboardStatCards(
 ): DashboardStatCardModel[] {
   return [
     {
-      label: 'Total links',
+      label: 'Short links',
       value: stats.totalLinks,
-      detail: `${stats.activeLinks} active`,
+      detail: `${stats.activeLinks} currently live`,
     },
     {
       label: 'Clicks today',
       value: stats.clicksToday,
-      detail: 'Across all short links',
+      detail: 'Across every short link',
     },
     {
-      label: 'Clicks this week',
+      label: 'This week',
       value: stats.clicksThisWeek,
       detail: `${formatCompactNumber(stats.uniqueVisitorsWeek)} unique visitors`,
     },

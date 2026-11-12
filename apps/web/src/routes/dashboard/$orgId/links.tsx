@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import DashboardComingSoon from '#/components/dashboard/DashboardComingSoon'
 
 export const Route = createFileRoute('/dashboard/$orgId/links')({
   component: DashboardLinksPage,
@@ -7,9 +6,8 @@ export const Route = createFileRoute('/dashboard/$orgId/links')({
 
 function DashboardLinksPage() {
   return (
-    <DashboardComingSoon
-      title="Links manager"
-      description="Bulk edit, filters, and creation flow will live here."
-    />
+    <div style={{ padding: '1.5rem' }}>
+      <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Links</h1>
+    </div>
   )
 }

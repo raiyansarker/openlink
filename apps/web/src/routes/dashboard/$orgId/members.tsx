@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import DashboardComingSoon from '#/components/dashboard/DashboardComingSoon'
 
 export const Route = createFileRoute('/dashboard/$orgId/members')({
   component: DashboardMembersPage,
@@ -7,9 +6,8 @@ export const Route = createFileRoute('/dashboard/$orgId/members')({
 
 function DashboardMembersPage() {
   return (
-    <DashboardComingSoon
-      title="Members"
-      description="Invite teammates and manage roles when organization APIs land."
-    />
+    <div style={{ padding: '1.5rem' }}>
+      <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Members</h1>
+    </div>
   )
 }

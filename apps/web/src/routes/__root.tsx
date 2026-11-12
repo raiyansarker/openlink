@@ -1,7 +1,7 @@
 import { HeadContent, Scripts, createRootRoute, Outlet } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import AstryxProviders from '../components/AstryxProviders'
+import AstryxProviders from '#/components/AstryxProviders'
 
 import appCss from '../styles.css?url'
 
@@ -35,11 +35,11 @@ export const Route = createRootRoute({
 
 function RootDocument() {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <HeadContent />
       </head>
-      <body style={{ margin: 0, minHeight: '100dvh' }}>
+      <body>
         <AstryxProviders>
           <Outlet />
         </AstryxProviders>

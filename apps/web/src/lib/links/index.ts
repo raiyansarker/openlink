@@ -1,3 +1,7 @@
-export { linkStatusBadgeVariant } from './status-badge-variant'
-export type { LinkStatusBadgeVariant } from './status-badge-variant'
+export {
+  linkStatusBadgeVariant,
+  linkStatusMeta,
+  type LinkStatusBadgeVariant,
+  type LinkStatusMeta,
+} from './status-meta'
 export { stripUrlScheme } from './strip-url-scheme'

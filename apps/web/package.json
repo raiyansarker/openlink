@@ -28,9 +28,9 @@
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
+    "@astryxdesign/cli": "^0.7.14",
     "@cloudflare/vite-plugin": "^1.26.0",
     "@eslint/js": "10.0.1",
-    "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "0.8.6",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
