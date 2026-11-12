@@ -1,19 +1,32 @@
-import { OrganizationProvider } from '#/contexts/OrganizationContext'
+import { OrganizationProvider, useOrganization } from '#/contexts/OrganizationContext'
+import ThreeColumnDashboardLayout from '#/components/dashboard/layout/ThreeColumnDashboardLayout'
 import type { ReactNode } from 'react'
 
 type DashboardShellProps = {
-  orgIdFromRoute: string
+  orgSlugFromRoute: string
   children: ReactNode
 }
 
-/** Data + route shell only — dashboard chrome will be rebuilt on top. */
 export default function DashboardShell({
-  orgIdFromRoute,
+  orgSlugFromRoute,
   children,
 }: DashboardShellProps) {
   return (
-    <OrganizationProvider orgIdFromRoute={orgIdFromRoute}>
-      <main>{children}</main>
+    <OrganizationProvider orgSlugFromRoute={orgSlugFromRoute}>
+      <DashboardChrome>{children}</DashboardChrome>
     </OrganizationProvider>
+  )
+}
+
+function DashboardChrome({ children }: { children: ReactNode }) {
+  const { organizations, activeOrg } = useOrganization()
+
+  return (
+    <ThreeColumnDashboardLayout
+      organizations={organizations}
+      activeOrgSlug={activeOrg.slug}
+    >
+      {children}
+    </ThreeColumnDashboardLayout>
   )
 }

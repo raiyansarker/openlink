@@ -1,0 +1,77 @@
+import { useNavigate } from '@tanstack/react-router'
+import { Icon } from '@astryxdesign/core/Icon'
+import {
+  SideNav,
+  SideNavHeading,
+  SideNavItem,
+  SideNavSection,
+} from '@astryxdesign/core/SideNav'
+import { Badge } from '@astryxdesign/core/Badge'
+import { Text } from '@astryxdesign/core/Text'
+import { useOrganization } from '#/contexts/OrganizationContext'
+import { getDashboardNavItems } from '#/lib/dashboard/nav-items'
+import { dashboardSectionFromPathname } from '#/lib/dashboard/build-org-path'
+import { dashboardChromeStyles } from '#/lib/stylex/dashboard-chrome.stylex'
+import { useActivePathname } from '#/hooks/useActivePathname'
+import type { DashboardNavItem } from '#/lib/dashboard/nav-items'
+import type { ReactNode } from 'react'
+
+const NAV_ICONS: Record<string, ReactNode> = {
+  overview: <Icon icon="viewColumns" size="sm" />,
+  links: <Icon icon="externalLink" size="sm" />,
+  analytics: <Icon icon="arrowsUpDown" size="sm" />,
+  members: <Icon icon="menu" size="sm" />,
+  settings: <Icon icon="wrench" size="sm" />,
+}
+
+function planLabel(plan: string): string {
+  if (plan === 'enterprise') return 'Enterprise'
+  if (plan === 'pro') return 'Pro'
+  return 'Free'
+}
+
+function NavLinkItem({ item, isSelected }: { item: DashboardNavItem; isSelected: boolean }) {
+  const navigate = useNavigate()
+
+  return (
+    <SideNavItem
+      label={item.label}
+      icon={NAV_ICONS[item.id]}
+      isSelected={isSelected}
+      onClick={() => {
+        void navigate({ to: item.href })
+      }}
+      endContent={
+        <Text type="supporting" color="secondary">
+          {item.hotkey}
+        </Text>
+      }
+    />
+  )
+}
+
+export default function DashboardNavColumn() {
+  const { activeOrg } = useOrganization()
+  const pathname = useActivePathname()
+  const section = dashboardSectionFromPathname(pathname, activeOrg.slug)
+  const items = getDashboardNavItems(activeOrg.slug)
+
+  return (
+    <SideNav
+      collapsible
+      xstyle={dashboardChromeStyles.sideNav}
+      header={
+        <SideNavHeading
+          heading={activeOrg.name}
+          headerEndContent={<Badge variant="neutral" label={planLabel(activeOrg.plan)} />}
+        />
+      }
+    >
+      <SideNavSection title="Workspace">
+        {items.map((item) => (
+          <NavLinkItem key={item.id} item={item} isSelected={section === item.id} />
+        ))}
+      </SideNavSection>
+    </SideNav>
+  )
+}

@@ -3,13 +3,13 @@
  * @astryx-theme-record {"themes":{"neutral":"@astryxdesign/theme-neutral"},"defaultThemeSlug":"neutral"}
  */
 
-import {neutralTheme as _astryxTheme0} from "@astryxdesign/theme-neutral/built";
-import "@astryxdesign/theme-neutral/theme.css";
-import "@astryxdesign/theme-neutral/fonts.css";
+import { openlinkTheme } from '#/openlink-accent-theme'
+import '@astryxdesign/theme-neutral/theme.css'
+import '@astryxdesign/theme-neutral/fonts.css'
 
 export const themes = {
-  "neutral": _astryxTheme0,
-} as const;
-export type ThemeSlug = keyof typeof themes;
+  'openlink-neutral': openlinkTheme,
+} as const
+export type ThemeSlug = keyof typeof themes
 
-export const defaultThemeSlug: keyof typeof themes = "neutral";
+export const defaultThemeSlug: keyof typeof themes = 'openlink-neutral'
