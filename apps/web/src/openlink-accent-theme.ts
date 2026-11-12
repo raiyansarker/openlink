@@ -1,18 +1,25 @@
 import { defineTheme } from '@astryxdesign/core/theme'
 import { neutralTheme } from '@astryxdesign/theme-neutral/built'
 
-const OPENLINK_ACCENT = '#FF4602'
+const OPENLINK_BRAND = '#FF4602'
+const OPENLINK_BRAND_DARK = '#FF6B33'
 
-/** Extends neutral with OpenLink brand accent. */
+/**
+ * OpenLink brand orange is a highlight color — not the semantic `--color-accent`
+ * that powers primary buttons in the neutral theme.
+ */
 export const openlinkTheme = defineTheme({
   name: 'openlink-neutral',
   extends: neutralTheme,
-  tokens: {
-    '--color-accent': [OPENLINK_ACCENT, '#FF6B33'],
-    '--color-accent-muted': [
+  localTokens: {
+    '--openlink-brand': [OPENLINK_BRAND, OPENLINK_BRAND_DARK],
+    '--openlink-brand-muted': [
       'color-mix(in oklab, #FF4602 16%, transparent)',
       'color-mix(in oklab, #FF6B33 22%, transparent)',
     ],
-    '--color-on-accent': ['#ffffff', '#0b0b0b'],
+  },
+  tokens: {
+    '--shadow-inset-selected': `inset 0 0 0 2px light-dark(${OPENLINK_BRAND}, ${OPENLINK_BRAND_DARK})`,
+    '--focus-outline-color': OPENLINK_BRAND,
   },
 })

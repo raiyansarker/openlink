@@ -10,8 +10,8 @@ export type OrganizationBrand = {
 export const organizationBranding: Record<string, OrganizationBrand> = {
   org_openlink: {
     icon: 'openlink',
-    accent: '#0d9488',
-    accentMuted: 'color-mix(in oklab, #0d9488 20%, transparent)',
+    accent: '#FF4602',
+    accentMuted: 'color-mix(in oklab, #FF4602 20%, transparent)',
   },
   org_acme: {
     icon: 'acme',

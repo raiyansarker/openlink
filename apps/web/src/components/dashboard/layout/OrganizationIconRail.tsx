@@ -3,6 +3,8 @@ import { Tooltip } from '@astryxdesign/core/Tooltip'
 import { VStack } from '@astryxdesign/core/VStack'
 import { Section } from '@astryxdesign/core/Section'
 import { Button } from '@astryxdesign/core/Button'
+import { Icon } from '@astryxdesign/core/Icon'
+import { HStack } from '@astryxdesign/core/HStack'
 import type { Organization } from '#/data/demo/types'
 import { getOrganizationBrand } from '#/data/demo/organization-branding'
 import { replaceOrgInPathname } from '#/lib/dashboard/build-org-path'
@@ -31,16 +33,21 @@ export default function OrganizationIconRail({
 
           return (
             <Tooltip key={org.id} content={org.name} placement="end">
-              <Button
-                variant={isActive ? 'primary' : 'ghost'}
-                label={`Switch to ${org.name}`}
-                isIconOnly
-                onClick={() => {
-                  void navigate({ to: target })
-                }}
-              >
-                <OrganizationLogo icon={brand.icon} size={32} />
-              </Button>
+              <HStack gap={1} vAlign="center">
+                {isActive ? (
+                  <Icon icon="check" color="orange" size="xsm" label="Current workspace" />
+                ) : null}
+                <Button
+                  variant="ghost"
+                  label={`Switch to ${org.name}`}
+                  isIconOnly
+                  onClick={() => {
+                    void navigate({ to: target })
+                  }}
+                >
+                  <OrganizationLogo icon={brand.icon} size={32} />
+                </Button>
+              </HStack>
             </Tooltip>
           )
         })}
