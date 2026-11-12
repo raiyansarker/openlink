@@ -38,7 +38,7 @@ export const OrganizationInvite = type({
   email: Email,
   role: OrganizationRole,
   expiresAt: 'string',
-  token: 'string',
+  'token?': 'string',
 })
 
 export const OrganizationIdPath = type({ organizationId: 'string' })
