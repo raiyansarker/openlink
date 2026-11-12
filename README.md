@@ -81,11 +81,13 @@ bun run test
 
 GitHub Actions runs `test`, `check-types`, and `lint` on pushes and pull requests (see `.github/workflows/ci.yml`).
 
-### Regenerate API types after contract changes
+### Regenerate contract artifacts after OpenAPI edits
 
 ```sh
 cd packages/contracts && bun run build
 ```
+
+This refreshes `generated/openapi.json`, legacy TS types, and **`generated/orpc/`** (oRPC + Zod) used by `implement(contract)`.
 
 ## Worktrees
 
