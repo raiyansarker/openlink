@@ -26,6 +26,11 @@ coverage
 out/
 build
 dist
+.output
+.wrangler
+.tanstack
+.nitro
+.vinxi
 
 
 # Debug

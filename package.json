@@ -1,5 +1,5 @@
 {
-  "name": "main",
+  "name": "openlink",
   "private": true,
   "scripts": {
     "build": "turbo run build",
