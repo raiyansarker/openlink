@@ -1,0 +1,5 @@
+export { isDashboardOverviewPath } from './paths/overview'
+export { isDashboardLinksPath } from './paths/links'
+export { isDashboardAnalyticsPath } from './paths/analytics'
+export { isDashboardMembersPath } from './paths/members'
+export { isDashboardSettingsPath } from './paths/settings'
