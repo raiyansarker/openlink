@@ -59,15 +59,3 @@ export function buildDomainTimeline(
       new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
   )
 }
-
-export function buildDefaultDomainTimeline(linkCount: number): DomainTimelineEvent[] {
-  const now = new Date().toISOString()
-  return [
-    {
-      id: 'default_active',
-      title: 'Default host active',
-      description: `${linkCount} short links`,
-      occurredAt: now,
-    },
-  ]
-}

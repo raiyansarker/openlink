@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Button } from '@astryxdesign/core/Button'
+import { Card } from '@astryxdesign/core/Card'
 import { Divider } from '@astryxdesign/core/Divider'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -13,25 +14,17 @@ import {
 } from '#/components/members/floating-end-drawer'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
-import {
-  buildDefaultDomainTimeline,
-  buildDomainTimeline,
-} from '#/lib/domains/domain-timeline'
+import { buildDomainTimeline } from '#/lib/domains/domain-timeline'
 import { formatShortDate } from '#/lib/format/short-date'
 import DomainDnsRecordsTable from './DomainDnsRecordsTable'
+import DomainIllustration from './DomainIllustration'
 import DomainReadinessBanner from './DomainReadinessBanner'
 import DomainSetupTimeline from './DomainSetupTimeline'
 
-export type DomainSheetTarget =
-  | {
-      kind: 'default'
-      hostname: string
-      linkCount: number
-    }
-  | {
-      kind: 'custom'
-      domainId: string
-    }
+export type DomainSheetTarget = {
+  kind: 'custom'
+  domainId: string
+}
 
 type DomainDetailSheetProps = {
   target: DomainSheetTarget | null
@@ -46,28 +39,21 @@ export default function DomainDetailSheet({
   const [removeAlertOpen, setRemoveAlertOpen] = useState(false)
 
   const isOpen = target != null
-  const isDefault = target?.kind === 'default'
-  const custom: WorkspaceCustomDomain | undefined =
-    target?.kind === 'custom' ? getDomainById(target.domainId) : undefined
+  const custom: WorkspaceCustomDomain | undefined = target
+    ? getDomainById(target.domainId)
+    : undefined
 
-  const title =
-    target?.kind === 'default'
-      ? target.hostname
-      : (custom?.hostname ?? 'Domain')
-
-  const readiness = isDefault ? 'active' : (custom?.readiness ?? 'pending')
+  const title = custom?.hostname ?? 'Domain'
+  const readiness = custom?.readiness ?? 'pending'
   const statusHint =
     readiness === 'active'
       ? 'Short links are live on this host'
       : undefined
 
-  const timelineEvents = useMemo(() => {
-    if (isDefault && target?.kind === 'default') {
-      return buildDefaultDomainTimeline(target.linkCount)
-    }
-    if (custom) return buildDomainTimeline(custom)
-    return []
-  }, [custom, isDefault, target])
+  const timelineEvents = useMemo(
+    () => (custom ? buildDomainTimeline(custom) : []),
+    [custom],
+  )
 
   const close = () => onOpenChange(false)
 
@@ -78,7 +64,7 @@ export default function DomainDetailSheet({
     close()
   }
 
-  if (target?.kind === 'custom' && !custom) {
+  if (target && !custom) {
     return null
   }
 
@@ -105,15 +91,14 @@ export default function DomainDetailSheet({
           content={
             <LayoutContent>
               <VStack gap={6} width="100%" hAlign="stretch">
+                <Card variant="muted" padding={4}>
+                  <HStack hAlign="center" width="100%">
+                    <DomainIllustration state={readiness} width={220} />
+                  </HStack>
+                </Card>
+
                 {custom ? (
                   <DomainReadinessBanner readiness={custom.readiness} />
-                ) : null}
-
-                {isDefault && target ? (
-                  <Text type="supporting" color="secondary">
-                    {target.linkCount} short links on the default workspace
-                    host.
-                  </Text>
                 ) : null}
 
                 {custom ? (
@@ -150,8 +135,6 @@ export default function DomainDetailSheet({
                       </Text>
                     </VStack>
                   </>
-                ) : target?.kind === 'default' ? (
-                  <DomainSetupTimeline events={timelineEvents} />
                 ) : null}
               </VStack>
             </LayoutContent>
