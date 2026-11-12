@@ -51,5 +51,13 @@ export const openlinkTheme = defineTheme({
         backgroundColor: 'var(--color-background-surface)',
       },
     },
+    tooltip: {
+      base: {
+        backgroundColor: 'light-dark(#f4f4f5, #27272a)',
+        color: 'light-dark(#18181b, #fafafa)',
+        border: '1px solid light-dark(rgba(0,0,0,0.08), rgba(255,255,255,0.12))',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+      },
+    },
   },
 })
