@@ -12,6 +12,7 @@ type ApiKeySecretRevealDialogProps = {
   title: string
   body: string
   secret: string
+  secretLabel?: string
 }
 
 export default function ApiKeySecretRevealDialog({
@@ -20,6 +21,7 @@ export default function ApiKeySecretRevealDialog({
   title,
   body,
   secret,
+  secretLabel,
 }: ApiKeySecretRevealDialogProps) {
   return (
     <Dialog
@@ -36,7 +38,7 @@ export default function ApiKeySecretRevealDialog({
               <Text color="secondary" type="supporting">
                 {body}
               </Text>
-              <ApiKeySecretField value={secret} />
+              <ApiKeySecretField label={secretLabel} value={secret} />
             </VStack>
           </LayoutContent>
         }
