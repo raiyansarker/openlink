@@ -4,6 +4,8 @@ import { ArkTypeToJsonSchemaConverter } from '@orpc/arktype'
 import { OpenAPIGenerator } from '@orpc/openapi'
 import { implement, ORPCError } from '@orpc/server'
 import { Effect } from 'effect'
+
+import { io } from '#/server/effect/io'
 import { createHash } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import { customDomain, link } from '@openlink/db/schema'
@@ -45,7 +47,7 @@ const openApiGenerator = new OpenAPIGenerator({
 export const router = os.router({
   system: {
     getHealth: os.system.getHealth.effect(function* () {
-      const report = yield* Effect.promise(() => runHealthChecks())
+      const report = yield* io(() => runHealthChecks())
       if (report.status === 'error') {
         return yield* Effect.fail(
           new ORPCError('SERVICE_UNAVAILABLE', {
@@ -58,7 +60,7 @@ export const router = os.router({
     }),
 
     getOpenApiDocument: os.system.getOpenApiDocument.effect(function* () {
-      const document = yield* Effect.promise(() =>
+      const document = yield* io(() =>
         openApiGenerator.generate(contract, {
           base: {
             info: {
@@ -76,7 +78,7 @@ export const router = os.router({
 
   auth: {
     signUp: os.auth.signUp.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const response = await getAuth().api.signUpEmail({
       body: input.body,
       asResponse: true,
@@ -102,7 +104,7 @@ export const router = os.router({
     }),
 
     signIn: os.auth.signIn.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const response = await getAuth().api.signInEmail({
       body: input.body,
       asResponse: true,
@@ -126,7 +128,7 @@ export const router = os.router({
     }),
 
     signOut: os.auth.signOut.effect(function* ({ context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const response = await getAuth().api.signOut({
       headers: context.request.headers,
       asResponse: true,
@@ -138,7 +140,7 @@ export const router = os.router({
     }),
 
     getSession: os.auth.getSession.effect(function* ({ context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
         const session = await requireSession(context.request)
         if (!session) return { authenticated: false as const }
         return { authenticated: true as const, user: session.user }
@@ -148,7 +150,7 @@ export const router = os.router({
 
   organizations: {
     listOrganizations: os.organizations.listOrganizations.effect(function* ({ context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
         const session = await requireSession(context.request)
         if (!session) throw unauthorized()
         const rows = await listOrganizationsForUser(session.session.user.id)
@@ -159,7 +161,7 @@ export const router = os.router({
     }),
 
     createOrganization: os.organizations.createOrganization.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     try {
@@ -181,7 +183,7 @@ export const router = os.router({
     }),
 
     acceptOrganizationInvite: os.organizations.acceptOrganizationInvite.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     try {
@@ -198,7 +200,7 @@ export const router = os.router({
     }),
 
     getOrganization: os.organizations.getOrganization.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -214,7 +216,7 @@ export const router = os.router({
     }),
 
     createOrganizationInvite: os.organizations.createOrganizationInvite.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
       const session = await requireSession(context.request)
       if (!session) throw unauthorized()
       const membership = await getMembership(
@@ -239,13 +241,12 @@ export const router = os.router({
         token,
       }
       })
-    },
-  ),
+    }),
   },
 
   domains: {
     listDomains: os.domains.listDomains.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
         const session = await requireSession(context.request)
         if (!session) throw unauthorized()
         const membership = await getMembership(
@@ -262,7 +263,7 @@ export const router = os.router({
     }),
 
     addDomain: os.domains.addDomain.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -284,7 +285,7 @@ export const router = os.router({
     }),
 
     getDomain: os.domains.getDomain.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -309,7 +310,7 @@ export const router = os.router({
     }),
 
     removeDomain: os.domains.removeDomain.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -327,7 +328,7 @@ export const router = os.router({
     }),
 
     refreshDomainStatus: os.domains.refreshDomainStatus.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -355,7 +356,7 @@ export const router = os.router({
 
   links: {
     listLinks: os.links.listLinks.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -370,7 +371,7 @@ export const router = os.router({
     }),
 
     createLink: os.links.createLink.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -421,7 +422,7 @@ export const router = os.router({
     }),
 
     getLink: os.links.getLink.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -439,7 +440,7 @@ export const router = os.router({
     }),
 
     updateLink: os.links.updateLink.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
@@ -496,7 +497,7 @@ export const router = os.router({
     }),
 
     deleteLink: os.links.deleteLink.effect(function* ({ input, context }) {
-      return yield* Effect.promise(async () => {
+      return yield* io(async () => {
     const session = await requireSession(context.request)
     if (!session) throw unauthorized()
     const membership = await getMembership(
