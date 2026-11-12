@@ -3,5 +3,23 @@
   "name": "openlink-web",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry"
+  "main": "@tanstack/react-start/server-entry",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "openlink-local",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "../../packages/db/drizzle"
+    }
+  ],
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "openlink_clicks"
+    }
+  ],
+  "vars": {
+    "DOMAIN_PROVIDER": "memory",
+    "BETTER_AUTH_URL": "http://localhost:3000"
+  }
 }
