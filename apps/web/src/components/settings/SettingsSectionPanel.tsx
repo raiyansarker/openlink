@@ -10,6 +10,7 @@ import {
 } from '#/lib/settings/sections'
 import ProfileSettingsFields from '#/components/settings/ProfileSettingsFields'
 import AppearanceSettingsFields from '#/components/settings/AppearanceSettingsFields'
+import DevicesSettingsFields from '#/components/settings/DevicesSettingsFields'
 import MembersSettingsFields from '#/components/settings/MembersSettingsFields'
 
 type SettingsSectionPanelProps = {
@@ -22,19 +23,15 @@ export default function SettingsSectionPanel({ section }: SettingsSectionPanelPr
 
   return (
     <VStack gap={5} hAlign="start" width="fill">
-      {section === 'members' ? null : section === 'profile' || section === 'devices' ? (
-        <Heading level={3} color="secondary">
-          {meta.label}
-        </Heading>
-      ) : section === 'appearance' ? (
+      {section === 'members' ? null : section === 'appearance' || section === 'devices' ? (
         <VStack gap={1} hAlign="start" width="fill">
-          <Heading level={3} color="secondary">
-            {meta.label}
-          </Heading>
-          <Text color="placeholder" type="supporting">
+          <Heading level={3}>{meta.label}</Heading>
+          <Text color="secondary" type="supporting">
             {meta.description}
           </Text>
         </VStack>
+      ) : section === 'profile' ? (
+        <Heading level={3}>{meta.label}</Heading>
       ) : (
         <VStack gap={1} hAlign="start" width="fill">
           <Heading level={3}>{meta.label}</Heading>
@@ -46,11 +43,7 @@ export default function SettingsSectionPanel({ section }: SettingsSectionPanelPr
 
       {section === 'profile' && <ProfileSettingsFields />}
       {section === 'appearance' && <AppearanceSettingsFields />}
-      {section === 'devices' && (
-        <Text color="secondary">
-          Active sessions and signed-in devices will be listed here.
-        </Text>
-      )}
+      {section === 'devices' && <DevicesSettingsFields />}
       {section === 'general' && (
         <FormLayout direction="vertical">
           <TextInput

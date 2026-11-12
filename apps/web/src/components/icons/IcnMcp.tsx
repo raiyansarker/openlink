@@ -271,6 +271,17 @@ export function ExitSignIcon({ size = 16, ...p }: SvgProps) {
   )
 }
 
+/** iconmcp: all-in-one */
+export function AllInOneIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p} strokeWidth={0.833}>
+      <rect x="1.75" y="2" width="12.5" height="9.5" rx="2" />
+      <line x1="1.75" y1="9" x2="14.25" y2="9" />
+      <path d="M6.5 11.5 L5.982 13.228 C5.866 13.613 6.155 14 6.556 14 L9.444 14 C9.845 14 10.134 13.613 10.018 13.228 L9.5 11.5" />
+    </svg>
+  )
+}
+
 /** iconmcp: laptop */
 export function LaptopIcon({ size = 16, ...p }: SvgProps) {
   return (
