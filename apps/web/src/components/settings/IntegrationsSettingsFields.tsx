@@ -176,6 +176,9 @@ export default function IntegrationsSettingsFields() {
                     webhook={row}
                     onOpen={setSelectedId}
                     onToggleEnabled={toggleWebhook}
+                    onRollSecret={(id, prefix) =>
+                      updateWebhook(id, { signingSecretPrefix: prefix })
+                    }
                     onRemove={removeWebhook}
                   />
                 ),

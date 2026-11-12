@@ -3,12 +3,18 @@ import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { IconButton } from '@astryxdesign/core/IconButton'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
+import ApiKeySecretRevealDialog from '#/components/settings/ApiKeySecretRevealDialog'
 import type { WorkspaceWebhook } from '#/data/demo/webhooks'
+import {
+  buildFullWebhookSecret,
+  randomWebhookPrefix,
+} from '#/lib/integrations/webhook-secret'
 
 type WebhookRowMenuProps = {
   webhook: WorkspaceWebhook
   onOpen: (id: string) => void
   onToggleEnabled: (id: string, enabled: boolean) => void
+  onRollSecret: (id: string, prefix: string) => void
   onRemove: (id: string) => void
 }
 
@@ -16,9 +22,12 @@ export default function WebhookRowMenu({
   webhook,
   onOpen,
   onToggleEnabled,
+  onRollSecret,
   onRemove,
 }: WebhookRowMenuProps) {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
+  const [rollAlertOpen, setRollAlertOpen] = useState(false)
+  const [rolledSecret, setRolledSecret] = useState<string | null>(null)
 
   const items = [
     {
@@ -28,8 +37,13 @@ export default function WebhookRowMenu({
     },
     {
       id: 'toggle',
-      label: webhook.isEnabled ? 'Disable' : 'Enable',
+      label: webhook.isEnabled ? 'Pause deliveries' : 'Resume deliveries',
       onClick: () => onToggleEnabled(webhook.id, !webhook.isEnabled),
+    },
+    {
+      id: 'roll',
+      label: 'Roll signing secret',
+      onClick: () => setRollAlertOpen(true),
     },
     { type: 'divider' as const },
     {
@@ -39,6 +53,13 @@ export default function WebhookRowMenu({
       onClick: () => setDeleteAlertOpen(true),
     },
   ]
+
+  const confirmRoll = () => {
+    const prefix = randomWebhookPrefix()
+    onRollSecret(webhook.id, prefix)
+    setRolledSecret(buildFullWebhookSecret(prefix))
+    setRollAlertOpen(false)
+  }
 
   return (
     <>
@@ -59,6 +80,24 @@ export default function WebhookRowMenu({
           />
         )}
         items={items}
+      />
+      <AlertDialog
+        isOpen={rollAlertOpen}
+        onOpenChange={setRollAlertOpen}
+        title={`Roll secret for ${webhook.name}?`}
+        description="The current secret stops working immediately. Requests your server receives will be signed with the new one."
+        actionLabel="Roll secret"
+        onAction={confirmRoll}
+      />
+      <ApiKeySecretRevealDialog
+        isOpen={rolledSecret != null}
+        onOpenChange={(open) => {
+          if (!open) setRolledSecret(null)
+        }}
+        title="New signing secret"
+        body="Copy it now and update your server. You will not see it again."
+        secret={rolledSecret ?? ''}
+        secretLabel="Signing secret"
       />
       <AlertDialog
         isOpen={deleteAlertOpen}
