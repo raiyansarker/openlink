@@ -13,7 +13,7 @@
     "deploy": "bun run build && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply openlink-local --local",
     "db:seed:bootstrap-invite": "wrangler d1 execute openlink-local --local --file ./scripts/seed-bootstrap-invite.sql",
-    "check-types": "tsc --noEmit",
+    "check-types": "wrangler types && tsc --noEmit",
     "lint": "oxlint src",
     "test": "bun test src"
   },
