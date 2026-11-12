@@ -51,6 +51,7 @@
 .openlink-org-icon {
   display: grid;
   place-items: center;
+  color: inherit;
   width: 2.75rem;
   height: 2.75rem;
   border: none;
