@@ -13,7 +13,12 @@ type LinkRow = ShortLink & Record<string, unknown>
 
 export default function DashboardRecentLinksTable() {
   const { links, activeOrg } = useOrganization()
-  const rows = links as LinkRow[]
+  const rows = [...links]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, 6) as LinkRow[]
 
   return (
     <Table<LinkRow>
@@ -29,8 +34,10 @@ export default function DashboardRecentLinksTable() {
           width: proportional(2, { minWidth: 200 }),
           renderCell: (row) => (
             <VStack gap={1}>
-              <Text weight="semibold">{row.title}</Text>
-              <Text type="supporting" color="secondary">
+              <Text weight="semibold" maxLines={1}>
+                {row.title}
+              </Text>
+              <Text type="supporting" color="secondary" maxLines={1}>
                 {shortUrlFor(row.slug, activeOrg)}
               </Text>
             </VStack>
@@ -39,32 +46,33 @@ export default function DashboardRecentLinksTable() {
         {
           key: 'targetUrl',
           header: 'Destination',
-          width: proportional(2, { minWidth: 180 }),
+          width: proportional(2, { minWidth: 160 }),
           renderCell: (row) => (
-            <Text type="supporting" color="secondary">
+            <Text type="supporting" color="secondary" maxLines={1}>
               {stripUrlScheme(row.targetUrl)}
             </Text>
           ),
         },
         {
-          key: 'status',
-          header: 'Status',
-          width: pixel(140),
-          renderCell: (row) => <LinkStatus status={row.status} />,
-        },
-        {
           key: 'clicks',
           header: 'Clicks',
-          width: pixel(96),
+          width: pixel(88),
           align: 'end',
           renderCell: (row) => (
-            <Text type="supporting">{formatCompactNumber(row.clicks)}</Text>
+            <Text weight="medium">{formatCompactNumber(row.clicks)}</Text>
           ),
+        },
+        {
+          key: 'status',
+          header: 'Status',
+          width: pixel(108),
+          renderCell: (row) => <LinkStatus status={row.status} />,
         },
         {
           key: 'createdAt',
           header: 'Created',
-          width: pixel(120),
+          width: pixel(108),
+          align: 'end',
           renderCell: (row) => (
             <Text type="supporting" color="secondary">
               {formatShortDate(row.createdAt)}
