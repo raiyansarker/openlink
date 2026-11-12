@@ -14,6 +14,7 @@ import WebhookDetailSheet from '#/components/settings/WebhookDetailSheet'
 import WebhookRowMenu from '#/components/settings/WebhookRowMenu'
 import {
   DEMO_WORKSPACE_WEBHOOKS,
+  WEBHOOK_EVENT_LABELS,
   type WorkspaceWebhook,
 } from '#/data/demo/webhooks'
 import { webhookStatusMeta } from '#/lib/integrations/webhook-status'
@@ -42,6 +43,13 @@ function endpointCaption(url: string): string {
   }
 }
 
+function eventsSummary(events: WorkspaceWebhook['events']): string {
+  const [first, ...rest] = events
+  if (!first) return '—'
+  const label = WEBHOOK_EVENT_LABELS[first]
+  return rest.length > 0 ? `${label} +${rest.length}` : label
+}
+
 export default function IntegrationsSettingsFields() {
   const [webhooks, setWebhooks] = useState<WorkspaceWebhook[]>(
     () => DEMO_WORKSPACE_WEBHOOKS,
@@ -55,13 +63,19 @@ export default function IntegrationsSettingsFields() {
     setWebhooks((prev) => prev.filter((hook) => hook.id !== id))
   }, [])
 
-  const toggleWebhook = useCallback((id: string, enabled: boolean) => {
-    setWebhooks((prev) =>
-      prev.map((hook) =>
-        hook.id === id ? { ...hook, isEnabled: enabled } : hook,
-      ),
-    )
-  }, [])
+  const updateWebhook = useCallback(
+    (id: string, patch: Partial<WorkspaceWebhook>) => {
+      setWebhooks((prev) =>
+        prev.map((hook) => (hook.id === id ? { ...hook, ...patch } : hook)),
+      )
+    },
+    [],
+  )
+
+  const toggleWebhook = useCallback(
+    (id: string, enabled: boolean) => updateWebhook(id, { isEnabled: enabled }),
+    [updateWebhook],
+  )
 
   const openRowAtIndex = (index: number) => {
     const row = webhooks[index]
@@ -121,7 +135,7 @@ export default function IntegrationsSettingsFields() {
               {
                 key: 'name',
                 header: 'Endpoint',
-                width: proportional(1.6, { minWidth: 200 }),
+                width: proportional(1.8, { minWidth: 220 }),
                 renderCell: (row) => (
                   <VStack gap={0} hAlign="start">
                     <Text weight="semibold">{row.name}</Text>
@@ -150,10 +164,11 @@ export default function IntegrationsSettingsFields() {
               {
                 key: 'events',
                 header: 'Events',
-                width: pixel(80),
-                align: 'end',
+                width: proportional(1, { minWidth: 160 }),
                 renderCell: (row) => (
-                  <Text weight="medium">{row.events.length}</Text>
+                  <Text type="supporting" color="secondary">
+                    {eventsSummary(row.events)}
+                  </Text>
                 ),
               },
               {
@@ -193,7 +208,7 @@ export default function IntegrationsSettingsFields() {
         onOpenChange={(open) => {
           if (!open) setSelectedId(null)
         }}
-        onToggleEnabled={toggleWebhook}
+        onUpdate={updateWebhook}
         onRemove={removeWebhook}
       />
 
