@@ -1,15 +1,12 @@
-import { createFileRoute } from '@tanstack/react-router'
-import DashboardComingSoon from '#/components/dashboard/DashboardComingSoon'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { getDefaultOrgId } from '#/lib/dashboard/default-org'
 
+/** Legacy path — forwards to org-scoped dashboard URL. */
 export const Route = createFileRoute('/dashboard/links')({
-  component: DashboardLinksPage,
+  beforeLoad: () => {
+    throw redirect({
+      to: '/dashboard/$orgId/links',
+      params: { orgId: getDefaultOrgId() },
+    })
+  },
 })
-
-function DashboardLinksPage() {
-  return (
-    <DashboardComingSoon
-      title="Links manager"
-      description="Bulk edit, filters, and creation flow will live on this page. Overview still lists demo links."
-    />
-  )
-}
