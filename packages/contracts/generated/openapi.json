@@ -1,9 +1,8 @@
 {
-  "openapi": "3.1.0",
   "info": {
     "title": "OpenLink API",
     "version": "0.1.0",
-    "description": "Contract-first HTTP API for the OpenLink link shortener."
+    "description": "Generated from the oRPC OpenAPI contract in @openlink/contracts (packages/contracts/src)."
   },
   "servers": [
     {
@@ -11,49 +10,80 @@
       "description": "Local and production Worker"
     }
   ],
-  "tags": [
-    {
-      "name": "System"
-    },
-    {
-      "name": "Auth"
-    },
-    {
-      "name": "Organizations"
-    },
-    {
-      "name": "Domains"
-    },
-    {
-      "name": "Links"
-    }
-  ],
+  "openapi": "3.1.1",
   "paths": {
     "/health": {
       "get": {
         "operationId": "getHealth",
+        "summary": "Dependency health probe",
+        "description": "Checks every runtime dependency the API relies on (D1, Analytics Engine, auth configuration, domain provider, and the bundled OpenAPI contract).\n",
         "tags": [
           "System"
         ],
-        "summary": "Dependency health probe",
-        "description": "Checks every runtime dependency the API relies on (D1, Analytics Engine, auth configuration, domain provider, and the bundled OpenAPI contract).\n",
         "responses": {
           "200": {
-            "description": "All required dependencies are healthy",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "One or more required dependencies are unhealthy",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthResponse"
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "ok",
+                        "degraded",
+                        "error"
+                      ],
+                      "type": "string"
+                    },
+                    "service": {
+                      "const": "openlink"
+                    },
+                    "checkedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "enum": [
+                              "ok",
+                              "error",
+                              "skipped"
+                            ],
+                            "type": "string"
+                          },
+                          "required": {
+                            "type": "boolean",
+                            "default": true
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "latencyMs": {
+                            "type": "number",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "status"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "service",
+                    "checkedAt",
+                    "checks"
+                  ]
                 }
               }
             }
@@ -64,17 +94,21 @@
     "/openapi.json": {
       "get": {
         "operationId": "getOpenApiDocument",
+        "summary": "OpenAPI document for this API",
         "tags": [
           "System"
         ],
-        "summary": "OpenAPI document for this API",
         "responses": {
           "200": {
-            "description": "OpenAPI 3.1 JSON",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
                 }
               }
             }
@@ -85,36 +119,79 @@
     "/auth/sign-up": {
       "post": {
         "operationId": "signUp",
+        "summary": "Register with email and password",
         "tags": [
           "Auth"
         ],
-        "summary": "Register with email and password",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SignUpRequest"
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "email",
+                  "password",
+                  "name"
+                ]
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Account created",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthSessionResponse"
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string",
+                          "format": "email"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "name",
+                        "createdAt"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "user"
+                  ]
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
           }
         }
       }
@@ -122,33 +199,73 @@
     "/auth/sign-in": {
       "post": {
         "operationId": "signIn",
+        "summary": "Sign in with email and password",
         "tags": [
           "Auth"
         ],
-        "summary": "Sign in with email and password",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SignInRequest"
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Authenticated session",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthSessionResponse"
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string",
+                          "format": "email"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "name",
+                        "createdAt"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "user"
+                  ]
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
@@ -159,14 +276,23 @@
         "tags": [
           "Auth"
         ],
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
         "responses": {
           "204": {
-            "description": "Signed out"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "not": {}
+                    },
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -177,18 +303,53 @@
         "tags": [
           "Auth"
         ],
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Current session if any",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionResponse"
+                  "type": "object",
+                  "properties": {
+                    "authenticated": {
+                      "type": "boolean"
+                    },
+                    "user": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string",
+                              "format": "email"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "email",
+                            "name",
+                            "createdAt"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "authenticated"
+                  ]
                 }
               }
             }
@@ -202,78 +363,136 @@
         "tags": [
           "Organizations"
         ],
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Organizations the user belongs to",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "items"
-                  ],
                   "properties": {
                     "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/OrganizationMembership"
+                        "type": "object",
+                        "properties": {
+                          "organization": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "slug": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "slug",
+                              "createdAt"
+                            ]
+                          },
+                          "role": {
+                            "enum": [
+                              "admin",
+                              "member"
+                            ],
+                            "type": "string"
+                          },
+                          "joinedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "organization",
+                          "role",
+                          "joinedAt"
+                        ]
                       }
                     }
-                  }
+                  },
+                  "required": [
+                    "items"
+                  ]
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
       "post": {
         "operationId": "createOrganization",
+        "summary": "Create an organization (invite token required)",
         "tags": [
           "Organizations"
-        ],
-        "summary": "Create an organization (invite token required)",
-        "security": [
-          {
-            "sessionCookie": []
-          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrganizationRequest"
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "inviteToken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "slug",
+                  "inviteToken"
+                ]
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Organization created",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Organization"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "createdAt"
+                  ]
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
@@ -284,91 +503,145 @@
         "tags": [
           "Organizations"
         ],
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AcceptInviteRequest"
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Invite accepted",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationMembership"
+                  "type": "object",
+                  "properties": {
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "slug",
+                        "createdAt"
+                      ]
+                    },
+                    "role": {
+                      "enum": [
+                        "admin",
+                        "member"
+                      ],
+                      "type": "string"
+                    },
+                    "joinedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "organization",
+                    "role",
+                    "joinedAt"
+                  ]
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
     },
     "/organizations/{organizationId}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/OrganizationId"
-        }
-      ],
       "get": {
         "operationId": "getOrganization",
         "tags": [
           "Organizations"
         ],
-        "security": [
+        "parameters": [
           {
-            "sessionCookie": []
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Organization",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Organization"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "createdAt"
+                  ]
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
           }
         }
       }
     },
     "/organizations/{organizationId}/invites": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/OrganizationId"
-        }
-      ],
       "post": {
         "operationId": "createOrganizationInvite",
         "tags": [
           "Organizations"
         ],
-        "security": [
+        "parameters": [
           {
-            "sessionCookie": []
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -376,71 +649,205 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateOrganizationInviteRequest"
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "role": {
+                    "enum": [
+                      "admin",
+                      "member"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "role"
+                ]
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Invite created",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationInvite"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "organizationId": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "role": {
+                      "enum": [
+                        "admin",
+                        "member"
+                      ],
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "organizationId",
+                    "email",
+                    "role",
+                    "expiresAt",
+                    "token"
+                  ]
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
     },
     "/organizations/{organizationId}/domains": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/OrganizationId"
-        }
-      ],
       "get": {
         "operationId": "listDomains",
         "tags": [
           "Domains"
         ],
-        "security": [
+        "parameters": [
           {
-            "sessionCookie": []
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Custom domains for the organization",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "items"
-                  ],
                   "properties": {
                     "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/CustomDomain"
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organizationId": {
+                            "type": "string"
+                          },
+                          "hostname": {
+                            "type": "string"
+                          },
+                          "readiness": {
+                            "enum": [
+                              "pending",
+                              "verifying",
+                              "active",
+                              "failed",
+                              "removing"
+                            ],
+                            "type": "string"
+                          },
+                          "dnsRecords": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string"
+                                },
+                                "host": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                },
+                                "purpose": {
+                                  "enum": [
+                                    "routing",
+                                    "ownership",
+                                    "certificate"
+                                  ],
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "enum": [
+                                    "required",
+                                    "verified",
+                                    "failed"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "host",
+                                "value",
+                                "purpose"
+                              ]
+                            }
+                          },
+                          "defaultRedirectStatus": {
+                            "anyOf": [
+                              {
+                                "const": 301
+                              },
+                              {
+                                "const": 302
+                              },
+                              {
+                                "const": 307
+                              },
+                              {
+                                "const": 308
+                              }
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "activeAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "organizationId",
+                          "hostname",
+                          "readiness",
+                          "dnsRecords",
+                          "createdAt"
+                        ]
                       }
                     }
-                  }
+                  },
+                  "required": [
+                    "items"
+                  ]
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
@@ -449,9 +856,14 @@
         "tags": [
           "Domains"
         ],
-        "security": [
+        "parameters": [
           {
-            "sessionCookie": []
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -459,181 +871,613 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AddDomainRequest"
+                "type": "object",
+                "properties": {
+                  "hostname": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "hostname"
+                ]
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Domain registration started",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomDomain"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "organizationId": {
+                      "type": "string"
+                    },
+                    "hostname": {
+                      "type": "string"
+                    },
+                    "readiness": {
+                      "enum": [
+                        "pending",
+                        "verifying",
+                        "active",
+                        "failed",
+                        "removing"
+                      ],
+                      "type": "string"
+                    },
+                    "dnsRecords": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "host": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "enum": [
+                              "routing",
+                              "ownership",
+                              "certificate"
+                            ],
+                            "type": "string"
+                          },
+                          "status": {
+                            "enum": [
+                              "required",
+                              "verified",
+                              "failed"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "host",
+                          "value",
+                          "purpose"
+                        ]
+                      }
+                    },
+                    "defaultRedirectStatus": {
+                      "anyOf": [
+                        {
+                          "const": 301
+                        },
+                        {
+                          "const": 302
+                        },
+                        {
+                          "const": 307
+                        },
+                        {
+                          "const": 308
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "activeAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "organizationId",
+                    "hostname",
+                    "readiness",
+                    "dnsRecords",
+                    "createdAt"
+                  ]
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           }
         }
       }
     },
     "/organizations/{organizationId}/domains/{domainId}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/OrganizationId"
-        },
-        {
-          "$ref": "#/components/parameters/DomainId"
-        }
-      ],
-      "get": {
-        "operationId": "getDomain",
-        "tags": [
-          "Domains"
-        ],
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Domain details and readiness",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CustomDomain"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      },
       "delete": {
         "operationId": "removeDomain",
         "tags": [
           "Domains"
         ],
-        "security": [
+        "parameters": [
           {
-            "sessionCookie": []
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "204": {
-            "description": "Domain removed"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "not": {}
+                    },
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getDomain",
+        "tags": [
+          "Domains"
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
+          {
+            "name": "domainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "organizationId": {
+                      "type": "string"
+                    },
+                    "hostname": {
+                      "type": "string"
+                    },
+                    "readiness": {
+                      "enum": [
+                        "pending",
+                        "verifying",
+                        "active",
+                        "failed",
+                        "removing"
+                      ],
+                      "type": "string"
+                    },
+                    "dnsRecords": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "host": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "enum": [
+                              "routing",
+                              "ownership",
+                              "certificate"
+                            ],
+                            "type": "string"
+                          },
+                          "status": {
+                            "enum": [
+                              "required",
+                              "verified",
+                              "failed"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "host",
+                          "value",
+                          "purpose"
+                        ]
+                      }
+                    },
+                    "defaultRedirectStatus": {
+                      "anyOf": [
+                        {
+                          "const": 301
+                        },
+                        {
+                          "const": 302
+                        },
+                        {
+                          "const": 307
+                        },
+                        {
+                          "const": 308
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "activeAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "organizationId",
+                    "hostname",
+                    "readiness",
+                    "dnsRecords",
+                    "createdAt"
+                  ]
+                }
+              }
+            }
           }
         }
       }
     },
     "/organizations/{organizationId}/domains/{domainId}/refresh": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/OrganizationId"
-        },
-        {
-          "$ref": "#/components/parameters/DomainId"
-        }
-      ],
       "post": {
         "operationId": "refreshDomainStatus",
+        "summary": "Poll provider state via Domain SDK",
         "tags": [
           "Domains"
         ],
-        "summary": "Poll provider state via Domain SDK",
-        "security": [
+        "parameters": [
           {
-            "sessionCookie": []
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Updated domain status",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomDomain"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "organizationId": {
+                      "type": "string"
+                    },
+                    "hostname": {
+                      "type": "string"
+                    },
+                    "readiness": {
+                      "enum": [
+                        "pending",
+                        "verifying",
+                        "active",
+                        "failed",
+                        "removing"
+                      ],
+                      "type": "string"
+                    },
+                    "dnsRecords": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "host": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "enum": [
+                              "routing",
+                              "ownership",
+                              "certificate"
+                            ],
+                            "type": "string"
+                          },
+                          "status": {
+                            "enum": [
+                              "required",
+                              "verified",
+                              "failed"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "host",
+                          "value",
+                          "purpose"
+                        ]
+                      }
+                    },
+                    "defaultRedirectStatus": {
+                      "anyOf": [
+                        {
+                          "const": 301
+                        },
+                        {
+                          "const": 302
+                        },
+                        {
+                          "const": 307
+                        },
+                        {
+                          "const": 308
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "activeAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "organizationId",
+                    "hostname",
+                    "readiness",
+                    "dnsRecords",
+                    "createdAt"
+                  ]
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
           }
         }
       }
     },
     "/organizations/{organizationId}/domains/{domainId}/links": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/OrganizationId"
-        },
-        {
-          "$ref": "#/components/parameters/DomainId"
-        }
-      ],
       "get": {
         "operationId": "listLinks",
         "tags": [
           "Links"
         ],
-        "security": [
+        "parameters": [
           {
-            "sessionCookie": []
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Links on this domain",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "items"
-                  ],
                   "properties": {
                     "items": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Link"
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organizationId": {
+                            "type": "string"
+                          },
+                          "domainId": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "type": "string"
+                          },
+                          "alias": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "destinationUrl": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "redirectStatus": {
+                            "anyOf": [
+                              {
+                                "const": 301
+                              },
+                              {
+                                "const": 302
+                              },
+                              {
+                                "const": 307
+                              },
+                              {
+                                "const": 308
+                              }
+                            ]
+                          },
+                          "status": {
+                            "enum": [
+                              "draft",
+                              "scheduled",
+                              "active",
+                              "paused",
+                              "expired",
+                              "disabled"
+                            ],
+                            "type": "string"
+                          },
+                          "enabled": {
+                            "type": "boolean"
+                          },
+                          "activateAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "maxClicks": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "clickCount": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "passwordProtected": {
+                            "type": "boolean"
+                          },
+                          "expiredDestinationUrl": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "fallbackDestinationUrl": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "utm": {
+                            "type": "object",
+                            "properties": {
+                              "source": {
+                                "type": "string"
+                              },
+                              "medium": {
+                                "type": "string"
+                              },
+                              "campaign": {
+                                "type": "string"
+                              },
+                              "term": {
+                                "type": "string"
+                              },
+                              "content": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {}
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "organizationId",
+                          "domainId",
+                          "slug",
+                          "destinationUrl",
+                          "redirectStatus",
+                          "status",
+                          "clickCount",
+                          "createdAt",
+                          "updatedAt"
+                        ]
                       }
                     }
-                  }
+                  },
+                  "required": [
+                    "items"
+                  ]
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
           }
         }
       },
@@ -642,9 +1486,22 @@
         "tags": [
           "Links"
         ],
-        "security": [
+        "parameters": [
           {
-            "sessionCookie": []
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -652,75 +1509,489 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateLinkRequest"
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "destinationUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "redirectStatus": {
+                    "anyOf": [
+                      {
+                        "const": 301
+                      },
+                      {
+                        "const": 302
+                      },
+                      {
+                        "const": 307
+                      },
+                      {
+                        "const": 308
+                      }
+                    ]
+                  },
+                  "activateAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "maxClicks": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 4
+                  },
+                  "expiredDestinationUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "fallbackDestinationUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "utm": {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string"
+                      },
+                      "medium": {
+                        "type": "string"
+                      },
+                      "campaign": {
+                        "type": "string"
+                      },
+                      "term": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "destinationUrl"
+                ]
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Link created",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Link"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "organizationId": {
+                      "type": "string"
+                    },
+                    "domainId": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "alias": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "destinationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "redirectStatus": {
+                      "anyOf": [
+                        {
+                          "const": 301
+                        },
+                        {
+                          "const": 302
+                        },
+                        {
+                          "const": 307
+                        },
+                        {
+                          "const": 308
+                        }
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "draft",
+                        "scheduled",
+                        "active",
+                        "paused",
+                        "expired",
+                        "disabled"
+                      ],
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "activateAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "maxClicks": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "clickCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "passwordProtected": {
+                      "type": "boolean"
+                    },
+                    "expiredDestinationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "fallbackDestinationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "utm": {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "type": "string"
+                        },
+                        "medium": {
+                          "type": "string"
+                        },
+                        "campaign": {
+                          "type": "string"
+                        },
+                        "term": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "organizationId",
+                    "domainId",
+                    "slug",
+                    "destinationUrl",
+                    "redirectStatus",
+                    "status",
+                    "clickCount",
+                    "createdAt",
+                    "updatedAt"
+                  ]
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
           }
         }
       }
     },
     "/organizations/{organizationId}/domains/{domainId}/links/{linkId}": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/OrganizationId"
-        },
-        {
-          "$ref": "#/components/parameters/DomainId"
-        },
-        {
-          "$ref": "#/components/parameters/LinkId"
+      "delete": {
+        "operationId": "deleteLink",
+        "tags": [
+          "Links"
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "not": {}
+                    },
+                    {
+                      "not": {}
+                    }
+                  ]
+                }
+              }
+            }
+          }
         }
-      ],
+      },
       "get": {
         "operationId": "getLink",
         "tags": [
           "Links"
         ],
-        "security": [
+        "parameters": [
           {
-            "sessionCookie": []
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Link",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Link"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "organizationId": {
+                      "type": "string"
+                    },
+                    "domainId": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "alias": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "destinationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "redirectStatus": {
+                      "anyOf": [
+                        {
+                          "const": 301
+                        },
+                        {
+                          "const": 302
+                        },
+                        {
+                          "const": 307
+                        },
+                        {
+                          "const": 308
+                        }
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "draft",
+                        "scheduled",
+                        "active",
+                        "paused",
+                        "expired",
+                        "disabled"
+                      ],
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "activateAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "maxClicks": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "clickCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "passwordProtected": {
+                      "type": "boolean"
+                    },
+                    "expiredDestinationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "fallbackDestinationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "utm": {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "type": "string"
+                        },
+                        "medium": {
+                          "type": "string"
+                        },
+                        "campaign": {
+                          "type": "string"
+                        },
+                        "term": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "organizationId",
+                    "domainId",
+                    "slug",
+                    "destinationUrl",
+                    "redirectStatus",
+                    "status",
+                    "clickCount",
+                    "createdAt",
+                    "updatedAt"
+                  ]
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
           }
         }
       },
@@ -729,9 +2000,30 @@
         "tags": [
           "Links"
         ],
-        "security": [
+        "parameters": [
           {
-            "sessionCookie": []
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -739,839 +2031,263 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateLinkRequest"
+                "type": "object",
+                "properties": {
+                  "destinationUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "redirectStatus": {
+                    "anyOf": [
+                      {
+                        "const": 301
+                      },
+                      {
+                        "const": 302
+                      },
+                      {
+                        "const": 307
+                      },
+                      {
+                        "const": 308
+                      }
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "draft",
+                      "scheduled",
+                      "active",
+                      "paused",
+                      "expired",
+                      "disabled"
+                    ],
+                    "type": "string"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "activateAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "maxClicks": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 4
+                  },
+                  "clearPassword": {
+                    "type": "boolean"
+                  },
+                  "expiredDestinationUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "fallbackDestinationUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "utm": {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string"
+                      },
+                      "medium": {
+                        "type": "string"
+                      },
+                      "campaign": {
+                        "type": "string"
+                      },
+                      "term": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Updated link",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Link"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "organizationId": {
+                      "type": "string"
+                    },
+                    "domainId": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "alias": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "destinationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "redirectStatus": {
+                      "anyOf": [
+                        {
+                          "const": 301
+                        },
+                        {
+                          "const": 302
+                        },
+                        {
+                          "const": 307
+                        },
+                        {
+                          "const": 308
+                        }
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "draft",
+                        "scheduled",
+                        "active",
+                        "paused",
+                        "expired",
+                        "disabled"
+                      ],
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "activateAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "maxClicks": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "clickCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "passwordProtected": {
+                      "type": "boolean"
+                    },
+                    "expiredDestinationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "fallbackDestinationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "utm": {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "type": "string"
+                        },
+                        "medium": {
+                          "type": "string"
+                        },
+                        "campaign": {
+                          "type": "string"
+                        },
+                        "term": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "organizationId",
+                    "domainId",
+                    "slug",
+                    "destinationUrl",
+                    "redirectStatus",
+                    "status",
+                    "clickCount",
+                    "createdAt",
+                    "updatedAt"
+                  ]
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      },
-      "delete": {
-        "operationId": "deleteLink",
-        "tags": [
-          "Links"
-        ],
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Link deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "parameters": {
-      "OrganizationId": {
-        "name": "organizationId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        }
-      },
-      "DomainId": {
-        "name": "domainId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        }
-      },
-      "LinkId": {
-        "name": "linkId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
-        }
-      }
-    },
-    "securitySchemes": {
-      "sessionCookie": {
-        "type": "apiKey",
-        "in": "cookie",
-        "name": "openlink.session_token"
-      }
-    },
-    "responses": {
-      "BadRequest": {
-        "description": "Invalid input",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "Unauthorized": {
-        "description": "Authentication required",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "Forbidden": {
-        "description": "Insufficient permissions",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "NotFound": {
-        "description": "Resource not found",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      },
-      "Conflict": {
-        "description": "Resource conflict",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
-      }
-    },
-    "schemas": {
-      "HealthStatus": {
-        "type": "string",
-        "enum": [
-          "ok",
-          "degraded",
-          "error"
-        ]
-      },
-      "HealthCheckStatus": {
-        "type": "string",
-        "enum": [
-          "ok",
-          "error",
-          "skipped"
-        ]
-      },
-      "HealthCheck": {
-        "type": "object",
-        "required": [
-          "name",
-          "status"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Stable identifier for the dependency (e.g. d1, auth)."
-          },
-          "status": {
-            "$ref": "#/components/schemas/HealthCheckStatus"
-          },
-          "required": {
-            "type": "boolean",
-            "default": true
-          },
-          "message": {
-            "type": "string"
-          },
-          "latencyMs": {
-            "type": "number",
-            "minimum": 0
-          }
-        }
-      },
-      "HealthResponse": {
-        "type": "object",
-        "required": [
-          "status",
-          "service",
-          "checkedAt",
-          "checks"
-        ],
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/HealthStatus"
-          },
-          "service": {
-            "type": "string",
-            "const": "openlink"
-          },
-          "checkedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "checks": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/HealthCheck"
-            }
-          }
-        }
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "required": [
-          "error"
-        ],
-        "properties": {
-          "error": {
-            "type": "object",
-            "required": [
-              "code",
-              "message"
-            ],
-            "properties": {
-              "code": {
-                "type": "string"
-              },
-              "message": {
-                "type": "string"
-              },
-              "details": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            }
-          }
-        }
-      },
-      "SignUpRequest": {
-        "type": "object",
-        "required": [
-          "email",
-          "password",
-          "name"
-        ],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 8
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1
-          }
-        }
-      },
-      "SignInRequest": {
-        "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
-          "password": {
-            "type": "string"
-          }
-        }
-      },
-      "User": {
-        "type": "object",
-        "required": [
-          "id",
-          "email",
-          "name",
-          "createdAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
-          "name": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "AuthSessionResponse": {
-        "type": "object",
-        "required": [
-          "user"
-        ],
-        "properties": {
-          "user": {
-            "$ref": "#/components/schemas/User"
-          }
-        }
-      },
-      "SessionResponse": {
-        "type": "object",
-        "required": [
-          "authenticated"
-        ],
-        "properties": {
-          "authenticated": {
-            "type": "boolean"
-          },
-          "user": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/User"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        }
-      },
-      "Organization": {
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "slug",
-          "createdAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "OrganizationRole": {
-        "type": "string",
-        "enum": [
-          "admin",
-          "member"
-        ]
-      },
-      "OrganizationMembership": {
-        "type": "object",
-        "required": [
-          "organization",
-          "role",
-          "joinedAt"
-        ],
-        "properties": {
-          "organization": {
-            "$ref": "#/components/schemas/Organization"
-          },
-          "role": {
-            "$ref": "#/components/schemas/OrganizationRole"
-          },
-          "joinedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "CreateOrganizationRequest": {
-        "type": "object",
-        "required": [
-          "name",
-          "slug",
-          "inviteToken"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string",
-            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-          },
-          "inviteToken": {
-            "type": "string"
-          }
-        }
-      },
-      "CreateOrganizationInviteRequest": {
-        "type": "object",
-        "required": [
-          "email",
-          "role"
-        ],
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
-          "role": {
-            "$ref": "#/components/schemas/OrganizationRole"
-          }
-        }
-      },
-      "AcceptInviteRequest": {
-        "type": "object",
-        "required": [
-          "token"
-        ],
-        "properties": {
-          "token": {
-            "type": "string"
-          }
-        }
-      },
-      "OrganizationInvite": {
-        "type": "object",
-        "required": [
-          "id",
-          "organizationId",
-          "email",
-          "role",
-          "expiresAt",
-          "token"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "organizationId": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
-          "role": {
-            "$ref": "#/components/schemas/OrganizationRole"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "token": {
-            "type": "string"
-          }
-        }
-      },
-      "DomainReadiness": {
-        "type": "string",
-        "enum": [
-          "pending",
-          "verifying",
-          "active",
-          "failed",
-          "removing"
-        ]
-      },
-      "DnsRecordInstruction": {
-        "type": "object",
-        "required": [
-          "type",
-          "host",
-          "value",
-          "purpose"
-        ],
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "host": {
-            "type": "string"
-          },
-          "value": {
-            "type": "string"
-          },
-          "purpose": {
-            "type": "string",
-            "enum": [
-              "routing",
-              "ownership",
-              "certificate"
-            ]
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "required",
-              "verified",
-              "failed"
-            ]
-          }
-        }
-      },
-      "CustomDomain": {
-        "type": "object",
-        "required": [
-          "id",
-          "organizationId",
-          "hostname",
-          "readiness",
-          "dnsRecords",
-          "createdAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "organizationId": {
-            "type": "string"
-          },
-          "hostname": {
-            "type": "string",
-            "format": "hostname"
-          },
-          "readiness": {
-            "$ref": "#/components/schemas/DomainReadiness"
-          },
-          "dnsRecords": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DnsRecordInstruction"
-            }
-          },
-          "defaultRedirectStatus": {
-            "$ref": "#/components/schemas/RedirectStatus"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "activeAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "AddDomainRequest": {
-        "type": "object",
-        "required": [
-          "hostname"
-        ],
-        "properties": {
-          "hostname": {
-            "type": "string",
-            "format": "hostname"
-          }
-        }
-      },
-      "RedirectStatus": {
-        "type": "integer",
-        "enum": [
-          301,
-          302,
-          307,
-          308
-        ]
-      },
-      "LinkStatus": {
-        "type": "string",
-        "enum": [
-          "draft",
-          "scheduled",
-          "active",
-          "paused",
-          "expired",
-          "disabled"
-        ]
-      },
-      "UtmParameters": {
-        "type": "object",
-        "properties": {
-          "source": {
-            "type": "string"
-          },
-          "medium": {
-            "type": "string"
-          },
-          "campaign": {
-            "type": "string"
-          },
-          "term": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          }
-        }
-      },
-      "Link": {
-        "type": "object",
-        "required": [
-          "id",
-          "organizationId",
-          "domainId",
-          "slug",
-          "destinationUrl",
-          "redirectStatus",
-          "status",
-          "clickCount",
-          "createdAt",
-          "updatedAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "organizationId": {
-            "type": "string"
-          },
-          "domainId": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string",
-            "description": "Path segment on the custom domain (custom or generated)."
-          },
-          "alias": {
-            "type": "string",
-            "description": "Optional vanity alias separate from primary slug."
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "destinationUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "redirectStatus": {
-            "$ref": "#/components/schemas/RedirectStatus"
-          },
-          "status": {
-            "$ref": "#/components/schemas/LinkStatus"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "activateAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "maxClicks": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "clickCount": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "passwordProtected": {
-            "type": "boolean"
-          },
-          "expiredDestinationUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "fallbackDestinationUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "utm": {
-            "$ref": "#/components/schemas/UtmParameters"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "CreateLinkRequest": {
-        "type": "object",
-        "required": [
-          "destinationUrl"
-        ],
-        "properties": {
-          "slug": {
-            "type": "string",
-            "pattern": "^[A-Za-z0-9_-]+$"
-          },
-          "destinationUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "redirectStatus": {
-            "$ref": "#/components/schemas/RedirectStatus"
-          },
-          "activateAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "maxClicks": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "password": {
-            "type": "string",
-            "minLength": 4
-          },
-          "expiredDestinationUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "fallbackDestinationUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "utm": {
-            "$ref": "#/components/schemas/UtmParameters"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        }
-      },
-      "UpdateLinkRequest": {
-        "type": "object",
-        "properties": {
-          "destinationUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "redirectStatus": {
-            "$ref": "#/components/schemas/RedirectStatus"
-          },
-          "status": {
-            "$ref": "#/components/schemas/LinkStatus"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "activateAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "maxClicks": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "password": {
-            "type": "string",
-            "minLength": 4
-          },
-          "clearPassword": {
-            "type": "boolean"
-          },
-          "expiredDestinationUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "fallbackDestinationUrl": {
-            "type": "string",
-            "format": "uri"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "utm": {
-            "$ref": "#/components/schemas/UtmParameters"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": true
           }
         }
       }

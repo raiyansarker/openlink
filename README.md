@@ -8,8 +8,9 @@ Turborepo monorepo for [OpenLink](https://github.com/) — a Cloudflare Workers 
 - **Monorepo:** [Turborepo](https://turborepo.dev)
 - **App (`apps/web`):** [TanStack Start](https://tanstack.com/start) on [Cloudflare Workers](https://developers.cloudflare.com/workers/) — API + SSR in one Worker
 - **Database:** [Drizzle ORM](https://orm.drizzle.team) on Cloudflare **D1** (local via Wrangler)
-- **Contracts:** OpenAPI 3.1 YAML in `@openlink/contracts` → **oRPC v2** procedures (`@hey-api/openapi-ts` `orpc` plugin)
-- **API runtime:** [`OpenAPIHandler`](https://orpc.dev/docs/openapi/openapi-handler) (`@orpc/openapi/fetch`) on `/api/v1/*`, TanStack catch-all route
+- **Contracts:** [oRPC OpenAPI contract](https://orpc.dev/docs/openapi) in `@openlink/contracts` (`oc.route` + Zod) — **not** a hand-maintained OpenAPI YAML file
+- **Spec export:** `OpenAPIGenerator` writes `generated/openapi.json` from the contract (`cd packages/contracts && bun run build`)
+- **API runtime:** [`OpenAPIHandler`](https://orpc.dev/docs/openapi/openapi-handler) + `implement(contract)` in `apps/web`
 - **Custom domains:** [@opencoredev/domain-sdk](https://domain-sdk.dev) — `memory` provider locally, `cloudflare` SaaS when configured
 - **Auth:** Email + password today ([Better Auth](https://www.better-auth.com)); social / magic link later
 
@@ -81,13 +82,13 @@ bun run test
 
 GitHub Actions runs `test`, `check-types`, and `lint` on pushes and pull requests (see `.github/workflows/ci.yml`).
 
-### Regenerate contract artifacts after OpenAPI edits
+### Change the API contract
+
+Edit `packages/contracts/src/openapi-contract.ts` and `packages/contracts/src/schemas.ts`, then:
 
 ```sh
-cd packages/contracts && bun run build
+cd packages/contracts && bun run build   # refresh generated/openapi.json for /api/docs
 ```
-
-This refreshes `generated/openapi.json`, legacy TS types, and **`generated/orpc/`** (oRPC + Zod) used by `implement(contract)`.
 
 ## Worktrees
 

@@ -1,4 +1,4 @@
-import openApiDocument from '@openlink/contracts/openapi.json'
+import { contract } from '@openlink/contracts'
 import { createOpenLinkDomainClient } from '@openlink/domain'
 import { getAuth } from '../auth/instance'
 import { getBindings } from '../env'
@@ -126,17 +126,17 @@ async function checkDomainProvider(): Promise<HealthCheckResult> {
 async function checkOpenApiContract(): Promise<HealthCheckResult> {
   try {
     const { latencyMs } = await timed(() => {
-      const doc = openApiDocument as { openapi?: string; info?: { title?: string } }
-      if (!doc.openapi?.startsWith('3.')) throw new Error('OpenAPI version missing')
-      if (doc.info?.title !== 'OpenLink API') throw new Error('unexpected contract title')
+      if (!contract.getHealth || !contract.getOpenApiDocument) {
+        throw new Error('oRPC OpenAPI contract is missing required procedures')
+      }
     })
-    return { name: 'openapi_contract', status: 'ok', required: true, latencyMs }
+    return { name: 'orpc_openapi_contract', status: 'ok', required: true, latencyMs }
   } catch (error) {
     return {
-      name: 'openapi_contract',
+      name: 'orpc_openapi_contract',
       status: 'error',
       required: true,
-      message: error instanceof Error ? error.message : 'Contract bundle invalid',
+      message: error instanceof Error ? error.message : 'Contract invalid',
     }
   }
 }

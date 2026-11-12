@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "orpc": {
+      "url": "https://orpc.dev/mcp"
+    }
+  }
+}

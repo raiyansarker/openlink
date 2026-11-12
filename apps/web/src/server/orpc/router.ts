@@ -1,4 +1,4 @@
-import { contract } from '@openlink/contracts/orpc/contract'
+import { contract } from '@openlink/contracts'
 import { OpenAPIGenerator } from '@orpc/openapi'
 import { implement, ORPCError } from '@orpc/server'
 import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4'
