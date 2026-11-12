@@ -86,7 +86,7 @@ export default function CreateWebhookDrawer({
       onOpenChange={onOpenChange}
       label="Add webhook"
       side="end"
-      width={440}
+      width={420}
       purpose="form"
       padding={FLOATING_END_DRAWER_PADDING}
       style={floatingEndDrawerStyle()}
@@ -123,12 +123,14 @@ export default function CreateWebhookDrawer({
                   <InputGroup
                     label="Endpoint URL"
                     isRequired
+                    size="sm"
                     status={urlStatus}
                   >
                     <InputGroupText>https://</InputGroupText>
                     <TextInput
                       label="Endpoint URL"
                       isLabelHidden
+                      size="sm"
                       type="url"
                       placeholder="hooks.example.com/openlink"
                       value={hostAndPath}
@@ -142,6 +144,7 @@ export default function CreateWebhookDrawer({
                   <TextInput
                     label="Name"
                     isOptional
+                    size="sm"
                     placeholder={endpoint.ok ? endpoint.hostname : 'Production alerts'}
                     value={name}
                     onChange={setName}
@@ -152,18 +155,27 @@ export default function CreateWebhookDrawer({
                 <WebhookEventsSelector
                   value={events}
                   onChange={setEvents}
-                  description="Search or pick a whole group with select all."
+                  isRequired
                 />
 
-                <CodeBlock
-                  title={`Example: ${previewEvent}`}
-                  language="json"
-                  code={sampleWebhookPayload(previewEvent)}
-                  size="sm"
-                  width="100%"
-                  hasLanguageLabel={false}
-                  hasCopyButton={false}
-                />
+                <VStack gap={2} hAlign="stretch" width="100%">
+                  <HStack gap={2} hAlign="between" vAlign="center" width="100%">
+                    <Text type="supporting" weight="semibold">
+                      Example payload
+                    </Text>
+                    <Text type="supporting" color="secondary">
+                      {previewEvent}
+                    </Text>
+                  </HStack>
+                  <CodeBlock
+                    language="json"
+                    code={sampleWebhookPayload(previewEvent)}
+                    size="sm"
+                    width="100%"
+                    hasLanguageLabel={false}
+                    hasCopyButton={false}
+                  />
+                </VStack>
               </VStack>
             )}
           </LayoutContent>
