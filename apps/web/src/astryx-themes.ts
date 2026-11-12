@@ -5,7 +5,6 @@
 
 import { openlinkTheme } from '#/openlink-accent-theme'
 import '@astryxdesign/theme-neutral/theme.css'
-import '@astryxdesign/theme-neutral/fonts.css'
 
 export const themes = {
   'openlink-neutral': openlinkTheme,
