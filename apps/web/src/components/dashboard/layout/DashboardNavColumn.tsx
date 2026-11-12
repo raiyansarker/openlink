@@ -8,6 +8,7 @@ import {
 } from '@astryxdesign/core/SideNav'
 import { Badge } from '@astryxdesign/core/Badge'
 import { Text } from '@astryxdesign/core/Text'
+import { Section } from '@astryxdesign/core/Section'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { getDashboardNavItems } from '#/lib/dashboard/nav-items'
 import { dashboardSectionFromPathname } from '#/lib/dashboard/build-org-path'
@@ -56,27 +57,29 @@ export default function DashboardNavColumn() {
   const items = getDashboardNavItems(activeOrg.slug)
 
   return (
-    <SideNav
-      collapsible
-      resizable={{ defaultWidth: 260, minWidth: 220, maxWidth: 360 }}
-      header={
-        <SideNavHeading
-          heading={activeOrg.name}
-          headerEndContent={<Badge variant="neutral" label={planLabel(activeOrg.plan)} />}
-        />
-      }
-    >
-      <SideNavSection title="Workspace">
-        {items.map((item) => (
-          <NavLinkItem
-            key={item.id}
-            item={item}
-            isSelected={
-              item.id === 'overview' ? section === 'overview' : section === item.id
-            }
+    <Section variant="section" height="fill" padding={0} dividers={['end']}>
+      <SideNav
+        collapsible
+        resizable={{ defaultWidth: 260, minWidth: 220, maxWidth: 360 }}
+        header={
+          <SideNavHeading
+            heading={activeOrg.name}
+            headerEndContent={<Badge variant="neutral" label={planLabel(activeOrg.plan)} />}
           />
-        ))}
-      </SideNavSection>
-    </SideNav>
+        }
+      >
+        <SideNavSection title="Workspace">
+          {items.map((item) => (
+            <NavLinkItem
+              key={item.id}
+              item={item}
+              isSelected={
+                item.id === 'overview' ? section === 'overview' : section === item.id
+              }
+            />
+          ))}
+        </SideNavSection>
+      </SideNav>
+    </Section>
   )
 }

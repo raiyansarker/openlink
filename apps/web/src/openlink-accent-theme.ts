@@ -22,4 +22,14 @@ export const openlinkTheme = defineTheme({
     '--shadow-inset-selected': `inset 0 0 0 2px light-dark(${OPENLINK_BRAND}, ${OPENLINK_BRAND_DARK})`,
     '--focus-outline-color': OPENLINK_BRAND,
   },
+  components: {
+    section: {
+      'variant:muted': {
+        backgroundColor: 'var(--color-background-body)',
+      },
+      'variant:section': {
+        backgroundColor: 'var(--color-background-surface)',
+      },
+    },
+  },
 })
