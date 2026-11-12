@@ -2,7 +2,6 @@ import { AppShell } from '@astryxdesign/core/AppShell'
 import { HStack } from '@astryxdesign/core/HStack'
 import type { ReactNode } from 'react'
 import type { Organization } from '#/data/demo/types'
-import { dashboardChromeStyles } from '#/lib/stylex/dashboard-chrome.stylex'
 import OrganizationIconRail from './OrganizationIconRail'
 import DashboardNavColumn from './DashboardNavColumn'
 
@@ -21,7 +20,7 @@ export default function ThreeColumnDashboardLayout({
     <AppShell
       height="fill"
       sideNav={
-        <HStack gap={0} height="fill" xstyle={dashboardChromeStyles.appChrome}>
+        <HStack gap={0} height="fill">
           <OrganizationIconRail
             organizations={organizations}
             activeOrgSlug={activeOrgSlug}

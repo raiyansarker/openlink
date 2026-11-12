@@ -11,7 +11,6 @@ import { Text } from '@astryxdesign/core/Text'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { getDashboardNavItems } from '#/lib/dashboard/nav-items'
 import { dashboardSectionFromPathname } from '#/lib/dashboard/build-org-path'
-import { dashboardChromeStyles } from '#/lib/stylex/dashboard-chrome.stylex'
 import { useActivePathname } from '#/hooks/useActivePathname'
 import type { DashboardNavItem } from '#/lib/dashboard/nav-items'
 import type { ReactNode } from 'react'
@@ -59,7 +58,7 @@ export default function DashboardNavColumn() {
   return (
     <SideNav
       collapsible
-      xstyle={dashboardChromeStyles.sideNav}
+      resizable={{ defaultWidth: 260, minWidth: 220, maxWidth: 360 }}
       header={
         <SideNavHeading
           heading={activeOrg.name}
