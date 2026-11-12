@@ -5,9 +5,6 @@ import AstryxProviders from '#/components/AstryxProviders'
 
 import appCss from '../styles.css?url'
 
-const FIGTREE_STYLESHEET =
-  'https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400..600;1,400..600&display=block'
-
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -27,19 +24,6 @@ export const Route = createRootRoute({
       },
     ],
     links: [
-      {
-        rel: 'preconnect',
-        href: 'https://fonts.googleapis.com',
-      },
-      {
-        rel: 'preconnect',
-        href: 'https://fonts.gstatic.com',
-        crossOrigin: 'anonymous',
-      },
-      {
-        rel: 'stylesheet',
-        href: FIGTREE_STYLESHEET,
-      },
       {
         rel: 'stylesheet',
         href: appCss,
