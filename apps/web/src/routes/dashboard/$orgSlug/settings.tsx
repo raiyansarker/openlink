@@ -7,9 +7,6 @@ export const Route = createFileRoute('/dashboard/$orgSlug/settings')({
 
 function DashboardSettingsPage() {
   return (
-    <DashboardSectionPlaceholder
-      title="Settings"
-      description="Defaults, domains, and organization preferences."
-    />
+    <DashboardSectionPlaceholder title="Settings" />
   )
 }

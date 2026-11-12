@@ -7,9 +7,6 @@ export const Route = createFileRoute('/dashboard/$orgSlug/analytics')({
 
 function DashboardAnalyticsPage() {
   return (
-    <DashboardSectionPlaceholder
-      title="Analytics"
-      description="Traffic, referrers, and engagement for your links."
-    />
+    <DashboardSectionPlaceholder title="Analytics" />
   )
 }

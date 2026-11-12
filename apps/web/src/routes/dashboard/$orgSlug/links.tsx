@@ -1,10 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
-import DashboardLinksPanel from '#/components/dashboard/DashboardLinksPanel'
+import { Heading } from '@astryxdesign/core/Heading'
+import { Section } from '@astryxdesign/core/Section'
 
 export const Route = createFileRoute('/dashboard/$orgSlug/links')({
   component: DashboardLinksPage,
 })
 
 function DashboardLinksPage() {
-  return <DashboardLinksPanel />
+  return (
+    <Section padding={6}>
+      <Heading level={1}>Links</Heading>
+    </Section>
+  )
 }

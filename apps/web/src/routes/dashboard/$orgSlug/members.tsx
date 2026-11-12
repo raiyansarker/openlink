@@ -7,9 +7,6 @@ export const Route = createFileRoute('/dashboard/$orgSlug/members')({
 
 function DashboardMembersPage() {
   return (
-    <DashboardSectionPlaceholder
-      title="Members"
-      description="Invite teammates and manage workspace roles."
-    />
+    <DashboardSectionPlaceholder title="Members" />
   )
 }
