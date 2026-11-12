@@ -43,6 +43,7 @@ export default function CreateWebhookDrawer({
   const [events, setEvents] = useState<WebhookEvent[]>(DEFAULT_EVENTS)
   const [isTouched, setIsTouched] = useState(false)
   const [signingSecret, setSigningSecret] = useState<string | null>(null)
+  const [createdName, setCreatedName] = useState('')
 
   useEffect(() => {
     if (!isOpen) return
@@ -68,6 +69,7 @@ export default function CreateWebhookDrawer({
     }
     const prefix = randomWebhookPrefix()
     setSigningSecret(buildFullWebhookSecret(prefix))
+    setCreatedName(name.trim() || endpoint.hostname)
     onCreate({
       id: `wh_${Date.now()}`,
       name: name.trim() || endpoint.hostname,
@@ -94,10 +96,10 @@ export default function CreateWebhookDrawer({
       <Layout
         header={
           <DrawerHeader
-            title={isRevealStep ? 'Webhook added' : 'Add webhook'}
+            title={isRevealStep ? `${createdName} is ready` : 'Add webhook'}
             subtitle={
               isRevealStep
-                ? 'One last step: save the signing secret.'
+                ? 'Save the signing secret to verify requests.'
                 : 'OpenLink will POST signed JSON to your endpoint.'
             }
             onOpenChange={onOpenChange}
@@ -106,17 +108,11 @@ export default function CreateWebhookDrawer({
         content={
           <LayoutContent>
             {isRevealStep ? (
-              <VStack gap={4} hAlign="stretch" width="100%">
-                <ApiKeySecretField
-                  label="Signing secret"
-                  value={signingSecret ?? ''}
-                  description="Shown once. Store it in your server's environment."
-                />
-                <Text type="supporting" color="secondary">
-                  Use it to check the OpenLink-Signature header on each request.
-                  If you lose it, roll a new one from the webhook's details.
-                </Text>
-              </VStack>
+              <ApiKeySecretField
+                label="Signing secret"
+                value={signingSecret ?? ''}
+                description="Shown only once. Lost it? Roll a new one from the table."
+              />
             ) : (
               <VStack gap={6} hAlign="stretch" width="100%">
                 <VStack gap={4} hAlign="stretch" width="100%">
