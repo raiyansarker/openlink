@@ -1,26 +1,36 @@
 import { OpenAPIHandler } from '@orpc/openapi/fetch'
+import { mergeStandardHeaders } from '@standard-server/core'
 import { createApiContext, type ApiContext } from './context'
 import { router } from './router'
 
+function withSetCookieHeaders(
+  headers: Parameters<typeof mergeStandardHeaders>[0],
+  setCookieHeaders: string[],
+) {
+  if (setCookieHeaders.length === 0) return headers
+
+  const cookieHeader: string | string[] = setCookieHeaders
+  return mergeStandardHeaders(headers, { 'set-cookie': cookieHeader })
+}
+
 export const openApiHandler = new OpenAPIHandler<ApiContext>(router, {
-  adapterInterceptors: [
-    async ({ next, context }) => {
-      const result = await next()
+  routingInterceptors: [
+    async (interceptorOptions) => {
+      const result = await interceptorOptions.next(interceptorOptions)
       if (!result.matched || !result.response) return result
+
+      const { context } = interceptorOptions
       if (context.setCookieHeaders.length === 0) return result
 
-      const headers = new Headers(result.response.headers)
-      for (const cookie of context.setCookieHeaders) {
-        headers.append('Set-Cookie', cookie)
-      }
-
       return {
-        matched: true,
-        response: new Response(result.response.body, {
-          status: result.response.status,
-          statusText: result.response.statusText,
-          headers,
-        }),
+        matched: true as const,
+        response: {
+          ...result.response,
+          headers: withSetCookieHeaders(
+            result.response.headers,
+            context.setCookieHeaders,
+          ),
+        },
       }
     },
   ],
@@ -29,6 +39,6 @@ export const openApiHandler = new OpenAPIHandler<ApiContext>(router, {
 export async function handleOpenApiRequest(request: Request) {
   return openApiHandler.handle(request, {
     prefix: '/api/v1',
-    context: createApiContext(request),
+    context: () => createApiContext(request),
   })
 }

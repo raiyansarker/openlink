@@ -1,13 +1,18 @@
+import type { WithEffectContext } from '@orpc/effect'
+
+import { getRequestEffectContext } from '#/server/effect/runtime'
+
 export type ApiContext = {
   request: Request
   /** Raw Set-Cookie header values to attach to the API response (auth). */
   setCookieHeaders: string[]
-}
+} & WithEffectContext<never>
 
-export function createApiContext(request: Request): ApiContext {
+export async function createApiContext(request: Request): Promise<ApiContext> {
   return {
     request,
     setCookieHeaders: [],
+    'effect/context': await getRequestEffectContext(),
   }
 }
 
