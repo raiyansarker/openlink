@@ -16,10 +16,11 @@ import { slugifyOrganizationSlug } from '#/lib/organization/slugify'
 const ICON_MAX_BYTES = 5 * 1024 * 1024
 const ICON_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif'
 const PICTURE_HELP = 'We support PNG, JPG, or GIF portraits under 5 MB.'
+const SLUG_PLACEHOLDER = 'acme-inc'
 
 function MutedCaption({ children }: { children: ReactNode }) {
   return (
-    <Text type="supporting" color="placeholder">
+    <Text type="supporting" color="secondary">
       {children}
     </Text>
   )
@@ -29,7 +30,7 @@ function PictureHelpCaption({ children }: { children: ReactNode }) {
   return (
     <Text
       type="supporting"
-      color="placeholder"
+      color="secondary"
       style={{ fontSize: 11, lineHeight: 1.45, width: '100%' }}
     >
       {children}
@@ -86,7 +87,7 @@ export default function CreateOrganizationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const displayName = name.trim() || 'Organization'
-  const slugPathSegment = slug.trim() || 'your-slug'
+  const slugPathSegment = slug.trim() || SLUG_PLACEHOLDER
   const slugDescription = `Used in dashboard paths: /dashboard/${slugPathSegment}`
 
   const onNameChange = (value: string) => {
@@ -163,10 +164,10 @@ export default function CreateOrganizationForm() {
   return (
     <VStack gap={8} hAlign="stretch" width="100%">
         <VStack gap={1} hAlign="start" width="100%">
-          <Heading level={3} color="secondary">
+          <Heading level={3}>
             Create organization
           </Heading>
-          <Text color="placeholder" type="supporting">
+          <Text color="secondary" type="supporting">
             Add a workspace with its own links, members, and branding.
           </Text>
         </VStack>
@@ -237,7 +238,6 @@ export default function CreateOrganizationForm() {
             <GridSpan columns="full">
               <TextInput
                 label="Organization name"
-                size="sm"
                 width="100%"
                 placeholder="Acme Inc."
                 value={name}
@@ -248,9 +248,8 @@ export default function CreateOrganizationForm() {
             <GridSpan columns="full">
               <TextInput
                 label="Slug"
-                size="sm"
                 width="100%"
-                placeholder="acme-inc"
+                placeholder={SLUG_PLACEHOLDER}
                 value={slug}
                 onChange={onSlugChange}
                 description={slugDescription}
