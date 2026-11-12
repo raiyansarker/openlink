@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
+import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
-import { MultiSelector } from '@astryxdesign/core/MultiSelector'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
@@ -13,20 +13,34 @@ import {
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
 import type { WebhookEvent, WorkspaceWebhook } from '#/data/demo/webhooks'
-import { WEBHOOK_EVENT_LABELS } from '#/data/demo/webhooks'
+import {
+  WEBHOOK_EVENT_DESCRIPTIONS,
+  WEBHOOK_EVENT_LABELS,
+} from '#/data/demo/webhooks'
 import {
   buildFullWebhookSecret,
   randomWebhookPrefix,
 } from '#/lib/integrations/webhook-secret'
 
 const DEFAULT_EVENTS: WebhookEvent[] = ['link.created', 'link.updated']
+const ALL_EVENTS = Object.keys(WEBHOOK_EVENT_LABELS) as WebhookEvent[]
 
-const EVENT_OPTIONS = (Object.keys(WEBHOOK_EVENT_LABELS) as WebhookEvent[]).map(
-  (event) => ({
-    value: event,
-    label: WEBHOOK_EVENT_LABELS[event],
-  }),
-)
+type EndpointCheck =
+  | { ok: true; hostname: string }
+  | { ok: false; message: string }
+
+function checkEndpoint(raw: string): EndpointCheck {
+  let url: URL
+  try {
+    url = new URL(raw.trim())
+  } catch {
+    return { ok: false, message: 'Enter a full URL, like https://example.com/hook.' }
+  }
+  if (url.protocol !== 'https:') {
+    return { ok: false, message: 'The URL must start with https://.' }
+  }
+  return { ok: true, hostname: url.hostname }
+}
 
 type CreateWebhookDrawerProps = {
   isOpen: boolean
@@ -39,46 +53,43 @@ export default function CreateWebhookDrawer({
   onOpenChange,
   onCreate,
 }: CreateWebhookDrawerProps) {
-  const [name, setName] = useState('')
   const [endpointUrl, setEndpointUrl] = useState('')
+  const [name, setName] = useState('')
   const [events, setEvents] = useState<WebhookEvent[]>(DEFAULT_EVENTS)
+  const [touched, setTouched] = useState(false)
   const [signingSecret, setSigningSecret] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
-      setName('')
       setEndpointUrl('')
+      setName('')
       setEvents(DEFAULT_EVENTS)
+      setTouched(false)
       setSigningSecret(null)
     }
   }, [isOpen])
 
+  const endpoint = useMemo(() => checkEndpoint(endpointUrl), [endpointUrl])
+  const showUrlError = touched && endpointUrl.trim().length > 0 && !endpoint.ok
+  const canSubmit = endpoint.ok && events.length > 0
   const revealMode = signingSecret != null
 
   const handleCreate = () => {
-    const trimmedName = name.trim()
-    const trimmedUrl = endpointUrl.trim()
-    if (!trimmedName || !trimmedUrl || events.length === 0) return
+    if (!endpoint.ok || events.length === 0) return
     const prefix = randomWebhookPrefix()
     const secret = buildFullWebhookSecret(prefix)
-    const webhook: WorkspaceWebhook = {
+    setSigningSecret(secret)
+    onCreate({
       id: `wh_${Date.now()}`,
-      name: trimmedName,
-      endpointUrl: trimmedUrl,
+      name: name.trim() || endpoint.hostname,
+      endpointUrl: endpointUrl.trim(),
       events: [...events],
       isEnabled: true,
       signingSecretPrefix: prefix,
       lastDeliveryAt: null,
       lastDeliveryStatus: null,
-    }
-    setSigningSecret(secret)
-    onCreate(webhook)
+    })
   }
-
-  const canSubmit =
-    name.trim().length > 0 &&
-    endpointUrl.trim().length > 0 &&
-    events.length > 0
 
   return (
     <Drawer
@@ -86,7 +97,7 @@ export default function CreateWebhookDrawer({
       onOpenChange={onOpenChange}
       label="Add webhook"
       side="end"
-      width={400}
+      width={420}
       purpose="form"
       padding={FLOATING_END_DRAWER_PADDING}
       style={floatingEndDrawerStyle()}
@@ -94,11 +105,11 @@ export default function CreateWebhookDrawer({
       <Layout
         header={
           <DrawerHeader
-            title={revealMode ? 'Save signing secret' : 'Add webhook'}
+            title={revealMode ? 'Save your signing secret' : 'Add webhook'}
             subtitle={
               revealMode
-                ? 'Verify payloads with this secret.'
-                : 'Send events to your server over HTTPS.'
+                ? 'Use it to verify that events really come from OpenLink.'
+                : 'We will POST signed events to your server.'
             }
             onOpenChange={onOpenChange}
           />
@@ -107,41 +118,59 @@ export default function CreateWebhookDrawer({
           <LayoutContent>
             {revealMode ? (
               <VStack gap={4} hAlign="stretch" width="100%">
-                <Text color="secondary" type="supporting">
-                  Copy the signing secret now. You will not see it again after you
-                  close this panel.
+                <ApiKeySecretField
+                  label="Signing secret"
+                  value={signingSecret ?? ''}
+                />
+                <Text type="supporting" color="secondary">
+                  This is the only time the full secret is shown. Copy it before
+                  you close this panel.
                 </Text>
-                <ApiKeySecretField label="Signing secret" value={signingSecret ?? ''} />
               </VStack>
             ) : (
-              <VStack gap={5} hAlign="stretch" width="100%">
+              <VStack gap={6} hAlign="stretch" width="100%">
                 <TextInput
-                  label="Name"
-                  placeholder="e.g. Production alerts"
-                  value={name}
-                  onChange={setName}
-                  description="Shown in your webhook list."
+                  label="Endpoint URL"
+                  type="url"
+                  placeholder="https://example.com/webhooks/openlink"
+                  value={endpointUrl}
+                  onChange={setEndpointUrl}
+                  onBlur={() => setTouched(true)}
+                  status={
+                    showUrlError && !endpoint.ok
+                      ? { type: 'error', message: endpoint.message }
+                      : undefined
+                  }
                   isRequired
                   hasAutoFocus
                   width="100%"
                 />
                 <TextInput
-                  label="Endpoint URL"
-                  placeholder="https://example.com/webhooks/openlink"
-                  value={endpointUrl}
-                  onChange={setEndpointUrl}
-                  description="Must be HTTPS."
-                  isRequired
+                  label="Name"
+                  placeholder={endpoint.ok ? endpoint.hostname : 'Defaults to the host'}
+                  value={name}
+                  onChange={setName}
+                  isOptional
                   width="100%"
                 />
-                <MultiSelector
+                <CheckboxList
                   label="Events"
-                  options={EVENT_OPTIONS}
+                  description="Only the events you tick are sent."
                   value={events}
                   onChange={(next) => setEvents(next as WebhookEvent[])}
-                  description="Only selected events are sent."
-                  width="100%"
-                />
+                  density="compact"
+                  hasDividers
+                  isRequired
+                >
+                  {ALL_EVENTS.map((event) => (
+                    <CheckboxListItem
+                      key={event}
+                      value={event}
+                      label={WEBHOOK_EVENT_LABELS[event]}
+                      description={WEBHOOK_EVENT_DESCRIPTIONS[event]}
+                    />
+                  ))}
+                </CheckboxList>
               </VStack>
             )}
           </LayoutContent>
