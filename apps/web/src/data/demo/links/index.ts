@@ -1,12 +1,12 @@
 import { acmeDemoLinks } from './acme'
-import { gitlabDemoLinks } from './gitlab'
+import { appleDemoLinks } from './apple'
 import { devrelDemoLinks } from './devrel'
 import { googleDemoLinks } from './google'
 import { metaDemoLinks } from './meta'
 import type { ShortLink } from '../types'
 
 export const demoLinks: ShortLink[] = [
-  ...gitlabDemoLinks,
+  ...appleDemoLinks,
   ...acmeDemoLinks,
   ...devrelDemoLinks,
   ...metaDemoLinks,

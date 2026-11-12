@@ -1,13 +1,13 @@
 import type { OrgDashboardStats } from './types'
 
 export const demoStatsByOrg: Record<string, OrgDashboardStats> = {
-  org_gitlab: {
+  org_apple: {
     totalLinks: 7,
     activeLinks: 6,
     clicksToday: 3842,
     clicksThisWeek: 24610,
     uniqueVisitorsWeek: 18940,
-    topReferrer: 'gitlab.com',
+    topReferrer: 'apple.com',
   },
   org_github: {
     totalLinks: 5,

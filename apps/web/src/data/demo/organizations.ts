@@ -2,9 +2,9 @@ import type { Organization } from './types'
 
 export const demoOrganizations: Organization[] = [
   {
-    id: 'org_gitlab',
-    name: 'GitLab',
-    slug: 'gitlab',
+    id: 'org_apple',
+    name: 'Apple',
+    slug: 'apple',
     plan: 'enterprise',
     memberCount: 28,
   },

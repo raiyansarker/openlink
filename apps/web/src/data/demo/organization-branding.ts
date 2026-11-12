@@ -1,6 +1,6 @@
 /** Visual identity per org for the icon rail (demo only). */
 export type OrganizationBrandIconKey =
-  | 'gitlab'
+  | 'apple'
   | 'github'
   | 'dribbble'
   | 'meta'
@@ -14,10 +14,10 @@ export type OrganizationBrand = {
 }
 
 export const organizationBranding: Record<string, OrganizationBrand> = {
-  org_gitlab: {
-    icon: 'gitlab',
-    accent: '#FC6D26',
-    accentMuted: 'color-mix(in oklab, #FC6D26 15%, transparent)',
+  org_apple: {
+    icon: 'apple',
+    accent: '#000000',
+    accentMuted: 'color-mix(in oklab, #000000 15%, transparent)',
   },
   org_github: {
     icon: 'github',
