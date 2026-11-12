@@ -23,14 +23,24 @@ export function toOrganizationDto(row: typeof organization.$inferSelect) {
   }
 }
 
+type DnsRecordDto = {
+  type: string
+  host: string
+  value: string
+  purpose: 'routing' | 'ownership' | 'certificate'
+  status?: 'required' | 'verified' | 'failed'
+}
+
+type RedirectCode = 301 | 302 | 307 | 308
+
 export function toDomainDto(row: typeof customDomain.$inferSelect) {
   return {
     id: row.id,
     organizationId: row.organizationId,
     hostname: row.hostname,
     readiness: row.readiness,
-    dnsRecords: JSON.parse(row.dnsRecordsJson) as unknown[],
-    defaultRedirectStatus: row.defaultRedirectStatus,
+    dnsRecords: JSON.parse(row.dnsRecordsJson) as DnsRecordDto[],
+    defaultRedirectStatus: row.defaultRedirectStatus as RedirectCode,
     createdAt: row.createdAt.toISOString(),
     ...(row.activeAt ? { activeAt: row.activeAt.toISOString() } : {}),
   }
@@ -46,7 +56,7 @@ export function toLinkDto(row: typeof link.$inferSelect) {
     ...(row.title ? { title: row.title } : {}),
     ...(row.description ? { description: row.description } : {}),
     destinationUrl: row.destinationUrl,
-    redirectStatus: row.redirectStatus,
+    redirectStatus: row.redirectStatus as RedirectCode,
     status: row.status,
     enabled: row.enabled,
     ...(row.activateAt ? { activateAt: row.activateAt.toISOString() } : {}),

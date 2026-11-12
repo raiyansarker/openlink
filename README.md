@@ -8,7 +8,8 @@ Turborepo monorepo for [OpenLink](https://github.com/) — a Cloudflare Workers 
 - **Monorepo:** [Turborepo](https://turborepo.dev)
 - **App (`apps/web`):** [TanStack Start](https://tanstack.com/start) on [Cloudflare Workers](https://developers.cloudflare.com/workers/) — API + SSR in one Worker
 - **Database:** [Drizzle ORM](https://orm.drizzle.team) on Cloudflare **D1** (local via Wrangler)
-- **Contracts:** OpenAPI 3.1 in `@openlink/contracts` (spec-first; types generated with `openapi-typescript`)
+- **Contracts:** OpenAPI 3.1 YAML in `@openlink/contracts` → **oRPC v2** procedures (`@hey-api/openapi-ts` `orpc` plugin)
+- **API runtime:** [`OpenAPIHandler`](https://orpc.dev/docs/openapi/openapi-handler) (`@orpc/openapi/fetch`) on `/api/v1/*`, TanStack catch-all route
 - **Custom domains:** [@opencoredev/domain-sdk](https://domain-sdk.dev) — `memory` provider locally, `cloudflare` SaaS when configured
 - **Auth:** Email + password today ([Better Auth](https://www.better-auth.com)); social / magic link later
 

@@ -12,21 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ApiDocsRouteImport } from './routes/api/docs'
-import { Route as ApiV1HealthRouteImport } from './routes/api/v1/health'
-import { Route as ApiV1OpenapiDotjsonRouteImport } from './routes/api/v1/openapi[.]json'
-import { Route as ApiV1AuthSessionRouteImport } from './routes/api/v1/auth/session'
-import { Route as ApiV1AuthSignInRouteImport } from './routes/api/v1/auth/sign-in'
-import { Route as ApiV1AuthSignOutRouteImport } from './routes/api/v1/auth/sign-out'
-import { Route as ApiV1AuthSignUpRouteImport } from './routes/api/v1/auth/sign-up'
-import { Route as ApiV1OrganizationsIndexRouteImport } from './routes/api/v1/organizations/index'
-import { Route as ApiV1OrganizationsOrganizationIdIndexRouteImport } from './routes/api/v1/organizations/$organizationId/index'
-import { Route as ApiV1OrganizationsOrganizationIdInvitesRouteImport } from './routes/api/v1/organizations/$organizationId/invites'
-import { Route as ApiV1OrganizationsInvitesAcceptRouteImport } from './routes/api/v1/organizations/invites/accept'
-import { Route as ApiV1OrganizationsOrganizationIdDomainsIndexRouteImport } from './routes/api/v1/organizations/$organizationId/domains/index'
-import { Route as ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRouteImport } from './routes/api/v1/organizations/$organizationId/domains/$domainId/index'
-import { Route as ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRouteImport } from './routes/api/v1/organizations/$organizationId/domains/$domainId/refresh'
-import { Route as ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRouteImport } from './routes/api/v1/organizations/$organizationId/domains/$domainId/links/index'
-import { Route as ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRouteImport } from './routes/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId'
+import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -43,233 +29,44 @@ const ApiDocsRoute = ApiDocsRouteImport.update({
   path: '/api/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1HealthRoute = ApiV1HealthRouteImport.update({
-  id: '/api/v1/health',
-  path: '/api/v1/health',
+const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
+  id: '/api/v1/$',
+  path: '/api/v1/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1OpenapiDotjsonRoute = ApiV1OpenapiDotjsonRouteImport.update({
-  id: '/api/v1/openapi.json',
-  path: '/api/v1/openapi.json',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1AuthSessionRoute = ApiV1AuthSessionRouteImport.update({
-  id: '/api/v1/auth/session',
-  path: '/api/v1/auth/session',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1AuthSignInRoute = ApiV1AuthSignInRouteImport.update({
-  id: '/api/v1/auth/sign-in',
-  path: '/api/v1/auth/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1AuthSignOutRoute = ApiV1AuthSignOutRouteImport.update({
-  id: '/api/v1/auth/sign-out',
-  path: '/api/v1/auth/sign-out',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1AuthSignUpRoute = ApiV1AuthSignUpRouteImport.update({
-  id: '/api/v1/auth/sign-up',
-  path: '/api/v1/auth/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1OrganizationsIndexRoute = ApiV1OrganizationsIndexRouteImport.update({
-  id: '/api/v1/organizations/',
-  path: '/api/v1/organizations/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1OrganizationsOrganizationIdIndexRoute =
-  ApiV1OrganizationsOrganizationIdIndexRouteImport.update({
-    id: '/api/v1/organizations/$organizationId/',
-    path: '/api/v1/organizations/$organizationId/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1OrganizationsOrganizationIdInvitesRoute =
-  ApiV1OrganizationsOrganizationIdInvitesRouteImport.update({
-    id: '/api/v1/organizations/$organizationId/invites',
-    path: '/api/v1/organizations/$organizationId/invites',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1OrganizationsInvitesAcceptRoute =
-  ApiV1OrganizationsInvitesAcceptRouteImport.update({
-    id: '/api/v1/organizations/invites/accept',
-    path: '/api/v1/organizations/invites/accept',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1OrganizationsOrganizationIdDomainsIndexRoute =
-  ApiV1OrganizationsOrganizationIdDomainsIndexRouteImport.update({
-    id: '/api/v1/organizations/$organizationId/domains/',
-    path: '/api/v1/organizations/$organizationId/domains/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRoute =
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRouteImport.update({
-    id: '/api/v1/organizations/$organizationId/domains/$domainId/',
-    path: '/api/v1/organizations/$organizationId/domains/$domainId/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRoute =
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRouteImport.update({
-    id: '/api/v1/organizations/$organizationId/domains/$domainId/refresh',
-    path: '/api/v1/organizations/$organizationId/domains/$domainId/refresh',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRoute =
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRouteImport.update({
-    id: '/api/v1/organizations/$organizationId/domains/$domainId/links/',
-    path: '/api/v1/organizations/$organizationId/domains/$domainId/links/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRoute =
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRouteImport.update({
-    id: '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId',
-    path: '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/api/docs': typeof ApiDocsRoute
-  '/api/v1/health': typeof ApiV1HealthRoute
-  '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
-  '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
-  '/api/v1/auth/sign-in': typeof ApiV1AuthSignInRoute
-  '/api/v1/auth/sign-out': typeof ApiV1AuthSignOutRoute
-  '/api/v1/auth/sign-up': typeof ApiV1AuthSignUpRoute
-  '/api/v1/organizations/': typeof ApiV1OrganizationsIndexRoute
-  '/api/v1/organizations/$organizationId/invites': typeof ApiV1OrganizationsOrganizationIdInvitesRoute
-  '/api/v1/organizations/invites/accept': typeof ApiV1OrganizationsInvitesAcceptRoute
-  '/api/v1/organizations/$organizationId/': typeof ApiV1OrganizationsOrganizationIdIndexRoute
-  '/api/v1/organizations/$organizationId/domains/': typeof ApiV1OrganizationsOrganizationIdDomainsIndexRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/refresh': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/links/': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRoute
+  '/api/v1/$': typeof ApiV1SplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/api/docs': typeof ApiDocsRoute
-  '/api/v1/health': typeof ApiV1HealthRoute
-  '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
-  '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
-  '/api/v1/auth/sign-in': typeof ApiV1AuthSignInRoute
-  '/api/v1/auth/sign-out': typeof ApiV1AuthSignOutRoute
-  '/api/v1/auth/sign-up': typeof ApiV1AuthSignUpRoute
-  '/api/v1/organizations': typeof ApiV1OrganizationsIndexRoute
-  '/api/v1/organizations/$organizationId/invites': typeof ApiV1OrganizationsOrganizationIdInvitesRoute
-  '/api/v1/organizations/invites/accept': typeof ApiV1OrganizationsInvitesAcceptRoute
-  '/api/v1/organizations/$organizationId': typeof ApiV1OrganizationsOrganizationIdIndexRoute
-  '/api/v1/organizations/$organizationId/domains': typeof ApiV1OrganizationsOrganizationIdDomainsIndexRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/refresh': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/links': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRoute
+  '/api/v1/$': typeof ApiV1SplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/api/docs': typeof ApiDocsRoute
-  '/api/v1/health': typeof ApiV1HealthRoute
-  '/api/v1/openapi.json': typeof ApiV1OpenapiDotjsonRoute
-  '/api/v1/auth/session': typeof ApiV1AuthSessionRoute
-  '/api/v1/auth/sign-in': typeof ApiV1AuthSignInRoute
-  '/api/v1/auth/sign-out': typeof ApiV1AuthSignOutRoute
-  '/api/v1/auth/sign-up': typeof ApiV1AuthSignUpRoute
-  '/api/v1/organizations/': typeof ApiV1OrganizationsIndexRoute
-  '/api/v1/organizations/$organizationId/invites': typeof ApiV1OrganizationsOrganizationIdInvitesRoute
-  '/api/v1/organizations/invites/accept': typeof ApiV1OrganizationsInvitesAcceptRoute
-  '/api/v1/organizations/$organizationId/': typeof ApiV1OrganizationsOrganizationIdIndexRoute
-  '/api/v1/organizations/$organizationId/domains/': typeof ApiV1OrganizationsOrganizationIdDomainsIndexRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/refresh': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRoute
-  '/api/v1/organizations/$organizationId/domains/$domainId/links/': typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRoute
+  '/api/v1/$': typeof ApiV1SplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/about'
-    | '/api/docs'
-    | '/api/v1/health'
-    | '/api/v1/openapi.json'
-    | '/api/v1/auth/session'
-    | '/api/v1/auth/sign-in'
-    | '/api/v1/auth/sign-out'
-    | '/api/v1/auth/sign-up'
-    | '/api/v1/organizations/'
-    | '/api/v1/organizations/$organizationId/invites'
-    | '/api/v1/organizations/invites/accept'
-    | '/api/v1/organizations/$organizationId/'
-    | '/api/v1/organizations/$organizationId/domains/'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/refresh'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/links/'
+  fullPaths: '/' | '/about' | '/api/docs' | '/api/v1/$'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/about'
-    | '/api/docs'
-    | '/api/v1/health'
-    | '/api/v1/openapi.json'
-    | '/api/v1/auth/session'
-    | '/api/v1/auth/sign-in'
-    | '/api/v1/auth/sign-out'
-    | '/api/v1/auth/sign-up'
-    | '/api/v1/organizations'
-    | '/api/v1/organizations/$organizationId/invites'
-    | '/api/v1/organizations/invites/accept'
-    | '/api/v1/organizations/$organizationId'
-    | '/api/v1/organizations/$organizationId/domains'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/refresh'
-    | '/api/v1/organizations/$organizationId/domains/$domainId'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/links'
-  id:
-    | '__root__'
-    | '/'
-    | '/about'
-    | '/api/docs'
-    | '/api/v1/health'
-    | '/api/v1/openapi.json'
-    | '/api/v1/auth/session'
-    | '/api/v1/auth/sign-in'
-    | '/api/v1/auth/sign-out'
-    | '/api/v1/auth/sign-up'
-    | '/api/v1/organizations/'
-    | '/api/v1/organizations/$organizationId/invites'
-    | '/api/v1/organizations/invites/accept'
-    | '/api/v1/organizations/$organizationId/'
-    | '/api/v1/organizations/$organizationId/domains/'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/refresh'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId'
-    | '/api/v1/organizations/$organizationId/domains/$domainId/links/'
+  to: '/' | '/about' | '/api/docs' | '/api/v1/$'
+  id: '__root__' | '/' | '/about' | '/api/docs' | '/api/v1/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ApiDocsRoute: typeof ApiDocsRoute
-  ApiV1HealthRoute: typeof ApiV1HealthRoute
-  ApiV1OpenapiDotjsonRoute: typeof ApiV1OpenapiDotjsonRoute
-  ApiV1AuthSessionRoute: typeof ApiV1AuthSessionRoute
-  ApiV1AuthSignInRoute: typeof ApiV1AuthSignInRoute
-  ApiV1AuthSignOutRoute: typeof ApiV1AuthSignOutRoute
-  ApiV1AuthSignUpRoute: typeof ApiV1AuthSignUpRoute
-  ApiV1OrganizationsIndexRoute: typeof ApiV1OrganizationsIndexRoute
-  ApiV1OrganizationsOrganizationIdInvitesRoute: typeof ApiV1OrganizationsOrganizationIdInvitesRoute
-  ApiV1OrganizationsInvitesAcceptRoute: typeof ApiV1OrganizationsInvitesAcceptRoute
-  ApiV1OrganizationsOrganizationIdIndexRoute: typeof ApiV1OrganizationsOrganizationIdIndexRoute
-  ApiV1OrganizationsOrganizationIdDomainsIndexRoute: typeof ApiV1OrganizationsOrganizationIdDomainsIndexRoute
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRoute: typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRoute
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRoute: typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRoute
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRoute: typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRoute
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRoute: typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRoute
+  ApiV1SplatRoute: typeof ApiV1SplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -295,109 +92,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDocsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/health': {
-      id: '/api/v1/health'
-      path: '/api/v1/health'
-      fullPath: '/api/v1/health'
-      preLoaderRoute: typeof ApiV1HealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/openapi.json': {
-      id: '/api/v1/openapi.json'
-      path: '/api/v1/openapi.json'
-      fullPath: '/api/v1/openapi.json'
-      preLoaderRoute: typeof ApiV1OpenapiDotjsonRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/session': {
-      id: '/api/v1/auth/session'
-      path: '/api/v1/auth/session'
-      fullPath: '/api/v1/auth/session'
-      preLoaderRoute: typeof ApiV1AuthSessionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/sign-in': {
-      id: '/api/v1/auth/sign-in'
-      path: '/api/v1/auth/sign-in'
-      fullPath: '/api/v1/auth/sign-in'
-      preLoaderRoute: typeof ApiV1AuthSignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/sign-out': {
-      id: '/api/v1/auth/sign-out'
-      path: '/api/v1/auth/sign-out'
-      fullPath: '/api/v1/auth/sign-out'
-      preLoaderRoute: typeof ApiV1AuthSignOutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/auth/sign-up': {
-      id: '/api/v1/auth/sign-up'
-      path: '/api/v1/auth/sign-up'
-      fullPath: '/api/v1/auth/sign-up'
-      preLoaderRoute: typeof ApiV1AuthSignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/organizations/': {
-      id: '/api/v1/organizations/'
-      path: '/api/v1/organizations'
-      fullPath: '/api/v1/organizations/'
-      preLoaderRoute: typeof ApiV1OrganizationsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/organizations/$organizationId/': {
-      id: '/api/v1/organizations/$organizationId/'
-      path: '/api/v1/organizations/$organizationId'
-      fullPath: '/api/v1/organizations/$organizationId/'
-      preLoaderRoute: typeof ApiV1OrganizationsOrganizationIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/organizations/$organizationId/invites': {
-      id: '/api/v1/organizations/$organizationId/invites'
-      path: '/api/v1/organizations/$organizationId/invites'
-      fullPath: '/api/v1/organizations/$organizationId/invites'
-      preLoaderRoute: typeof ApiV1OrganizationsOrganizationIdInvitesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/organizations/invites/accept': {
-      id: '/api/v1/organizations/invites/accept'
-      path: '/api/v1/organizations/invites/accept'
-      fullPath: '/api/v1/organizations/invites/accept'
-      preLoaderRoute: typeof ApiV1OrganizationsInvitesAcceptRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/organizations/$organizationId/domains/': {
-      id: '/api/v1/organizations/$organizationId/domains/'
-      path: '/api/v1/organizations/$organizationId/domains'
-      fullPath: '/api/v1/organizations/$organizationId/domains/'
-      preLoaderRoute: typeof ApiV1OrganizationsOrganizationIdDomainsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/organizations/$organizationId/domains/$domainId/': {
-      id: '/api/v1/organizations/$organizationId/domains/$domainId/'
-      path: '/api/v1/organizations/$organizationId/domains/$domainId'
-      fullPath: '/api/v1/organizations/$organizationId/domains/$domainId/'
-      preLoaderRoute: typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/organizations/$organizationId/domains/$domainId/refresh': {
-      id: '/api/v1/organizations/$organizationId/domains/$domainId/refresh'
-      path: '/api/v1/organizations/$organizationId/domains/$domainId/refresh'
-      fullPath: '/api/v1/organizations/$organizationId/domains/$domainId/refresh'
-      preLoaderRoute: typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/organizations/$organizationId/domains/$domainId/links/': {
-      id: '/api/v1/organizations/$organizationId/domains/$domainId/links/'
-      path: '/api/v1/organizations/$organizationId/domains/$domainId/links'
-      fullPath: '/api/v1/organizations/$organizationId/domains/$domainId/links/'
-      preLoaderRoute: typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId': {
-      id: '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId'
-      path: '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId'
-      fullPath: '/api/v1/organizations/$organizationId/domains/$domainId/links/$linkId'
-      preLoaderRoute: typeof ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRouteImport
+    '/api/v1/$': {
+      id: '/api/v1/$'
+      path: '/api/v1/$'
+      fullPath: '/api/v1/$'
+      preLoaderRoute: typeof ApiV1SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -407,28 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ApiDocsRoute: ApiDocsRoute,
-  ApiV1HealthRoute: ApiV1HealthRoute,
-  ApiV1OpenapiDotjsonRoute: ApiV1OpenapiDotjsonRoute,
-  ApiV1AuthSessionRoute: ApiV1AuthSessionRoute,
-  ApiV1AuthSignInRoute: ApiV1AuthSignInRoute,
-  ApiV1AuthSignOutRoute: ApiV1AuthSignOutRoute,
-  ApiV1AuthSignUpRoute: ApiV1AuthSignUpRoute,
-  ApiV1OrganizationsIndexRoute: ApiV1OrganizationsIndexRoute,
-  ApiV1OrganizationsOrganizationIdInvitesRoute:
-    ApiV1OrganizationsOrganizationIdInvitesRoute,
-  ApiV1OrganizationsInvitesAcceptRoute: ApiV1OrganizationsInvitesAcceptRoute,
-  ApiV1OrganizationsOrganizationIdIndexRoute:
-    ApiV1OrganizationsOrganizationIdIndexRoute,
-  ApiV1OrganizationsOrganizationIdDomainsIndexRoute:
-    ApiV1OrganizationsOrganizationIdDomainsIndexRoute,
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRoute:
-    ApiV1OrganizationsOrganizationIdDomainsDomainIdRefreshRoute,
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRoute:
-    ApiV1OrganizationsOrganizationIdDomainsDomainIdIndexRoute,
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRoute:
-    ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksLinkIdRoute,
-  ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRoute:
-    ApiV1OrganizationsOrganizationIdDomainsDomainIdLinksIndexRoute,
+  ApiV1SplatRoute: ApiV1SplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
