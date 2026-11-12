@@ -2,6 +2,7 @@ import { Theme } from '@astryxdesign/core/theme'
 import type { ReactNode } from 'react'
 import { defaultThemeSlug, themes } from '#/astryx-themes'
 import { AppearancePreferenceProvider, useAppearancePreference } from '#/contexts/AppearancePreferenceContext'
+import { WorkspaceDirectoryProvider } from '#/contexts/WorkspaceDirectoryContext'
 
 function ThemedSubtree({ children }: { children: ReactNode }) {
   const { colorMode } = useAppearancePreference()
@@ -15,7 +16,9 @@ function ThemedSubtree({ children }: { children: ReactNode }) {
 export default function AstryxProviders({ children }: { children: ReactNode }) {
   return (
     <AppearancePreferenceProvider>
-      <ThemedSubtree>{children}</ThemedSubtree>
+      <WorkspaceDirectoryProvider>
+        <ThemedSubtree>{children}</ThemedSubtree>
+      </WorkspaceDirectoryProvider>
     </AppearancePreferenceProvider>
   )
 }

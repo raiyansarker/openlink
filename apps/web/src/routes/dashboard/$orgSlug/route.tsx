@@ -6,14 +6,15 @@ import {
 } from '@tanstack/react-router'
 import { OrganizationProvider } from '#/contexts/OrganizationContext'
 import ThreeColumnDashboardLayout from '#/components/dashboard/layout/ThreeColumnDashboardLayout'
-import { getOrganizationById, isValidOrgSlug } from '#/data/demo/queries'
+import { getOrganizationById } from '#/data/demo/queries'
+import { isValidOrganizationSlug } from '#/lib/organization/slugify'
 import { persistActiveOrgSlug } from '#/lib/dashboard/org-slug'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import type { ReactNode } from 'react'
 
 export const Route = createFileRoute('/dashboard/$orgSlug')({
   beforeLoad: ({ params }) => {
-    if (isValidOrgSlug(params.orgSlug)) {
+    if (isValidOrganizationSlug(params.orgSlug)) {
       persistActiveOrgSlug(params.orgSlug)
       return
     }

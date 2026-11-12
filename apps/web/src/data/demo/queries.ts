@@ -7,8 +7,17 @@ export function getLinksForOrg(orgId: string): ShortLink[] {
   return demoLinks.filter((link) => link.orgId === orgId)
 }
 
+const EMPTY_ORG_STATS: OrgDashboardStats = {
+  totalLinks: 0,
+  activeLinks: 0,
+  clicksToday: 0,
+  clicksThisWeek: 0,
+  uniqueVisitorsWeek: 0,
+  topReferrer: '—',
+}
+
 export function getStatsForOrg(orgId: string): OrgDashboardStats {
-  return demoStatsByOrg[orgId] ?? demoStatsByOrg.org_openlink
+  return demoStatsByOrg[orgId] ?? EMPTY_ORG_STATS
 }
 
 export function getOrganization(orgId: string): Organization | undefined {

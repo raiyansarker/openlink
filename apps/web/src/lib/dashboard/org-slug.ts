@@ -1,5 +1,6 @@
 import { demoOrganizations } from '#/data/demo/organizations'
 import { getOrganizationById } from '#/data/demo/queries'
+import { isValidOrganizationSlug } from '#/lib/organization/slugify'
 
 const STORAGE_KEY = 'openlink.active-org-slug'
 const LEGACY_STORAGE_KEY = 'openlink.active-org'
@@ -7,7 +8,7 @@ const LEGACY_STORAGE_KEY = 'openlink.active-org'
 export function getDefaultOrgSlug(): string {
   if (typeof window !== 'undefined') {
     const stored = window.localStorage.getItem(STORAGE_KEY)
-    if (stored && demoOrganizations.some((org) => org.slug === stored)) {
+    if (stored && isValidOrganizationSlug(stored)) {
       return stored
     }
 
@@ -20,7 +21,7 @@ export function getDefaultOrgSlug(): string {
       }
     }
   }
-  return demoOrganizations[0].slug
+  return demoOrganizations[0]?.slug ?? 'apple'
 }
 
 export function persistActiveOrgSlug(slug: string): void {
