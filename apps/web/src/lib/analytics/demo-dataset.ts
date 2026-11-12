@@ -303,6 +303,11 @@ export type AnalyticsQuery = {
   linkId: string | null
   links: TrackedLink[]
   now?: number
+  /**
+   * Ties a single link's numbers to its real record: nothing before it was
+   * created, and lifetime clicks that add up to its stored count.
+   */
+  calibration?: { createdAt: number; lifetimeClicks: number }
 }
 
 /** Builds the full analytics report for one workspace, window, and link filter. */
@@ -328,7 +333,7 @@ export function buildAnalyticsReport(query: AnalyticsQuery): AnalyticsReport {
   )
   const linkWeightSum = sum(linkWeights) || 1
   const selectedIndex = linkId ? links.findIndex((l) => l.id === linkId) : -1
-  const linkShare =
+  let linkShare =
     selectedIndex >= 0
       ? (time: number) =>
           (linkWeights[selectedIndex] / linkWeightSum) *
@@ -339,6 +344,20 @@ export function buildAnalyticsReport(query: AnalyticsQuery): AnalyticsReport {
   )
 
   const seed = `${orgId}:${linkId ?? 'all'}`
+
+  if (query.calibration) {
+    const { createdAt, lifetimeClicks } = query.calibration
+    const lifetimeStart = Math.max(createdAt, end - 365 * DAY)
+    const lifetimeHours = Math.max(0, Math.floor((end - lifetimeStart) / HOUR))
+    const raw = sum(
+      sampleHours(seed, now, baseHourly, end - lifetimeHours * HOUR, lifetimeHours, linkShare, channelBias).map(
+        (h) => h.clicks,
+      ),
+    )
+    const factor = raw > 0 ? lifetimeClicks / raw : 0
+    const uncalibrated = linkShare
+    linkShare = (time: number) => (time < createdAt ? 0 : uncalibrated(time) * factor)
+  }
   const all = sampleHours(seed, now, baseHourly, previousStart, hours * 2, linkShare, channelBias)
   const previousHours = all.slice(0, hours)
   const currentHours = all.slice(hours)
