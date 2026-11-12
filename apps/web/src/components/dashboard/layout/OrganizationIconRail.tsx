@@ -1,29 +1,30 @@
 import { Link } from '@tanstack/react-router'
 import { getOrganizationBrand } from '#/data/demo/organization-branding'
 import type { Organization } from '#/data/demo/types'
-import { dashboardPaths } from '#/lib/dashboard/route-paths'
+import { replaceOrgInPathname } from '#/lib/dashboard/build-org-path'
+import OrganizationBrandIcon from '../icons/OrganizationBrandIcon'
 
 type OrganizationIconRailProps = {
   organizations: Organization[]
   activeOrgId: string
-  onSelectOrg: (orgId: string) => void
+  pathname: string
 }
 
 export default function OrganizationIconRail({
   organizations,
   activeOrgId,
-  onSelectOrg,
+  pathname,
 }: OrganizationIconRailProps) {
   return (
     <aside className="openlink-dashboard__rail" aria-label="Organizations">
       {organizations.map((org) => {
         const brand = getOrganizationBrand(org.id)
         const isActive = org.id === activeOrgId
+        const target = replaceOrgInPathname(pathname, org.id)
         return (
           <Link
             key={org.id}
-            to={dashboardPaths.root}
-            onClick={() => onSelectOrg(org.id)}
+            to={target}
             className="openlink-org-icon"
             data-active={isActive}
             style={{
@@ -34,7 +35,7 @@ export default function OrganizationIconRail({
             aria-current={isActive ? 'true' : undefined}
             title={org.name}
           >
-            <span aria-hidden>{brand.glyph}</span>
+            <OrganizationBrandIcon orgId={org.id} size={22} />
           </Link>
         )
       })}
