@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { CodeBlock } from '@astryxdesign/core/CodeBlock'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
-import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { InputGroup, InputGroupText } from '@astryxdesign/core/InputGroup'
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
@@ -10,7 +9,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import ApiKeySecretField from '#/components/settings/ApiKeySecretField'
-import WebhookEventSwitches from '#/components/settings/WebhookEventSwitches'
+import WebhookEventsSelector from '#/components/settings/WebhookEventsSelector'
 import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
@@ -119,7 +118,7 @@ export default function CreateWebhookDrawer({
                 </Text>
               </VStack>
             ) : (
-              <VStack gap={8} hAlign="stretch" width="100%">
+              <VStack gap={6} hAlign="stretch" width="100%">
                 <VStack gap={4} hAlign="stretch" width="100%">
                   <InputGroup
                     label="Endpoint URL"
@@ -150,15 +149,11 @@ export default function CreateWebhookDrawer({
                   />
                 </VStack>
 
-                <VStack gap={3} hAlign="stretch" width="100%">
-                  <VStack gap={1} hAlign="start">
-                    <Heading level={4}>Events</Heading>
-                    <Text type="supporting" color="secondary">
-                      Turn on what your endpoint should receive.
-                    </Text>
-                  </VStack>
-                  <WebhookEventSwitches value={events} onChange={setEvents} />
-                </VStack>
+                <WebhookEventsSelector
+                  value={events}
+                  onChange={setEvents}
+                  description="Search or pick a whole group with select all."
+                />
 
                 <CodeBlock
                   title={`Example: ${previewEvent}`}
@@ -195,7 +190,7 @@ export default function CreateWebhookDrawer({
                     variant="primary"
                     size="sm"
                     label="Add webhook"
-                    isDisabled={!endpoint.ok}
+                    isDisabled={!endpoint.ok || events.length === 0}
                     onClick={handleCreate}
                   />
                 </>
