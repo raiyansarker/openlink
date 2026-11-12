@@ -1,7 +1,4 @@
 import { useMemo } from 'react'
-import { Section } from '@astryxdesign/core/Section'
-import { Stack } from '@astryxdesign/core/Stack'
-import { Text } from '@astryxdesign/core/Text'
 import {
   Table,
   useTableSortable,
@@ -48,24 +45,16 @@ export default function DashboardRecentLinksTable({
   const sortPlugin = useTableSortable(sortConfig)
 
   return (
-    <Section>
-      <Stack gap={3}>
-        <Stack gap={0.5}>
-          <Text type="display-3">Recent links</Text>
-          <Text type="supporting" color="secondary">
-            Sort columns to explore click performance for {organization.name}.
-          </Text>
-        </Stack>
-        <Table
-          data={sortedData}
-          columns={columns}
-          idKey="id"
-          hasHover
-          // @ts-expect-error sort plugin row generic defaults to Record<string, unknown>
-          plugins={{ sortable: sortPlugin }}
-          textOverflow="truncate"
-        />
-      </Stack>
-    </Section>
+    <Table
+      data={sortedData}
+      columns={columns}
+      idKey="id"
+      hasHover
+      density="compact"
+      dividers="rows"
+      // @ts-expect-error sort plugin row generic defaults to Record<string, unknown>
+      plugins={{ sortable: sortPlugin }}
+      textOverflow="truncate"
+    />
   )
 }
