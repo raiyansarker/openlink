@@ -1,0 +1,23 @@
+{
+  "name": "@openlink/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260305.0",
+    "@repo/typescript-config": "workspace:*",
+    "drizzle-kit": "^0.31.9",
+    "typescript": "^6.0.2"
+  }
+}
