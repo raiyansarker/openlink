@@ -1,0 +1,99 @@
+/**
+ * Inline SVG icons sourced from iconmcp.com (outline style, 16-unit grid).
+ * Each component accepts className / style so they inherit currentColor.
+ */
+
+type SvgProps = React.SVGProps<SVGSVGElement> & { size?: number }
+
+const base = (size: number) =>
+  ({
+    xmlns: 'http://www.w3.org/2000/svg',
+    width: size,
+    height: size,
+    viewBox: '0 0 16 16',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  }) as const
+
+export function HomeIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M3.234 6.15 L6.734 3.286 C7.47 2.683 8.53 2.683 9.266 3.286 L12.766 6.15 C13.231 6.53 13.5 7.098 13.5 7.698 L13.5 11.5 C13.5 12.605 12.605 13.5 11.5 13.5 L4.5 13.5 C3.395 13.5 2.5 12.605 2.5 11.5 L2.5 7.698 C2.5 7.098 2.769 6.53 3.234 6.15 Z" />
+      <path d="M6.25 13.5 L6.25 11.2 C6.25 10.537 6.787 10 7.45 10 L8.55 10 C9.213 10 9.75 10.537 9.75 11.2 L9.75 13.5" />
+    </svg>
+  )
+}
+
+export function LinkIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <g transform="rotate(-45 8 8)">
+        <path d="M7 5.75 H4.75 A2.25 2.25 0 0 0 4.75 10.25 H7" />
+        <path d="M9 5.75 H11.25 A2.25 2.25 0 0 1 11.25 10.25 H9" />
+        <line x1="5.75" y1="8" x2="10.25" y2="8" />
+      </g>
+    </svg>
+  )
+}
+
+export function BarChartIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <rect x="2.25" y="8.5" width="2" height="5" rx="0.6" />
+      <rect x="7" y="2.5" width="2" height="11" rx="0.6" />
+      <rect x="11.75" y="5.5" width="2" height="8" rx="0.6" />
+    </svg>
+  )
+}
+
+export function UsersIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <circle cx="6" cy="5.25" r="2.5" />
+      <path d="M1.75 13.5 C2.25 11.25 3.9 9.75 6 9.75 C8.1 9.75 9.75 11.25 10.25 13.5" />
+      <path d="M10.25 2.85 A2.5 2.5 0 0 1 10.25 7.65" />
+      <path d="M11.75 10 C12.9 10.5 13.7 11.8 14 13.5" />
+    </svg>
+  )
+}
+
+export function SettingsIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M6.663 3.269 L6.631 2.646 C6.611 2.246 6.93 1.91 7.33 1.91 L8.67 1.91 C9.07 1.91 9.389 2.246 9.369 2.646 L9.337 3.269 C9.324 3.532 9.459 3.779 9.686 3.911 L10.698 4.495 C10.926 4.626 11.208 4.619 11.428 4.476 L11.953 4.137 C12.289 3.92 12.739 4.028 12.939 4.375 L13.609 5.535 C13.809 5.882 13.678 6.326 13.322 6.508 L12.766 6.793 C12.532 6.912 12.385 7.153 12.385 7.416 L12.385 8.584 C12.385 8.847 12.532 9.088 12.766 9.207 L13.322 9.492 C13.678 9.674 13.809 10.118 13.609 10.465 L12.939 11.625 C12.739 11.972 12.289 12.08 11.953 11.863 L11.428 11.524 C11.208 11.381 10.926 11.374 10.698 11.505 L9.686 12.089 C9.459 12.221 9.324 12.468 9.337 12.731 L9.369 13.354 C9.389 13.754 9.07 14.09 8.67 14.09 L7.33 14.09 C6.93 14.09 6.611 13.754 6.631 13.354 L6.663 12.731 C6.676 12.468 6.541 12.221 6.314 12.089 L5.302 11.505 C5.074 11.374 4.792 11.381 4.572 11.524 L4.047 11.863 C3.711 12.08 3.261 11.972 3.061 11.625 L2.391 10.465 C2.191 10.118 2.322 9.674 2.678 9.492 L3.234 9.207 C3.468 9.088 3.615 8.847 3.615 8.584 L3.615 7.416 C3.615 7.153 3.468 6.912 3.234 6.793 L2.678 6.508 C2.322 6.326 2.191 5.882 2.391 5.535 L3.061 4.375 C3.261 4.028 3.711 3.92 4.047 4.137 L4.572 4.476 C4.792 4.619 5.074 4.626 5.302 4.495 L6.314 3.911 C6.541 3.779 6.676 3.532 6.663 3.269 Z" />
+      <circle cx="8" cy="8" r="2" />
+    </svg>
+  )
+}
+
+export function PlusIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <line x1="8" y1="2.75" x2="8" y2="13.25" />
+      <line x1="2.75" y1="8" x2="13.25" y2="8" />
+    </svg>
+  )
+}
+
+export function AnalyticsIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <rect x="2" y="2.75" width="12" height="10.5" rx="2" />
+      <path d="M4.5 10.5 L7 7.5 L9 9.25 L11.5 5.75" />
+    </svg>
+  )
+}
+
+export function DashboardIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <rect x="2.25" y="2.25" width="4.5" height="6.25" rx="2" />
+      <rect x="9.25" y="2.25" width="4.5" height="2.75" rx="1" />
+      <rect x="9.25" y="7.5" width="4.5" height="6.25" rx="2" />
+      <rect x="2.25" y="11" width="4.5" height="2.75" rx="1" />
+    </svg>
+  )
+}

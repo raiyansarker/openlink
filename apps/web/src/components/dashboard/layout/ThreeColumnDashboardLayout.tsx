@@ -1,6 +1,3 @@
-import { AppShell } from '@astryxdesign/core/AppShell'
-import { HStack } from '@astryxdesign/core/HStack'
-import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
 import type { ReactNode } from 'react'
 import type { Organization } from '#/data/demo/types'
 import OrganizationIconRail from './OrganizationIconRail'
@@ -18,24 +15,58 @@ export default function ThreeColumnDashboardLayout({
   children,
 }: ThreeColumnDashboardLayoutProps) {
   return (
-    <AppShell
-      height="fill"
-      variant="wash"
-      contentPadding={0}
-      sideNav={
-        <HStack gap={0} height="fill" vAlign="stretch" width="auto">
-          <OrganizationIconRail
-            organizations={organizations}
-            activeOrgSlug={activeOrgSlug}
-          />
-          <DashboardNavColumn />
-        </HStack>
-      }
+    <div
+      style={{
+        display: 'flex',
+        width: '100%',
+        height: '100dvh',
+        overflow: 'hidden',
+        backgroundColor: '#0a0a0a',
+      }}
     >
-      <Layout
-        height="fill"
-        content={<LayoutContent isScrollable>{children}</LayoutContent>}
+      {/* Column 1 — darkest icon rail */}
+      <OrganizationIconRail
+        organizations={organizations}
+        activeOrgSlug={activeOrgSlug}
       />
-    </AppShell>
+
+      {/* Column 2 — dark nav */}
+      <DashboardNavColumn />
+
+      {/* Column 3 — white content area with rounded inset */}
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          height: '100%',
+          padding: 10,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            backgroundColor: '#ffffff',
+            borderRadius: 14,
+            overflow: 'hidden',
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

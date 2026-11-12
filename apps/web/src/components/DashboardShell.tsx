@@ -1,10 +1,22 @@
-import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
-import { OrganizationProvider } from '#/contexts/OrganizationContext'
+import { OrganizationProvider, useOrganization } from '#/contexts/OrganizationContext'
+import ThreeColumnDashboardLayout from '#/components/dashboard/layout/ThreeColumnDashboardLayout'
 import type { ReactNode } from 'react'
 
 type DashboardShellProps = {
   orgSlugFromRoute: string
   children: ReactNode
+}
+
+function DashboardShellInner({ children }: { children: ReactNode }) {
+  const { organizations, activeOrg } = useOrganization()
+  return (
+    <ThreeColumnDashboardLayout
+      organizations={organizations}
+      activeOrgSlug={activeOrg.slug}
+    >
+      {children}
+    </ThreeColumnDashboardLayout>
+  )
 }
 
 export default function DashboardShell({
@@ -13,10 +25,7 @@ export default function DashboardShell({
 }: DashboardShellProps) {
   return (
     <OrganizationProvider orgSlugFromRoute={orgSlugFromRoute}>
-      <Layout
-        height="fill"
-        content={<LayoutContent isScrollable>{children}</LayoutContent>}
-      />
+      <DashboardShellInner>{children}</DashboardShellInner>
     </OrganizationProvider>
   )
 }

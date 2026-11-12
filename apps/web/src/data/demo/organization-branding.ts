@@ -1,5 +1,5 @@
 /** Visual identity per org for the icon rail (demo only). */
-export type OrganizationBrandIconKey = 'openlink' | 'acme' | 'devrel' | 'fallback'
+export type OrganizationBrandIconKey = 'x' | 'github' | 'dribbble' | 'fallback'
 
 export type OrganizationBrand = {
   icon: OrganizationBrandIconKey
@@ -8,20 +8,20 @@ export type OrganizationBrand = {
 }
 
 export const organizationBranding: Record<string, OrganizationBrand> = {
-  org_openlink: {
-    icon: 'openlink',
-    accent: '#FF4602',
-    accentMuted: 'color-mix(in oklab, #FF4602 20%, transparent)',
+  org_x: {
+    icon: 'x',
+    accent: '#000000',
+    accentMuted: 'color-mix(in oklab, #000000 15%, transparent)',
   },
-  org_acme: {
-    icon: 'acme',
-    accent: '#4f46e5',
-    accentMuted: 'color-mix(in oklab, #4f46e5 20%, transparent)',
+  org_github: {
+    icon: 'github',
+    accent: '#24292e',
+    accentMuted: 'color-mix(in oklab, #24292e 15%, transparent)',
   },
-  org_devrel: {
-    icon: 'devrel',
-    accent: '#ea580c',
-    accentMuted: 'color-mix(in oklab, #ea580c 20%, transparent)',
+  org_dribbble: {
+    icon: 'dribbble',
+    accent: '#ea4c89',
+    accentMuted: 'color-mix(in oklab, #ea4c89 15%, transparent)',
   },
 }
 
