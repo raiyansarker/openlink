@@ -6,12 +6,12 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { demoOrganizations } from '#/data/demo/organizations'
 import {
-  demoOrganizations,
   getLinksForOrg,
   getOrganization,
   getStatsForOrg,
-} from '#/data/demo/fixtures'
+} from '#/data/demo/queries'
 import type { Organization, OrgDashboardStats, ShortLink } from '#/data/demo/types'
 
 const STORAGE_KEY = 'openlink.active-org'
