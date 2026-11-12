@@ -27,7 +27,7 @@ export default function DashboardOverview() {
             <Text color="secondary">{activeOrg.name}</Text>
           </VStack>
           <Button
-            variant="primary"
+            variant="secondary"
             label="Create link"
             icon={<PlusIcon size={14} style={{ display: 'flex' }} />}
           />
