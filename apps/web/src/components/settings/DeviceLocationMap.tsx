@@ -73,12 +73,13 @@ export default function DeviceLocationMap({ lat, lng, label }: DeviceLocationMap
           center: [lng, lat],
           zoom: ZOOM,
           interactive: false,
-          attributionControl: { compact: true },
+          // The required credit is rendered as text under the map instead.
+          attributionControl: false,
           fadeDuration: 0,
         })
 
         // Hide the map layers until the first full render, so the blank
-        // canvas, late tiles and the auto-expanded credit never flash.
+        // canvas and late tiles never flash.
         const canvasLayer = map.getCanvasContainer()
         const controlLayer = container.querySelector<HTMLElement>(
           '.maplibregl-control-container',
@@ -100,10 +101,6 @@ export default function DeviceLocationMap({ lat, lng, label }: DeviceLocationMap
         })
         map.once('idle', () => {
           isLoaded = true
-          // Keep the required credit, but start it collapsed behind the (i) button.
-          container
-            .querySelector('.maplibregl-ctrl-attrib')
-            ?.classList.remove('maplibregl-compact-show')
           for (const layer of layers) {
             layer.style.transition = reduceMotion ? 'none' : 'opacity 180ms ease-out'
             layer.style.opacity = '1'

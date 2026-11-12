@@ -77,9 +77,14 @@ export default function DeviceDetailSheet({
                     lng={session.coordinates.lng}
                     label={`Approximate location: ${place}`}
                   />
-                  <Text type="supporting" color="secondary">
-                    Approximate location from the IP address.
-                  </Text>
+                  <VStack gap={0.5} hAlign="start" width="100%">
+                    <Text type="supporting" color="secondary">
+                      Approximate location from the IP address.
+                    </Text>
+                    <Text type="supporting" color="secondary">
+                      © OpenFreeMap · OpenMapTiles · OpenStreetMap contributors
+                    </Text>
+                  </VStack>
                 </VStack>
 
                 <VStack gap={3} hAlign="stretch" width="100%">
