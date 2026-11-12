@@ -7,6 +7,7 @@ type OrganizationLogoProps = {
   name: string
   brand: OrganizationBrand
   size?: number
+  customImageUrl?: string
 }
 
 /** Apple mark (Simple Icons). */
@@ -124,8 +125,29 @@ export default function OrganizationLogo({
   name,
   brand,
   size = 40,
+  customImageUrl,
 }: OrganizationLogoProps) {
   const gradId = useId().replace(/:/g, '')
+
+  if (customImageUrl) {
+    return (
+      <VStack width={size} height={size} hAlign="center" vAlign="center">
+        <img
+          src={customImageUrl}
+          alt=""
+          width={size}
+          height={size}
+          style={{
+            display: 'block',
+            width: size,
+            height: size,
+            borderRadius: 9,
+            objectFit: 'cover',
+          }}
+        />
+      </VStack>
+    )
+  }
 
   const glyph = (() => {
     switch (brand.icon) {

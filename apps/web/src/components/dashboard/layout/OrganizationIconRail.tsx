@@ -4,13 +4,12 @@ import { Tooltip } from '@astryxdesign/core/Tooltip'
 import type { Organization } from '#/data/demo/types'
 import { getOrganizationBrand } from '#/data/demo/organization-branding'
 import {
-  buildDashboardOrgPath,
   replaceOrgInPathname,
 } from '#/lib/dashboard/build-org-path'
 import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
+import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { useActivePathname } from '#/hooks/useActivePathname'
 import DashboardAccountMenu from './DashboardAccountMenu'
-import { useOrganization } from '#/contexts/OrganizationContext'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import type { CSSProperties, ReactNode } from 'react'
 import {
@@ -97,19 +96,9 @@ export default function OrganizationIconRail({
   const [createHovered, setCreateHovered] = useState(false)
   const pathname = useActivePathname()
   const navigate = useNavigate()
-  const { createOrganization } = useOrganization()
-
+  const { orgCustomIcons } = useWorkspaceDirectory()
   function handleCreateOrganization() {
-    const name = window.prompt('Workspace name')?.trim()
-    if (!name) return
-    try {
-      const org = createOrganization({ name })
-      void navigate({ to: buildDashboardOrgPath(org.slug) })
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Could not create workspace.'
-      window.alert(message)
-    }
+    void navigate({ to: '/create/organization' })
   }
 
   return (
@@ -156,6 +145,7 @@ export default function OrganizationIconRail({
                 name={org.name}
                 brand={brand}
                 size={ORG_LOGO_SIZE}
+                customImageUrl={orgCustomIcons[org.id]}
               />
             </OrgSwitchButton>
           )
