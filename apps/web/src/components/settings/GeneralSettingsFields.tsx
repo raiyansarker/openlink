@@ -1,11 +1,9 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { Button } from '@astryxdesign/core/Button'
-import { Divider } from '@astryxdesign/core/Divider'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
-import { InputGroup, InputGroupText } from '@astryxdesign/core/InputGroup'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
@@ -164,7 +162,11 @@ export default function GeneralSettingsFields() {
       node: (
         <ActionRow
           title="Export links"
-          description={`Download all ${links.length} links with their stats.`}
+          description={
+            links.length === 0
+              ? 'No links to export yet.'
+              : `Download all ${links.length} links with their stats.`
+          }
           action={
             <DropdownMenu
               hasChevron={false}
@@ -178,6 +180,7 @@ export default function GeneralSettingsFields() {
                   variant="secondary"
                   size="sm"
                   label="Export"
+                  isDisabled={links.length === 0}
                 />
               )}
               items={[
@@ -290,30 +293,20 @@ export default function GeneralSettingsFields() {
         <VStack gap={4} hAlign="stretch" width="100%">
           <TextInput
             label="Name"
-            size="sm"
             width="100%"
             value={form.name}
             onChange={(value) => update('name', value)}
             status={nameError ? { type: 'error', message: nameError } : undefined}
           />
-          <InputGroup
+          <TextInput
             label="URL"
-            size="sm"
+            width="100%"
+            value={form.slug}
+            onChange={(value) =>
+              update('slug', slugifyOrganizationSlug(value.replace(/\s+/g, '-')))
+            }
             status={slugError ? { type: 'error', message: slugError } : undefined}
-          >
-            <InputGroupText>openlink.app/dashboard/</InputGroupText>
-            <TextInput
-              label="URL"
-              isLabelHidden
-              size="sm"
-              value={form.slug}
-              onChange={(value) =>
-                update('slug', slugifyOrganizationSlug(value.replace(/\s+/g, '-')))
-              }
-              width="100%"
-              controlStyle={{ flex: '1 1 0', minWidth: 0 }}
-            />
-          </InputGroup>
+          />
           {slugChanged && !slugError ? (
             <Text type="supporting" color="secondary">
               Old bookmarks to /{saved.slug} will stop working.
@@ -351,18 +344,15 @@ export default function GeneralSettingsFields() {
         </Text>
       ) : null}
 
-      <Divider variant="subtle" />
-
-      <SettingsBlock title="Danger zone">
-        <VStack gap={4} hAlign="stretch" width="100%">
-          {dangerRows.map((row, index) => (
-            <Fragment key={row.key}>
-              {index > 0 ? <Divider variant="subtle" /> : null}
-              {row.node}
-            </Fragment>
-          ))}
-        </VStack>
-      </SettingsBlock>
+      <VStack hAlign="stretch" width="100%" paddingBlockStart={4}>
+        <SettingsBlock title="Danger zone">
+          <VStack gap={5} hAlign="stretch" width="100%">
+            {dangerRows.map((row) => (
+              <Fragment key={row.key}>{row.node}</Fragment>
+            ))}
+          </VStack>
+        </SettingsBlock>
+      </VStack>
 
       <TransferOwnershipDialog
         isOpen={transferOpen}
