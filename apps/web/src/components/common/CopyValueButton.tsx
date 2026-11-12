@@ -1,7 +1,7 @@
 import { Button } from '@astryxdesign/core/Button'
 import { useClipboard } from '@astryxdesign/core/hooks'
 
-type DnsCopyValueProps = {
+type CopyValueButtonProps = {
   /** Text shown on the button. */
   display: string
   /** Text placed on the clipboard (defaults to `display`). */
@@ -9,10 +9,10 @@ type DnsCopyValueProps = {
 }
 
 /** Value that copies itself to the clipboard when clicked. */
-export default function DnsCopyValue({
+export default function CopyValueButton({
   display,
   copyValue = display,
-}: DnsCopyValueProps) {
+}: CopyValueButtonProps) {
   const { copy, isCopied } = useClipboard()
 
   return (
