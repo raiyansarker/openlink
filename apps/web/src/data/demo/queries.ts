@@ -14,3 +14,11 @@ export function getStatsForOrg(orgId: string): OrgDashboardStats {
 export function getOrganization(orgId: string): Organization | undefined {
   return demoOrganizations.find((org) => org.id === orgId)
 }
+
+export function getOrganizationById(orgId: string): Organization | undefined {
+  return getOrganization(orgId)
+}
+
+export function isValidOrgId(orgId: string): boolean {
+  return demoOrganizations.some((org) => org.id === orgId)
+}
