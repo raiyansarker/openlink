@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
@@ -5,38 +6,56 @@ import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
+import { MetadataList, MetadataListItem } from '@astryxdesign/core/MetadataList'
 import { StatusDot } from '@astryxdesign/core/StatusDot'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import { useState } from 'react'
 import CopyValueButton from '#/components/common/CopyValueButton'
-import RouteRail from '#/components/common/RouteRail'
+import ApiKeySecretField from '#/components/settings/ApiKeySecretField'
+import WebhookEventSwitches from '#/components/settings/WebhookEventSwitches'
 import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
-import type { WorkspaceWebhook } from '#/data/demo/webhooks'
-import { WEBHOOK_EVENT_LABELS } from '#/data/demo/webhooks'
+import type { WebhookEvent, WorkspaceWebhook } from '#/data/demo/webhooks'
+import {
+  buildFullWebhookSecret,
+  randomWebhookPrefix,
+} from '#/lib/integrations/webhook-secret'
 import { webhookStatusMeta } from '#/lib/integrations/webhook-status'
 
 type WebhookDetailSheetProps = {
   webhook: WorkspaceWebhook | null
   onOpenChange: (open: boolean) => void
-  onToggleEnabled: (id: string, enabled: boolean) => void
+  onUpdate: (id: string, patch: Partial<WorkspaceWebhook>) => void
   onRemove: (id: string) => void
 }
 
 export default function WebhookDetailSheet({
   webhook,
   onOpenChange,
-  onToggleEnabled,
+  onUpdate,
   onRemove,
 }: WebhookDetailSheetProps) {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
+  const [rollAlertOpen, setRollAlertOpen] = useState(false)
+  const [newSecret, setNewSecret] = useState<string | null>(null)
+
+  const webhookId = webhook?.id
+  useEffect(() => {
+    setNewSecret(null)
+  }, [webhookId])
 
   if (!webhook) return null
 
   const meta = webhookStatusMeta(webhook)
+
+  const rollSecret = () => {
+    const prefix = randomWebhookPrefix()
+    setNewSecret(buildFullWebhookSecret(prefix))
+    onUpdate(webhook.id, { signingSecretPrefix: prefix })
+    setRollAlertOpen(false)
+  }
 
   return (
     <>
@@ -51,62 +70,74 @@ export default function WebhookDetailSheet({
         style={floatingEndDrawerStyle()}
       >
         <Layout
-          header={<DrawerHeader title={webhook.name} onOpenChange={onOpenChange} />}
+          header={
+            <DrawerHeader
+              title={webhook.name}
+              subtitle={
+                <HStack gap={2} vAlign="center">
+                  <StatusDot variant={meta.dotVariant} label={meta.label} />
+                  <Text type="supporting" color="secondary">
+                    {meta.label} · {meta.description}
+                  </Text>
+                </HStack>
+              }
+              onOpenChange={onOpenChange}
+            />
+          }
           content={
             <LayoutContent>
-              <VStack gap={6} width="100%" hAlign="stretch">
-                <VStack gap={1} width="100%" hAlign="stretch">
-                  <HStack gap={2} vAlign="center">
-                    <StatusDot variant={meta.dotVariant} label={meta.label} />
-                    <Text weight="semibold">{meta.label}</Text>
-                  </HStack>
-                  <Text type="supporting" color="secondary">
-                    {meta.description}
-                  </Text>
-                </VStack>
+              <VStack gap={8} width="100%" hAlign="stretch">
+                <MetadataList label={{ position: 'top' }}>
+                  <MetadataListItem label="Endpoint">
+                    <CopyValueButton display={webhook.endpointUrl} />
+                  </MetadataListItem>
+                  <MetadataListItem label="Signing secret">
+                    <HStack gap={3} vAlign="center" hAlign="between" width="100%">
+                      <Text color="secondary">
+                        Hidden · only shown when created or rolled
+                      </Text>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        label="Roll secret"
+                        onClick={() => setRollAlertOpen(true)}
+                      />
+                    </HStack>
+                  </MetadataListItem>
+                </MetadataList>
 
-                <VStack gap={3} width="100%" hAlign="stretch">
-                  <VStack gap={1} width="100%" hAlign="stretch">
-                    <Heading level={4}>Delivery</Heading>
-                    <Text type="supporting" color="secondary">
-                      Click a value to copy it.
-                    </Text>
-                  </VStack>
-                  <HStack gap={3} vAlign="stretch" width="100%">
-                    <RouteRail />
-                    <VStack gap={3} hAlign="start" width="100%">
-                      <VStack gap={1} hAlign="start">
-                        <Text type="supporting" color="secondary">
-                          OpenLink sends POST requests to
-                        </Text>
-                        <CopyValueButton display={webhook.endpointUrl} />
-                      </VStack>
-                      <VStack gap={1} hAlign="start">
-                        <Text type="supporting" color="secondary">
-                          Signed with a secret starting
-                        </Text>
-                        <CopyValueButton display={webhook.signingSecretPrefix} />
-                      </VStack>
-                    </VStack>
-                  </HStack>
-                </VStack>
+                {newSecret ? (
+                  <ApiKeySecretField
+                    label="New signing secret"
+                    value={newSecret}
+                    description="Shown once. Update your server before closing."
+                  />
+                ) : null}
 
                 <Divider variant="subtle" />
 
-                <VStack gap={2} width="100%" hAlign="stretch">
-                  <Heading level={4}>Events</Heading>
-                  {webhook.events.map((event) => (
-                    <Text key={event}>{WEBHOOK_EVENT_LABELS[event]}</Text>
-                  ))}
+                <VStack gap={3} width="100%" hAlign="stretch">
+                  <VStack gap={1} hAlign="start">
+                    <Heading level={4}>Events</Heading>
+                    <Text type="supporting" color="secondary">
+                      Changes apply right away.
+                    </Text>
+                  </VStack>
+                  <WebhookEventSwitches
+                    value={webhook.events}
+                    onChange={(next: WebhookEvent[]) =>
+                      onUpdate(webhook.id, { events: next })
+                    }
+                  />
                 </VStack>
               </VStack>
             </LayoutContent>
           }
           footer={
             <LayoutFooter hasDivider>
-              <HStack gap={2} hAlign="between" width="100%" wrap="wrap">
+              <HStack gap={2} hAlign="between" width="100%">
                 <Button
-                  variant="destructive"
+                  variant="ghost"
                   size="sm"
                   label="Delete endpoint"
                   onClick={() => setDeleteAlertOpen(true)}
@@ -114,14 +145,25 @@ export default function WebhookDetailSheet({
                 <Button
                   variant="secondary"
                   size="sm"
-                  label={webhook.isEnabled ? 'Disable' : 'Enable'}
-                  onClick={() => onToggleEnabled(webhook.id, !webhook.isEnabled)}
+                  label={webhook.isEnabled ? 'Pause deliveries' : 'Resume deliveries'}
+                  onClick={() =>
+                    onUpdate(webhook.id, { isEnabled: !webhook.isEnabled })
+                  }
                 />
               </HStack>
             </LayoutFooter>
           }
         />
       </Drawer>
+
+      <AlertDialog
+        isOpen={rollAlertOpen}
+        onOpenChange={setRollAlertOpen}
+        title="Roll signing secret?"
+        description="The current secret stops working immediately. Requests your server receives will be signed with the new one."
+        actionLabel="Roll secret"
+        onAction={rollSecret}
+      />
 
       <AlertDialog
         isOpen={deleteAlertOpen}
