@@ -1,9 +1,20 @@
-import { Layer, Scheduler } from 'effect'
+import { Effect, Layer, Scheduler } from 'effect'
+import { createOpenLinkDomainClient } from '@openlink/domain'
+import { getAuth } from '#/server/auth/instance'
+import { getDb } from '#/server/db'
+import { getBindings } from '#/server/env'
+import { Auth } from './services/auth'
+import { Bindings } from './services/bindings'
+import { Db } from './services/db'
+import { DomainClient } from './services/domain-client'
 
-import { AuthLive, type Auth } from './services/auth'
-import { BindingsLive, type Bindings } from './services/bindings'
-import { DbLive, type Db } from './services/db'
-import { DomainClientLive, type DomainClient } from './services/domain-client'
+const DbLive = Layer.sync(Db, getDb)
+const AuthLive = Layer.sync(Auth, getAuth)
+const BindingsLive = Layer.sync(Bindings, getBindings)
+const DomainClientLive = Layer.effect(DomainClient, Effect.gen(function* () {
+  const bindings = yield* Bindings
+  return createOpenLinkDomainClient(bindings)
+}))
 
 const SyncScheduler = Layer.succeed(
   Scheduler.Scheduler,
