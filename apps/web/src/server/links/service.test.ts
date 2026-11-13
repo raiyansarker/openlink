@@ -8,6 +8,9 @@ import { Effect } from 'effect'
 import { BackendError } from '#/server/effect/operations'
 import { Db, type Db as DbService } from '#/server/effect/services/db'
 import { verifyLinkPassword } from './password'
+
+const verify = (password: string, stored: string | null) =>
+  Effect.runPromise(verifyLinkPassword(password, stored))
 import {
   SlugConflict,
   createLinkRecord,
@@ -181,7 +184,7 @@ describe('Effect-native link services', () => {
       tagsJson: '["one","two"]', utmJson: '{"source":"test"}',
       metadataJson: '{"nested":{"enabled":true}}',
     })
-    expect(await verifyLinkPassword('secret', row.passwordHash)).toBe(true)
+    expect(await verify('secret', row.passwordHash)).toBe(true)
   })
 
   test('reads are scoped to the domain and missing links return null', async () => {
@@ -278,7 +281,7 @@ describe('Effect-native link services', () => {
       tags: ['new'], utm: { source: 'new' }, metadata: { nested: [1, true] },
     }))
     expect(updated.passwordHash).not.toBe(existing.passwordHash)
-    expect(await verifyLinkPassword('replacement', updated.passwordHash)).toBe(true)
+    expect(await verify('replacement', updated.passwordHash)).toBe(true)
     expect(updated).toMatchObject({
       activateAt: existing.activateAt, expiresAt: existing.expiresAt,
       tagsJson: '["new"]', utmJson: '{"source":"new"}',
@@ -332,7 +335,7 @@ describe('Effect-native link services', () => {
     for (const effect of effects) {
       const error = await run(Effect.flip(effect))
       expect(error).toBeInstanceOf(BackendError)
-      expect(error).toMatchObject({ operation: 'links.hashPassword', cause })
+      expect(error).toMatchObject({ operation: 'password.deriveBits', cause })
     }
     expect(insert).not.toHaveBeenCalled()
     expect(update).not.toHaveBeenCalled()

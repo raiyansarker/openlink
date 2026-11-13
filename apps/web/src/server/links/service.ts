@@ -53,9 +53,7 @@ export function createLinkRecord(input: {
     const now = new Date()
     const slug = input.slug ?? generateSlug()
     const id = crypto.randomUUID()
-    const passwordHash = input.password
-      ? yield* operation('links.hashPassword', () => hashLinkPassword(input.password!))
-      : null
+    const passwordHash = input.password ? yield* hashLinkPassword(input.password) : null
 
     const [row] = yield* operation('links.create', () =>
       db
@@ -129,7 +127,7 @@ export function updateLinkRecord(
       input.clearPassword === true
         ? null
         : input.password
-          ? yield* operation('links.hashPassword', () => hashLinkPassword(input.password!))
+          ? yield* hashLinkPassword(input.password)
           : existing.passwordHash
 
     const [updated] = yield* operation('links.update', () =>
