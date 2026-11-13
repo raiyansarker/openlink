@@ -12,6 +12,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import { DASHBOARD_SURFACE_BG } from '#/components/dashboard/layout/dashboard-shell-colors'
+import { currentHostLabel } from '#/lib/url/format-host'
 
 const SHORTCUT_PATH = 'M8 12C8 73 100 61 164 61C227 61 246 14 212 14C171 14 179 100 247 100H365C389 100 405 108 405 127'
 
@@ -220,7 +221,7 @@ export default function LoginPage() {
                   <circle cx="8" cy="12" r="3" fill="var(--color-background-body)" stroke="currentColor" strokeWidth="1.5" />
                 </svg>
                 <Text size="base" weight="medium" justify="end" className="openlink-login-url openlink-login-destination">
-                  openl.ink/your-next-thing
+{`${currentHostLabel()}/your-next-thing`}
                 </Text>
               </VStack>
             </VStack>

@@ -12,14 +12,17 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
 import { Route as ApiDocsRouteImport } from './routes/api/docs'
+import { Route as CreateLinkRouteImport } from './routes/create/link'
 import { Route as CreateOrganizationRouteImport } from './routes/create/organization'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardOrgSlugRouteRouteImport } from './routes/dashboard/$orgSlug/route'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analytics'
 import { Route as DashboardLinksRouteImport } from './routes/dashboard/links'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as EditLinkRouteImport } from './routes/edit/link'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as SettingsSectionRouteImport } from './routes/settings/$section'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
@@ -27,12 +30,13 @@ import { Route as DashboardOrgSlugIndexRouteImport } from './routes/dashboard/$o
 import { Route as DashboardOrgSlugActivityRouteImport } from './routes/dashboard/$orgSlug/activity'
 import { Route as DashboardOrgSlugAnalyticsRouteImport } from './routes/dashboard/$orgSlug/analytics'
 import { Route as DashboardOrgSlugDomainsRouteRouteImport } from './routes/dashboard/$orgSlug/domains/route'
-import { Route as DashboardOrgSlugLinksRouteImport } from './routes/dashboard/$orgSlug/links'
 import { Route as DashboardOrgSlugNotificationsRouteImport } from './routes/dashboard/$orgSlug/notifications'
 import { Route as DashboardOrgSlugReportsRouteImport } from './routes/dashboard/$orgSlug/reports'
 import { Route as DashboardOrgSlugSettingsRouteRouteImport } from './routes/dashboard/$orgSlug/settings/route'
 import { Route as DashboardOrgSlugDomainsIndexRouteImport } from './routes/dashboard/$orgSlug/domains/index'
 import { Route as DashboardOrgSlugDomainsNewRouteImport } from './routes/dashboard/$orgSlug/domains/new'
+import { Route as DashboardOrgSlugLinksIndexRouteImport } from './routes/dashboard/$orgSlug/links/index'
+import { Route as DashboardOrgSlugLinksLinkIdRouteImport } from './routes/dashboard/$orgSlug/links/$linkId'
 import { Route as DashboardOrgSlugSettingsIndexRouteImport } from './routes/dashboard/$orgSlug/settings/index'
 import { Route as DashboardOrgSlugSettingsSectionRouteImport } from './routes/dashboard/$orgSlug/settings/$section'
 
@@ -51,6 +55,11 @@ const DashboardRouteRoute = DashboardRouteRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -59,6 +68,11 @@ const SettingsRouteRoute = SettingsRouteRouteImport.update({
 const ApiDocsRoute = ApiDocsRouteImport.update({
   id: '/api/docs',
   path: '/api/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateLinkRoute = CreateLinkRouteImport.update({
+  id: '/create/link',
+  path: '/create/link',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateOrganizationRoute = CreateOrganizationRouteImport.update({
@@ -90,6 +104,11 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => DashboardRouteRoute,
+} as any)
+const EditLinkRoute = EditLinkRouteImport.update({
+  id: '/edit/link',
+  path: '/edit/link',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/',
@@ -129,11 +148,6 @@ const DashboardOrgSlugDomainsRouteRoute =
     path: '/domains',
     getParentRoute: () => DashboardOrgSlugRouteRoute,
   } as any)
-const DashboardOrgSlugLinksRoute = DashboardOrgSlugLinksRouteImport.update({
-  id: '/links',
-  path: '/links',
-  getParentRoute: () => DashboardOrgSlugRouteRoute,
-} as any)
 const DashboardOrgSlugNotificationsRoute =
   DashboardOrgSlugNotificationsRouteImport.update({
     id: '/notifications',
@@ -163,6 +177,18 @@ const DashboardOrgSlugDomainsNewRoute =
     path: '/new',
     getParentRoute: () => DashboardOrgSlugDomainsRouteRoute,
   } as any)
+const DashboardOrgSlugLinksIndexRoute =
+  DashboardOrgSlugLinksIndexRouteImport.update({
+    id: '/links/',
+    path: '/links/',
+    getParentRoute: () => DashboardOrgSlugRouteRoute,
+  } as any)
+const DashboardOrgSlugLinksLinkIdRoute =
+  DashboardOrgSlugLinksLinkIdRouteImport.update({
+    id: '/links/$linkId',
+    path: '/links/$linkId',
+    getParentRoute: () => DashboardOrgSlugRouteRoute,
+  } as any)
 const DashboardOrgSlugSettingsIndexRoute =
   DashboardOrgSlugSettingsIndexRouteImport.update({
     id: '/',
@@ -181,12 +207,15 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/login': typeof LoginRoute
   '/dashboard/$orgSlug': typeof DashboardOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
+  '/create/link': typeof CreateLinkRoute
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/links': typeof DashboardLinksRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/edit/link': typeof EditLinkRoute
   '/settings/$section': typeof SettingsSectionRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -195,36 +224,41 @@ export interface FileRoutesByFullPath {
   '/api/v1/$': typeof ApiV1SplatRoute
   '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
   '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
-  '/dashboard/$orgSlug/links': typeof DashboardOrgSlugLinksRoute
   '/dashboard/$orgSlug/notifications': typeof DashboardOrgSlugNotificationsRoute
   '/dashboard/$orgSlug/reports': typeof DashboardOrgSlugReportsRoute
   '/dashboard/$orgSlug/': typeof DashboardOrgSlugIndexRoute
   '/dashboard/$orgSlug/domains/new': typeof DashboardOrgSlugDomainsNewRoute
+  '/dashboard/$orgSlug/links/$linkId': typeof DashboardOrgSlugLinksLinkIdRoute
   '/dashboard/$orgSlug/settings/$section': typeof DashboardOrgSlugSettingsSectionRoute
   '/dashboard/$orgSlug/domains/': typeof DashboardOrgSlugDomainsIndexRoute
+  '/dashboard/$orgSlug/links/': typeof DashboardOrgSlugLinksIndexRoute
   '/dashboard/$orgSlug/settings/': typeof DashboardOrgSlugSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/login': typeof LoginRoute
   '/api/docs': typeof ApiDocsRoute
+  '/create/link': typeof CreateLinkRoute
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/links': typeof DashboardLinksRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/edit/link': typeof EditLinkRoute
   '/settings/$section': typeof SettingsSectionRoute
   '/dashboard': typeof DashboardIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
   '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
-  '/dashboard/$orgSlug/links': typeof DashboardOrgSlugLinksRoute
   '/dashboard/$orgSlug/notifications': typeof DashboardOrgSlugNotificationsRoute
   '/dashboard/$orgSlug/reports': typeof DashboardOrgSlugReportsRoute
   '/dashboard/$orgSlug': typeof DashboardOrgSlugIndexRoute
   '/dashboard/$orgSlug/domains/new': typeof DashboardOrgSlugDomainsNewRoute
+  '/dashboard/$orgSlug/links/$linkId': typeof DashboardOrgSlugLinksLinkIdRoute
   '/dashboard/$orgSlug/settings/$section': typeof DashboardOrgSlugSettingsSectionRoute
   '/dashboard/$orgSlug/domains': typeof DashboardOrgSlugDomainsIndexRoute
+  '/dashboard/$orgSlug/links': typeof DashboardOrgSlugLinksIndexRoute
   '/dashboard/$orgSlug/settings': typeof DashboardOrgSlugSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -233,12 +267,15 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/login': typeof LoginRoute
   '/dashboard/$orgSlug': typeof DashboardOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
+  '/create/link': typeof CreateLinkRoute
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/links': typeof DashboardLinksRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/edit/link': typeof EditLinkRoute
   '/settings/$section': typeof SettingsSectionRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -247,13 +284,14 @@ export interface FileRoutesById {
   '/api/v1/$': typeof ApiV1SplatRoute
   '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
   '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
-  '/dashboard/$orgSlug/links': typeof DashboardOrgSlugLinksRoute
   '/dashboard/$orgSlug/notifications': typeof DashboardOrgSlugNotificationsRoute
   '/dashboard/$orgSlug/reports': typeof DashboardOrgSlugReportsRoute
   '/dashboard/$orgSlug/': typeof DashboardOrgSlugIndexRoute
   '/dashboard/$orgSlug/domains/new': typeof DashboardOrgSlugDomainsNewRoute
+  '/dashboard/$orgSlug/links/$linkId': typeof DashboardOrgSlugLinksLinkIdRoute
   '/dashboard/$orgSlug/settings/$section': typeof DashboardOrgSlugSettingsSectionRoute
   '/dashboard/$orgSlug/domains/': typeof DashboardOrgSlugDomainsIndexRoute
+  '/dashboard/$orgSlug/links/': typeof DashboardOrgSlugLinksIndexRoute
   '/dashboard/$orgSlug/settings/': typeof DashboardOrgSlugSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -263,12 +301,15 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/about'
+    | '/login'
     | '/dashboard/$orgSlug'
     | '/api/docs'
+    | '/create/link'
     | '/create/organization'
     | '/dashboard/analytics'
     | '/dashboard/links'
     | '/dashboard/settings'
+    | '/edit/link'
     | '/settings/$section'
     | '/dashboard/'
     | '/settings/'
@@ -277,36 +318,41 @@ export interface FileRouteTypes {
     | '/api/v1/$'
     | '/dashboard/$orgSlug/activity'
     | '/dashboard/$orgSlug/analytics'
-    | '/dashboard/$orgSlug/links'
     | '/dashboard/$orgSlug/notifications'
     | '/dashboard/$orgSlug/reports'
     | '/dashboard/$orgSlug/'
     | '/dashboard/$orgSlug/domains/new'
+    | '/dashboard/$orgSlug/links/$linkId'
     | '/dashboard/$orgSlug/settings/$section'
     | '/dashboard/$orgSlug/domains/'
+    | '/dashboard/$orgSlug/links/'
     | '/dashboard/$orgSlug/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
+    | '/login'
     | '/api/docs'
+    | '/create/link'
     | '/create/organization'
     | '/dashboard/analytics'
     | '/dashboard/links'
     | '/dashboard/settings'
+    | '/edit/link'
     | '/settings/$section'
     | '/dashboard'
     | '/settings'
     | '/api/v1/$'
     | '/dashboard/$orgSlug/activity'
     | '/dashboard/$orgSlug/analytics'
-    | '/dashboard/$orgSlug/links'
     | '/dashboard/$orgSlug/notifications'
     | '/dashboard/$orgSlug/reports'
     | '/dashboard/$orgSlug'
     | '/dashboard/$orgSlug/domains/new'
+    | '/dashboard/$orgSlug/links/$linkId'
     | '/dashboard/$orgSlug/settings/$section'
     | '/dashboard/$orgSlug/domains'
+    | '/dashboard/$orgSlug/links'
     | '/dashboard/$orgSlug/settings'
   id:
     | '__root__'
@@ -314,12 +360,15 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/about'
+    | '/login'
     | '/dashboard/$orgSlug'
     | '/api/docs'
+    | '/create/link'
     | '/create/organization'
     | '/dashboard/analytics'
     | '/dashboard/links'
     | '/dashboard/settings'
+    | '/edit/link'
     | '/settings/$section'
     | '/dashboard/'
     | '/settings/'
@@ -328,13 +377,14 @@ export interface FileRouteTypes {
     | '/api/v1/$'
     | '/dashboard/$orgSlug/activity'
     | '/dashboard/$orgSlug/analytics'
-    | '/dashboard/$orgSlug/links'
     | '/dashboard/$orgSlug/notifications'
     | '/dashboard/$orgSlug/reports'
     | '/dashboard/$orgSlug/'
     | '/dashboard/$orgSlug/domains/new'
+    | '/dashboard/$orgSlug/links/$linkId'
     | '/dashboard/$orgSlug/settings/$section'
     | '/dashboard/$orgSlug/domains/'
+    | '/dashboard/$orgSlug/links/'
     | '/dashboard/$orgSlug/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -343,8 +393,11 @@ export interface RootRouteChildren {
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  LoginRoute: typeof LoginRoute
   ApiDocsRoute: typeof ApiDocsRoute
+  CreateLinkRoute: typeof CreateLinkRoute
   CreateOrganizationRoute: typeof CreateOrganizationRoute
+  EditLinkRoute: typeof EditLinkRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
 }
 
@@ -371,6 +424,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -383,6 +443,13 @@ declare module '@tanstack/react-router' {
       path: '/api/docs'
       fullPath: '/api/docs'
       preLoaderRoute: typeof ApiDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create/link': {
+      id: '/create/link'
+      path: '/create/link'
+      fullPath: '/create/link'
+      preLoaderRoute: typeof CreateLinkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create/organization': {
@@ -426,6 +493,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/settings'
       preLoaderRoute: typeof DashboardSettingsRouteImport
       parentRoute: typeof DashboardRouteRoute
+    }
+    '/edit/link': {
+      id: '/edit/link'
+      path: '/edit/link'
+      fullPath: '/edit/link'
+      preLoaderRoute: typeof EditLinkRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/settings/': {
       id: '/settings/'
@@ -476,13 +550,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrgSlugDomainsRouteRouteImport
       parentRoute: typeof DashboardOrgSlugRouteRoute
     }
-    '/dashboard/$orgSlug/links': {
-      id: '/dashboard/$orgSlug/links'
-      path: '/links'
-      fullPath: '/dashboard/$orgSlug/links'
-      preLoaderRoute: typeof DashboardOrgSlugLinksRouteImport
-      parentRoute: typeof DashboardOrgSlugRouteRoute
-    }
     '/dashboard/$orgSlug/notifications': {
       id: '/dashboard/$orgSlug/notifications'
       path: '/notifications'
@@ -517,6 +584,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/$orgSlug/domains/new'
       preLoaderRoute: typeof DashboardOrgSlugDomainsNewRouteImport
       parentRoute: typeof DashboardOrgSlugDomainsRouteRoute
+    }
+    '/dashboard/$orgSlug/links/': {
+      id: '/dashboard/$orgSlug/links/'
+      path: '/links'
+      fullPath: '/dashboard/$orgSlug/links/'
+      preLoaderRoute: typeof DashboardOrgSlugLinksIndexRouteImport
+      parentRoute: typeof DashboardOrgSlugRouteRoute
+    }
+    '/dashboard/$orgSlug/links/$linkId': {
+      id: '/dashboard/$orgSlug/links/$linkId'
+      path: '/links/$linkId'
+      fullPath: '/dashboard/$orgSlug/links/$linkId'
+      preLoaderRoute: typeof DashboardOrgSlugLinksLinkIdRouteImport
+      parentRoute: typeof DashboardOrgSlugRouteRoute
     }
     '/dashboard/$orgSlug/settings/': {
       id: '/dashboard/$orgSlug/settings/'
@@ -572,10 +653,11 @@ interface DashboardOrgSlugRouteRouteChildren {
   DashboardOrgSlugSettingsRouteRoute: typeof DashboardOrgSlugSettingsRouteRouteWithChildren
   DashboardOrgSlugActivityRoute: typeof DashboardOrgSlugActivityRoute
   DashboardOrgSlugAnalyticsRoute: typeof DashboardOrgSlugAnalyticsRoute
-  DashboardOrgSlugLinksRoute: typeof DashboardOrgSlugLinksRoute
   DashboardOrgSlugNotificationsRoute: typeof DashboardOrgSlugNotificationsRoute
   DashboardOrgSlugReportsRoute: typeof DashboardOrgSlugReportsRoute
   DashboardOrgSlugIndexRoute: typeof DashboardOrgSlugIndexRoute
+  DashboardOrgSlugLinksLinkIdRoute: typeof DashboardOrgSlugLinksLinkIdRoute
+  DashboardOrgSlugLinksIndexRoute: typeof DashboardOrgSlugLinksIndexRoute
 }
 
 const DashboardOrgSlugRouteRouteChildren: DashboardOrgSlugRouteRouteChildren = {
@@ -585,10 +667,11 @@ const DashboardOrgSlugRouteRouteChildren: DashboardOrgSlugRouteRouteChildren = {
     DashboardOrgSlugSettingsRouteRouteWithChildren,
   DashboardOrgSlugActivityRoute: DashboardOrgSlugActivityRoute,
   DashboardOrgSlugAnalyticsRoute: DashboardOrgSlugAnalyticsRoute,
-  DashboardOrgSlugLinksRoute: DashboardOrgSlugLinksRoute,
   DashboardOrgSlugNotificationsRoute: DashboardOrgSlugNotificationsRoute,
   DashboardOrgSlugReportsRoute: DashboardOrgSlugReportsRoute,
   DashboardOrgSlugIndexRoute: DashboardOrgSlugIndexRoute,
+  DashboardOrgSlugLinksLinkIdRoute: DashboardOrgSlugLinksLinkIdRoute,
+  DashboardOrgSlugLinksIndexRoute: DashboardOrgSlugLinksIndexRoute,
 }
 
 const DashboardOrgSlugRouteRouteWithChildren =
@@ -635,8 +718,11 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   SettingsRouteRoute: SettingsRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  LoginRoute: LoginRoute,
   ApiDocsRoute: ApiDocsRoute,
+  CreateLinkRoute: CreateLinkRoute,
   CreateOrganizationRoute: CreateOrganizationRoute,
+  EditLinkRoute: EditLinkRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
 }
 export const routeTree = rootRouteImport

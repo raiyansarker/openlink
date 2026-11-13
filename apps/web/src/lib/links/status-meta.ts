@@ -18,6 +18,13 @@ const STATUS_META: Record<ShortLinkStatus, LinkStatusMeta> = {
     dotVariant: 'success',
     isPulsing: true,
   },
+  scheduled: {
+    status: 'scheduled',
+    label: 'Scheduled',
+    description: 'Starts redirecting at its activation time',
+    dotVariant: 'neutral',
+    isPulsing: false,
+  },
   paused: {
     status: 'paused',
     label: 'Paused',

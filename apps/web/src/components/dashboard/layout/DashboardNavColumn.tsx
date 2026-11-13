@@ -153,7 +153,7 @@ export default function DashboardNavColumn() {
           padding: `0 ${DASHBOARD_NAV_HORIZONTAL_PADDING}px 14px 0`,
         }}
       >
-        <CreateLinkChromeButton layout="fill" />
+        <CreateLinkChromeButton layout="fill" hasShortcut />
       </div>
 
       <nav

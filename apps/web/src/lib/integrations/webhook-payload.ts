@@ -7,7 +7,7 @@ import {
 const SAMPLE_DATA_BY_GROUP: Record<WebhookEventGroup, Record<string, unknown>> = {
   links: {
     id: 'lnk_8f2k1',
-    shortUrl: 'https://opl.ink/launch',
+    shortUrl: '/launch',
     destination: 'https://example.com/launch',
   },
   clicks: {
