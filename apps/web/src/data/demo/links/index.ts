@@ -1,14 +1,8 @@
-import { acmeDemoLinks } from './acme'
-import { appleDemoLinks } from './apple'
-import { devrelDemoLinks } from './devrel'
-import { googleDemoLinks } from './google'
-import { metaDemoLinks } from './meta'
 import type { ShortLink } from '../types'
 
-export const demoLinks: ShortLink[] = [
-  ...appleDemoLinks,
-  ...acmeDemoLinks,
-  ...devrelDemoLinks,
-  ...metaDemoLinks,
-  ...googleDemoLinks,
-]
+/**
+ * Demo links are intentionally empty for now so the empty states show.
+ * The per-org fixtures (`./acme`, `./apple`, `./devrel`, `./google`, `./meta`)
+ * are kept; spread them back in here to restore the sample data.
+ */
+export const demoLinks: ShortLink[] = []

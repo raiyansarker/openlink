@@ -271,6 +271,17 @@ export function ExitSignIcon({ size = 16, ...p }: SvgProps) {
   )
 }
 
+/** iconmcp: all-in-one */
+export function AllInOneIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p} strokeWidth={0.833}>
+      <rect x="1.75" y="2" width="12.5" height="9.5" rx="2" />
+      <line x1="1.75" y1="9" x2="14.25" y2="9" />
+      <path d="M6.5 11.5 L5.982 13.228 C5.866 13.613 6.155 14 6.556 14 L9.444 14 C9.845 14 10.134 13.613 10.018 13.228 L9.5 11.5" />
+    </svg>
+  )
+}
+
 /** iconmcp: laptop */
 export function LaptopIcon({ size = 16, ...p }: SvgProps) {
   return (
@@ -318,6 +329,17 @@ export function HelpIcon({ size = 16, ...p }: SvgProps) {
       <circle cx="8" cy="8" r="5.75" />
       <path d="M6.25 6.25 A2.25 2.25 0 0 1 10.75 6.75 C10.75 8 9 8.5 8.5 9.25 V9.75" />
       <circle cx="8.5" cy="11.5" r="0.65" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function FolderIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      {/* Folder body with tab */}
+      <path d="M2.5 5.25 C2.5 4.284 3.284 3.5 4.25 3.5 L6.2 3.5 C6.5 3.5 6.78 3.63 6.97 3.86 L7.78 4.84 C7.97 5.07 8.25 5.2 8.55 5.2 L11.75 5.2 C12.716 5.2 13.5 5.984 13.5 6.95 L13.5 10.75 C13.5 11.716 12.716 12.5 11.75 12.5 L4.25 12.5 C3.284 12.5 2.5 11.716 2.5 10.75 Z" />
+      {/* Front flap edge, separates the tab from the body */}
+      <path d="M2.5 7 L13.5 7" />
     </svg>
   )
 }

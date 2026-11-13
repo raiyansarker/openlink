@@ -21,7 +21,7 @@ const PROFILE_FIELDS_MAX_WIDTH = 560
 
 function MutedCaption({ children }: { children: ReactNode }) {
   return (
-    <Text type="supporting" color="placeholder">
+    <Text type="supporting" color="secondary">
       {children}
     </Text>
   )
@@ -31,7 +31,7 @@ function PictureHelpCaption({ children }: { children: ReactNode }) {
   return (
     <Text
       type="supporting"
-      color="placeholder"
+      color="secondary"
       style={{ fontSize: 11, lineHeight: 1.45, maxWidth: 280 }}
     >
       {children}

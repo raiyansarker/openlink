@@ -16,6 +16,13 @@ export const Route = createFileRoute('/settings/$section')({
         replace: true,
       })
     }
+    if (params.section === 'developers') {
+      throw redirect({
+        to: '/settings/$section',
+        params: { section: 'api-keys' },
+        replace: true,
+      })
+    }
     if (!isSettingsSection(params.section)) {
       throw notFound()
     }

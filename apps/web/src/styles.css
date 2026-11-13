@@ -3,17 +3,59 @@
 @import '@astryxdesign/core/reset.css';
 @import '@astryxdesign/core/astryx.css';
 
-elements-api {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
 html,
 body {
   margin: 0;
   height: 100%;
   min-height: 100dvh;
+}
+
+/* Stoplight Elements API reference — fill the viewport on every internal view */
+html.api-docs-page,
+html.api-docs-page body {
+  height: 100%;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+body.api-docs-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+body.api-docs-page > * {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+.api-docs-root {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.api-docs-root elements-api {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+}
+
+elements-api {
+  display: block;
+  height: 100%;
+  width: 100%;
 }
 
 /* Settings main panel — scrollbar hidden until hover or scroll */
@@ -25,7 +67,7 @@ body {
 
 .settings-content-scroll:hover,
 .settings-content-scroll:focus-within {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-color: light-dark(rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.22)) transparent;
 }
 
 .settings-content-scroll::-webkit-scrollbar {
@@ -45,7 +87,7 @@ body {
 
 .settings-content-scroll:hover::-webkit-scrollbar-thumb,
 .settings-content-scroll:focus-within::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.22);
+  background-color: light-dark(rgba(0, 0, 0, 0.22), rgba(255, 255, 255, 0.24));
 }
 
 /* Members table — rounded row hover (matches 9px dashboard chrome). */
@@ -61,4 +103,191 @@ body {
 .members-table .astryx-table-row:hover .astryx-table-cell:last-child {
   border-top-right-radius: 9px;
   border-bottom-right-radius: 9px;
+}
+
+.members-table--clickable-rows .astryx-table-body .astryx-table-row {
+  cursor: pointer;
+}
+
+/* Row lists (devices, activity) — rounded hover, same 9px radius as the members table. */
+.devices-list .astryx-list-item,
+.activity-list .astryx-list-item {
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+/*
+ * Activity timeline — a vertical track through the actor avatars. Each row
+ * draws its own segments (above and below its 32px avatar, centred 24px in),
+ * so the line survives the rounded hover and never covers an avatar.
+ */
+.activity-timeline .astryx-list-item {
+  position: relative;
+  overflow: visible;
+}
+.activity-timeline .astryx-list-item::before,
+.activity-timeline .astryx-list-item::after {
+  content: '';
+  position: absolute;
+  left: 23.5px;
+  width: 1px;
+  background: var(--color-border-emphasized);
+  pointer-events: none;
+}
+.activity-timeline .astryx-list-item::before {
+  top: 0;
+  height: 8px;
+}
+.activity-timeline .astryx-list-item::after {
+  top: 48px;
+  bottom: -2px;
+}
+.activity-timeline .astryx-list-item:first-child::before,
+.activity-timeline .astryx-list-item:last-child::after {
+  display: none;
+}
+
+/*
+ * Connected input groups — the theme gives every input a 5px radius on all
+ * corners, which breaks InputGroup's "one shape" look. Square the inner
+ * edges and round only the outer ends, so the group reads as one field.
+ */
+.ol-connected-group > :is(.astryx-selector, .astryx-text-input, .astryx-input-group-text, .astryx-button) {
+  border-radius: 0;
+}
+.ol-connected-group > :is(.astryx-selector, .astryx-text-input, .astryx-input-group-text):first-child {
+  border-start-start-radius: 5px;
+  border-end-start-radius: 5px;
+}
+.ol-connected-group > .astryx-button:last-of-type {
+  border: 1px solid var(--color-border-emphasized);
+  border-inline-start: 0;
+  border-start-end-radius: 5px;
+  border-end-end-radius: 5px;
+}
+.ol-connected-group > .astryx-input-group-text {
+  color: var(--color-text-secondary);
+  background: var(--color-background-muted);
+}
+
+/* Create link — split view (form | preview); stacks on narrow screens. */
+@media (max-width: 960px) {
+  .ol-create-split {
+    flex-direction: column;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .ol-create-split-main {
+    flex: none !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  .ol-create-split-main > .settings-content-scroll,
+  .ol-create-split-aside .settings-content-scroll {
+    overflow: visible !important;
+  }
+  .ol-create-split-aside {
+    flex: none !important;
+    width: 100% !important;
+    height: auto !important;
+    padding-right: 10px !important;
+    /* Form first on small screens, preview after it. */
+    order: 2;
+  }
+  .ol-create-split-main > :first-child {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+}
+
+/* Link preview — a lasso leaves the short link, wanders, and closes around the destination. */
+.ol-lasso {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  min-width: 320px;
+  aspect-ratio: 320 / 96;
+}
+.ol-lasso-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.ol-lasso-mark {
+  position: absolute;
+  top: 50%;
+  left: 6.25%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+}
+.ol-lasso-tile {
+  position: absolute;
+  top: 50%;
+  left: 86.875%;
+  transform: translate(-50%, -50%);
+  animation: ol-lasso-tile 4.4s ease-in-out infinite;
+}
+.ol-lasso-draw {
+  fill: none;
+  stroke-dasharray: 1;
+}
+.ol-lasso-draw-rope {
+  animation: ol-lasso-rope 4.4s cubic-bezier(0.5, 0, 0.3, 1) infinite;
+}
+.ol-lasso-draw-ring {
+  animation: ol-lasso-ring 4.4s cubic-bezier(0.5, 0, 0.3, 1) infinite;
+}
+.ol-lasso-fade {
+  animation: ol-lasso-fade 4.4s ease-in-out infinite;
+}
+@keyframes ol-lasso-rope {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  52%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ol-lasso-ring {
+  0%,
+  50% {
+    stroke-dashoffset: 1;
+  }
+  72%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ol-lasso-fade {
+  0%,
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ol-lasso-tile {
+  0%,
+  68%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  76% {
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ol-lasso-draw,
+  .ol-lasso-fade,
+  .ol-lasso-tile {
+    animation: none;
+  }
+  .ol-lasso-draw {
+    stroke-dashoffset: 0;
+  }
 }

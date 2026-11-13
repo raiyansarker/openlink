@@ -6,6 +6,7 @@ import {
   DASHBOARD_CONTENT_PANEL_BG,
   DASHBOARD_CONTENT_PANEL_BORDER,
   DASHBOARD_CONTENT_PANEL_RADIUS,
+  DASHBOARD_CONTENT_PANEL_SHADOW,
   DASHBOARD_SURFACE_BG,
 } from './dashboard-shell-colors'
 
@@ -59,7 +60,7 @@ export default function ThreeColumnDashboardLayout({
             backgroundColor: DASHBOARD_CONTENT_PANEL_BG,
             borderRadius: DASHBOARD_CONTENT_PANEL_RADIUS,
             border: DASHBOARD_CONTENT_PANEL_BORDER,
-            boxShadow: 'none',
+            boxShadow: DASHBOARD_CONTENT_PANEL_SHADOW,
           }}
         >
           {children}

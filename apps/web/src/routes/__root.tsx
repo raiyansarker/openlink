@@ -8,6 +8,8 @@ import type { ReactNode } from 'react'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import AstryxProviders from '#/components/AstryxProviders'
+import NotFoundPage from '#/components/not-found/NotFoundPage'
+import { COLOR_MODE_BOOTSTRAP_SCRIPT } from '#/lib/settings/color-mode-bootstrap'
 
 import appCss from '../styles.css?url'
 
@@ -37,6 +39,9 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootDocument,
+  // Every unknown URL (and every thrown notFound() without its own handler)
+  // gets the same 404.
+  notFoundComponent: ({ routeId }) => <NotFoundPage routeId={String(routeId)} />,
 })
 
 function RootDocument({ children }: { children: ReactNode }) {
@@ -45,15 +50,12 @@ function RootDocument({ children }: { children: ReactNode }) {
   })
 
   return (
-    <html lang="en">
+    <html lang="en" className={isApiDocs ? 'api-docs-page' : undefined}>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: COLOR_MODE_BOOTSTRAP_SCRIPT }} />
         <HeadContent />
       </head>
-      <body
-        className={
-          isApiDocs ? 'm-0 h-dvh overflow-hidden' : undefined
-        }
-      >
+      <body className={isApiDocs ? 'api-docs-page' : undefined}>
         {isApiDocs ? (
           children
         ) : (

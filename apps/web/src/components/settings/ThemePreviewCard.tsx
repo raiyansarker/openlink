@@ -216,7 +216,9 @@ export default function ThemePreviewCard({
             fontSize: LABEL_SIZE,
             lineHeight: 1.25,
             fontWeight: isSelected ? 600 : 400,
-            color: isSelected ? '#222222' : '#666666',
+            color: isSelected
+              ? 'var(--color-text-primary)'
+              : 'var(--color-text-secondary)',
             fontFamily: FONT,
             textAlign: 'center',
           }}

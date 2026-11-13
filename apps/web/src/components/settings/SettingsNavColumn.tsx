@@ -8,15 +8,21 @@ import {
 } from '#/lib/settings/sections'
 import { SETTINGS_SECTION_ICONS } from './settings-nav-icons'
 import { LogOutIcon } from '#/components/icons/IcnMcp'
+import {
+  DASHBOARD_NAV_HOVER_BG,
+  DASHBOARD_NAV_SELECTED_BG,
+  SHELL_NAV_GROUP_LABEL,
+  SHELL_NAV_ICON_COLOR,
+  SHELL_NAV_TEXT_PRIMARY,
+  SHELL_NAV_TEXT_SECONDARY,
+} from '#/components/dashboard/layout/dashboard-shell-colors'
 
 const NAV_COLUMN_WIDTH = 228
-const NAV_HOVER_BG = '#eeeeee'
-const NAV_SELECTED_BG = 'rgba(0,0,0,0.06)'
 const NAV_ITEM_TRANSITION = 'background-color 0.14s ease'
 
 function navItemBackground(selected: boolean, hovered: boolean): string {
-  if (hovered) return NAV_HOVER_BG
-  if (selected) return NAV_SELECTED_BG
+  if (hovered) return DASHBOARD_NAV_HOVER_BG
+  if (selected) return DASHBOARD_NAV_SELECTED_BG
   return 'transparent'
 }
 
@@ -72,7 +78,7 @@ function SettingsNavLink({
       style={{
         ...navLinkBaseStyle,
         fontWeight: selected ? 600 : 400,
-        color: selected ? '#0a0a0a' : 'rgba(0,0,0,0.68)',
+        color: selected ? SHELL_NAV_TEXT_PRIMARY : SHELL_NAV_TEXT_SECONDARY,
         backgroundColor: navItemBackground(selected, hovered),
       }}
       onMouseEnter={() => setHovered(true)}
@@ -83,7 +89,7 @@ function SettingsNavLink({
       <span
         style={{
           display: 'flex',
-          color: selected ? '#0a0a0a' : 'rgba(0,0,0,0.55)',
+          color: selected ? SHELL_NAV_TEXT_PRIMARY : SHELL_NAV_ICON_COLOR,
           flexShrink: 0,
         }}
       >
@@ -104,7 +110,7 @@ function GroupLabel({ children }: { children: string }) {
         lineHeight: 1.2,
         letterSpacing: '0.07em',
         textTransform: 'uppercase',
-        color: 'rgba(0,0,0,0.48)',
+        color: SHELL_NAV_GROUP_LABEL,
         padding: '0 8px 5px',
       }}
     >
@@ -166,7 +172,7 @@ export default function SettingsNavColumn() {
           borderRadius: 0,
           cursor: 'pointer',
           backgroundColor: 'transparent',
-          color: '#0a0a0a',
+          color: SHELL_NAV_TEXT_PRIMARY,
           fontSize: 16,
           fontWeight: 600,
           fontFamily: 'inherit',
@@ -214,16 +220,16 @@ export default function SettingsNavColumn() {
             onClick={() => {}}
             style={{
               ...navLinkBaseStyle,
-              color: '#b91c1c',
+              color: 'var(--color-text-error)',
               fontWeight: 500,
-              backgroundColor: logoutHovered ? NAV_HOVER_BG : 'transparent',
+              backgroundColor: logoutHovered ? DASHBOARD_NAV_HOVER_BG : 'transparent',
             }}
             onMouseEnter={() => setLogoutHovered(true)}
             onMouseLeave={() => setLogoutHovered(false)}
             onFocus={() => setLogoutHovered(true)}
             onBlur={() => setLogoutHovered(false)}
           >
-            <span style={{ display: 'flex', color: '#b91c1c' }}>
+            <span style={{ display: 'flex', color: 'var(--color-text-error)' }}>
               <LogOutIcon size={16} strokeWidth={1.2} />
             </span>
             Log out

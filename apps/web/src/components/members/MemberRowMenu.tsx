@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { IconButton } from '@astryxdesign/core/IconButton'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
+import ChangeMemberRoleDialog from '#/components/members/ChangeMemberRoleDialog'
 
 type MemberRowMenuProps = {
   member: WorkspaceMember
@@ -16,6 +18,7 @@ export default function MemberRowMenu({
   onResendInvite,
   onRemove,
 }: MemberRowMenuProps) {
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false)
   const isOwner = member.role === 'owner'
   const isPending = member.status === 'pending'
 
@@ -30,23 +33,12 @@ export default function MemberRowMenu({
         ]
       : []),
     {
-      id: 'admin',
-      label: 'Make admin',
-      onClick: () => onChangeRole(member.id, 'admin'),
-      isDisabled: isOwner || member.role === 'admin',
+      id: 'change-role',
+      label: 'Change role',
+      onClick: () => setRoleDialogOpen(true),
+      isDisabled: isOwner,
     },
-    {
-      id: 'member',
-      label: 'Make member',
-      onClick: () => onChangeRole(member.id, 'member'),
-      isDisabled: isOwner || member.role === 'member',
-    },
-    {
-      id: 'viewer',
-      label: 'Make viewer',
-      onClick: () => onChangeRole(member.id, 'viewer'),
-      isDisabled: isOwner || member.role === 'viewer',
-    },
+    { type: 'divider' as const },
     {
       id: 'remove',
       label: isPending ? 'Cancel invite' : 'Remove member',
@@ -56,23 +48,33 @@ export default function MemberRowMenu({
   ]
 
   return (
-    <DropdownMenu
-      hasChevron={false}
-      presentation="popover"
-      placement="below"
-      alignment="end"
-      menuWidth={200}
-      renderTrigger={(triggerProps) => (
-        <IconButton
-          {...triggerProps}
-          variant="ghost"
-          size="sm"
-          icon={<MoreHorizontalIcon size={16} />}
-          label={`More actions for ${member.name}`}
-          tooltip={`Actions for ${member.name}`}
+    <>
+      <DropdownMenu
+        hasChevron={false}
+        presentation="popover"
+        placement="below"
+        alignment="end"
+        menuWidth={200}
+        renderTrigger={(triggerProps) => (
+          <IconButton
+            {...triggerProps}
+            variant="ghost"
+            size="sm"
+            icon={<MoreHorizontalIcon size={16} />}
+            label={`More actions for ${member.name}`}
+            tooltip={`Actions for ${member.name}`}
+          />
+        )}
+        items={items}
+      />
+      {!isOwner ? (
+        <ChangeMemberRoleDialog
+          member={member}
+          isOpen={roleDialogOpen}
+          onOpenChange={setRoleDialogOpen}
+          onConfirm={onChangeRole}
         />
-      )}
-      items={items}
-    />
+      ) : null}
+    </>
   )
 }

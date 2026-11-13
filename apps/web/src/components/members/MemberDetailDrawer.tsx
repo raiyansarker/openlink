@@ -112,7 +112,7 @@ export default function MemberDetailDrawer({
                       <Text type="supporting" color="secondary" maxLines={2}>
                         {member.email}
                       </Text>
-                      <Text type="supporting" color="placeholder">
+                      <Text type="supporting" color="secondary">
                         {workspaceMemberRoleLabel(member.role)}
                         {isPending ? ' (Pending)' : ''}
                       </Text>

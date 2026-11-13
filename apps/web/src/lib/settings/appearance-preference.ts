@@ -1,28 +1,41 @@
 export type ColorMode = 'system' | 'light' | 'dark'
 
-const COLOR_MODE_KEY = 'openlink.color-mode'
+/** Legend State persisted store key */
+export const APPEARANCE_STATE_STORAGE_KEY = 'openlink.appearance'
 
-const DEFAULT_COLOR_MODE: ColorMode = 'system'
+/** Pre–Legend State flat value (migrated on load) */
+export const COLOR_MODE_STORAGE_KEY = 'openlink.color-mode'
 
-function readStorage(key: string, allowed: readonly ColorMode[], fallback: ColorMode): ColorMode {
-  if (typeof window === 'undefined') return fallback
+export const DEFAULT_COLOR_MODE: ColorMode = 'system'
+
+const ALLOWED: readonly ColorMode[] = ['system', 'light', 'dark']
+
+function isColorMode(value: unknown): value is ColorMode {
+  return typeof value === 'string' && ALLOWED.includes(value as ColorMode)
+}
+
+export function readLegacyColorMode(): ColorMode | null {
+  if (typeof window === 'undefined') return null
   try {
-    const raw = window.localStorage.getItem(key)
-    if (raw && allowed.includes(raw as ColorMode)) return raw as ColorMode
+    const raw = window.localStorage.getItem(COLOR_MODE_STORAGE_KEY)
+    if (isColorMode(raw)) return raw
   } catch {
     /* ignore */
   }
-  return fallback
+  return null
 }
 
+/** Initial SSR/client render before Legend hydrate */
 export function loadColorMode(): ColorMode {
-  return readStorage(COLOR_MODE_KEY, ['system', 'light', 'dark'], DEFAULT_COLOR_MODE)
-}
-
-export function saveColorMode(mode: ColorMode) {
+  if (typeof window === 'undefined') return DEFAULT_COLOR_MODE
   try {
-    window.localStorage.setItem(COLOR_MODE_KEY, mode)
+    const persisted = window.localStorage.getItem(APPEARANCE_STATE_STORAGE_KEY)
+    if (persisted) {
+      const parsed = JSON.parse(persisted) as { colorMode?: unknown }
+      if (isColorMode(parsed?.colorMode)) return parsed.colorMode
+    }
   } catch {
     /* ignore */
   }
+  return readLegacyColorMode() ?? DEFAULT_COLOR_MODE
 }

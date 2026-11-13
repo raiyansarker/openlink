@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react'
 import SettingsNavColumn from './SettingsNavColumn'
-
-const SETTINGS_SURFACE_BG = '#f7f7f7'
-const SETTINGS_PANEL_BG = '#ffffff'
+import {
+  DASHBOARD_CONTENT_PANEL_BG,
+  DASHBOARD_CONTENT_PANEL_BORDER,
+  DASHBOARD_CONTENT_PANEL_RADIUS,
+  DASHBOARD_CONTENT_PANEL_SHADOW,
+  DASHBOARD_SURFACE_BG,
+} from '#/components/dashboard/layout/dashboard-shell-colors'
 
 const NAV_SLOT_WIDTH = '35%'
-const CONTENT_PANEL_RADIUS = 9
 const CONTENT_MAX_WIDTH = '100%'
-const CONTENT_PANEL_BORDER = '1px solid rgba(0, 0, 0, 0.055)'
 
 type SettingsShellProps = {
   children: ReactNode
@@ -21,7 +23,7 @@ export default function SettingsShell({ children }: SettingsShellProps) {
         width: '100%',
         height: '100dvh',
         overflow: 'hidden',
-        backgroundColor: SETTINGS_SURFACE_BG,
+        backgroundColor: DASHBOARD_SURFACE_BG,
       }}
     >
       <div
@@ -32,7 +34,7 @@ export default function SettingsShell({ children }: SettingsShellProps) {
           flexShrink: 0,
           display: 'flex',
           justifyContent: 'flex-end',
-          backgroundColor: SETTINGS_SURFACE_BG,
+          backgroundColor: DASHBOARD_SURFACE_BG,
         }}
       >
         <SettingsNavColumn />
@@ -47,7 +49,7 @@ export default function SettingsShell({ children }: SettingsShellProps) {
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: SETTINGS_SURFACE_BG,
+          backgroundColor: DASHBOARD_SURFACE_BG,
         }}
       >
         <div
@@ -56,10 +58,10 @@ export default function SettingsShell({ children }: SettingsShellProps) {
             flex: 1,
             minHeight: 0,
             overflowY: 'auto',
-            backgroundColor: SETTINGS_PANEL_BG,
-            borderRadius: CONTENT_PANEL_RADIUS,
-            border: CONTENT_PANEL_BORDER,
-            boxShadow: 'none',
+            backgroundColor: DASHBOARD_CONTENT_PANEL_BG,
+            borderRadius: DASHBOARD_CONTENT_PANEL_RADIUS,
+            border: DASHBOARD_CONTENT_PANEL_BORDER,
+            boxShadow: DASHBOARD_CONTENT_PANEL_SHADOW,
           }}
         >
           <div

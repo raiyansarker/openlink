@@ -1,11 +1,23 @@
 import { Theme } from '@astryxdesign/core/theme'
-import type { ReactNode } from 'react'
+import { useSyncExternalStore, type ReactNode } from 'react'
 import { defaultThemeSlug, themes } from '#/astryx-themes'
-import { AppearancePreferenceProvider, useAppearancePreference } from '#/contexts/AppearancePreferenceContext'
 import { WorkspaceDirectoryProvider } from '#/contexts/WorkspaceDirectoryContext'
+import { DEFAULT_COLOR_MODE, type ColorMode } from '#/lib/settings/appearance-preference'
+import { appearance$ } from '#/state/appearance.state'
+
+function subscribe(onChange: () => void) {
+  return appearance$.colorMode.onChange(onChange)
+}
+
+const getSnapshot = (): ColorMode => appearance$.colorMode.peek()
+// Must match what the server renders so hydration doesn't keep stale attributes.
+const getServerSnapshot = (): ColorMode => DEFAULT_COLOR_MODE
 
 function ThemedSubtree({ children }: { children: ReactNode }) {
-  const { colorMode } = useAppearancePreference()
+  // Server snapshot is used during hydration, then React immediately re-renders
+  // with the persisted client value (Theme's wrapper attributes are not
+  // patched by React when they mismatch during hydration).
+  const colorMode = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
   return (
     <Theme theme={themes[defaultThemeSlug]} mode={colorMode}>
       {children}
@@ -15,10 +27,8 @@ function ThemedSubtree({ children }: { children: ReactNode }) {
 
 export default function AstryxProviders({ children }: { children: ReactNode }) {
   return (
-    <AppearancePreferenceProvider>
-      <WorkspaceDirectoryProvider>
-        <ThemedSubtree>{children}</ThemedSubtree>
-      </WorkspaceDirectoryProvider>
-    </AppearancePreferenceProvider>
+    <WorkspaceDirectoryProvider>
+      <ThemedSubtree>{children}</ThemedSubtree>
+    </WorkspaceDirectoryProvider>
   )
 }

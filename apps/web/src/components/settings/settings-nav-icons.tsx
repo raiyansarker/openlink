@@ -3,7 +3,7 @@ import type { SettingsSection } from '#/lib/settings/sections'
 import {
   UserIcon,
   TimelineViewIcon,
-  LaptopIcon,
+  AllInOneIcon,
   BuildingIcon,
   UsersIcon,
   AppIntegrationIcon,
@@ -18,9 +18,9 @@ const navIconProps = { size: ICON_SIZE, strokeWidth: ICON_STROKE } as const
 export const SETTINGS_SECTION_ICONS: Record<SettingsSection, ReactNode> = {
   profile: <UserIcon {...navIconProps} />,
   appearance: <TimelineViewIcon {...navIconProps} />,
-  devices: <LaptopIcon {...navIconProps} />,
+  devices: <AllInOneIcon {...navIconProps} />,
   general: <BuildingIcon {...navIconProps} />,
   members: <UsersIcon {...navIconProps} />,
   integrations: <AppIntegrationIcon {...navIconProps} />,
-  developers: <CodeWindowIcon {...navIconProps} />,
+  'api-keys': <CodeWindowIcon {...navIconProps} />,
 }
