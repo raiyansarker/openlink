@@ -1,7 +1,9 @@
 import { contract } from '@openlink/contracts'
-import { createOpenLinkDomainClient } from '@openlink/domain'
-import { getAuth } from '../auth/instance'
-import { getBindings } from '../env'
+import { Effect } from 'effect'
+import { BackendError, operation } from '#/server/effect/operations'
+import { Auth } from '#/server/effect/services/auth'
+import { Bindings } from '#/server/effect/services/bindings'
+import { DomainClient } from '#/server/effect/services/domain-client'
 import { resolveHealthReportStatus } from './report'
 
 export type HealthCheckResult = {
@@ -12,136 +14,101 @@ export type HealthCheckResult = {
   latencyMs?: number
 }
 
-async function timed<T>(fn: () => Promise<T> | T): Promise<{ value: T; latencyMs: number }> {
-  const start = performance.now()
-  const value = await fn()
-  return { value, latencyMs: Math.round(performance.now() - start) }
+function probe<R>(
+  name: string,
+  fallback: string,
+  check: Effect.Effect<string | undefined, BackendError, R>,
+): Effect.Effect<HealthCheckResult, never, R> {
+  return Effect.gen(function* () {
+    const start = performance.now()
+    const message = yield* check
+    return {
+      name,
+      status: 'ok' as const,
+      required: true,
+      latencyMs: Math.round(performance.now() - start),
+      ...(message === undefined ? {} : { message }),
+    }
+  }).pipe(
+    Effect.catchTag('BackendError', ({ cause }) => Effect.succeed({
+      name,
+      status: 'error' as const,
+      required: true,
+      message: cause instanceof Error ? cause.message : fallback,
+    })),
+  )
 }
 
-async function checkD1(): Promise<HealthCheckResult> {
-  try {
-    const { latencyMs } = await timed(async () => {
-      const result = await getBindings().DB.prepare('SELECT 1 AS ok').first<{ ok: number }>()
-      if (result?.ok !== 1) throw new Error('unexpected probe result')
-    })
-    return { name: 'd1', status: 'ok', required: true, latencyMs }
-  } catch (error) {
-    return {
-      name: 'd1',
-      status: 'error',
-      required: true,
-      message: error instanceof Error ? error.message : 'D1 probe failed',
-    }
-  }
-}
-
-async function checkAnalyticsEngine(): Promise<HealthCheckResult> {
-  try {
-    const { latencyMs } = await timed(() => {
-      const analytics = getBindings().ANALYTICS
-      if (!analytics) throw new Error('ANALYTICS binding is not configured')
-    })
-    return {
-      name: 'analytics_engine',
-      status: 'ok',
-      required: true,
-      latencyMs,
-      message: 'binding present',
-    }
-  } catch (error) {
-    return {
-      name: 'analytics_engine',
-      status: 'error',
-      required: true,
-      message: error instanceof Error ? error.message : 'Analytics binding check failed',
-    }
-  }
-}
-
-async function checkAuth(): Promise<HealthCheckResult> {
-  try {
-    const bindings = getBindings()
-    if (!bindings.BETTER_AUTH_SECRET || bindings.BETTER_AUTH_SECRET.length < 16) {
-      return {
-        name: 'auth',
-        status: 'error',
-        required: true,
-        message: 'BETTER_AUTH_SECRET is missing or too short',
-      }
-    }
-
-    const { latencyMs } = await timed(() => {
-      getAuth()
-    })
-
-    return { name: 'auth', status: 'ok', required: true, latencyMs }
-  } catch (error) {
-    return {
-      name: 'auth',
-      status: 'error',
-      required: true,
-      message: error instanceof Error ? error.message : 'Auth initialization failed',
-    }
-  }
-}
-
-async function checkDomainProvider(): Promise<HealthCheckResult> {
-  try {
-    const bindings = getBindings()
-    const mode = bindings.DOMAIN_PROVIDER ?? 'memory'
-
-    if (mode === 'cloudflare') {
-      const missing = ['CF_API_TOKEN', 'CF_ZONE_ID', 'CF_SAAS_CNAME_TARGET'].filter(
-        (key) => !bindings[key as keyof typeof bindings],
+function checkD1() {
+  return probe('d1', 'D1 probe failed', Effect.gen(function* () {
+    const bindings = yield* Bindings
+    const result = yield* operation('health.d1', () =>
+      bindings.DB.prepare('SELECT 1 AS ok').first<{ ok: number }>(),
+    )
+    if (result?.ok !== 1) {
+      return yield* Effect.fail(
+        new BackendError({ operation: 'health.d1', cause: new Error('unexpected probe result') }),
       )
-      if (missing.length > 0) {
-        return {
-          name: 'domain_provider',
-          status: 'error',
-          required: true,
-          message: `Missing Cloudflare env: ${missing.join(', ')}`,
+    }
+    return undefined
+  }))
+}
+
+function checkAnalyticsEngine() {
+  return probe('analytics_engine', 'Analytics binding check failed', Effect.gen(function* () {
+    const bindings = yield* Bindings
+    yield* operation('health.analytics_engine', () => {
+      if (!bindings.ANALYTICS) throw new Error('ANALYTICS binding is not configured')
+    })
+    return 'binding present'
+  }))
+}
+
+function checkAuth() {
+  return probe('auth', 'Auth initialization failed', Effect.gen(function* () {
+    const bindings = yield* Bindings
+    yield* operation('health.auth.configuration', () => {
+      if (!bindings.BETTER_AUTH_SECRET || bindings.BETTER_AUTH_SECRET.length < 16) {
+        throw new Error('BETTER_AUTH_SECRET is missing or too short')
+      }
+    })
+    // Resolving the injected instance replaces initializing auth in the probe.
+    yield* Auth
+    return undefined
+  }))
+}
+
+function checkDomainProvider() {
+  return probe('domain_provider', 'Domain provider check failed', Effect.gen(function* () {
+    const bindings = yield* Bindings
+    const mode = bindings.DOMAIN_PROVIDER ?? 'memory'
+    yield* operation('health.domain_provider.configuration', () => {
+      if (mode === 'cloudflare') {
+        const missing = ['CF_API_TOKEN', 'CF_ZONE_ID', 'CF_SAAS_CNAME_TARGET'].filter(
+          (key) => !bindings[key as keyof typeof bindings],
+        )
+        if (missing.length > 0) {
+          throw new Error(`Missing Cloudflare env: ${missing.join(', ')}`)
         }
       }
-    }
-
-    const { latencyMs } = await timed(() => {
-      const client = createOpenLinkDomainClient(bindings)
+    })
+    const client = yield* DomainClient
+    yield* operation('health.domain_provider', () => {
       if (!client.provider) throw new Error('domain client missing provider id')
     })
-
-    return {
-      name: 'domain_provider',
-      status: 'ok',
-      required: true,
-      latencyMs,
-      message: `provider=${mode}`,
-    }
-  } catch (error) {
-    return {
-      name: 'domain_provider',
-      status: 'error',
-      required: true,
-      message: error instanceof Error ? error.message : 'Domain provider check failed',
-    }
-  }
+    return `provider=${mode}`
+  }))
 }
 
-async function checkOpenApiContract(): Promise<HealthCheckResult> {
-  try {
-    const { latencyMs } = await timed(() => {
+function checkOpenApiContract() {
+  return probe('orpc_openapi_contract', 'Contract invalid', Effect.gen(function* () {
+    yield* operation('health.orpc_openapi_contract', () => {
       if (!contract.system?.getHealth || !contract.system?.getOpenApiDocument) {
         throw new Error('oRPC OpenAPI contract is missing required procedures')
       }
     })
-    return { name: 'orpc_openapi_contract', status: 'ok', required: true, latencyMs }
-  } catch (error) {
-    return {
-      name: 'orpc_openapi_contract',
-      status: 'error',
-      required: true,
-      message: error instanceof Error ? error.message : 'Contract invalid',
-    }
-  }
+    return undefined
+  }))
 }
 
 export type HealthReport = {
@@ -151,21 +118,21 @@ export type HealthReport = {
   checks: HealthCheckResult[]
 }
 
-export async function runHealthChecks(): Promise<HealthReport> {
-  const checks = await Promise.all([
-    checkD1(),
-    checkAnalyticsEngine(),
-    checkAuth(),
-    checkDomainProvider(),
-    checkOpenApiContract(),
-  ])
+export function runHealthChecks(): Effect.Effect<HealthReport, never, Bindings | Auth | DomainClient> {
+  return Effect.gen(function* () {
+    const checks = yield* Effect.all([
+      checkD1(),
+      checkAnalyticsEngine(),
+      checkAuth(),
+      checkDomainProvider(),
+      checkOpenApiContract(),
+    ], { concurrency: 'unbounded' })
 
-  const status = resolveHealthReportStatus(checks)
-
-  return {
-    status,
-    service: 'openlink',
-    checkedAt: new Date().toISOString(),
-    checks,
-  }
+    return {
+      status: resolveHealthReportStatus(checks),
+      service: 'openlink',
+      checkedAt: new Date().toISOString(),
+      checks,
+    }
+  })
 }

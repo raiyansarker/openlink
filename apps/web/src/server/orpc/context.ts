@@ -1,8 +1,8 @@
 import type { WithEffectContext } from '@orpc/effect'
-import { Context } from 'effect'
+import { Context, Effect } from 'effect'
 
-import { getRequestEffectContext } from '#/server/effect/runtime'
-import type { Db } from '#/server/effect/services/db'
+import type { AppServices } from '#/server/effect/layer'
+import { requestEffectContext } from '#/server/effect/runtime'
 import { WorkerRequest } from '#/server/effect/services/request'
 import { wrapApiEffect } from '#/server/effect/wrap'
 
@@ -10,17 +10,20 @@ export type ApiContext = {
   request: Request
   /** Raw Set-Cookie header values to attach to the API response (auth). */
   setCookieHeaders: string[]
-} & WithEffectContext<Db | WorkerRequest>
+} & WithEffectContext<AppServices | WorkerRequest>
 
-export async function createApiContext(request: Request): Promise<ApiContext> {
-  const base = await getRequestEffectContext()
-  return {
-    request,
-    setCookieHeaders: [],
-    'effect/context': base.pipe(Context.add(WorkerRequest, request)) as ApiContext['effect/context'],
-    'effect/wrap': wrapApiEffect,
-  }
-}
+/** oRPC needs a Promise at the HTTP edge; the context itself is built as an Effect. */
+export const createApiContext = (request: Request): Promise<ApiContext> =>
+  Effect.runPromise(
+    requestEffectContext.pipe(
+      Effect.map((base) => ({
+        request,
+        setCookieHeaders: [],
+        'effect/context': base.pipe(Context.add(WorkerRequest, request)) as ApiContext['effect/context'],
+        'effect/wrap': wrapApiEffect,
+      })),
+    ),
+  )
 
 export function mergeAuthResponseCookies(
   context: ApiContext,
