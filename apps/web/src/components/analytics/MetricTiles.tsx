@@ -68,13 +68,23 @@ type MetricTilesProps = {
   isComparing: boolean
   /** Narrower tiles for side-by-side layouts such as a link's page. */
   isCompact?: boolean
+  /** One link's report: averages read per day/hour instead of per link. */
+  isSingleLink?: boolean
 }
 
 /** Headline numbers for the window, each with a period delta and a sparkline. */
-export default function MetricTiles({ report, isComparing, isCompact = false }: MetricTilesProps) {
+export default function MetricTiles({
+  report,
+  isComparing,
+  isCompact = false,
+  isSingleLink = false,
+}: MetricTilesProps) {
   const tiles = useMemo<Tile[]>(() => {
     const { totals, previousTotals, totalsSeries } = report
     const linkCount = Math.max(1, report.links.length)
+    const repeatDetail = isSingleLink
+      ? `${formatCompact(totals.clicks / Math.max(1, totalsSeries.length))} clicks per ${report.bucket}`
+      : `${formatCompact(totals.clicks / linkCount)} clicks per link`
     const uniqueRate = totals.clicks ? totals.unique / totals.clicks : 0
     const previousUniqueRate = previousTotals.clicks ? previousTotals.unique / previousTotals.clicks : 0
     return [
@@ -115,7 +125,7 @@ export default function MetricTiles({ report, isComparing, isCompact = false }: 
         key: 'repeat',
         label: 'Repeat clicks',
         value: formatPercent(1 - uniqueRate),
-        exact: `${formatCompact(totals.clicks / linkCount)} clicks per link`,
+        exact: repeatDetail,
         current: 1 - uniqueRate,
         previous: 1 - previousUniqueRate,
         higherIsBetter: true,
@@ -126,7 +136,7 @@ export default function MetricTiles({ report, isComparing, isCompact = false }: 
         color: SERIES_COLORS[3],
       },
     ]
-  }, [report])
+  }, [report, isSingleLink])
 
   return (
     <Grid columns={{ minWidth: isCompact ? 150 : 220, max: 4 }} gap={isCompact ? 3 : 4} width="100%">

@@ -37,3 +37,16 @@ export function deltaDirection(current: number, previous: number): 'up' | 'down'
   if (Math.abs(change) < 0.005) return 'flat'
   return change > 0 ? 'up' : 'down'
 }
+
+/** "Oct 14 – Nov 13" (or "Thu 9 AM – Fri 9 AM" for 24 hours): the report's window. */
+export function formatReportWindow(report: {
+  range: string
+  windowStart: Date
+  windowEnd: Date
+}): string {
+  const opts: Intl.DateTimeFormatOptions =
+    report.range === '24h'
+      ? { weekday: 'short', hour: 'numeric' }
+      : { month: 'short', day: 'numeric' }
+  return `${report.windowStart.toLocaleString(undefined, opts)} – ${report.windowEnd.toLocaleString(undefined, opts)}`
+}

@@ -1,16 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Card } from '@astryxdesign/core/Card'
-import { EmptyState } from '@astryxdesign/core/EmptyState'
 import { Grid } from '@astryxdesign/core/Grid'
-import { HStack } from '@astryxdesign/core/HStack'
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from '@astryxdesign/core/SegmentedControl'
-import { Switch } from '@astryxdesign/core/Switch'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import AnalyticsCard from '#/components/analytics/AnalyticsCard'
+import AnalyticsToolbar from '#/components/analytics/AnalyticsToolbar'
 import HourHeatmap from '#/components/analytics/HourHeatmap'
 import LocationsCard from '#/components/analytics/LocationsCard'
 import MetricTiles from '#/components/analytics/MetricTiles'
@@ -19,20 +12,25 @@ import TechnologyCard from '#/components/analytics/TechnologyCard'
 import TrafficChart from '#/components/analytics/TrafficChart'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import {
-  RANGE_OPTIONS,
   buildAnalyticsReport,
   type AnalyticsRange,
   type TrackedLink,
 } from '#/lib/analytics/demo-dataset'
+import { formatReportWindow } from '#/lib/analytics/format'
 
 type LinkAnalyticsSectionProps = {
   linkId: string
 }
 
 /**
- * The Analytics page's panels scoped to one short link. Numbers are tied to
- * the link's own record: nothing before it was created, and lifetime clicks
- * that match its stored count.
+ * The Analytics (Insights) page scoped to one short link: the same toolbar,
+ * KPI tiles and panels, minus the org-wide rankings (top links,
+ * destinations) that would be a single row here.
+ *
+ * A link with recorded clicks is calibrated to its own record: nothing before
+ * it was created, and lifetime clicks that match its stored count. A link with
+ * none yet shows the demo traffic Insights shows when drilling into it, so the
+ * two pages always agree.
  */
 export default function LinkAnalyticsSection({ linkId }: LinkAnalyticsSectionProps) {
   const { activeOrg, links } = useOrganization()
@@ -47,7 +45,9 @@ export default function LinkAnalyticsSection({ linkId }: LinkAnalyticsSectionPro
   }, [linkId])
 
   const link = links.find((l) => l.id === linkId)
+  const hasRecordedClicks = (link?.clicks ?? 0) > 0
 
+  // Same list (and order) as Insights, so a link's share matches there.
   const trackedLinks = useMemo<TrackedLink[]>(
     () =>
       links.map((l) => ({ id: l.id, slug: l.slug, title: l.title, destination: l.targetUrl })),
@@ -56,7 +56,7 @@ export default function LinkAnalyticsSection({ linkId }: LinkAnalyticsSectionPro
 
   const report = useMemo(
     () =>
-      now == null || !link || link.clicks <= 0
+      now == null || !link
         ? null
         : buildAnalyticsReport({
             orgId: activeOrg.id,
@@ -64,73 +64,60 @@ export default function LinkAnalyticsSection({ linkId }: LinkAnalyticsSectionPro
             linkId: link.id,
             links: trackedLinks,
             now,
-            calibration: {
-              createdAt: new Date(link.createdAt).getTime(),
-              lifetimeClicks: link.clicks,
-            },
+            calibration: hasRecordedClicks
+              ? {
+                  createdAt: new Date(link.createdAt).getTime(),
+                  lifetimeClicks: link.clicks,
+                }
+              : undefined,
           }),
-    [activeOrg.id, range, link, trackedLinks, now],
+    [activeOrg.id, range, link, hasRecordedClicks, trackedLinks, now],
   )
 
-  const hasClicks = (link?.clicks ?? 0) > 0
-
   return (
-    <VStack gap={4} hAlign="stretch" width="100%">
-      <HStack hAlign="between" vAlign="center" gap={3} width="100%" wrap="wrap">
-        <Text weight="semibold">Analytics</Text>
-        {hasClicks ? (
-          <HStack gap={4} vAlign="center" wrap="wrap">
-            <SegmentedControl
-              label="Time range"
-              value={range}
-              onChange={(value) => setRange(value as AnalyticsRange)}
-              size="sm"
-            >
-              {RANGE_OPTIONS.map((option) => (
-                <SegmentedControlItem key={option.value} value={option.value} label={option.label} />
-              ))}
-            </SegmentedControl>
-            <Switch
-              size="sm"
-              label="Compare"
-              labelTooltip="Compare to the previous period of the same length"
-              value={isComparing}
-              onChange={setIsComparing}
-            />
-          </HStack>
+    <VStack gap={5} hAlign="stretch" width="100%">
+      <VStack gap={2} hAlign="stretch" width="100%">
+        <AnalyticsToolbar
+          range={range}
+          onRangeChange={setRange}
+          isComparing={isComparing}
+          onCompareChange={setIsComparing}
+        />
+        {report ? (
+          <Text type="supporting" color="secondary">
+            {formatReportWindow(report)}
+            {hasRecordedClicks
+              ? ''
+              : ' · No clicks recorded yet, so this shows sample traffic (the same as Insights)'}
+          </Text>
         ) : null}
-      </HStack>
+      </VStack>
 
-      {!hasClicks ? (
-        <Card padding={6} style={{ width: '100%' }}>
-          <EmptyState
-            isCompact
-            headingLevel={4}
-            title="No clicks yet"
-            description="Share the short link. Traffic, sources, locations, and devices show up here after the first click."
-          />
-        </Card>
-      ) : report ? (
-        <VStack gap={4} hAlign="stretch" width="100%">
-          <MetricTiles report={report} isComparing={isComparing} isCompact />
+      {report ? (
+        <>
+          <MetricTiles report={report} isComparing={isComparing} isSingleLink />
+
           <AnalyticsCard
             title="Clicks over time"
             description={`Per ${report.bucket}, stacked by channel${isComparing ? ' · dashed line is the previous period' : ''}`}
           >
-            <TrafficChart report={report} isComparing={isComparing} height={240} />
+            <TrafficChart report={report} isComparing={isComparing} height={280} />
           </AnalyticsCard>
-          <Grid columns={{ minWidth: 300, max: 2 }} gap={4} width="100%">
+
+          <Grid columns={{ minWidth: 360, max: 2 }} gap={5} width="100%">
             <SourcesCard report={report} isComparing={isComparing} />
             <TechnologyCard report={report} isComparing={isComparing} />
           </Grid>
+
           <LocationsCard report={report} isComparing={isComparing} />
+
           <AnalyticsCard
             title="When people click"
             description={`${report.heatmapWindowLabel} · by weekday and hour, in your timezone`}
           >
             <HourHeatmap report={report} />
           </AnalyticsCard>
-        </VStack>
+        </>
       ) : null}
     </VStack>
   )

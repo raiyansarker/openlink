@@ -20,17 +20,9 @@ import {
   SAMPLE_LINKS,
   buildAnalyticsReport,
   type AnalyticsRange,
-  type AnalyticsReport,
   type TrackedLink,
 } from '#/lib/analytics/demo-dataset'
-
-function windowLabel(report: AnalyticsReport): string {
-  const opts: Intl.DateTimeFormatOptions =
-    report.range === '24h'
-      ? { weekday: 'short', hour: 'numeric' }
-      : { month: 'short', day: 'numeric' }
-  return `${report.windowStart.toLocaleString(undefined, opts)} – ${report.windowEnd.toLocaleString(undefined, opts)}`
-}
+import { formatReportWindow as windowLabel } from '#/lib/analytics/format'
 
 export default function DashboardAnalyticsPanel() {
   const { activeOrg, links } = useOrganization()
