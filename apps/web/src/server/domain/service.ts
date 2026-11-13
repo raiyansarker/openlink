@@ -32,6 +32,15 @@ function serializeDnsRecords(records: DnsRecord[]) {
   )
 }
 
+export function listDomainsForOrganization(organizationId: string) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    return yield* operation('domain.list', () =>
+      db.select().from(customDomain).where(eq(customDomain.organizationId, organizationId)),
+    )
+  })
+}
+
 export function refreshCustomDomain(domainId: string) {
   return Effect.gen(function* () {
     const db = yield* Db
