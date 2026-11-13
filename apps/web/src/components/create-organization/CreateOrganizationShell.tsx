@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import {
   DASHBOARD_SURFACE_BG,
   SHELL_NAV_TEXT_PRIMARY,
 } from '#/components/dashboard/layout/dashboard-shell-colors'
+import { useKeyPress } from '#/hooks/use-key-press'
 
 /** Compact centered column for the create-organization form (~23–24rem). */
 const CREATE_ORGANIZATION_FORM_MAX_WIDTH = '24rem'
@@ -33,6 +34,10 @@ function ChevronBackIcon() {
 export default function CreateOrganizationShell({
   children,
 }: CreateOrganizationShellProps) {
+  // Escape goes back to the dashboard, like the back link.
+  const navigate = useNavigate()
+  useKeyPress('Escape', () => void navigate({ to: '/dashboard' }), { allowInInputs: true })
+
   return (
     <div
       style={{
