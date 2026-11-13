@@ -1,7 +1,9 @@
 // @ts-ignore -- Bun provides this API at runtime; the web app has no Bun test typings.
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import type { customDomain, link } from '@openlink/db/schema'
-import { Context } from 'effect'
+import { Context, Effect } from 'effect'
+import type { WorkerBindings } from '../env'
+import { Bindings } from '../effect/services/bindings'
 import type { OrganizationRole } from '../org/permissions'
 
 // Explicitly launched by authorization.test.ts, not discovered by `bun test src`.
@@ -24,49 +26,49 @@ const linkRow: typeof link.$inferSelect = {
 }
 let role: OrganizationRole | null = 'viewer'
 
-const requireSession = mock(async () => ({ session: { user: { id: 'user-1' } } }))
-const requireOrgMembership = mock(async (_userId: string, _organizationId: string) =>
-  role === null ? null : { role },
+let authenticated = true
+const session = { session: { user: { id: 'user-1', email: 'user@example.com' } } }
+const requireSession = mock((_request: Request) => Effect.succeed(authenticated ? session : null))
+const requireOrgMembership = mock((_userId: string, _organizationId: string) =>
+  Effect.succeed(role === null ? null : { role }),
 )
-const getDomainInOrganization = mock(async (_domainId: string, _organizationId: string) => domain)
-const getOrganizationById = mock(async (_organizationId: string) => org)
-const listOrganizationsForUser = mock(async (_userId: string) => [{ organization: org, member: { role, joinedAt: now } }])
-const createMemberInvite = mock(async (input: { organizationId: string; email: string; role: string; createdByUserId: string }) => ({
+const getDomainInOrganization = mock((_domainId: string, _organizationId: string) => Effect.succeed(domain))
+const getOrganizationById = mock((_organizationId: string) => Effect.succeed(org))
+const listOrganizationsForUser = mock((_userId: string) => Effect.succeed([{ organization: org, member: { role, joinedAt: now } }]))
+const createMemberInvite = mock((input: { organizationId: string; email: string; role: string; createdByUserId: string }) => Effect.succeed({
   invite: { id: 'invite-1', ...input, expiresAt: now }, token: 'invite-token',
 }))
-const registerCustomDomain = mock(async (_input: unknown) => domain)
-const removeCustomDomain = mock(async (_domainId: string, _organizationId: string) => true)
-const refreshCustomDomain = mock(async (_domainId: string) => domain)
-const createLinkRecord = mock(async (_input: unknown) => linkRow)
-const getLinkInDomain = mock(async (_domainId: string, _linkId: string) => linkRow)
-const listLinksForDomain = mock(async (_domainId: string) => [linkRow])
-const hashLinkPassword = mock(async (_password: string) => 'hashed-password')
-const selectWhere = mock(async (_condition: unknown) => [domain])
-const select = mock(() => ({ from: () => ({ where: selectWhere }) }))
-const updateSet = mock((values: Partial<typeof linkRow>) => ({
-  where: (_condition: unknown) => ({ returning: async () => [{ ...linkRow, ...values }] }),
+const listDomainsForOrganization = mock((_organizationId: string) => Effect.succeed([domain]))
+const registerCustomDomain = mock((_input: unknown) => Effect.succeed(domain))
+const removeCustomDomain = mock((_domainId: string, _organizationId: string) => Effect.succeed(true))
+const refreshCustomDomain = mock((_domainId: string) => Effect.succeed(domain))
+const createLinkRecord = mock((_input: unknown) => Effect.succeed(linkRow))
+const getLinkInDomain = mock((_domainId: string, _linkId: string) => Effect.succeed(linkRow))
+const listLinksForDomain = mock((_domainId: string) => Effect.succeed([linkRow]))
+const updateLinkRecord = mock((existing: typeof linkRow, input: { title?: string; password?: string | null }) => Effect.succeed({
+  ...existing, title: input.title ?? existing.title,
+  passwordHash: input.password ? 'hashed-password' : existing.passwordHash,
 }))
-const update = mock((_table: unknown) => ({ set: updateSet }))
-const deleteWhere = mock(async (_condition: unknown) => undefined)
-const deleteRow = mock((_table: unknown) => ({ where: deleteWhere }))
-const unexpectedWrite = mock(() => { throw new Error('Unexpected write') })
-const getDb = mock(() => ({ select, update, delete: deleteRow, insert: unexpectedWrite }))
-const getBindings = mock(() => ({ EXPOSE_INVITE_TOKENS_IN_API: 'false' }))
-const getAuth = mock(() => { throw new Error('Unexpected auth provider call') })
-const runHealthChecks = mock(() => { throw new Error('Unexpected health check') })
-const getRequestEffectContext = mock(async () => Context.empty())
+const deleteLinkRecord = mock((_linkId: string) => Effect.void)
+const acceptMemberInvite = mock((_input: unknown) => Effect.die(new Error('Unexpected invite acceptance')))
+const createOrganizationWithBootstrapInvite = mock((_input: unknown) => Effect.die(new Error('Unexpected organization creation')))
+const signIn = mock((_input: unknown) => Effect.die(new Error('Unexpected sign in')))
+const signUp = mock((_input: unknown) => Effect.die(new Error('Unexpected sign up')))
+const signOut = mock((_request: Request) => Effect.die(new Error('Unexpected sign out')))
+const runHealthChecks = mock(() => Effect.die(new Error('Unexpected health check')))
+// Boundary workflows are mocked, so infrastructure bindings are intentionally absent.
+const getRequestEffectContext = mock(async () => Context.make(Bindings, {
+  DOMAIN_PROVIDER: 'memory', EXPOSE_INVITE_TOKENS_IN_API: 'false',
+} as WorkerBindings))
 
-mock.module('#/server/env', () => ({ getBindings }))
-mock.module('#/server/db', () => ({ getDb }))
 mock.module('#/server/auth/session', () => ({ requireSession }))
-mock.module('#/server/auth/instance', () => ({ getAuth }))
+mock.module('#/server/auth/service', () => ({ signIn, signUp, signOut }))
 mock.module('#/server/api/access', () => ({ requireOrgMembership, getDomainInOrganization }))
-mock.module('#/server/domain/service', () => ({ registerCustomDomain, removeCustomDomain, refreshCustomDomain }))
-mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, listLinksForDomain }))
-mock.module('#/server/links/password', () => ({ hashLinkPassword }))
+mock.module('#/server/domain/service', () => ({ listDomainsForOrganization, registerCustomDomain, removeCustomDomain, refreshCustomDomain }))
+mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
 mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
-  acceptMemberInvite: unexpectedWrite, createOrganizationWithBootstrapInvite: unexpectedWrite,
+  acceptMemberInvite, createOrganizationWithBootstrapInvite,
 }))
 mock.module('#/server/health/checks', () => ({ runHealthChecks }))
 mock.module('#/server/effect/runtime', () => ({ getRequestEffectContext }))
@@ -75,16 +77,17 @@ const { handleOpenApiRequest } = await import('./openapi-handler')
 
 const sideEffects = [
   createMemberInvite, registerCustomDomain, removeCustomDomain, refreshCustomDomain,
-  createLinkRecord, update, updateSet, deleteRow, deleteWhere, hashLinkPassword,
-  unexpectedWrite, getAuth, runHealthChecks,
+  createLinkRecord, updateLinkRecord, deleteLinkRecord,
+  acceptMemberInvite, createOrganizationWithBootstrapInvite, signIn, signUp, signOut, runHealthChecks,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
-  select, selectWhere, getDb, getBindings, getRequestEffectContext,
+  listDomainsForOrganization, getRequestEffectContext,
 ]
 beforeEach(() => {
   role = 'viewer'
+  authenticated = true
   for (const spy of spies) spy.mockClear()
 })
 
@@ -152,17 +155,14 @@ const mutations = [
   },
   {
     name: 'update link', method: 'PATCH', path: linkPath, body: updateBody,
-    status: 200, allowed: ['owner', 'admin', 'member'], effects: [update, updateSet, hashLinkPassword],
-    assertWrite: () => {
-      expect(hashLinkPassword).toHaveBeenCalledWith(updateBody.password)
-      expect(updateSet).toHaveBeenCalledWith(expect.objectContaining({ title: updateBody.title, passwordHash: 'hashed-password' }))
-    },
+    status: 200, allowed: ['owner', 'admin', 'member'], effects: [updateLinkRecord],
+    assertWrite: () => expect(updateLinkRecord).toHaveBeenCalledWith(linkRow, updateBody),
     response: { id: linkRow.id, title: updateBody.title, passwordProtected: true },
   },
   {
     name: 'delete link', method: 'DELETE', path: linkPath, body: undefined,
-    status: 204, allowed: ['owner', 'admin', 'member'], effects: [deleteRow, deleteWhere],
-    assertWrite: () => expect(deleteWhere).toHaveBeenCalledTimes(1),
+    status: 204, allowed: ['owner', 'admin', 'member'], effects: [deleteLinkRecord],
+    assertWrite: () => expect(deleteLinkRecord).toHaveBeenCalledWith(linkRow.id),
     response: undefined,
   },
 ] as const
@@ -180,7 +180,8 @@ for (const endpoint of mutations) {
         if (!permitted) {
           expect(await response.json()).toMatchObject({ code: 'FORBIDDEN' })
           expectNoSideEffects()
-          expect(getDb).not.toHaveBeenCalled()
+          expect(getDomainInOrganization).not.toHaveBeenCalled()
+          expect(getLinkInDomain).not.toHaveBeenCalled()
         } else {
           endpoint.assertWrite()
           expectNoSideEffects(endpoint.effects)
@@ -200,7 +201,6 @@ for (const actor of ['owner', 'admin'] as const) {
     expect(await response.json()).toMatchObject({ code: 'BAD_REQUEST' })
     expect(requireSession).not.toHaveBeenCalled()
     expect(requireOrgMembership).not.toHaveBeenCalled()
-    expect(getDb).not.toHaveBeenCalled()
     expectNoSideEffects()
   })
 }
@@ -208,7 +208,7 @@ for (const actor of ['owner', 'admin'] as const) {
 const reads = [
   { name: 'list organizations', path: '/organizations', expected: { items: [{ role: 'viewer', organization: { id: org.id } }] }, read: listOrganizationsForUser, args: ['user-1'] },
   { name: 'get organization', path: orgPath, expected: { id: org.id }, read: getOrganizationById, args: [org.id] },
-  { name: 'list domains', path: domainsPath, expected: { items: [{ id: domain.id }] }, read: select, args: [] },
+  { name: 'list domains', path: domainsPath, expected: { items: [{ id: domain.id }] }, read: listDomainsForOrganization, args: [org.id] },
   { name: 'get domain', path: domainPath, expected: { id: domain.id }, read: getDomainInOrganization, args: [domain.id, org.id] },
   { name: 'list links', path: linksPath, expected: { items: [{ id: linkRow.id }] }, read: listLinksForDomain, args: [domain.id] },
   { name: 'get link', path: linkPath, expected: { id: linkRow.id }, read: getLinkInDomain, args: [domain.id, linkRow.id] },
@@ -219,9 +219,93 @@ for (const endpoint of reads) {
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject(endpoint.expected)
     expect(endpoint.read).toHaveBeenCalledWith(...endpoint.args)
+    expect(requireSession).toHaveBeenCalledWith(expect.any(Request))
     if (endpoint.path !== '/organizations') {
       expect(requireOrgMembership).toHaveBeenCalledWith('user-1', org.id)
     }
     expectNoSideEffects()
+  })
+
+  test(`unauthenticated caller cannot ${endpoint.name}`, async () => {
+    authenticated = false
+    const response = await request('GET', endpoint.path)
+    expect(response.status).toBe(401)
+    expect(await response.json()).toMatchObject({ code: 'UNAUTHORIZED' })
+    expect(requireSession).toHaveBeenCalledWith(expect.any(Request))
+    expect(requireOrgMembership).not.toHaveBeenCalled()
+    expect(endpoint.read).not.toHaveBeenCalled()
+    expectNoSideEffects()
+  })
+
+  if (endpoint.path !== '/organizations') {
+    test(`non-member cannot ${endpoint.name}`, async () => {
+      role = null
+      const response = await request('GET', endpoint.path)
+      expect(response.status).toBe(403)
+      expect(await response.json()).toMatchObject({ code: 'FORBIDDEN' })
+      expect(requireOrgMembership).toHaveBeenCalledWith('user-1', org.id)
+      expect(endpoint.read).not.toHaveBeenCalled()
+      expectNoSideEffects()
+    })
+  }
+}
+
+// catchTags matches structural tags; do not load real service modules just for error constructors.
+const typedFailures = [
+  {
+    name: 'invalid bootstrap invite', workflow: createOrganizationWithBootstrapInvite,
+    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invalid-token' },
+    tag: 'InvalidBootstrapInvite', status: 403, code: 'FORBIDDEN', message: 'Invalid or expired bootstrap invite token',
+  },
+  {
+    name: 'organization conflict', workflow: createOrganizationWithBootstrapInvite,
+    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invite-token' },
+    tag: 'OrganizationConflict', status: 409, code: 'CONFLICT', message: 'Unable to create organization',
+  },
+  {
+    name: 'organization backend failure', workflow: createOrganizationWithBootstrapInvite,
+    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invite-token' },
+    tag: 'BackendError', status: 409, code: 'CONFLICT', message: 'Unable to create organization',
+  },
+  {
+    name: 'invite email mismatch', workflow: acceptMemberInvite,
+    path: '/organizations/invites/accept', body: { token: 'invite-token' },
+    tag: 'InviteEmailMismatch', status: 403, code: 'FORBIDDEN', message: 'This invite was sent to a different email address',
+  },
+  {
+    name: 'invalid invite', workflow: acceptMemberInvite,
+    path: '/organizations/invites/accept', body: { token: 'invalid-token' },
+    tag: 'InvalidInvite', status: 400, code: 'BAD_REQUEST', message: 'Invalid or expired invite',
+  },
+  {
+    name: 'invite backend failure', workflow: acceptMemberInvite,
+    path: '/organizations/invites/accept', body: { token: 'invite-token' },
+    tag: 'BackendError', status: 400, code: 'BAD_REQUEST', message: 'Invalid or expired invite',
+  },
+  {
+    name: 'domain backend failure', workflow: registerCustomDomain,
+    path: domainsPath, body: { hostname: domain.hostname },
+    tag: 'BackendError', status: 400, code: 'BAD_REQUEST', message: 'Unable to register domain',
+  },
+  {
+    name: 'slug conflict', workflow: createLinkRecord,
+    path: linksPath, body: createBody,
+    tag: 'SlugConflict', status: 409, code: 'CONFLICT', message: 'Slug already exists on this domain',
+  },
+  {
+    name: 'link backend failure', workflow: createLinkRecord,
+    path: linksPath, body: createBody,
+    tag: 'BackendError', status: 400, code: 'BAD_REQUEST', message: 'Unable to create link',
+  },
+] as const
+
+for (const failure of typedFailures) {
+  test(`${failure.name} maps to HTTP ${failure.status}`, async () => {
+    role = 'owner'
+    failure.workflow.mockImplementationOnce(() => Effect.fail({ _tag: failure.tag }))
+    const response = await request('POST', failure.path, failure.body)
+    expect(response.status).toBe(failure.status)
+    expect(await response.json()).toMatchObject({ code: failure.code, message: failure.message })
+    expectNoSideEffects([failure.workflow])
   })
 }
