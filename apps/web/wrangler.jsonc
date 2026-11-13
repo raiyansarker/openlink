@@ -22,7 +22,6 @@
     }
   ],
   "vars": {
-    "BUN_VERSION": "1.4.4"
     "DOMAIN_PROVIDER": "memory",
     "BETTER_AUTH_URL": "http://localhost:3000",
     "EXPOSE_INVITE_TOKENS_IN_API": "true"
