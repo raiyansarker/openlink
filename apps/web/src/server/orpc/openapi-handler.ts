@@ -1,5 +1,7 @@
 import { OpenAPIHandler } from '@orpc/openapi/fetch'
 import { mergeStandardHeaders } from '@standard-server/core'
+import { Effect } from 'effect'
+import { operation } from '#/server/effect/operations'
 import { createApiContext, type ApiContext } from './context'
 import { router } from './router'
 
@@ -14,31 +16,34 @@ function withSetCookieHeaders(
 }
 
 export const openApiHandler = new OpenAPIHandler<ApiContext>(router, {
+  // oRPC requires a Promise here; the logic itself is an Effect.
   routingInterceptors: [
-    async (interceptorOptions) => {
-      const result = await interceptorOptions.next(interceptorOptions)
-      if (!result.matched || !result.response) return result
+    (interceptorOptions) =>
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const result = yield* operation('openapi.route', () =>
+            interceptorOptions.next(interceptorOptions),
+          )
+          if (!result.matched || !result.response) return result
 
-      const { context } = interceptorOptions
-      if (context.setCookieHeaders.length === 0) return result
+          const { context } = interceptorOptions
+          if (context.setCookieHeaders.length === 0) return result
 
-      return {
-        matched: true as const,
-        response: {
-          ...result.response,
-          headers: withSetCookieHeaders(
-            result.response.headers,
-            context.setCookieHeaders,
-          ),
-        },
-      }
-    },
+          return {
+            matched: true as const,
+            response: {
+              ...result.response,
+              headers: withSetCookieHeaders(result.response.headers, context.setCookieHeaders),
+            },
+          }
+        }),
+      ),
   ],
 })
 
-export async function handleOpenApiRequest(request: Request) {
-  return openApiHandler.handle(request, {
+/** Edge adapter: the HTTP framework consumes a Promise. */
+export const handleOpenApiRequest = (request: Request) =>
+  openApiHandler.handle(request, {
     prefix: '/api/v1',
     context: () => createApiContext(request),
   })
-}

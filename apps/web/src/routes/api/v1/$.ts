@@ -1,11 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { Effect } from 'effect'
+import { operation } from '#/server/effect/operations'
 import { handleOpenApiRequest } from '#/server/orpc/openapi-handler'
 
-async function serve({ request }: { request: Request }) {
-  const { matched, response } = await handleOpenApiRequest(request)
-  if (matched && response) return response
-  return new Response(null, { status: 404 })
-}
+const serve = ({ request }: { request: Request }) =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const { matched, response } = yield* operation('api.handle', () =>
+        handleOpenApiRequest(request),
+      )
+      return matched && response ? response : new Response(null, { status: 404 })
+    }),
+  )
 
 export const Route = createFileRoute('/api/v1/$')({
   server: {
