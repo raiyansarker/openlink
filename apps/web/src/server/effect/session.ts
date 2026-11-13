@@ -7,7 +7,7 @@ import { WorkerRequest } from './services/request'
 
 export const readSessionEffect = Effect.gen(function* () {
   const request = yield* WorkerRequest
-  return yield* Effect.promise(() => requireSession(request))
+  return yield* requireSession(request)
 })
 
 export const requireAuthSession = Effect.gen(function* () {
