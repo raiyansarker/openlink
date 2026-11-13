@@ -1,6 +1,6 @@
 import { contract } from '@openlink/contracts'
 import { Effect } from 'effect'
-import { operation, type BackendError } from '#/server/effect/operations'
+import { BackendError, operation } from '#/server/effect/operations'
 import { Auth } from '#/server/effect/services/auth'
 import { Bindings } from '#/server/effect/services/bindings'
 import { DomainClient } from '#/server/effect/services/domain-client'
@@ -42,10 +42,14 @@ function probe<R>(
 function checkD1() {
   return probe('d1', 'D1 probe failed', Effect.gen(function* () {
     const bindings = yield* Bindings
-    yield* operation('health.d1', async () => {
-      const result = await bindings.DB.prepare('SELECT 1 AS ok').first<{ ok: number }>()
-      if (result?.ok !== 1) throw new Error('unexpected probe result')
-    })
+    const result = yield* operation('health.d1', () =>
+      bindings.DB.prepare('SELECT 1 AS ok').first<{ ok: number }>(),
+    )
+    if (result?.ok !== 1) {
+      return yield* Effect.fail(
+        new BackendError({ operation: 'health.d1', cause: new Error('unexpected probe result') }),
+      )
+    }
     return undefined
   }))
 }
