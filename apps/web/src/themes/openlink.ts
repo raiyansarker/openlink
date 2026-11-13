@@ -102,6 +102,29 @@ export const openlinkTheme = defineTheme({
           'light-dark(var(--color-background-surface), var(--color-background-muted))',
       },
     },
+    // Dropdowns, tag fields and date pickers match text inputs (radius,
+    // quiet focus, surface fill) so every field in a form looks the same.
+    selector: {
+      'variant:input': {
+        ...INPUT_QUIET_FOCUS,
+        backgroundColor:
+          'light-dark(var(--color-background-surface), var(--color-background-muted))',
+      },
+    },
+    tokenizer: {
+      base: {
+        ...INPUT_QUIET_FOCUS,
+        backgroundColor:
+          'light-dark(var(--color-background-surface), var(--color-background-muted))',
+      },
+    },
+    'date-time-input': {
+      base: {
+        ...INPUT_QUIET_FOCUS,
+        backgroundColor:
+          'light-dark(var(--color-background-surface), var(--color-background-muted))',
+      },
+    },
     'field-label': {
       base: {
         fontSize: 'var(--font-size-sm)',
