@@ -2,29 +2,42 @@ type OpenLinkAppMarkProps = {
   size?: number
 }
 
-/** Top-left product mark — neutral; brand orange stays elsewhere as a rare accent. */
+/**
+ * OpenLink mark — a lasso. A rope rises from the lower left, curls once, and
+ * closes in a loop: catching a destination. Neutral tile, brand orange knot.
+ */
 export default function OpenLinkAppMark({ size = 36 }: OpenLinkAppMarkProps) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 40 40"
-      fill="none"
-      aria-hidden
-    >
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" aria-hidden>
       <rect
-        width="40"
-        height="40"
+        x="0.5"
+        y="0.5"
+        width="39"
+        height="39"
         rx="11"
         fill="#161616"
         stroke="rgba(255,255,255,0.14)"
-        strokeWidth="1"
       />
+      {/* Rope: from the hand, one curl, up to the knot */}
       <path
-        fill="#fafafa"
-        fillRule="evenodd"
-        d="M14 20.2a5.2 5.2 0 0 1 5.2-5.2h1.8V12H19.2A7.2 7.2 0 0 0 12 19.2 7.2 7.2 0 0 0 19.2 26.4h1.8v-2.9H19.2a5.2 5.2 0 0 1-5.2-5.3Zm11.8-7.1h1.8A7.2 7.2 0 0 1 34 20.2 7.2 7.2 0 0 1 26.8 27.3H25v2.9h1.8A10 10 0 0 0 37 20.2 10 10 0 0 0 27 10.1h-1.8v3Z"
+        d="M9.5 31.5c2.6-.4 4.4-2.2 4.6-4.4.2-2-1.6-3.2-3-2.3-1.5 1-.6 3.4 1.6 3.6 2.6.2 4.4-2.4 5.6-5.4"
+        stroke="#fafafa"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
+      {/* Loop */}
+      <ellipse
+        cx="24.4"
+        cy="15.6"
+        rx="8.2"
+        ry="6.4"
+        transform="rotate(-24 24.4 15.6)"
+        stroke="#fafafa"
+        strokeWidth="2.2"
+      />
+      {/* Knot (honda) where rope meets loop */}
+      <circle cx="18.6" cy="21.2" r="2.3" fill="var(--openlink-brand, #FF4602)" />
     </svg>
   )
 }
