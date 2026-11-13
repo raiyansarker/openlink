@@ -100,6 +100,29 @@ cd apps/web && bun run deploy    # build + wrangler deploy (Cloudflare auth requ
 
 With `DOMAIN_PROVIDER=memory`, hostname verification uses the in-memory Domain SDK adapter—no Cloudflare API calls. To exercise real SaaS hostnames, set `DOMAIN_PROVIDER=cloudflare` and add `CF_API_TOKEN`, `CF_ZONE_ID`, `CF_SAAS_CNAME_TARGET`, and `CF_SAAS_CUSTOM_ORIGIN` in `.dev.vars`.
 
+### Workspace roles
+
+| Role   | Read workspace data | Manage links | Manage domains and invitations |
+| ------ | ------------------- | ------------ | ------------------------------ |
+| Owner  | Yes                 | Yes          | Yes                            |
+| Admin  | Yes                 | Yes          | Yes                            |
+| Member | Yes                 | Yes          | No                             |
+| Viewer | Yes                 | No           | No                             |
+
+New workspace creators receive the `owner` role. Invitations can grant `admin`,
+`member`, or `viewer`, never ownership. Ownership transfer and member-role
+management are not exposed yet.
+
+Apply database migrations before deploying the expanded role contract. Migration
+`0001_workspace_owners.sql` promotes the earliest-joined admin in each existing
+workspace to owner (membership ID breaks ties), unless an owner already exists.
+This is a deterministic backfill, not proof of who originally created a workspace;
+review legacy ownership assignments before applying it in production. Workspaces
+without an admin are left unchanged and require manual ownership recovery.
+The role enum expansion itself needs no SQLite column change: roles are stored as
+text. Members can no longer add domains or refresh domain verification; those
+operations now require an owner or admin.
+
 ### Changing the API
 
 Edit `schema.ts` and `contract.ts` in the relevant folder under `packages/contracts/src/`. Restart the dev server; `/api/v1/openapi.json` updates from the contract—there is no hand-edited OpenAPI YAML.

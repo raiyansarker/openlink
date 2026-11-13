@@ -56,7 +56,7 @@ export async function createOrganizationWithBootstrapInvite(input: {
     id: crypto.randomUUID(),
     organizationId: org!.id,
     userId: input.userId,
-    role: 'admin',
+    role: 'owner',
     joinedAt: now,
   })
 
@@ -71,7 +71,7 @@ export async function createOrganizationWithBootstrapInvite(input: {
 export async function createMemberInvite(input: {
   organizationId: string
   email: string
-  role: 'admin' | 'member'
+  role: typeof organizationInvite.$inferInsert.role
   createdByUserId: string
 }) {
   const token = createInviteToken()

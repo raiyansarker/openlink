@@ -21,7 +21,7 @@ import {
 } from '#/server/domain/service'
 import { runHealthChecks } from '#/server/health/checks'
 import { createLinkRecord, getLinkInDomain, listLinksForDomain } from '#/server/links/service'
-import { isAdmin } from '#/server/org/access'
+import { canManageLinks, isAdmin } from '#/server/org/permissions'
 import {
   acceptMemberInvite,
   createMemberInvite,
@@ -279,6 +279,9 @@ export const router = os.router({
     if (!membership) {
       throw errors.FORBIDDEN({ message: 'Not a member of this organization' })
     }
+    if (!isAdmin(membership.role)) {
+      throw errors.FORBIDDEN({ message: 'Admin role required' })
+    }
     try {
       const row = await registerCustomDomain({
         organizationId: input.params.organizationId,
@@ -349,6 +352,9 @@ export const router = os.router({
       input.params.organizationId,
     )
     if (!row) throw errors.NOT_FOUND({ message: 'Domain not found' })
+    if (!isAdmin(membership.role)) {
+      throw errors.FORBIDDEN({ message: 'Admin role required' })
+    }
     const updated = await refreshCustomDomain(input.params.domainId)
     return toDomainDto(updated ?? row)
   
@@ -395,6 +401,9 @@ export const router = os.router({
       input.params.organizationId,
     )
     if (!domain) throw errors.NOT_FOUND({ message: 'Domain not found' })
+    if (!canManageLinks(membership.role)) {
+      throw errors.FORBIDDEN({ message: 'Member role required to manage links' })
+    }
     try {
       const row = await createLinkRecord({
         organizationId: input.params.organizationId,
@@ -471,6 +480,9 @@ export const router = os.router({
     if (!existing || existing.organizationId !== input.params.organizationId) {
       throw errors.NOT_FOUND({ message: 'Link not found' })
     }
+    if (!canManageLinks(membership.role)) {
+      throw errors.FORBIDDEN({ message: 'Member role required to manage links' })
+    }
     const now = new Date()
     const passwordHash =
       input.body.clearPassword === true
@@ -534,6 +546,9 @@ export const router = os.router({
     const existing = await getLinkInDomain(input.params.domainId, input.params.linkId)
     if (!existing || existing.organizationId !== input.params.organizationId) {
       throw errors.NOT_FOUND({ message: 'Link not found' })
+    }
+    if (!canManageLinks(membership.role)) {
+      throw errors.FORBIDDEN({ message: 'Member role required to manage links' })
     }
     await getDb().delete(link).where(eq(link.id, input.params.linkId))
     return {}

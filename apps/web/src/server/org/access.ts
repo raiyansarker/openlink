@@ -17,6 +17,4 @@ export async function getMembership(userId: string, organizationId: string) {
   return row ?? null
 }
 
-export function isAdmin(role: 'admin' | 'member') {
-  return role === 'admin'
-}
+export { isAdmin, canManageLinks } from './permissions'
