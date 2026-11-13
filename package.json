@@ -18,7 +18,6 @@
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "bun@1.4.4",
   "devEngines": {
     "packageManager": {
       "name": "bun",
