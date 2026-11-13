@@ -1,20 +1,27 @@
 import { and, eq } from 'drizzle-orm'
 import { organizationMember } from '@openlink/db/schema'
-import { getDb } from '../db'
+import { Effect } from 'effect'
+import { operation } from '#/server/effect/operations'
+import { Db } from '#/server/effect/services/db'
 
-export async function getMembership(userId: string, organizationId: string) {
-  const [row] = await getDb()
-    .select()
-    .from(organizationMember)
-    .where(
-      and(
-        eq(organizationMember.userId, userId),
-        eq(organizationMember.organizationId, organizationId),
-      ),
+export function getMembership(userId: string, organizationId: string) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const [row] = yield* operation('org.getMembership', () =>
+      db
+        .select()
+        .from(organizationMember)
+        .where(
+          and(
+            eq(organizationMember.userId, userId),
+            eq(organizationMember.organizationId, organizationId),
+          ),
+        )
+        .limit(1),
     )
-    .limit(1)
 
-  return row ?? null
+    return row ?? null
+  })
 }
 
 export { isAdmin, canManageLinks } from './permissions'
