@@ -69,10 +69,12 @@ const requireLink = (organizationId: string, domainId: string, linkId: string) =
     return row
   })
 
+type AuthPayload = {
+  user?: { id: string; email: string; name: string; createdAt: string | Date }
+}
+
 const readAuthPayload = (response: Response) =>
-  operation('auth.readResponse', () => response.json() as Promise<{
-    user?: { id: string; email: string; name: string; createdAt: string | Date }
-  }>)
+  operation<AuthPayload>('auth.readResponse', () => response.json())
 
 export const router = os.router({
   system: {

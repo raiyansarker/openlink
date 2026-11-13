@@ -57,7 +57,7 @@ const signUp = mock((_input: unknown) => Effect.die(new Error('Unexpected sign u
 const signOut = mock((_request: Request) => Effect.die(new Error('Unexpected sign out')))
 const runHealthChecks = mock(() => Effect.die(new Error('Unexpected health check')))
 // Boundary workflows are mocked, so infrastructure bindings are intentionally absent.
-const getRequestEffectContext = mock(async () => Context.make(Bindings, {
+const requestEffectContext = Effect.succeed(Context.make(Bindings, {
   DOMAIN_PROVIDER: 'memory', EXPOSE_INVITE_TOKENS_IN_API: 'false',
 } as WorkerBindings))
 
@@ -71,7 +71,7 @@ mock.module('#/server/org/service', () => ({
   acceptMemberInvite, createOrganizationWithBootstrapInvite,
 }))
 mock.module('#/server/health/checks', () => ({ runHealthChecks }))
-mock.module('#/server/effect/runtime', () => ({ getRequestEffectContext }))
+mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
 const { handleOpenApiRequest } = await import('./openapi-handler')
 
@@ -83,7 +83,7 @@ const sideEffects = [
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
-  listDomainsForOrganization, getRequestEffectContext,
+  listDomainsForOrganization,
 ]
 beforeEach(() => {
   role = 'viewer'
