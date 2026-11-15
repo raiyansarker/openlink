@@ -68,6 +68,13 @@ const createComment = mock((_input: unknown) => Effect.succeed(commentRow))
 const updateComment = mock((_input: unknown) => Effect.succeed({ ...commentRow, editedAt: now }))
 const deleteComment = mock((_input: unknown) => Effect.succeed(commentRow))
 const toggleCommentReaction = mock((_input: unknown) => Effect.succeed(commentRow))
+const keyRow = { id: 'key-1', organizationId: org.id, name: 'CI deploy', prefix: 'ol_live_8f3a', keyHash: 'h', role: 'member' as const, createdByUserId: 'user-1', createdAt: now, lastUsedAt: null }
+let keyPrincipal: { id: string; organizationId: string; role: 'admin' | 'member' | 'viewer'; name: string } | null = null
+const authenticateApiKey = mock((_secret: string) => Effect.succeed(keyPrincipal))
+const listApiKeys = mock((_organizationId: string) => Effect.succeed([keyRow]))
+const createApiKey = mock((input: { name: string; role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ row: { ...keyRow, ...input }, secret: 'ol_live_secret-value' }))
+const updateApiKeyRole = mock((input: { role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ row: { ...keyRow, role: input.role }, previousRole: 'member' as const }))
+const revokeApiKey = mock((_organizationId: string, _keyId: string) => Effect.succeed(keyRow))
 const listDomainsForOrganization = mock((_organizationId: string) => Effect.succeed([domain]))
 const registerCustomDomain = mock((_input: unknown) => Effect.succeed(domain))
 const removeCustomDomain = mock((_domainId: string, _organizationId: string) => Effect.succeed(true))
@@ -114,6 +121,9 @@ mock.module('#/server/activity/audit', () => ({ audit }))
 mock.module('#/server/comments/service', () => ({
   listComments, createComment, updateComment, deleteComment, toggleCommentReaction,
 }))
+mock.module('#/server/apikeys/service', () => ({
+  authenticateApiKey, listApiKeys, createApiKey, updateApiKeyRole, revokeApiKey,
+}))
 mock.module('#/server/health/checks', () => ({ runHealthChecks }))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
@@ -126,16 +136,18 @@ const sideEffects = [
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
   moveLinks, addTagsToLinks, deleteLinks, createComment, updateComment, deleteComment, toggleCommentReaction,
+  createApiKey, updateApiKeyRole, revokeApiKey,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
-  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments,
+  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments, authenticateApiKey, listApiKeys,
 ]
 beforeEach(() => {
   role = 'viewer'
   authenticated = true
+  keyPrincipal = null
   for (const spy of spies) spy.mockClear()
 })
 
@@ -148,12 +160,11 @@ const inviteBody = { email: 'invitee@example.com', role: 'member' }
 const createBody = { slug: 'hello', destinationUrl: linkRow.destinationUrl }
 const updateBody = { title: 'Updated', password: 'secret-password' }
 
-async function request(method: string, path: string, body?: unknown) {
+async function request(method: string, path: string, body?: unknown, headers: Record<string, string> = {}) {
   const result = await handleOpenApiRequest(new Request(`http://localhost/api/v1${path}`, {
     method,
-    ...(body === undefined ? {} : {
-      headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
-    }),
+    headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...headers },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   }))
   expect(result.matched).toBe(true)
   if (!result.response) throw new Error(`No response for ${method} ${path}`)
@@ -691,6 +702,161 @@ describe('link comments', () => {
     expect(toggleCommentReaction).toHaveBeenCalledWith({
       organizationId: org.id, linkId: linkRow.id, commentId: 'c1', userId: 'user-1', emoji: '👍',
     })
+  })
+})
+
+const keysPath = `${orgPath}/api-keys`
+
+describe('API key management', () => {
+  for (const actor of ['owner', 'admin', 'member', 'viewer', null] as const) {
+    const permitted = actor === 'owner' || actor === 'admin'
+    test(`${actor ?? 'non-member'} ${permitted ? 'can' : 'cannot'} manage keys`, async () => {
+      role = actor
+      const list = await request('GET', keysPath)
+      const create = await request('POST', keysPath, { name: 'CI', role: 'member' })
+      const update = await request('PATCH', `${keysPath}/key-1`, { role: 'viewer' })
+      const revoke = await request('DELETE', `${keysPath}/key-1`)
+      expect([list.status, create.status, update.status, revoke.status]).toEqual(
+        permitted ? [200, 201, 200, 204] : [403, 403, 403, 403],
+      )
+      expect(createApiKey).toHaveBeenCalledTimes(permitted ? 1 : 0)
+      expect(revokeApiKey).toHaveBeenCalledTimes(permitted ? 1 : 0)
+    })
+  }
+
+  test('the secret is returned once on creation and never when listing', async () => {
+    role = 'admin'
+    const created = await (await request('POST', keysPath, { name: ' CI ', role: 'viewer' })).json()
+    expect(created).toMatchObject({ secret: 'ol_live_secret-value', role: 'viewer', prefix: 'ol_live_8f3a' })
+    expect(createApiKey).toHaveBeenCalledWith({ organizationId: org.id, name: 'CI', role: 'viewer', createdByUserId: 'user-1' })
+    const listed = (await (await request('GET', keysPath)).json()) as { items: Record<string, unknown>[] }
+    expect(JSON.stringify(listed)).not.toContain('secret')
+    expect(JSON.stringify(listed)).not.toContain('keyHash')
+    expect(listed.items[0]).toMatchObject({ id: 'key-1', lastUsedAt: null })
+  })
+
+  test('owner roles and blank names are rejected', async () => {
+    role = 'owner'
+    expect((await request('POST', keysPath, { name: 'CI', role: 'owner' })).status).toBe(400)
+    expect((await request('POST', keysPath, { name: '', role: 'admin' })).status).toBe(400)
+    expect((await request('POST', keysPath, { name: '   ', role: 'admin' })).status).toBe(400)
+    expect((await request('PATCH', `${keysPath}/key-1`, { role: 'owner' })).status).toBe(400)
+    expect(createApiKey).not.toHaveBeenCalled()
+  })
+
+  test('key lifecycle is audited, and unchanged roles are not', async () => {
+    role = 'admin'
+    await request('POST', keysPath, { name: 'CI', role: 'member' })
+    expect(audit).toHaveBeenLastCalledWith(session, expect.objectContaining({ action: 'apikey.created' }))
+    await request('PATCH', `${keysPath}/key-1`, { role: 'viewer' })
+    expect(audit).toHaveBeenLastCalledWith(session, expect.objectContaining({
+      action: 'apikey.role_changed', changes: [{ label: 'Role', from: 'member', to: 'viewer' }],
+    }))
+    audit.mockClear()
+    updateApiKeyRole.mockImplementationOnce(() => Effect.succeed({ row: { ...keyRow, role: 'member' as const }, previousRole: 'member' as const }))
+    await request('PATCH', `${keysPath}/key-1`, { role: 'member' })
+    expect(audit).not.toHaveBeenCalled()
+    await request('DELETE', `${keysPath}/key-1`)
+    expect(audit).toHaveBeenLastCalledWith(session, expect.objectContaining({ action: 'apikey.revoked' }))
+  })
+
+  test('unknown keys are a 404', async () => {
+    role = 'admin'
+    revokeApiKey.mockImplementationOnce(() => Effect.fail({ _tag: 'ApiKeyNotFound' }) as never)
+    expect((await request('DELETE', `${keysPath}/missing`)).status).toBe(404)
+    updateApiKeyRole.mockImplementationOnce(() => Effect.fail({ _tag: 'ApiKeyNotFound' }) as never)
+    expect((await request('PATCH', `${keysPath}/missing`, { role: 'viewer' })).status).toBe(404)
+  })
+})
+
+describe('requests authenticated with an API key', () => {
+  const bearer = { authorization: 'Bearer ol_live_test-secret' }
+  const asKey = (keyRole: 'admin' | 'member' | 'viewer', organizationId = org.id) => {
+    keyPrincipal = { id: 'key-1', organizationId, role: keyRole, name: 'CI deploy' }
+  }
+
+  test('a valid key reads its workspace without a cookie session or membership lookup', async () => {
+    asKey('viewer')
+    authenticated = false
+    const response = await request('GET', `${orgPath}/members`, undefined, bearer)
+    expect(response.status).toBe(200)
+    expect(authenticateApiKey).toHaveBeenCalledWith('ol_live_test-secret')
+    expect(requireSession).not.toHaveBeenCalled()
+    expect(requireOrgMembership).not.toHaveBeenCalled()
+  })
+
+  test('an unknown key is a 401, even with a valid cookie session', async () => {
+    keyPrincipal = null
+    authenticated = true
+    const response = await request('GET', `${orgPath}/members`, undefined, bearer)
+    expect(response.status).toBe(401)
+    expect(requireSession).not.toHaveBeenCalled()
+  })
+
+  test('a key cannot reach another workspace', async () => {
+    asKey('admin', 'org-other')
+    expect((await request('GET', `${orgPath}/members`, undefined, bearer)).status).toBe(403)
+    expect((await request('POST', domainsPath, { hostname: 'x.example.com' }, bearer)).status).toBe(403)
+    expect(registerCustomDomain).not.toHaveBeenCalled()
+  })
+
+  test('the key role limits writes', async () => {
+    asKey('viewer')
+    expect((await request('POST', linksPath, createBody, bearer)).status).toBe(403)
+    asKey('member')
+    expect((await request('POST', linksPath, createBody, bearer)).status).toBe(201)
+    expect((await request('POST', domainsPath, { hostname: 'x.example.com' }, bearer)).status).toBe(403)
+    asKey('admin')
+    expect((await request('POST', domainsPath, { hostname: 'x.example.com' }, bearer)).status).toBe(201)
+  })
+
+  test('links created through a key have no user author, and the audit names the key', async () => {
+    asKey('member')
+    await request('POST', linksPath, createBody, bearer)
+    expect(createLinkRecord).toHaveBeenCalledWith(expect.objectContaining({ userId: null }))
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKey: expect.objectContaining({ id: 'key-1', name: 'CI deploy' }) }),
+      expect.objectContaining({ action: 'link.created' }),
+    )
+  })
+
+  test('invites sent through a key have no user creator', async () => {
+    asKey('admin')
+    await request('POST', `${orgPath}/invites`, inviteBody, bearer)
+    expect(createMemberInvite).toHaveBeenCalledWith(expect.objectContaining({ createdByUserId: null }))
+  })
+
+  test('a key cannot manage keys, delete or transfer the workspace, or comment', async () => {
+    asKey('admin')
+    expect((await request('GET', keysPath, undefined, bearer)).status).toBe(403)
+    expect((await request('POST', keysPath, { name: 'escalate', role: 'admin' }, bearer)).status).toBe(403)
+    expect((await request('DELETE', `${keysPath}/key-1`, undefined, bearer)).status).toBe(403)
+    expect((await request('DELETE', orgPath, undefined, bearer)).status).toBe(403)
+    expect((await request('POST', `${orgPath}/transfer-ownership`, { userId: 'user-2' }, bearer)).status).toBe(403)
+    expect((await request('POST', commentsPath, { body: 'hi' }, bearer)).status).toBe(403)
+    expect((await request('POST', `${commentsPath}/c1/reactions`, { emoji: '👍' }, bearer)).status).toBe(403)
+    expect(createApiKey).not.toHaveBeenCalled()
+    expect(revokeApiKey).not.toHaveBeenCalled()
+    expect(deleteOrganization).not.toHaveBeenCalled()
+    expect(transferOwnership).not.toHaveBeenCalled()
+    expect(createComment).not.toHaveBeenCalled()
+  })
+
+  test('personal endpoints are closed to keys (a key-only request carries no session cookie)', async () => {
+    asKey('admin')
+    authenticated = false
+    expect((await request('GET', '/organizations', undefined, bearer)).status).toBe(401)
+    expect((await request('POST', '/organizations/invites/accept', { token: 'x' }, bearer)).status).toBe(401)
+    expect(listOrganizationsForUser).not.toHaveBeenCalled()
+    expect(acceptMemberInvite).not.toHaveBeenCalled()
+  })
+
+  test('non-OpenLink bearer tokens fall through to the cookie session', async () => {
+    role = 'viewer'
+    const response = await request('GET', `${orgPath}/members`, undefined, { authorization: 'Bearer something-else' })
+    expect(response.status).toBe(200)
+    expect(authenticateApiKey).not.toHaveBeenCalled()
+    expect(requireSession).toHaveBeenCalled()
   })
 })
 
