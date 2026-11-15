@@ -61,9 +61,15 @@ Contracts live under `packages/contracts/src/` and are composed in `contract.ts`
 |-----------------|---------------------------------------------------|
 | `system`        | Health, metadata                                  |
 | `auth`          | Sign-up, sign-in, session                         |
-| `organizations` | Orgs, membership, invites                         |
+| `organizations` | Orgs, members, invites, ownership transfer        |
 | `domains`       | Custom domains per org                            |
-| `links`         | CRUD under `/organizations/{id}/domains/{id}/links` |
+| `folders`       | Nested link folders (rename, move, delete modes)  |
+| `links`         | CRUD per domain, workspace search, bulk move/tag/delete, history |
+| `comments`      | Link comment threads and reactions                |
+| `activity`      | Workspace audit feed (also powers link history)   |
+| `apiKeys`       | Workspace API keys (`Authorization: Bearer ol_live_…`) |
+
+Short links resolve at `/{slug}` on any active custom domain (redirect, password gate, expiry/fallback, click limits).
 
 The Worker implements the contract with `implement(contract)` and an [OpenAPI handler](https://orpc.dev/docs/openapi/openapi-handler). Business logic uses [**Effect**](https://effect.website) in `apps/web/src/server/effect/`; contracts stay Effect-free so frontends can import types only.
 
