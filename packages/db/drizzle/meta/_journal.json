@@ -43,6 +43,13 @@
       "when": 1794751218396,
       "tag": "0005_api_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794775477783,
+      "tag": "0006_organization_logo",
+      "breakpoints": true
     }
   ]
 }

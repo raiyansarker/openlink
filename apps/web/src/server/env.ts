@@ -1,10 +1,12 @@
 import { env } from 'cloudflare:workers'
-import type { D1Database, AnalyticsEngineDataset } from '@cloudflare/workers-types'
+import type { AnalyticsEngineDataset, D1Database, R2Bucket } from '@cloudflare/workers-types'
 import type { OpenLinkDomainEnv } from '@openlink/domain'
 
 export type WorkerBindings = OpenLinkDomainEnv & {
   DB: D1Database
   ANALYTICS: AnalyticsEngineDataset
+  /** Profile pictures and workspace logos. */
+  MEDIA: R2Bucket
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_URL: string
   /** Extra origins allowed to call the auth API (comma separated), e.g. previews. */
