@@ -15,6 +15,9 @@ function withSetCookieHeaders(
   return mergeStandardHeaders(headers, { 'set-cookie': cookieHeader })
 }
 
+/** Statuses that must not carry a body in the Fetch API. */
+const NO_CONTENT_STATUSES = new Set([204, 205, 304])
+
 export const openApiHandler = new OpenAPIHandler<ApiContext>(router, {
   // oRPC requires a Promise here; the logic itself is an Effect.
   routingInterceptors: [
@@ -27,13 +30,17 @@ export const openApiHandler = new OpenAPIHandler<ApiContext>(router, {
           if (!result.matched || !result.response) return result
 
           const { context } = interceptorOptions
-          if (context.setCookieHeaders.length === 0) return result
+          const response = result.response
+          // Workers reject a body on 204/205/304 ("null body status"); procedures declare `{}` for these.
+          const body = NO_CONTENT_STATUSES.has(response.status) ? undefined : response.body
+          if (context.setCookieHeaders.length === 0 && body === response.body) return result
 
           return {
             matched: true as const,
             response: {
-              ...result.response,
-              headers: withSetCookieHeaders(result.response.headers, context.setCookieHeaders),
+              ...response,
+              body,
+              headers: withSetCookieHeaders(response.headers, context.setCookieHeaders),
             },
           }
         }),
