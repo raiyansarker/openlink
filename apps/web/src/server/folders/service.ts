@@ -132,7 +132,7 @@ export function deleteFolder(input: {
       for (const ids of chunk(doomed)) {
         yield* operation('folders.cascade.folders', () => db.delete(linkFolder).where(inArray(linkFolder.id, ids)))
       }
-      return
+      return target
     }
 
     const taken = new Set(
@@ -149,5 +149,6 @@ export function deleteFolder(input: {
       db.update(link).set({ folderId: target.parentId }).where(eq(link.folderId, target.id)),
     )
     yield* operation('folders.delete', () => db.delete(linkFolder).where(eq(linkFolder.id, target.id)))
+    return target
   })
 }
