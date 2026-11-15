@@ -8,6 +8,7 @@ import { Effect } from 'effect'
 import { getDomainInOrganization } from '#/server/api/access'
 import {
   toActivityDto,
+  toApiKeyDto,
   toCommentDto,
   toDomainDto,
   toFolderDto,
@@ -28,11 +29,13 @@ import {
 import {
   requireLinkWriterEffect,
   requireOrgAdminEffect,
+  requireOrgAdminUserEffect,
   requireOrgMemberEffect,
   requireOrgOwnerEffect,
 } from '#/server/effect/access'
 import { operation } from '#/server/effect/operations'
 import { Bindings } from '#/server/effect/services/bindings'
+import { principalUserId } from '#/server/effect/principal'
 import { readSessionEffect, requireAuthSession } from '#/server/effect/session'
 import type { FolderRuleViolation } from '#/server/folders/errors'
 import {
@@ -42,6 +45,7 @@ import {
   listFolders,
   updateFolder,
 } from '#/server/folders/service'
+import { createApiKey, listApiKeys, revokeApiKey, updateApiKeyRole } from '#/server/apikeys/service'
 import { audit } from '#/server/activity/audit'
 import { diffLink, linkUpdateAction } from '#/server/activity/actions'
 import { listActivity } from '#/server/activity/service'
@@ -246,6 +250,64 @@ export const router = os.router({
     }),
   },
 
+  apiKeys: {
+    listApiKeys: os.apiKeys.listApiKeys.effect(function* ({ input }) {
+      yield* requireOrgAdminUserEffect(input.params.organizationId)
+      const rows = yield* listApiKeys(input.params.organizationId)
+      return { items: rows.map(toApiKeyDto) }
+    }),
+
+    createApiKey: os.apiKeys.createApiKey.effect(function* ({ input, errors }) {
+      const { session } = yield* requireOrgAdminUserEffect(input.params.organizationId)
+      const name = input.body.name.trim()
+      if (!name) return yield* Effect.fail(errors.BAD_REQUEST({ message: 'Enter a name for the key' }))
+      const { row, secret } = yield* createApiKey({
+        organizationId: input.params.organizationId,
+        name,
+        role: input.body.role,
+        createdByUserId: session.session.user.id,
+      })
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'apikey.created',
+        target: { type: 'api_key', id: row.id, label: row.name },
+        changes: [{ label: 'Role', from: '—', to: row.role }],
+      })
+      return { ...toApiKeyDto(row), secret }
+    }),
+
+    updateApiKey: os.apiKeys.updateApiKey.effect(function* ({ input, errors }) {
+      const { session } = yield* requireOrgAdminUserEffect(input.params.organizationId)
+      const { row, previousRole } = yield* updateApiKeyRole({
+        organizationId: input.params.organizationId,
+        keyId: input.params.keyId,
+        role: input.body.role,
+      }).pipe(Effect.catchTags({ ApiKeyNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'API key not found' })) }))
+      if (previousRole !== row.role) {
+        yield* audit(session, {
+          organizationId: input.params.organizationId,
+          action: 'apikey.role_changed',
+          target: { type: 'api_key', id: row.id, label: row.name },
+          changes: [{ label: 'Role', from: previousRole, to: row.role }],
+        })
+      }
+      return toApiKeyDto(row)
+    }),
+
+    revokeApiKey: os.apiKeys.revokeApiKey.effect(function* ({ input, errors }) {
+      const { session } = yield* requireOrgAdminUserEffect(input.params.organizationId)
+      const revoked = yield* revokeApiKey(input.params.organizationId, input.params.keyId).pipe(
+        Effect.catchTags({ ApiKeyNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'API key not found' })) }),
+      )
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'apikey.revoked',
+        target: { type: 'api_key', id: revoked.id, label: revoked.name },
+      })
+      return {}
+    }),
+  },
+
   organizations: {
     listOrganizations: os.organizations.listOrganizations.effect(function* () {
       const session = yield* requireAuthSession
@@ -414,7 +476,7 @@ export const router = os.router({
       const { invite, token } = yield* createMemberInvite({
         organizationId: input.params.organizationId,
         ...input.body,
-        createdByUserId: session.session.user.id,
+        createdByUserId: principalUserId(session),
       })
       yield* audit(session, {
         organizationId: input.params.organizationId,
@@ -545,6 +607,7 @@ export const router = os.router({
 
     createLinkComment: os.comments.createLinkComment.effect(function* ({ input, errors }) {
       const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
       const existing = yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
       const user = session.session.user
       const row = yield* createComment({
@@ -564,6 +627,7 @@ export const router = os.router({
 
     updateLinkComment: os.comments.updateLinkComment.effect(function* ({ input, errors }) {
       const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
       yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
       const row = yield* updateComment({
         organizationId: input.params.organizationId,
@@ -590,6 +654,7 @@ export const router = os.router({
 
     toggleCommentReaction: os.comments.toggleCommentReaction.effect(function* ({ input, errors }) {
       const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Reactions require a signed-in member' }))
       yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
       const row = yield* toggleCommentReaction({
         organizationId: input.params.organizationId,
@@ -668,7 +733,7 @@ export const router = os.router({
         ...input.body,
         organizationId: input.params.organizationId,
         domainId: input.params.domainId,
-        userId: session.session.user.id,
+        userId: principalUserId(session),
         activateAt: input.body.activateAt ? new Date(input.body.activateAt) : undefined,
         expiresAt: input.body.expiresAt ? new Date(input.body.expiresAt) : undefined,
       }).pipe(Effect.catchTags({

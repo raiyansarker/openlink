@@ -1,5 +1,6 @@
 import type {
   activityEvent,
+  apiKey,
   customDomain,
   link,
   linkFolder,
@@ -181,5 +182,17 @@ export function toCommentDto(row: CommentRow) {
     createdAt: row.createdAt.toISOString(),
     ...(row.editedAt ? { editedAt: row.editedAt.toISOString() } : {}),
     reactions: parseReactions(row.reactionsJson),
+  }
+}
+
+export function toApiKeyDto(row: typeof apiKey.$inferSelect) {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    name: row.name,
+    prefix: row.prefix,
+    role: row.role,
+    createdAt: row.createdAt.toISOString(),
+    lastUsedAt: row.lastUsedAt ? row.lastUsedAt.toISOString() : null,
   }
 }
