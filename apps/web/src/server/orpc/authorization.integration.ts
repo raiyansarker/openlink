@@ -545,7 +545,7 @@ test('role changes and link edits carry before/after changes', async () => {
 
 test('a link edit that changes nothing is not audited', async () => {
   role = 'owner'
-  updateLinkRecord.mockImplementationOnce((existing) => Effect.succeed(existing))
+  updateLinkRecord.mockImplementationOnce((existing: typeof linkRow) => Effect.succeed(existing))
   await request('PATCH', linkPath, {})
   expect(audit).not.toHaveBeenCalled()
 })
@@ -562,14 +562,14 @@ test('the activity feed hides IP addresses from non-admins and forwards filters'
   let response = await request('GET', `${orgPath}/activity?category=links&limit=10&cursor=abc`)
   expect(response.status).toBe(200)
   expect(listActivity).toHaveBeenCalledWith({ organizationId: org.id, category: 'links', limit: 10, cursor: 'abc' })
-  let body = await response.json()
+  let body = (await response.json()) as { items: Record<string, unknown>[] }
   expect(body.items[0]).toMatchObject({
     action: 'link.created', phrase: 'created link', actor: { type: 'member', label: 'Ada' },
     target: { type: 'link', id: 'link-1', label: 'hello' }, changes: [{ label: 'Title', to: 'Hi' }],
   })
   expect(body.items[0]).not.toHaveProperty('ipAddress')
   role = 'admin'
-  body = await (await request('GET', `${orgPath}/activity`)).json()
+  body = (await (await request('GET', `${orgPath}/activity`)).json()) as { items: Record<string, unknown>[] }
   expect(body.items[0].ipAddress).toBe('203.0.113.9')
 })
 
