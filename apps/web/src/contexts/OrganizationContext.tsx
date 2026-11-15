@@ -1,7 +1,9 @@
+import { useNavigate } from '@tanstack/react-router'
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   type ReactNode,
 } from 'react'
@@ -9,7 +11,6 @@ import { use$ } from '@legendapp/state/react'
 import {
   getFoldersForOrg,
   getLinksForOrg,
-  getOrganizationBySlug,
   getStatsForOrg,
 } from '#/data/demo/queries'
 import type {
@@ -47,12 +48,13 @@ import {
 } from '#/lib/links/link-history'
 import { holdPageMeta } from '#/lib/links/hold-pages'
 import { linksWorkspace$ } from '#/state/links-workspace.state'
+import NotFoundPage from '#/components/not-found/NotFoundPage'
+import WorkspaceStatusScreen from '#/components/workspace/WorkspaceStatusScreen'
 import {
   useWorkspaceDirectory,
-  type CreateOrganizationInput,
+  WorkspaceDirectoryProvider,
 } from '#/contexts/WorkspaceDirectoryContext'
-
-export type { CreateOrganizationInput }
+import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 
 
 type OrganizationContextValue = {
@@ -99,32 +101,53 @@ type OrganizationContextValue = {
   deleteLinkComment: (linkId: string, commentId: string) => void
   /** Adds or removes the current user's reaction. */
   toggleCommentReaction: (linkId: string, commentId: string, emoji: string) => void
-  createOrganization: (input: CreateOrganizationInput) => Organization
-  orgCustomIcons: Record<string, string>
 }
 
 const OrganizationContext = createContext<OrganizationContextValue | null>(null)
 
 type OrganizationProviderProps = {
-  orgSlugFromRoute: string
+  /** Workspace from the URL. Without it, the remembered (or first) workspace is used. */
+  orgSlugFromRoute?: string
   children: ReactNode
 }
 
-export function OrganizationProvider({
-  orgSlugFromRoute,
-  children,
-}: OrganizationProviderProps) {
-  const {
-    organizations,
-    createOrganization,
-    orgCustomIcons,
-  } = useWorkspaceDirectory()
+/**
+ * Loads the user's workspaces, then renders `children` inside the chosen one.
+ * Shows a loading or error screen meanwhile, a 404 for a workspace the user
+ * does not belong to, and sends users with no workspace to create one.
+ */
+export function OrganizationProvider({ orgSlugFromRoute, children }: OrganizationProviderProps) {
+  return (
+    <WorkspaceDirectoryProvider>
+      <WorkspaceGate orgSlugFromRoute={orgSlugFromRoute}>{children}</WorkspaceGate>
+    </WorkspaceDirectoryProvider>
+  )
+}
 
-  const activeOrg =
-    organizations.find((org) => org.slug === orgSlugFromRoute) ??
-    getOrganizationBySlug(orgSlugFromRoute) ??
-    organizations[0]
+function WorkspaceGate({ orgSlugFromRoute, children }: OrganizationProviderProps) {
+  const { organizations, status, errorMessage, refetch } = useWorkspaceDirectory()
+  const navigate = useNavigate()
+  const activeOrg = status === 'ready' ? ActiveWorkspace.pick(organizations, orgSlugFromRoute) : null
+  const hasNoWorkspaces = status === 'ready' && organizations.length === 0
 
+  useEffect(() => {
+    if (activeOrg) ActiveWorkspace.remember(activeOrg.slug)
+  }, [activeOrg])
+
+  useEffect(() => {
+    if (hasNoWorkspaces) void navigate({ to: '/create/organization', replace: true })
+  }, [hasNoWorkspaces, navigate])
+
+  if (status === 'error') {
+    return <WorkspaceStatusScreen state="error" message={errorMessage ?? 'Try again.'} onRetry={refetch} />
+  }
+  if (status === 'loading' || hasNoWorkspaces) return <WorkspaceStatusScreen state="loading" />
+  if (!activeOrg) return <NotFoundPage />
+  return <OrganizationScope activeOrg={activeOrg}>{children}</OrganizationScope>
+}
+
+function OrganizationScope({ activeOrg, children }: { activeOrg: Organization; children: ReactNode }) {
+  const { organizations } = useWorkspaceDirectory()
   const orgId = activeOrg.id
 
   // Shared, session-wide working copies (see links-workspace.state.ts);
@@ -617,8 +640,6 @@ export function OrganizationProvider({
       editLinkComment,
       deleteLinkComment,
       toggleCommentReaction,
-      createOrganization,
-      orgCustomIcons,
     }),
     [
       organizations,
@@ -645,8 +666,6 @@ export function OrganizationProvider({
       editLinkComment,
       deleteLinkComment,
       toggleCommentReaction,
-      createOrganization,
-      orgCustomIcons,
     ],
   )
 
