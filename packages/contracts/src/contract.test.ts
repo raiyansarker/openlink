@@ -52,3 +52,12 @@ describe('comments contract', () => {
     expect(contract.comments.toggleCommentReaction).toBeDefined()
   })
 })
+
+describe('api keys contract', () => {
+  test('covers key management', () => {
+    expect(contract.apiKeys.listApiKeys).toBeDefined()
+    expect(contract.apiKeys.createApiKey).toBeDefined()
+    expect(contract.apiKeys.updateApiKey).toBeDefined()
+    expect(contract.apiKeys.revokeApiKey).toBeDefined()
+  })
+})

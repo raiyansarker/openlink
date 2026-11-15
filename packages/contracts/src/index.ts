@@ -5,6 +5,7 @@
 export { contract } from './contract'
 export { apiErrorMap } from './api-errors'
 export * from './activity'
+export * from './api-keys'
 export * from './auth'
 export * from './comments'
 export * from './domains'
