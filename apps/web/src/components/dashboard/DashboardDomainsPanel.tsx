@@ -70,7 +70,7 @@ export default function DashboardDomainsPanel() {
 
   const goToAddDomain = () =>
     void navigate({
-      to: '/dashboard/$orgSlug/domains/new',
+      to: '/w/$orgSlug/domains/new',
       params: { orgSlug: activeOrg.slug },
     })
 

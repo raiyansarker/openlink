@@ -46,7 +46,7 @@ import {
   shortUrlFor,
 } from '#/data/demo/short-url'
 import type { HoldPage, RedirectStatusCode, ShortLink } from '#/data/demo/types'
-import { buildDashboardOrgPath } from '#/lib/dashboard/build-org-path'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatCompactNumber } from '#/lib/format/compact-number'
 import { countryFlag, countryName, getCountries } from '#/lib/links/countries'
 import {
@@ -420,7 +420,7 @@ export default function CreateLinkForm({
       ? `Scheduled — starts redirecting ${formatLocal(draft.activateAt)}.`
       : 'Goes live as soon as you create it.'
 
-  const linksPath = buildDashboardOrgPath(activeOrg.slug, 'links')
+  const linksPath = WorkspaceUrl.build(activeOrg.slug, 'links')
   const qrFileName = `${shortHost}-${draft.slug.trim() || 'link'}`.replace(
     /[^A-Za-z0-9._-]/g,
     '-',
@@ -448,7 +448,7 @@ export default function CreateLinkForm({
 
   const goToDetail = (linkId: string) => {
     void navigate({
-      to: '/dashboard/$orgSlug/links/$linkId',
+      to: '/w/$orgSlug/links/$linkId',
       params: { orgSlug: activeOrg.slug, linkId },
     })
   }
@@ -1251,7 +1251,7 @@ export default function CreateLinkForm({
   return (
     <CreateLinkShell
       backTo={
-        editLink ? `/dashboard/${activeOrg.slug}/links/${editLink.id}` : linksPath
+        editLink ? `/w/${activeOrg.slug}/links/${editLink.id}` : linksPath
       }
       backLabel={editLink ? editLink.title : 'Links'}
       backSearch={editLink ? undefined : { folder: initialFolderId ?? undefined }}

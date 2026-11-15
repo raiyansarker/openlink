@@ -19,9 +19,9 @@ function Redirector({ section }: { section: Section }) {
       return
     }
     const params = { orgSlug: target.slug }
-    if (section === 'analytics') void navigate({ to: '/dashboard/$orgSlug/analytics', params, replace: true })
-    else if (section === 'links') void navigate({ to: '/dashboard/$orgSlug/links', params, replace: true })
-    else void navigate({ to: '/dashboard/$orgSlug', params, replace: true })
+    if (section === 'analytics') void navigate({ to: '/w/$orgSlug/analytics', params, replace: true })
+    else if (section === 'links') void navigate({ to: '/w/$orgSlug/links', params, replace: true })
+    else void navigate({ to: '/w/$orgSlug', params, replace: true })
   }, [status, target, section, navigate])
 
   if (status === 'error') {

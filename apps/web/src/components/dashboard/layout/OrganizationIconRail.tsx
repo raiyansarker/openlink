@@ -3,9 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Tooltip } from '@astryxdesign/core/Tooltip'
 import type { Organization } from '#/data/demo/types'
 import { getOrganizationBrand } from '#/data/demo/organization-branding'
-import {
-  replaceOrgInPathname,
-} from '#/lib/dashboard/build-org-path'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
 import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { useActivePathname } from '#/hooks/useActivePathname'
@@ -173,7 +171,7 @@ export default function OrganizationIconRail({
       >
         {organizations.map((org) => {
           const brand = getOrganizationBrand(org.id)
-          const target = replaceOrgInPathname(pathname, org.slug)
+          const target = WorkspaceUrl.replaceOrg(pathname, org.slug)
           const isActive = org.slug === activeOrgSlug
 
           return (

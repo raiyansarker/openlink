@@ -159,7 +159,7 @@ export default function SettingsNavColumn() {
       <button
         type="button"
         aria-label="Back to dashboard"
-        onClick={() => void navigate({ to: '/dashboard' })}
+        onClick={() => void navigate({ to: '/w' })}
         style={{
           display: 'inline-flex',
           alignItems: 'center',

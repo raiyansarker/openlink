@@ -1,6 +1,6 @@
 /** Post-login redirect targets. */
 export class LoginRedirect {
-  static readonly DEFAULT = '/dashboard'
+  static readonly DEFAULT = '/w'
 
   private static readonly ORIGIN = 'http://openlink.invalid'
 

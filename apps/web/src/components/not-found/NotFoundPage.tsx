@@ -91,7 +91,7 @@ export default function NotFoundPage({ routeId }: NotFoundPageProps): ReactEleme
           <Button
             variant="primary"
             label="Go to dashboard"
-            href="/dashboard"
+            href="/w"
           />
         </HStack>
       </VStack>

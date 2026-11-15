@@ -54,7 +54,7 @@ export default function AddDomainForm() {
 
     addDomain(domain)
     void navigate({
-      to: '/dashboard/$orgSlug/domains',
+      to: '/w/$orgSlug/domains',
       params: { orgSlug: activeOrg.slug },
     })
   }
@@ -90,7 +90,7 @@ export default function AddDomainForm() {
           label="Cancel"
           onClick={() =>
             void navigate({
-              to: '/dashboard/$orgSlug/domains',
+              to: '/w/$orgSlug/domains',
               params: { orgSlug: activeOrg.slug },
             })
           }

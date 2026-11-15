@@ -4,7 +4,7 @@ import { EmptyState } from '@astryxdesign/core/EmptyState'
 import CreateLinkForm from '#/components/create-link/CreateLinkForm'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { buildDashboardOrgPath } from '#/lib/dashboard/build-org-path'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 
 /** Finds the link to edit, then hands it to the shared create/edit form. */
 export default function EditLinkScreen({ linkId }: { linkId: string | undefined }) {
@@ -24,7 +24,7 @@ export default function EditLinkScreen({ linkId }: { linkId: string | undefined 
               variant="secondary"
               label="Back to links"
               onClick={() =>
-                void navigate({ to: buildDashboardOrgPath(activeOrg.slug, 'links') })
+                void navigate({ to: WorkspaceUrl.build(activeOrg.slug, 'links') })
               }
             />
           }

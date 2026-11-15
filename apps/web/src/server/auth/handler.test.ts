@@ -15,7 +15,7 @@ describe('AuthHandler', () => {
   test('delegates the untouched request to Better Auth and returns its response', async () => {
     const request = new Request('http://localhost:3000/api/auth/callback/github?code=abc')
     const seen: Request[] = []
-    const response = new Response('ok', { status: 302, headers: { location: '/dashboard' } })
+    const response = new Response('ok', { status: 302, headers: { location: '/w' } })
     const result = await Effect.runPromise(
       handleAuthRequest(request).pipe(
         provide(Effect.succeed({ handler: async (r: Request) => (seen.push(r), response) })),

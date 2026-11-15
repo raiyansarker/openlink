@@ -17,7 +17,7 @@ export default function DashboardRecentLinksTable() {
 
   const openLink = (link: ShortLink) =>
     void navigate({
-      to: '/dashboard/$orgSlug/links/$linkId',
+      to: '/w/$orgSlug/links/$linkId',
       params: { orgSlug: activeOrg.slug, linkId: link.id },
     })
 

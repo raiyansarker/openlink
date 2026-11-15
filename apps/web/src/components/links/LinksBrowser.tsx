@@ -84,7 +84,7 @@ export default function LinksBrowser({
 
   const openLink = (linkId: string) =>
     void navigate({
-      to: '/dashboard/$orgSlug/links/$linkId',
+      to: '/w/$orgSlug/links/$linkId',
       params: { orgSlug: activeOrg.slug, linkId },
     })
   const editLink = (linkId: string) =>

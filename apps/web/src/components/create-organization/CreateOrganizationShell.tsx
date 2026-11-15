@@ -36,7 +36,7 @@ export default function CreateOrganizationShell({
 }: CreateOrganizationShellProps) {
   // Escape goes back to the dashboard, like the back link.
   const navigate = useNavigate()
-  useKeyPress('Escape', () => void navigate({ to: '/dashboard' }), { allowInInputs: true })
+  useKeyPress('Escape', () => void navigate({ to: '/w' }), { allowInInputs: true })
 
   return (
     <div
@@ -61,7 +61,7 @@ export default function CreateOrganizationShell({
         }}
       >
         <Link
-          to="/dashboard"
+          to="/w"
           style={{
             display: 'inline-flex',
             alignItems: 'center',

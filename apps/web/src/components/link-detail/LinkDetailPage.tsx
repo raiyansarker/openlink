@@ -27,7 +27,7 @@ import { FolderIcon, MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import type { ShortLink } from '#/data/demo/types'
 import { shortHostFor, shortUrlFor } from '#/data/demo/short-url'
-import { buildDashboardOrgPath } from '#/lib/dashboard/build-org-path'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatNumber } from '#/lib/analytics/format'
 import { isOnHold } from '#/lib/links/create-link'
 import { getFolderPath } from '#/lib/links/folder-tree'
@@ -209,7 +209,7 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
   const [isQrOpen, setIsQrOpen] = useState(false)
 
   const link = links.find((l) => l.id === linkId)
-  const linksPath = buildDashboardOrgPath(activeOrg.slug, 'links')
+  const linksPath = WorkspaceUrl.build(activeOrg.slug, 'links')
 
   if (!link) {
     return (

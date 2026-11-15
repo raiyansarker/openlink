@@ -9,7 +9,7 @@ import { Grid, GridSpan } from '@astryxdesign/core/Grid'
 import { Button } from '@astryxdesign/core/Button'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
-import { buildDashboardOrgPath } from '#/lib/dashboard/build-org-path'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 import { slugifyOrganizationSlug } from '#/lib/organization/slugify'
 
@@ -89,7 +89,7 @@ export default function CreateOrganizationForm() {
 
   const displayName = name.trim() || 'Organization'
   const slugPathSegment = slug.trim() || SLUG_PLACEHOLDER
-  const slugDescription = `Used in dashboard paths: /dashboard/${slugPathSegment}`
+  const slugDescription = `Your workspace URL: /w/${slugPathSegment}`
 
   const onNameChange = (value: string) => {
     setName(value)
@@ -153,7 +153,7 @@ export default function CreateOrganizationForm() {
         iconDataUrl,
       })
       ActiveWorkspace.remember(org.slug)
-      void navigate({ to: buildDashboardOrgPath(org.slug), replace: true })
+      void navigate({ to: WorkspaceUrl.build(org.slug), replace: true })
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : 'Could not create organization.',
@@ -284,7 +284,7 @@ export default function CreateOrganizationForm() {
             variant="ghost"
             size="sm"
             label="Cancel"
-            onClick={() => void navigate({ to: '/dashboard' })}
+            onClick={() => void navigate({ to: '/w' })}
           />
           <Button
             variant="secondary"
