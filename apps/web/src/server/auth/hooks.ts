@@ -7,6 +7,7 @@ import { Bindings } from '../effect/services/bindings'
 import { Db } from '../effect/services/db'
 import { MediaKey } from '../media/media-key'
 import { MediaStore } from '../media/media-store'
+import { SessionOriginReader } from '../devices/session-origin'
 import { AccountPolicy } from './account-policy'
 
 /**
@@ -53,6 +54,17 @@ export class AuthHooks {
         }),
       ),
     )
+  }
+
+  /** Record where and how a session started, for the Devices screen. */
+  async beforeCreateSession<T extends Record<string, unknown>>(
+    session: T,
+    context: { path?: string; params?: Record<string, unknown>; request?: Request } | null | undefined,
+  ) {
+    // Workers attach the visitor's approximate location to every incoming request as `cf`.
+    const cf = (context?.request as unknown as { cf?: Record<string, unknown> } | undefined)?.cf
+    const origin = SessionOriginReader.read({ cf, path: context?.path, providerId: context?.params?.id })
+    return { data: { ...session, ...origin } }
   }
 
   /** The account is gone; remove its uploaded picture. Never fails the deletion. */

@@ -76,3 +76,22 @@ describe('AuthHooks', () => {
     expect(error?.status).toBe('INTERNAL_SERVER_ERROR')
   })
 })
+
+describe('AuthHooks.beforeCreateSession', () => {
+  test('adds the location from the request and the provider from the callback', async () => {
+    const hooks = new AuthHooks(() => ({}) as never, () => ({}) as never)
+    const request = Object.assign(new Request('http://localhost/api/auth/callback/github'), {
+      cf: { city: 'Lisbon', country: 'PT', latitude: '38.72', longitude: '-9.14' },
+    })
+    const result = await hooks.beforeCreateSession({ userId: 'u1', token: 't' }, { path: '/callback/:id', params: { id: 'github' }, request })
+    expect(result.data).toEqual({
+      userId: 'u1', token: 't', city: 'Lisbon', country: 'PT', latitude: 38.72, longitude: -9.14, signInMethod: 'github',
+    })
+  })
+
+  test('without request data the session is still created, with nothing invented', async () => {
+    const hooks = new AuthHooks(() => ({}) as never, () => ({}) as never)
+    const result = await hooks.beforeCreateSession({ token: 't' }, null)
+    expect(result.data).toMatchObject({ city: null, latitude: null, signInMethod: null })
+  })
+})

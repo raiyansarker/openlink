@@ -41,7 +41,20 @@ function createAuth() {
         afterDelete: (user) => hooks.afterDeleteUser(user),
       },
     },
+    session: {
+      // Written only by our session hook, never from request input.
+      additionalFields: {
+        city: { type: 'string', required: false, input: false },
+        country: { type: 'string', required: false, input: false },
+        latitude: { type: 'number', required: false, input: false },
+        longitude: { type: 'number', required: false, input: false },
+        signInMethod: { type: 'string', required: false, input: false },
+      },
+    },
     databaseHooks: {
+      session: {
+        create: { before: (session, context) => hooks.beforeCreateSession(session, context) },
+      },
       user: {
         create: { before: (user) => hooks.beforeCreateUser(user) },
         update: { before: (update, context) => hooks.beforeUpdateUser(update, context?.path) },
