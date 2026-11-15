@@ -16,4 +16,13 @@ describe('oRPC OpenAPI contract', () => {
     expect(contract.domains.refreshDomainStatus).toBeDefined()
     expect(contract.links.updateLink).toBeDefined()
   })
+
+  test('covers workspace member and invite management', () => {
+    expect(contract.organizations.listMembers).toBeDefined()
+    expect(contract.organizations.updateMemberRole).toBeDefined()
+    expect(contract.organizations.removeMember).toBeDefined()
+    expect(contract.organizations.transferOwnership).toBeDefined()
+    expect(contract.organizations.deleteOrganization).toBeDefined()
+    expect(contract.organizations.revokeOrganizationInvite).toBeDefined()
+  })
 })
