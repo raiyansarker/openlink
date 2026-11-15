@@ -1,5 +1,6 @@
 import { contract as activity } from './activity'
 import { contract as auth } from './auth'
+import { contract as comments } from './comments'
 import { contract as domains } from './domains'
 import { contract as folders } from './folders'
 import { contract as links } from './links'
@@ -16,6 +17,7 @@ const router = {
   domains,
   folders,
   links,
+  comments,
 } as const
 
 /** Full contract with typesafe errors on every procedure. */
