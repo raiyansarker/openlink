@@ -3,12 +3,15 @@ import { Effect } from 'effect'
 
 import { BackendError } from '#/server/effect/operations'
 import { Auth } from '#/server/effect/services/auth'
-import { authUnavailable, handleAuthRequest } from './handler'
+import { AuthHandler } from './handler'
+
+const handleAuthRequest = AuthHandler.handle
+const authUnavailable = AuthHandler.unavailable
 
 const provide = (auth: Effect.Effect<unknown, BackendError>) =>
   Effect.provideService(Auth, auth as never)
 
-describe('handleAuthRequest', () => {
+describe('AuthHandler', () => {
   test('delegates the untouched request to Better Auth and returns its response', async () => {
     const request = new Request('http://localhost:3000/api/auth/callback/github?code=abc')
     const seen: Request[] = []
@@ -46,5 +49,13 @@ describe('handleAuthRequest', () => {
     expect(response.status).toBe(503)
     expect(await response.text()).not.toContain('secret')
     expect(response.headers.get('cache-control')).toBe('no-store')
+  })
+
+  test('serve turns any failure into the 503 fallback', async () => {
+    const init = new BackendError({ operation: 'auth.initialize', cause: new Error('bad secret') })
+    const response = await Effect.runPromise(
+      AuthHandler.serve(new Request('http://localhost/api/auth/x')).pipe(provide(Effect.fail(init))),
+    )
+    expect(response.status).toBe(503)
   })
 })

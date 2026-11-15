@@ -1,13 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Effect } from 'effect'
 
+import { AuthHandler } from '#/server/auth/handler'
 import { effectRuntime } from '#/server/effect/runtime'
-import { authUnavailable, handleAuthRequest } from '#/server/auth/handler'
 
-const serve = ({ request }: { request: Request }) =>
-  effectRuntime.runPromise(
-    handleAuthRequest(request).pipe(Effect.catch(() => Effect.succeed(authUnavailable()))),
-  )
+const serve = ({ request }: { request: Request }) => effectRuntime.runPromise(AuthHandler.serve(request))
 
 export const Route = createFileRoute('/api/auth/$')({
   server: { handlers: { GET: serve, POST: serve } },

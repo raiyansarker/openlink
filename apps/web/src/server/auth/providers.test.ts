@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { enabledSocialProviders, socialProviderConfig } from './providers'
+import { SocialProviders } from './providers'
 
-describe('social provider configuration', () => {
+const enabledSocialProviders = SocialProviders.enabled
+const socialProviderConfig = SocialProviders.config
+
+describe('SocialProviders', () => {
   test('enables only providers with both id and secret', () => {
     const env = { GOOGLE_CLIENT_ID: 'g', GOOGLE_CLIENT_SECRET: 's', GITHUB_CLIENT_ID: 'h' }
     expect(socialProviderConfig(env)).toEqual({ google: { clientId: 'g', clientSecret: 's' } })

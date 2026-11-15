@@ -3,7 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import * as schema from '@openlink/db/schema'
 import { getBindings } from '../env'
 import { getDb } from '../db'
-import { socialProviderConfig } from './providers'
+import { SocialProviders } from './providers'
 
 let auth: ReturnType<typeof createAuth> | undefined
 let authConfigKey: string | undefined
@@ -24,7 +24,7 @@ function createAuth() {
         verification: schema.verification,
       },
     }),
-    socialProviders: socialProviderConfig(bindings),
+    socialProviders: SocialProviders.config(bindings),
     account: {
       // Link a social sign-in to an existing account only when the provider verified the email.
       accountLinking: { enabled: true },

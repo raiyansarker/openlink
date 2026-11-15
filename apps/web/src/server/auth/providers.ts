@@ -1,29 +1,41 @@
 import type { WorkerBindings } from '#/server/env'
 
 export type SocialProvider = 'google' | 'github'
-export const SOCIAL_PROVIDERS: readonly SocialProvider[] = ['google', 'github']
 
 type ProviderEnv = Pick<
   WorkerBindings,
   'GOOGLE_CLIENT_ID' | 'GOOGLE_CLIENT_SECRET' | 'GITHUB_CLIENT_ID' | 'GITHUB_CLIENT_SECRET'
 >
 
-const filled = (value: string | undefined) => (value?.trim() ? value.trim() : undefined)
+/** OAuth providers, switched on by configuration. */
+export class SocialProviders {
+  static readonly ALL: readonly SocialProvider[] = ['google', 'github']
 
-/**
- * A provider is enabled only when both its id and secret are present, so a
- * half-configured provider never shows a login button that cannot work.
- */
-export function socialProviderConfig(env: ProviderEnv) {
-  const google = { id: filled(env.GOOGLE_CLIENT_ID), secret: filled(env.GOOGLE_CLIENT_SECRET) }
-  const github = { id: filled(env.GITHUB_CLIENT_ID), secret: filled(env.GITHUB_CLIENT_SECRET) }
-  return {
-    ...(google.id && google.secret ? { google: { clientId: google.id, clientSecret: google.secret } } : {}),
-    ...(github.id && github.secret ? { github: { clientId: github.id, clientSecret: github.secret } } : {}),
+  private static filled(value: string | undefined) {
+    return value?.trim() ? value.trim() : undefined
   }
-}
 
-export function enabledSocialProviders(env: ProviderEnv): Record<SocialProvider, boolean> {
-  const config = socialProviderConfig(env)
-  return { google: 'google' in config, github: 'github' in config }
+  /**
+   * A provider is enabled only when both its id and secret are present, so a
+   * half-configured provider never shows a login button that cannot work.
+   */
+  static config(env: ProviderEnv) {
+    const google = {
+      id: SocialProviders.filled(env.GOOGLE_CLIENT_ID),
+      secret: SocialProviders.filled(env.GOOGLE_CLIENT_SECRET),
+    }
+    const github = {
+      id: SocialProviders.filled(env.GITHUB_CLIENT_ID),
+      secret: SocialProviders.filled(env.GITHUB_CLIENT_SECRET),
+    }
+    return {
+      ...(google.id && google.secret ? { google: { clientId: google.id, clientSecret: google.secret } } : {}),
+      ...(github.id && github.secret ? { github: { clientId: github.id, clientSecret: github.secret } } : {}),
+    }
+  }
+
+  static enabled(env: ProviderEnv): Record<SocialProvider, boolean> {
+    const config = SocialProviders.config(env)
+    return { google: 'google' in config, github: 'github' in config }
+  }
 }
