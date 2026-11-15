@@ -2,7 +2,6 @@ import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { OrganizationProvider } from '#/contexts/OrganizationContext'
 import SettingsShell from '#/components/settings/SettingsShell'
 import { AuthSession } from '#/lib/auth/client'
-import { getDefaultOrgSlug } from '#/lib/dashboard/org-slug'
 import { createPageHead } from '#/lib/page-title'
 
 export const Route = createFileRoute('/settings')({
@@ -12,9 +11,8 @@ export const Route = createFileRoute('/settings')({
 })
 
 function SettingsLayout() {
-  const orgSlug = getDefaultOrgSlug()
   return (
-    <OrganizationProvider orgSlugFromRoute={orgSlug}>
+    <OrganizationProvider>
       <SettingsShell>
         <Outlet />
       </SettingsShell>

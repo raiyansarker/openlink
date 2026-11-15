@@ -1,34 +1,13 @@
-import {
-  createFileRoute,
-  notFound,
-  Outlet,
-  redirect,
-} from '@tanstack/react-router'
-import { OrganizationProvider } from '#/contexts/OrganizationContext'
+import { createFileRoute, notFound, Outlet } from '@tanstack/react-router'
 import ThreeColumnDashboardLayout from '#/components/dashboard/layout/ThreeColumnDashboardLayout'
-import { getOrganizationById } from '#/data/demo/queries'
 import { isValidOrganizationSlug } from '#/lib/organization/slugify'
-import { persistActiveOrgSlug } from '#/lib/dashboard/org-slug'
-import { useOrganization } from '#/contexts/OrganizationContext'
+import { OrganizationProvider, useOrganization } from '#/contexts/OrganizationContext'
 import type { ReactNode } from 'react'
 
 export const Route = createFileRoute('/dashboard/$orgSlug')({
+  // Whether the user belongs to this workspace is decided once the list loads (see OrganizationProvider).
   beforeLoad: ({ params }) => {
-    if (isValidOrganizationSlug(params.orgSlug)) {
-      persistActiveOrgSlug(params.orgSlug)
-      return
-    }
-
-    const legacyOrg = getOrganizationById(params.orgSlug)
-    if (legacyOrg) {
-      throw redirect({
-        to: '/dashboard/$orgSlug',
-        params: { orgSlug: legacyOrg.slug },
-        replace: true,
-      })
-    }
-
-    throw notFound()
+    if (!isValidOrganizationSlug(params.orgSlug)) throw notFound()
   },
   component: OrgDashboardLayout,
 })

@@ -1,12 +1,9 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getDefaultOrgSlug } from '#/lib/dashboard/org-slug'
+import { createFileRoute } from '@tanstack/react-router'
+import { AuthSession } from '#/lib/auth/client'
+import WorkspaceRedirect from '#/components/workspace/WorkspaceRedirect'
 
-/** Legacy path — forwards to org-scoped dashboard URL. */
+/** Resolves the visitor's workspace from the API, then forwards to its URL. */
 export const Route = createFileRoute('/dashboard/links')({
-  beforeLoad: () => {
-    throw redirect({
-      to: '/dashboard/$orgSlug/links',
-      params: { orgSlug: getDefaultOrgSlug() },
-    })
-  },
+  beforeLoad: ({ location }) => AuthSession.requireSignedIn(location),
+  component: () => <WorkspaceRedirect section="links" />,
 })

@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import CreateLinkForm from '#/components/create-link/CreateLinkForm'
 import { AuthSession } from '#/lib/auth/client'
 import { OrganizationProvider } from '#/contexts/OrganizationContext'
-import { getDefaultOrgSlug } from '#/lib/dashboard/org-slug'
 import { createPageHead } from '#/lib/page-title'
 
 type CreateLinkSearch = {
@@ -27,10 +26,8 @@ export const Route = createFileRoute('/create/link')({
 
 function CreateLinkPage() {
   const { org, folder } = Route.useSearch()
-  const orgSlug = org ?? getDefaultOrgSlug()
-
   return (
-    <OrganizationProvider orgSlugFromRoute={orgSlug}>
+    <OrganizationProvider orgSlugFromRoute={org}>
       <CreateLinkForm initialFolderId={folder ?? null} />
     </OrganizationProvider>
   )

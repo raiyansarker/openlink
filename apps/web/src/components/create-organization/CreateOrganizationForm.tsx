@@ -8,9 +8,9 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { Grid, GridSpan } from '@astryxdesign/core/Grid'
 import { Button } from '@astryxdesign/core/Button'
 import { Avatar } from '@astryxdesign/core/Avatar'
-import { useOrganization } from '#/contexts/OrganizationContext'
+import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { buildDashboardOrgPath } from '#/lib/dashboard/build-org-path'
-import { persistActiveOrgSlug } from '#/lib/dashboard/org-slug'
+import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 import { slugifyOrganizationSlug } from '#/lib/organization/slugify'
 
 const ICON_MAX_BYTES = 5 * 1024 * 1024
@@ -73,7 +73,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 export default function CreateOrganizationForm() {
-  const { createOrganization } = useOrganization()
+  const { createOrganization } = useWorkspaceDirectory()
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingIconFile = useRef<File | null>(null)
@@ -81,6 +81,7 @@ export default function CreateOrganizationForm() {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugEdited, setSlugEdited] = useState(false)
+  const [inviteToken, setInviteToken] = useState('')
   const [iconPreview, setIconPreview] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -145,12 +146,13 @@ export default function CreateOrganizationForm() {
         iconDataUrl = await readFileAsDataUrl(pendingIconFile.current)
       }
 
-      const org = createOrganization({
+      const org = await createOrganization({
         name,
-        slug: slug || undefined,
+        slug,
+        inviteToken,
         iconDataUrl,
       })
-      persistActiveOrgSlug(org.slug)
+      ActiveWorkspace.remember(org.slug)
       void navigate({ to: buildDashboardOrgPath(org.slug), replace: true })
     } catch (error) {
       setFormError(
@@ -253,6 +255,18 @@ export default function CreateOrganizationForm() {
                 value={slug}
                 onChange={onSlugChange}
                 description={slugDescription}
+                isRequired
+              />
+            </GridSpan>
+            <GridSpan columns="full">
+              <TextInput
+                label="Invite token"
+                width="100%"
+                type="password"
+                autoComplete="off"
+                value={inviteToken}
+                onChange={setInviteToken}
+                description="Workspaces are created with an invite token. Ask the person who invited you."
                 isRequired
               />
             </GridSpan>

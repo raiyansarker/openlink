@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { AuthSession } from '#/lib/auth/client'
-import { OrganizationProvider } from '#/contexts/OrganizationContext'
-import { getDefaultOrgSlug } from '#/lib/dashboard/org-slug'
+import { WorkspaceDirectoryProvider } from '#/contexts/WorkspaceDirectoryContext'
 import { createPageHead } from '#/lib/page-title'
 import CreateOrganizationShell from '#/components/create-organization/CreateOrganizationShell'
 import CreateOrganizationForm from '#/components/create-organization/CreateOrganizationForm'
@@ -14,10 +13,10 @@ export const Route = createFileRoute('/create/organization')({
 
 function CreateOrganizationPage() {
   return (
-    <OrganizationProvider orgSlugFromRoute={getDefaultOrgSlug()}>
+    <WorkspaceDirectoryProvider>
       <CreateOrganizationShell>
         <CreateOrganizationForm />
       </CreateOrganizationShell>
-    </OrganizationProvider>
+    </WorkspaceDirectoryProvider>
   )
 }
