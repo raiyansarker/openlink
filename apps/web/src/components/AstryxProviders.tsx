@@ -1,8 +1,10 @@
 import { Theme } from '@astryxdesign/core/theme'
-import { useSyncExternalStore, type ReactNode } from 'react'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { defaultThemeSlug, themes } from '#/astryx-themes'
 import { WorkspaceDirectoryProvider } from '#/contexts/WorkspaceDirectoryContext'
 import { DEFAULT_COLOR_MODE, type ColorMode } from '#/lib/settings/appearance-preference'
+import { AppQueryClient } from '#/lib/api/query'
 import { appearance$ } from '#/state/appearance.state'
 
 function subscribe(onChange: () => void) {
@@ -26,9 +28,13 @@ function ThemedSubtree({ children }: { children: ReactNode }) {
 }
 
 export default function AstryxProviders({ children }: { children: ReactNode }) {
+  // One cache per browser tab; on the server, one per render so visitors never share data.
+  const [queryClient] = useState(() => AppQueryClient.create())
   return (
-    <WorkspaceDirectoryProvider>
-      <ThemedSubtree>{children}</ThemedSubtree>
-    </WorkspaceDirectoryProvider>
+    <QueryClientProvider client={queryClient}>
+      <WorkspaceDirectoryProvider>
+        <ThemedSubtree>{children}</ThemedSubtree>
+      </WorkspaceDirectoryProvider>
+    </QueryClientProvider>
   )
 }
