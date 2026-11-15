@@ -5,6 +5,8 @@ import {
   SHELL_NAV_TEXT_PRIMARY,
 } from '#/components/dashboard/layout/dashboard-shell-colors'
 import { Button } from '@astryxdesign/core/Button'
+import { HStack } from '@astryxdesign/core/HStack'
+import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { useKeyPress } from '#/hooks/use-key-press'
 import { AuthSession } from '#/lib/auth/client'
 
@@ -40,10 +42,14 @@ export default function CreateOrganizationShell({
   variant = 'create',
 }: CreateOrganizationShellProps) {
   const isOnboarding = variant === 'onboarding'
+  const { organizations, status } = useWorkspaceDirectory()
+  // With no workspace, "Dashboard" would send you straight back here; offer account settings instead.
+  const hasNoWorkspaces = status === 'ready' && organizations.length === 0
+  const showEscape = isOnboarding || hasNoWorkspaces
   // Escape goes back to the dashboard, like the back link (not during onboarding).
   const navigate = useNavigate()
   useKeyPress('Escape', () => {
-    if (!isOnboarding) void navigate({ to: '/w' })
+    if (!showEscape) void navigate({ to: '/w' })
   }, { allowInInputs: true })
   const signOut = async () => {
     try {
@@ -75,8 +81,13 @@ export default function CreateOrganizationShell({
           zIndex: 1,
         }}
       >
-        {isOnboarding ? (
-          <Button variant="ghost" size="sm" label="Sign out" onClick={() => void signOut()} />
+        {showEscape ? (
+          <HStack gap={2}>
+            {hasNoWorkspaces && !isOnboarding ? (
+              <Button variant="ghost" size="sm" label="Account settings" onClick={() => void navigate({ to: '/settings/$section', params: { section: 'profile' } })} />
+            ) : null}
+            <Button variant="ghost" size="sm" label="Sign out" onClick={() => void signOut()} />
+          </HStack>
         ) : (
           <Link
             to="/w"
