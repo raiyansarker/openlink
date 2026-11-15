@@ -26,7 +26,7 @@ export class LinkMapper {
   }
 
   static toShortLink(row: LinkDto): ShortLink {
-    const meta = { ...(row.metadata ?? {}) } as Record<string, unknown>
+    const meta = { ...row.metadata } as Record<string, unknown>
     const extras = (meta[UI_KEY] ?? {}) as UiExtras
     delete meta[UI_KEY]
     const userMeta = Object.fromEntries(Object.entries(meta).map(([k, v]) => [k, String(v)]))
@@ -68,7 +68,7 @@ export class LinkMapper {
       ...(link.targeting ? { targeting: link.targeting } : {}),
       ...(link.hold ? { hold: link.hold } : {}),
     }
-    const metadata = { ...(link.metadata ?? {}), ...(Object.keys(extras).length > 0 ? { [UI_KEY]: extras } : {}) }
+    const metadata = { ...link.metadata, ...(Object.keys(extras).length > 0 ? { [UI_KEY]: extras } : {}) }
     return {
       destinationUrl: link.destinationUrl ?? link.targetUrl,
       title: link.title,
