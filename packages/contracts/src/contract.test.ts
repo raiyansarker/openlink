@@ -35,3 +35,10 @@ describe('folders contract', () => {
     expect(contract.folders.deleteFolder).toBeDefined()
   })
 })
+
+describe('activity contract', () => {
+  test('exposes the workspace feed and per-link history', () => {
+    expect(contract.activity.listActivity).toBeDefined()
+    expect(contract.links.getLinkHistory).toBeDefined()
+  })
+})

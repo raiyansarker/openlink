@@ -1,3 +1,4 @@
+import { contract as activity } from './activity'
 import { contract as auth } from './auth'
 import { contract as domains } from './domains'
 import { contract as folders } from './folders'
@@ -10,6 +11,7 @@ import { oc } from './oc'
 const router = {
   system,
   auth,
+  activity,
   organizations,
   domains,
   folders,
