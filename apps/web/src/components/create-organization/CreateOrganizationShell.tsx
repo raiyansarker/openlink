@@ -4,13 +4,17 @@ import {
   DASHBOARD_SURFACE_BG,
   SHELL_NAV_TEXT_PRIMARY,
 } from '#/components/dashboard/layout/dashboard-shell-colors'
+import { Button } from '@astryxdesign/core/Button'
 import { useKeyPress } from '#/hooks/use-key-press'
+import { AuthSession } from '#/lib/auth/client'
 
 /** Compact centered column for the create-organization form (~23–24rem). */
 const CREATE_ORGANIZATION_FORM_MAX_WIDTH = '24rem'
 
 type CreateOrganizationShellProps = {
   children: ReactNode
+  /** Onboarding has nowhere to go back to, so it offers sign-out instead. */
+  variant?: 'create' | 'onboarding'
 }
 
 function ChevronBackIcon() {
@@ -33,10 +37,21 @@ function ChevronBackIcon() {
 
 export default function CreateOrganizationShell({
   children,
+  variant = 'create',
 }: CreateOrganizationShellProps) {
-  // Escape goes back to the dashboard, like the back link.
+  const isOnboarding = variant === 'onboarding'
+  // Escape goes back to the dashboard, like the back link (not during onboarding).
   const navigate = useNavigate()
-  useKeyPress('Escape', () => void navigate({ to: '/w' }), { allowInInputs: true })
+  useKeyPress('Escape', () => {
+    if (!isOnboarding) void navigate({ to: '/w' })
+  }, { allowInInputs: true })
+  const signOut = async () => {
+    try {
+      await AuthSession.signOut()
+    } finally {
+      await navigate({ to: '/login', replace: true })
+    }
+  }
 
   return (
     <div
@@ -60,28 +75,32 @@ export default function CreateOrganizationShell({
           zIndex: 1,
         }}
       >
-        <Link
-          to="/w"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '2px 0',
-            border: 'none',
-            borderRadius: 0,
-            cursor: 'pointer',
-            backgroundColor: 'transparent',
-            color: SHELL_NAV_TEXT_PRIMARY,
-            fontSize: 16,
-            fontWeight: 600,
-            fontFamily: 'inherit',
-            letterSpacing: '-0.02em',
-            textDecoration: 'none',
-          }}
-        >
-          <ChevronBackIcon />
-          Dashboard
-        </Link>
+        {isOnboarding ? (
+          <Button variant="ghost" size="sm" label="Sign out" onClick={() => void signOut()} />
+        ) : (
+          <Link
+            to="/w"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '2px 0',
+              border: 'none',
+              borderRadius: 0,
+              cursor: 'pointer',
+              backgroundColor: 'transparent',
+              color: SHELL_NAV_TEXT_PRIMARY,
+              fontSize: 16,
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              letterSpacing: '-0.02em',
+              textDecoration: 'none',
+            }}
+          >
+            <ChevronBackIcon />
+            Dashboard
+          </Link>
+        )}
       </div>
 
       <div

@@ -177,7 +177,7 @@ export default function LoginPage() {
   const router = useRouter()
   const host = useHostLabel()
   const search = routeApi.useSearch()
-  const { providers } = routeApi.useRouteContext()
+  const { providers, emailPassword } = routeApi.useRouteContext()
   const destination = LoginRedirect.sanitize(search.redirect)
 
   const [email, setEmail] = useState('')
@@ -285,7 +285,7 @@ export default function LoginPage() {
             <VStack gap={6}>
               <VStack gap={2}>
                 <Heading level={1} className="openlink-login-heading">Welcome back</Heading>
-                <Text color="secondary" size="sm">Sign in to your OpenLink workspace.</Text>
+                <Text color="secondary" size="sm">{emailPassword ? 'Sign in to your OpenLink workspace.' : 'Sign in with Google or GitHub to continue.'}</Text>
               </VStack>
 
               <VStack gap={5}>
@@ -305,11 +305,15 @@ export default function LoginPage() {
                         />
                       ))}
                     </Grid>
-                    <Divider label={<Text size="xsm" color="secondary">or sign in with email</Text>} />
+                    {emailPassword ? (
+                      <Divider label={<Text size="xsm" color="secondary">or sign in with email</Text>} />
+                    ) : null}
                   </>
                 )}
               </VStack>
 
+              {emailPassword ? (
+                <>
               {/* POST so credentials can never end up in the URL if this is submitted before hydration. */}
               <form method="post" onSubmit={handleSubmit}>
                 <VStack gap={5}>
@@ -377,10 +381,17 @@ export default function LoginPage() {
                   />
                 </VStack>
               </form>
+                </>
+              ) : null}
+              {!emailPassword && enabledProviders.length === 0 ? (
+                <Text size="sm" color="secondary" role="status">
+                  Sign-in is not configured yet. Add Google or GitHub credentials to the server.
+                </Text>
+              ) : null}
             </VStack>
 
             <Text size="xsm" color="secondary" justify="center">
-              Need access? Ask your workspace admin for an invitation.
+              New here? Signing in creates your account.
             </Text>
 
             <Section id="login-notice" variant="transparent" padding={0} role="status" aria-live="polite">

@@ -22,7 +22,7 @@ export const Route = createFileRoute('/login')({
     if (state.user) {
       throw redirect({ href: LoginRedirect.sanitize(search.redirect), replace: true })
     }
-    return { providers: state.providers }
+    return { providers: state.providers, emailPassword: state.emailPassword }
   },
   component: LoginPage,
 })

@@ -61,7 +61,13 @@ function FormBlock({
   )
 }
 
-export default function CreateOrganizationForm() {
+type CreateOrganizationFormProps = {
+  /** `onboarding` is the first workspace after sign-up: different copy and no way back. */
+  variant?: 'create' | 'onboarding'
+}
+
+export default function CreateOrganizationForm({ variant = 'create' }: CreateOrganizationFormProps) {
+  const isOnboarding = variant === 'onboarding'
   const { createOrganization } = useWorkspaceDirectory()
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -70,7 +76,6 @@ export default function CreateOrganizationForm() {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugEdited, setSlugEdited] = useState(false)
-  const [inviteToken, setInviteToken] = useState('')
   const [iconPreview, setIconPreview] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -134,7 +139,6 @@ export default function CreateOrganizationForm() {
       const { organization: org } = await createOrganization({
         name,
         slug,
-        inviteToken,
         logo: pendingIconFile.current,
       })
       ActiveWorkspace.remember(org.slug)
@@ -152,10 +156,12 @@ export default function CreateOrganizationForm() {
     <VStack gap={8} hAlign="stretch" width="100%">
         <VStack gap={1} hAlign="start" width="100%">
           <Heading level={3}>
-            Create organization
+            {isOnboarding ? 'Create your workspace' : 'Create organization'}
           </Heading>
           <Text color="secondary" type="supporting">
-            Add a workspace with its own links, members, and branding.
+            {isOnboarding
+              ? 'Your links, domains, and teammates live in a workspace. You can add more later.'
+              : 'Add a workspace with its own links, members, and branding.'}
           </Text>
         </VStack>
 
@@ -243,18 +249,6 @@ export default function CreateOrganizationForm() {
                 isRequired
               />
             </GridSpan>
-            <GridSpan columns="full">
-              <TextInput
-                label="Invite token"
-                width="100%"
-                type="password"
-                autoComplete="off"
-                value={inviteToken}
-                onChange={setInviteToken}
-                description="Workspaces are created with an invite token. Ask the person who invited you."
-                isRequired
-              />
-            </GridSpan>
           </Grid>
         </FormBlock>
 
@@ -265,16 +259,18 @@ export default function CreateOrganizationForm() {
         ) : null}
 
         <HStack gap={2} vAlign="center" hAlign="end" wrap="wrap" width="100%">
+          {isOnboarding ? null : (
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Cancel"
+              onClick={() => void navigate({ to: '/w' })}
+            />
+          )}
           <Button
-            variant="ghost"
+            variant={isOnboarding ? 'primary' : 'secondary'}
             size="sm"
-            label="Cancel"
-            onClick={() => void navigate({ to: '/w' })}
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            label={isSubmitting ? 'Creating…' : 'Create organization'}
+            label={isSubmitting ? 'Creating…' : isOnboarding ? 'Continue' : 'Create organization'}
             isDisabled={isSubmitting || !name.trim() || !slug.trim()}
             onClick={() => void handleSubmit()}
           />

@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useMemo, type ReactNode } from 
 
 import type { Organization } from '#/data/demo/types'
 import { ApiError } from '#/lib/api/error'
+import { AuthSession } from '#/lib/auth/client'
 import { QueryKeys } from '#/lib/api/query'
 import { WorkspaceApi } from '#/lib/api/workspaces'
 import { isValidOrganizationSlug } from '#/lib/organization/slugify'
@@ -12,8 +13,6 @@ import { MediaUploads } from '#/lib/media/uploads'
 export type CreateOrganizationInput = {
   name: string
   slug: string
-  /** Invite token that authorises creating a workspace. */
-  inviteToken: string
   /** Uploaded to R2 after the workspace exists. */
   logo?: File | null
 }
@@ -60,13 +59,14 @@ export function WorkspaceDirectoryProvider({ children }: { children: ReactNode }
       if (!isValidOrganizationSlug(input.slug)) {
         throw new Error('Use a slug with lowercase letters, numbers, and hyphens (min. 2 characters).')
       }
-      if (!input.inviteToken.trim()) throw new Error('Enter your invite token.')
       let organization: Organization
       try {
-        organization = await create.mutateAsync({ ...input, name, inviteToken: input.inviteToken.trim() })
+        organization = await create.mutateAsync({ ...input, name })
       } catch (error) {
         throw new Error(ApiError.message(error, 'Could not create the workspace.'))
       }
+      // The first workspace completes onboarding; re-read the session so the guard sees it.
+      AuthSession.invalidate()
       let logoError: string | null = null
       if (input.logo) {
         try {
