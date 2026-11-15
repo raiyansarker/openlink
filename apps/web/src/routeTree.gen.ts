@@ -26,6 +26,7 @@ import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settin
 import { Route as EditLinkRouteImport } from './routes/edit/link'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as SettingsSectionRouteImport } from './routes/settings/$section'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
 import { Route as DashboardOrgSlugIndexRouteImport } from './routes/dashboard/$orgSlug/index'
 import { Route as DashboardOrgSlugActivityRouteImport } from './routes/dashboard/$orgSlug/activity'
@@ -125,6 +126,11 @@ const SettingsSectionRoute = SettingsSectionRouteImport.update({
   id: '/$section',
   path: '/$section',
   getParentRoute: () => SettingsRouteRoute,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
   id: '/api/v1/$',
@@ -228,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof SettingsIndexRoute
   '/dashboard/$orgSlug/domains': typeof DashboardOrgSlugDomainsRouteRouteWithChildren
   '/dashboard/$orgSlug/settings': typeof DashboardOrgSlugSettingsRouteRouteWithChildren
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
   '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
@@ -256,6 +263,7 @@ export interface FileRoutesByTo {
   '/settings/$section': typeof SettingsSectionRoute
   '/dashboard': typeof DashboardIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
   '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
@@ -290,6 +298,7 @@ export interface FileRoutesById {
   '/settings/': typeof SettingsIndexRoute
   '/dashboard/$orgSlug/domains': typeof DashboardOrgSlugDomainsRouteRouteWithChildren
   '/dashboard/$orgSlug/settings': typeof DashboardOrgSlugSettingsRouteRouteWithChildren
+  '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
   '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
@@ -325,6 +334,7 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/dashboard/$orgSlug/domains'
     | '/dashboard/$orgSlug/settings'
+    | '/api/auth/$'
     | '/api/v1/$'
     | '/dashboard/$orgSlug/activity'
     | '/dashboard/$orgSlug/analytics'
@@ -353,6 +363,7 @@ export interface FileRouteTypes {
     | '/settings/$section'
     | '/dashboard'
     | '/settings'
+    | '/api/auth/$'
     | '/api/v1/$'
     | '/dashboard/$orgSlug/activity'
     | '/dashboard/$orgSlug/analytics'
@@ -386,6 +397,7 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/dashboard/$orgSlug/domains'
     | '/dashboard/$orgSlug/settings'
+    | '/api/auth/$'
     | '/api/v1/$'
     | '/dashboard/$orgSlug/activity'
     | '/dashboard/$orgSlug/analytics'
@@ -411,6 +423,7 @@ export interface RootRouteChildren {
   CreateLinkRoute: typeof CreateLinkRoute
   CreateOrganizationRoute: typeof CreateOrganizationRoute
   EditLinkRoute: typeof EditLinkRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
 }
 
@@ -534,6 +547,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/$section'
       preLoaderRoute: typeof SettingsSectionRouteImport
       parentRoute: typeof SettingsRouteRoute
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/v1/$': {
       id: '/api/v1/$'
@@ -744,6 +764,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreateLinkRoute: CreateLinkRoute,
   CreateOrganizationRoute: CreateOrganizationRoute,
   EditLinkRoute: EditLinkRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
 }
 export const routeTree = rootRouteImport
