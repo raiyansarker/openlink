@@ -15,6 +15,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import ApiKeyRowMenu from '#/components/settings/ApiKeyRowMenu'
+import ApiKeySecretRevealDialog from '#/components/settings/ApiKeySecretRevealDialog'
 import CreateApiKeyDrawer from '#/components/settings/CreateApiKeyDrawer'
 import type { WorkspaceMemberRole } from '#/data/demo/types'
 import type { WorkspaceApiKey } from '#/data/demo/api-keys'
@@ -34,6 +35,8 @@ export default function ApiKeysSettingsFields() {
   const query = useQuery({ queryKey, queryFn: () => keysApi.list(activeOrg.id), enabled: canManage })
   const [createOpen, setCreateOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** The new secret after a rotation. Held here because the rotated row is replaced. */
+  const [rotatedSecret, setRotatedSecret] = useState<string | null>(null)
 
   const apiKeys = query.data ?? []
   const keyRows = apiKeys as ApiKeyRow[]
@@ -70,6 +73,8 @@ export default function ApiKeysSettingsFields() {
       const key = apiKeys.find((k) => k.id === keyId)
       if (!key || key.role === 'owner') return Promise.reject(new Error('Unknown key'))
       return run(() => keysApi.rotate(activeOrg.id, { id: key.id, name: key.name, role: key.role as AssignableRole }))
+        .then(setRotatedSecret)
+        .catch(() => {})
     },
     [run, apiKeys, activeOrg.id],
   )
@@ -172,6 +177,7 @@ export default function ApiKeysSettingsFields() {
           />
         </HStack>
 
+        {keyRows.length > 0 ? (
         <VStack className="members-table" width="100%" hAlign="stretch">
           <Table<ApiKeyRow>
             className="members-table__grid"
@@ -184,13 +190,26 @@ export default function ApiKeysSettingsFields() {
             hasHover
           />
         </VStack>
-        {keyRows.length === 0 ? (
-          <Text type="supporting" color="secondary">
-            No API keys yet. Create one for scripts or integrations.
-          </Text>
-        ) : null}
+        ) : (
+          <VStack gap={1} hAlign="start" width="100%" paddingBlock={6}>
+            <Text weight="semibold">No API keys yet</Text>
+            <Text type="supporting" color="secondary">
+              Create a key to call the OpenLink API from scripts or integrations.
+            </Text>
+          </VStack>
+        )}
       </VStack>
       ) : null}
+
+      <ApiKeySecretRevealDialog
+        isOpen={rotatedSecret != null}
+        onOpenChange={(open) => {
+          if (!open) setRotatedSecret(null)
+        }}
+        title="Save your new key"
+        body="The previous key no longer works. Copy the new key and update your integrations. You cannot view it again after you close this dialog."
+        secret={rotatedSecret ?? ''}
+      />
 
       <CreateApiKeyDrawer
         isOpen={createOpen}
