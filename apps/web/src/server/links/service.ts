@@ -34,6 +34,7 @@ export function createLinkRecord(input: {
   domainId: string
   userId: string
   slug?: string
+  folderId?: string | null
   destinationUrl: string
   title?: string
   description?: string
@@ -63,6 +64,7 @@ export function createLinkRecord(input: {
           organizationId: input.organizationId,
           domainId: input.domainId,
           slug,
+          folderId: input.folderId ?? null,
           title: input.title,
           description: input.description,
           destinationUrl: input.destinationUrl,
@@ -134,6 +136,7 @@ export function updateLinkRecord(
       db
         .update(link)
         .set({
+          folderId: input.folderId === undefined ? existing.folderId : input.folderId,
           destinationUrl: input.destinationUrl ?? existing.destinationUrl,
           title: input.title ?? existing.title,
           description: input.description ?? existing.description,

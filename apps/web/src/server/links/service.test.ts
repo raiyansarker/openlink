@@ -309,3 +309,24 @@ describe('Effect-native link services', () => {
     expect(await run(getLinkInDomain(existing.domainId, existing.id))).toEqual(existing)
   })
 })
+
+describe('link folders', () => {
+  const base = { organizationId: 'org-1', domainId: 'domain-1', userId: 'u1', destinationUrl: 'https://example.com' }
+
+  test('links are created in a folder, or at the root by default', async () => {
+    const t = setup()
+    expect((await t.run(createLinkRecord({ ...base, folderId: 'f1' }))).folderId).toBe('f1')
+    expect((await t.run(createLinkRecord({ ...base }))).folderId).toBeNull()
+  })
+
+  test('updates keep, change, or clear the folder', async () => {
+    const t = setup()
+    const row = await t.run(createLinkRecord({ ...base, folderId: 'f1' }))
+    const kept = await t.run(updateLinkRecord(row, { title: 'x' }))
+    expect(kept.folderId).toBe('f1')
+    const moved = await t.run(updateLinkRecord(kept, { folderId: 'f2' }))
+    expect(moved.folderId).toBe('f2')
+    const cleared = await t.run(updateLinkRecord(moved, { folderId: null }))
+    expect(cleared.folderId).toBeNull()
+  })
+})

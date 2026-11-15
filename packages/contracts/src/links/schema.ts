@@ -21,6 +21,8 @@ export const Link = type({
   domainId: 'string',
   slug: 'string',
   'alias?': 'string',
+  /** Containing folder; null or absent means the workspace root. */
+  'folderId?': 'string | null',
   'title?': 'string',
   'description?': 'string',
   destinationUrl: HttpUrl,
@@ -43,6 +45,7 @@ export const Link = type({
 
 export const CreateLinkRequest = type({
   'slug?': /^[A-Za-z0-9_-]+$/,
+  'folderId?': 'string | null',
   destinationUrl: HttpUrl,
   'title?': 'string',
   'description?': 'string',
@@ -59,6 +62,8 @@ export const CreateLinkRequest = type({
 })
 
 export const UpdateLinkRequest = type({
+  /** Null moves the link to the workspace root. */
+  'folderId?': 'string | null',
   'destinationUrl?': HttpUrl,
   'title?': 'string',
   'description?': 'string',
