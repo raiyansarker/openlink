@@ -92,7 +92,9 @@ export function updateMemberRole(input: {
           ),
         ),
     )
-    return { ...target, role: input.role } satisfies WorkspaceMemberRow
+    return { ...target, role: input.role, previousRole: target.role } satisfies WorkspaceMemberRow & {
+      previousRole: OrganizationRole
+    }
   })
 }
 
@@ -126,6 +128,7 @@ export function removeMember(input: {
           ),
         ),
     )
+    return target
   })
 }
 
@@ -157,6 +160,7 @@ export function transferOwnership(input: {
     // Promote first: a failure between the steps leaves two owners, never none.
     yield* setRole(input.targetUserId, 'owner')
     yield* setRole(input.actorUserId, 'admin')
+    return target
   })
 }
 
@@ -232,9 +236,10 @@ export function revokeInvite(organizationId: string, inviteId: string) {
       db
         .delete(organizationInvite)
         .where(and(pendingInviteFilter(organizationId), eq(organizationInvite.id, inviteId)))
-        .returning({ id: organizationInvite.id }),
+        .returning({ id: organizationInvite.id, email: organizationInvite.email }),
     )
     if (deleted.length === 0) return yield* Effect.fail(new InviteNotFound())
+    return deleted[0]!
   })
 }
 

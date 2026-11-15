@@ -1,4 +1,6 @@
 import type {
+  activityEvent,
+  apiKey,
   customDomain,
   link,
   linkFolder,
@@ -7,6 +9,9 @@ import type {
   organizationMember,
 } from '@openlink/db/schema'
 
+import { parseReactions } from '#/server/comments/rules'
+import type { CommentRow } from '#/server/comments/service'
+import { ACTION_DEFINITIONS, isKnownAction, type Change } from '#/server/activity/actions'
 import { deriveLinkStatus } from '#/server/links/rules'
 
 export function toUserDto(user: { id: string; email: string; name: string; createdAt: Date }) {
@@ -131,5 +136,63 @@ export function toPendingInviteDto(row: typeof organizationInvite.$inferSelect) 
     role: row.role,
     expiresAt: row.expiresAt.toISOString(),
     createdAt: row.createdAt.toISOString(),
+  }
+}
+
+function parseChanges(json: string | null): Change[] | undefined {
+  if (!json) return undefined
+  try {
+    const parsed = JSON.parse(json) as { changes?: Change[] }
+    return parsed.changes && parsed.changes.length > 0 ? parsed.changes : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** `includeIp` is for administrators only. */
+export function toActivityDto(row: typeof activityEvent.$inferSelect, options: { includeIp: boolean }) {
+  const changes = parseChanges(row.detailsJson)
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    action: row.action,
+    phrase: isKnownAction(row.action) ? ACTION_DEFINITIONS[row.action].phrase : row.action,
+    category: row.category,
+    source: row.source,
+    actor: {
+      type: row.actorType,
+      label: row.actorLabel,
+      ...(row.actorUserId ? { userId: row.actorUserId } : {}),
+    },
+    target: { type: row.targetType, ...(row.targetId ? { id: row.targetId } : {}), label: row.targetLabel },
+    ...(changes ? { changes } : {}),
+    ...(options.includeIp && row.ipAddress ? { ipAddress: row.ipAddress } : {}),
+    occurredAt: row.createdAt.toISOString(),
+  }
+}
+
+export function toCommentDto(row: CommentRow) {
+  return {
+    id: row.id,
+    linkId: row.linkId,
+    authorId: row.authorUserId,
+    authorName: row.authorLabel,
+    ...(row.authorImage ? { authorImage: row.authorImage } : {}),
+    body: row.body,
+    createdAt: row.createdAt.toISOString(),
+    ...(row.editedAt ? { editedAt: row.editedAt.toISOString() } : {}),
+    reactions: parseReactions(row.reactionsJson),
+  }
+}
+
+export function toApiKeyDto(row: typeof apiKey.$inferSelect) {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    name: row.name,
+    prefix: row.prefix,
+    role: row.role,
+    createdAt: row.createdAt.toISOString(),
+    lastUsedAt: row.lastUsedAt ? row.lastUsedAt.toISOString() : null,
   }
 }

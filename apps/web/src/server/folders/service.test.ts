@@ -111,7 +111,8 @@ describe('deleteFolder', () => {
     const a = await t.make('A')
     const b = await t.make('B', a.id)
     const l = t.seedLink(b.id)
-    await t.run(deleteFolder({ organizationId: 'o1', folderId: b.id }))
+    const deleted = await t.run(deleteFolder({ organizationId: 'o1', folderId: b.id }))
+    expect(deleted).toMatchObject({ id: b.id, name: 'B' })
     expect(t.linkFolderOf(l.id)).toBe(a.id)
   })
 

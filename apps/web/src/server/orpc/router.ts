@@ -7,6 +7,9 @@ import { Effect } from 'effect'
 
 import { getDomainInOrganization } from '#/server/api/access'
 import {
+  toActivityDto,
+  toApiKeyDto,
+  toCommentDto,
   toDomainDto,
   toFolderDto,
   toLinkDto,
@@ -26,11 +29,13 @@ import {
 import {
   requireLinkWriterEffect,
   requireOrgAdminEffect,
+  requireOrgAdminUserEffect,
   requireOrgMemberEffect,
   requireOrgOwnerEffect,
 } from '#/server/effect/access'
 import { operation } from '#/server/effect/operations'
 import { Bindings } from '#/server/effect/services/bindings'
+import { principalUserId } from '#/server/effect/principal'
 import { readSessionEffect, requireAuthSession } from '#/server/effect/session'
 import type { FolderRuleViolation } from '#/server/folders/errors'
 import {
@@ -40,6 +45,19 @@ import {
   listFolders,
   updateFolder,
 } from '#/server/folders/service'
+import { createApiKey, listApiKeys, revokeApiKey, updateApiKeyRole } from '#/server/apikeys/service'
+import { audit } from '#/server/activity/audit'
+import { diffLink, linkUpdateAction } from '#/server/activity/actions'
+import { listActivity } from '#/server/activity/service'
+import type { CommentForbidden, CommentInvalid } from '#/server/comments/errors'
+import { excerpt } from '#/server/comments/rules'
+import {
+  createComment,
+  deleteComment,
+  listComments,
+  toggleCommentReaction,
+  updateComment,
+} from '#/server/comments/service'
 import { runHealthChecks } from '#/server/health/checks'
 import { addTagsToLinks, deleteLinks, moveLinks } from '#/server/links/bulk'
 import { queryOrganizationLinks } from '#/server/links/queries'
@@ -113,6 +131,16 @@ const onMemberDenied = (errors: ErrorFactories) => ({
 const memberErrors = (errors: ErrorFactories) => ({
   ...onMemberNotFound(errors),
   ...onMemberDenied(errors),
+})
+
+const onCommentNotFound = (errors: ErrorFactories) => ({
+  CommentNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'Comment not found' })),
+})
+const onCommentForbidden = (errors: ErrorFactories) => ({
+  CommentForbidden: (error: CommentForbidden) => Effect.fail(errors.FORBIDDEN({ message: error.message })),
+})
+const onCommentInvalid = (errors: { BAD_REQUEST: MessageError }) => ({
+  CommentInvalid: (error: CommentInvalid) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
 })
 
 const onFolderNotFound = (errors: ErrorFactories) => ({
@@ -210,6 +238,76 @@ export const router = os.router({
     }),
   },
 
+  activity: {
+    listActivity: os.activity.listActivity.effect(function* ({ input }) {
+      const { membership } = yield* requireOrgMemberEffect(input.params.organizationId)
+      const { items, nextCursor } = yield* listActivity({
+        organizationId: input.params.organizationId,
+        ...input.query,
+      })
+      const includeIp = isAdmin(membership.role)
+      return { items: items.map((row) => toActivityDto(row, { includeIp })), ...(nextCursor ? { nextCursor } : {}) }
+    }),
+  },
+
+  apiKeys: {
+    listApiKeys: os.apiKeys.listApiKeys.effect(function* ({ input }) {
+      yield* requireOrgAdminUserEffect(input.params.organizationId)
+      const rows = yield* listApiKeys(input.params.organizationId)
+      return { items: rows.map(toApiKeyDto) }
+    }),
+
+    createApiKey: os.apiKeys.createApiKey.effect(function* ({ input, errors }) {
+      const { session } = yield* requireOrgAdminUserEffect(input.params.organizationId)
+      const name = input.body.name.trim()
+      if (!name) return yield* Effect.fail(errors.BAD_REQUEST({ message: 'Enter a name for the key' }))
+      const { row, secret } = yield* createApiKey({
+        organizationId: input.params.organizationId,
+        name,
+        role: input.body.role,
+        createdByUserId: session.session.user.id,
+      })
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'apikey.created',
+        target: { type: 'api_key', id: row.id, label: row.name },
+        changes: [{ label: 'Role', from: '—', to: row.role }],
+      })
+      return { ...toApiKeyDto(row), secret }
+    }),
+
+    updateApiKey: os.apiKeys.updateApiKey.effect(function* ({ input, errors }) {
+      const { session } = yield* requireOrgAdminUserEffect(input.params.organizationId)
+      const { row, previousRole } = yield* updateApiKeyRole({
+        organizationId: input.params.organizationId,
+        keyId: input.params.keyId,
+        role: input.body.role,
+      }).pipe(Effect.catchTags({ ApiKeyNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'API key not found' })) }))
+      if (previousRole !== row.role) {
+        yield* audit(session, {
+          organizationId: input.params.organizationId,
+          action: 'apikey.role_changed',
+          target: { type: 'api_key', id: row.id, label: row.name },
+          changes: [{ label: 'Role', from: previousRole, to: row.role }],
+        })
+      }
+      return toApiKeyDto(row)
+    }),
+
+    revokeApiKey: os.apiKeys.revokeApiKey.effect(function* ({ input, errors }) {
+      const { session } = yield* requireOrgAdminUserEffect(input.params.organizationId)
+      const revoked = yield* revokeApiKey(input.params.organizationId, input.params.keyId).pipe(
+        Effect.catchTags({ ApiKeyNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'API key not found' })) }),
+      )
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'apikey.revoked',
+        target: { type: 'api_key', id: revoked.id, label: revoked.name },
+      })
+      return {}
+    }),
+  },
+
   organizations: {
     listOrganizations: os.organizations.listOrganizations.effect(function* () {
       const session = yield* requireAuthSession
@@ -241,6 +339,11 @@ export const router = os.router({
         InvalidInvite: () => Effect.fail(errors.BAD_REQUEST({ message: 'Invalid or expired invite' })),
         BackendError: () => Effect.fail(errors.BAD_REQUEST({ message: 'Invalid or expired invite' })),
       }))
+      yield* audit(session, {
+        organizationId: org.id,
+        action: 'member.joined',
+        target: { type: 'member', id: session.session.user.id, label: session.session.user.name || session.session.user.email },
+      })
       return toMembershipDto(org, member)
     }),
 
@@ -252,7 +355,8 @@ export const router = os.router({
     }),
 
     updateOrganization: os.organizations.updateOrganization.effect(function* ({ input, errors }) {
-      yield* requireOrgAdminEffect(input.params.organizationId)
+      const { session } = yield* requireOrgAdminEffect(input.params.organizationId)
+      const before = yield* getOrganizationById(input.params.organizationId)
       const org = yield* updateOrganization({ organizationId: input.params.organizationId, ...input.body }).pipe(
         Effect.catchTags({
           OrganizationConflict: () => Effect.fail(errors.CONFLICT({ message: 'That workspace URL is already taken' })),
@@ -260,6 +364,13 @@ export const router = os.router({
         }),
       )
       if (!org) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Organization not found' }))
+      const changes = [
+        ...(before && before.name !== org.name ? [{ label: 'Name', from: before.name, to: org.name }] : []),
+        ...(before && before.slug !== org.slug ? [{ label: 'URL', from: before.slug, to: org.slug }] : []),
+      ]
+      if (changes.length > 0) {
+        yield* audit(session, { organizationId: org.id, action: 'workspace.updated', target: { type: 'workspace', id: org.id, label: org.name }, changes })
+      }
       return toOrganizationDto(org)
     }),
 
@@ -271,11 +382,16 @@ export const router = os.router({
 
     transferOwnership: os.organizations.transferOwnership.effect(function* ({ input, errors }) {
       const { session } = yield* requireOrgOwnerEffect(input.params.organizationId)
-      yield* transferOwnership({
+      const newOwner = yield* transferOwnership({
         organizationId: input.params.organizationId,
         actorUserId: session.session.user.id,
         targetUserId: input.body.userId,
       }).pipe(Effect.catchTags(memberErrors(errors)))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'workspace.ownership_transferred',
+        target: { type: 'member', id: newOwner.userId, label: newOwner.name },
+      })
       const org = yield* getOrganizationById(input.params.organizationId)
       if (!org) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Organization not found' }))
       return toOrganizationDto(org)
@@ -288,13 +404,19 @@ export const router = os.router({
     }),
 
     updateMemberRole: os.organizations.updateMemberRole.effect(function* ({ input, errors }) {
-      const { membership } = yield* requireOrgAdminEffect(input.params.organizationId)
+      const { session, membership } = yield* requireOrgAdminEffect(input.params.organizationId)
       const row = yield* updateMemberRole({
         organizationId: input.params.organizationId,
         actorRole: membership.role,
         targetUserId: input.params.userId,
         role: input.body.role,
       }).pipe(Effect.catchTags(memberErrors(errors)))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'member.role_changed',
+        target: { type: 'member', id: row.userId, label: row.name },
+        changes: [{ label: 'Role', from: row.previousRole ?? '—', to: row.role }],
+      })
       return toWorkspaceMemberDto(row)
     }),
 
@@ -304,12 +426,17 @@ export const router = os.router({
       if (actorUserId !== input.params.userId && !isAdmin(membership.role)) {
         return yield* Effect.fail(errors.FORBIDDEN({ message: 'Admin role required' }))
       }
-      yield* removeMember({
+      const removed = yield* removeMember({
         organizationId: input.params.organizationId,
         actorUserId,
         actorRole: membership.role,
         targetUserId: input.params.userId,
       }).pipe(Effect.catchTags(memberErrors(errors)))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'member.removed',
+        target: { type: 'member', id: removed.userId, label: removed.name },
+      })
       return {}
     }),
 
@@ -332,10 +459,15 @@ export const router = os.router({
     }),
 
     revokeOrganizationInvite: os.organizations.revokeOrganizationInvite.effect(function* ({ input, errors }) {
-      yield* requireOrgAdminEffect(input.params.organizationId)
-      yield* revokeInvite(input.params.organizationId, input.params.inviteId).pipe(
+      const { session } = yield* requireOrgAdminEffect(input.params.organizationId)
+      const revoked = yield* revokeInvite(input.params.organizationId, input.params.inviteId).pipe(
         Effect.catchTags(onInviteNotFound(errors)),
       )
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'invite.revoked',
+        target: { type: 'invite', id: revoked.id, label: revoked.email },
+      })
       return {}
     }),
 
@@ -344,7 +476,13 @@ export const router = os.router({
       const { invite, token } = yield* createMemberInvite({
         organizationId: input.params.organizationId,
         ...input.body,
-        createdByUserId: session.session.user.id,
+        createdByUserId: principalUserId(session),
+      })
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'member.invited',
+        target: { type: 'invite', id: invite.id, label: invite.email },
+        changes: [{ label: 'Role', from: '—', to: invite.role }],
       })
       const bindings = yield* Bindings
       return {
@@ -366,13 +504,18 @@ export const router = os.router({
     }),
 
     addDomain: os.domains.addDomain.effect(function* ({ input, errors }) {
-      yield* requireOrgAdminEffect(input.params.organizationId)
+      const { session } = yield* requireOrgAdminEffect(input.params.organizationId)
       const row = yield* registerCustomDomain({
         organizationId: input.params.organizationId,
         hostname: input.body.hostname,
       }).pipe(Effect.catchTag('BackendError', () =>
         Effect.fail(errors.BAD_REQUEST({ message: 'Unable to register domain' })),
       ))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'domain.added',
+        target: { type: 'domain', id: row.id, label: row.hostname },
+      })
       return toDomainDto(row)
     }),
 
@@ -382,9 +525,15 @@ export const router = os.router({
     }),
 
     removeDomain: os.domains.removeDomain.effect(function* ({ input, errors }) {
-      yield* requireOrgAdminEffect(input.params.organizationId)
+      const { session } = yield* requireOrgAdminEffect(input.params.organizationId)
+      const domain = yield* getDomainInOrganization(input.params.domainId, input.params.organizationId)
       const removed = yield* removeCustomDomain(input.params.domainId, input.params.organizationId)
       if (!removed) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Domain not found' }))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'domain.removed',
+        target: { type: 'domain', id: input.params.domainId, label: domain?.hostname ?? input.params.domainId },
+      })
       return {}
     }),
 
@@ -404,31 +553,117 @@ export const router = os.router({
     }),
 
     createFolder: os.folders.createFolder.effect(function* ({ input, errors }) {
-      yield* requireLinkWriterEffect(input.params.organizationId)
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
       const row = yield* createFolder({ organizationId: input.params.organizationId, ...input.body }).pipe(
         Effect.catchTags({ ...onFolderNotFound(errors), ...onFolderRule(errors), ...onFolderNameTaken(errors) }),
       )
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'folder.created',
+        target: { type: 'folder', id: row.id, label: row.name },
+      })
       return toFolderDto(row)
     }),
 
     updateFolder: os.folders.updateFolder.effect(function* ({ input, errors }) {
-      yield* requireLinkWriterEffect(input.params.organizationId)
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
       const row = yield* updateFolder({
         organizationId: input.params.organizationId,
         folderId: input.params.folderId,
         ...input.body,
       }).pipe(Effect.catchTags({ ...onFolderNotFound(errors), ...onFolderRule(errors), ...onFolderNameTaken(errors) }))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'folder.updated',
+        target: { type: 'folder', id: row.id, label: row.name },
+      })
       return toFolderDto(row)
     }),
 
     deleteFolder: os.folders.deleteFolder.effect(function* ({ input, errors }) {
-      yield* requireLinkWriterEffect(input.params.organizationId)
-      yield* deleteFolder({
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      const deleted = yield* deleteFolder({
         organizationId: input.params.organizationId,
         folderId: input.params.folderId,
         mode: input.query.mode,
       }).pipe(Effect.catchTags(onFolderNotFound(errors)))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'folder.deleted',
+        target: { type: 'folder', id: deleted.id, label: deleted.name },
+        ...(input.query.mode === 'cascade' ? { changes: [{ label: 'Contents', from: 'kept', to: 'deleted' }] } : {}),
+      })
       return {}
+    }),
+  },
+
+  comments: {
+    listLinkComments: os.comments.listLinkComments.effect(function* ({ input }) {
+      yield* requireOrgMemberEffect(input.params.organizationId)
+      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      const rows = yield* listComments(input.params.organizationId, input.params.linkId)
+      return { items: rows.map(toCommentDto) }
+    }),
+
+    createLinkComment: os.comments.createLinkComment.effect(function* ({ input, errors }) {
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
+      const existing = yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      const user = session.session.user
+      const row = yield* createComment({
+        organizationId: input.params.organizationId,
+        linkId: input.params.linkId,
+        author: { id: user.id, label: user.name || user.email },
+        body: input.body.body,
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'link.commented',
+        target: { type: 'link', id: existing.id, label: existing.title || existing.slug },
+        changes: [{ label: 'Comment', from: '—', to: excerpt(row.body) }],
+      })
+      return toCommentDto(row)
+    }),
+
+    updateLinkComment: os.comments.updateLinkComment.effect(function* ({ input, errors }) {
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
+      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      const row = yield* updateComment({
+        organizationId: input.params.organizationId,
+        linkId: input.params.linkId,
+        commentId: input.params.commentId,
+        actorUserId: session.session.user.id,
+        body: input.body.body,
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors), ...onCommentInvalid(errors) }))
+      return toCommentDto(row)
+    }),
+
+    deleteLinkComment: os.comments.deleteLinkComment.effect(function* ({ input, errors }) {
+      const { session, membership } = yield* requireOrgMemberEffect(input.params.organizationId)
+      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      yield* deleteComment({
+        organizationId: input.params.organizationId,
+        linkId: input.params.linkId,
+        commentId: input.params.commentId,
+        actorUserId: session.session.user.id,
+        actorIsAdmin: isAdmin(membership.role),
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors) }))
+      return {}
+    }),
+
+    toggleCommentReaction: os.comments.toggleCommentReaction.effect(function* ({ input, errors }) {
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Reactions require a signed-in member' }))
+      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      const row = yield* toggleCommentReaction({
+        organizationId: input.params.organizationId,
+        linkId: input.params.linkId,
+        commentId: input.params.commentId,
+        userId: session.session.user.id,
+        emoji: input.body.emoji,
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
+      return toCommentDto(row)
     }),
   },
 
@@ -443,21 +678,43 @@ export const router = os.router({
     }),
 
     moveLinks: os.links.moveLinks.effect(function* ({ input, errors }) {
-      yield* requireLinkWriterEffect(input.params.organizationId)
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
       yield* requireLinkFolder(input.params.organizationId, input.body.folderId, errors)
       const affected = yield* moveLinks({ organizationId: input.params.organizationId, ...input.body })
+      if (affected > 0) {
+        yield* audit(session, {
+          organizationId: input.params.organizationId,
+          action: 'link.moved',
+          target: { type: 'links', label: `${affected} link${affected === 1 ? '' : 's'}` },
+        })
+      }
       return { affected }
     }),
 
     addLinkTags: os.links.addLinkTags.effect(function* ({ input }) {
-      yield* requireLinkWriterEffect(input.params.organizationId)
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
       const affected = yield* addTagsToLinks({ organizationId: input.params.organizationId, ...input.body })
+      if (affected > 0) {
+        yield* audit(session, {
+          organizationId: input.params.organizationId,
+          action: 'link.tagged',
+          target: { type: 'links', label: `${affected} link${affected === 1 ? '' : 's'}` },
+          changes: [{ label: 'Tags added', from: '—', to: input.body.tags.join(', ') }],
+        })
+      }
       return { affected }
     }),
 
     deleteLinks: os.links.deleteLinks.effect(function* ({ input }) {
-      yield* requireLinkWriterEffect(input.params.organizationId)
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
       const affected = yield* deleteLinks({ organizationId: input.params.organizationId, ...input.body })
+      if (affected > 0) {
+        yield* audit(session, {
+          organizationId: input.params.organizationId,
+          action: 'link.deleted',
+          target: { type: 'links', label: `${affected} link${affected === 1 ? '' : 's'}` },
+        })
+      }
       return { affected }
     }),
 
@@ -476,13 +733,18 @@ export const router = os.router({
         ...input.body,
         organizationId: input.params.organizationId,
         domainId: input.params.domainId,
-        userId: session.session.user.id,
+        userId: principalUserId(session),
         activateAt: input.body.activateAt ? new Date(input.body.activateAt) : undefined,
         expiresAt: input.body.expiresAt ? new Date(input.body.expiresAt) : undefined,
       }).pipe(Effect.catchTags({
         SlugConflict: () => Effect.fail(errors.CONFLICT({ message: 'Slug already exists on this domain' })),
         BackendError: () => Effect.fail(errors.BAD_REQUEST({ message: 'Unable to create link' })),
       }))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'link.created',
+        target: { type: 'link', id: row.id, label: row.title || row.slug },
+      })
       return toLinkDto(row)
     }),
 
@@ -492,17 +754,43 @@ export const router = os.router({
     }),
 
     updateLink: os.links.updateLink.effect(function* ({ input, errors }) {
-      yield* requireLinkWriterEffect(input.params.organizationId)
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
       yield* requireLinkFolder(input.params.organizationId, input.body.folderId, errors)
       const existing = yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      return toLinkDto(yield* updateLinkRecord(existing, input.body))
+      const updated = yield* updateLinkRecord(existing, input.body)
+      const changes = diffLink(existing, updated)
+      if (changes.length > 0) {
+        yield* audit(session, {
+          organizationId: input.params.organizationId,
+          action: linkUpdateAction(changes),
+          target: { type: 'link', id: updated.id, label: updated.title || updated.slug },
+          changes,
+        })
+      }
+      return toLinkDto(updated)
     }),
 
     deleteLink: os.links.deleteLink.effect(function* ({ input }) {
-      yield* requireLinkWriterEffect(input.params.organizationId)
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      const existing = yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
       yield* deleteLinkRecord(input.params.linkId)
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'link.deleted',
+        target: { type: 'link', id: existing.id, label: existing.title || existing.slug },
+      })
       return {}
+    }),
+
+    getLinkHistory: os.links.getLinkHistory.effect(function* ({ input }) {
+      const { membership } = yield* requireOrgMemberEffect(input.params.organizationId)
+      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      const { items } = yield* listActivity({
+        organizationId: input.params.organizationId,
+        target: { type: 'link', id: input.params.linkId },
+        limit: 100,
+      })
+      return { items: items.map((row) => toActivityDto(row, { includeIp: isAdmin(membership.role) })) }
     }),
   },
 })

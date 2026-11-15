@@ -1,5 +1,6 @@
 import { type } from 'arktype'
 
+import { ListActivityResponse } from '../activity/schema'
 import { EmptyResponse } from '../system/schema'
 import { oc, openapi } from '../oc'
 import {
@@ -116,7 +117,22 @@ export const deleteLinks = bulk('deleteLinks', '/organizations/{organizationId}/
   .input(type({ params: OrganizationIdPath, body: DeleteLinksRequest }))
   .output(BulkLinksResponse)
 
+export const getLinkHistory = oc
+  .meta(
+    openapi({
+      method: 'GET',
+      operationId: 'getLinkHistory',
+      path: '/organizations/{organizationId}/domains/{domainId}/links/{linkId}/history',
+      summary: 'Audit events for one link, newest first',
+      inputStructure: 'detailed',
+      tags: ['Links'],
+    }),
+  )
+  .input(type({ params: LinkIdPath }))
+  .output(ListActivityResponse)
+
 export const contract = {
+  getLinkHistory,
   listOrganizationLinks,
   moveLinks,
   addLinkTags,
