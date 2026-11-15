@@ -11,4 +11,3 @@ export {
   replaceOrgInPathname,
 } from './build-org-path'
 export type { DashboardSection } from './build-org-path'
-export { getDefaultOrgId } from './default-org'
