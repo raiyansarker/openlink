@@ -15,22 +15,16 @@ import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
-import {
-  API_KEY_ASSIGNABLE_ROLES,
-  type WorkspaceApiKey,
-} from '#/data/demo/api-keys'
+import { API_KEY_ASSIGNABLE_ROLES } from '#/data/demo/api-keys'
 import type { WorkspaceMemberRole } from '#/data/demo/types'
 import { WORKSPACE_MEMBER_ROLE_HELP } from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
-import {
-  buildFullApiKeySecret,
-  randomApiKeyPrefix,
-} from '#/lib/api-keys/generate-api-key-secret'
 
 type CreateApiKeyDrawerProps = {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onCreate: (key: WorkspaceApiKey) => void
+  /** Creates the key on the server and resolves with its one-time secret. */
+  onCreate: (input: { name: string; role: WorkspaceMemberRole }) => Promise<string>
 }
 
 export default function CreateApiKeyDrawer({
@@ -52,21 +46,21 @@ export default function CreateApiKeyDrawer({
 
   const revealMode = createdSecret != null
 
-  const handleCreate = () => {
+  const [isCreating, setIsCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleCreate = async () => {
     const trimmed = name.trim()
-    if (!trimmed) return
-    const prefix = randomApiKeyPrefix()
-    const secret = buildFullApiKeySecret(prefix)
-    const key: WorkspaceApiKey = {
-      id: `key_${Date.now()}`,
-      name: trimmed,
-      prefix,
-      role,
-      createdAt: new Date().toISOString(),
-      lastUsedAt: null,
+    if (!trimmed || isCreating) return
+    setIsCreating(true)
+    setError(null)
+    try {
+      setCreatedSecret(await onCreate({ name: trimmed, role }))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not create the key.')
+    } finally {
+      setIsCreating(false)
     }
-    setCreatedSecret(secret)
-    onCreate(key)
   }
 
   return (
@@ -159,12 +153,18 @@ export default function CreateApiKeyDrawer({
                     label="Cancel"
                     onClick={() => onOpenChange(false)}
                   />
+                  {error ? (
+                    <Text type="supporting" weight="medium" role="alert">
+                      {error}
+                    </Text>
+                  ) : null}
                   <Button
                     variant="primary"
                     size="sm"
                     label="Create key"
                     isDisabled={!name.trim()}
-                    onClick={handleCreate}
+                    isLoading={isCreating}
+                    onClick={() => void handleCreate()}
                   />
                 </>
               )}

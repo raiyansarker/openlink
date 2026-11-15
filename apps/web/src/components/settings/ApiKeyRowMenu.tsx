@@ -5,17 +5,14 @@ import { IconButton } from '@astryxdesign/core/IconButton'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import type { WorkspaceApiKey } from '#/data/demo/api-keys'
 import type { WorkspaceMemberRole } from '#/data/demo/types'
-import {
-  buildFullApiKeySecret,
-  randomApiKeyPrefix,
-} from '#/lib/api-keys/generate-api-key-secret'
 import ApiKeySecretRevealDialog from '#/components/settings/ApiKeySecretRevealDialog'
 import ChangeApiKeyRoleDialog from '#/components/settings/ChangeApiKeyRoleDialog'
 
 type ApiKeyRowMenuProps = {
   apiKey: WorkspaceApiKey
   onChangeRole: (keyId: string, role: WorkspaceMemberRole) => void
-  onRotate: (keyId: string, prefix: string) => void
+  /** Replaces the key and resolves with the new one-time secret. */
+  onRotate: (keyId: string) => Promise<string>
   onRevoke: (keyId: string) => void
 }
 
@@ -50,12 +47,13 @@ export default function ApiKeyRowMenu({
     },
   ]
 
-  const confirmRotate = () => {
-    const prefix = randomApiKeyPrefix()
-    const secret = buildFullApiKeySecret(prefix)
-    onRotate(apiKey.id, prefix)
-    setRotatedSecret(secret)
+  const confirmRotate = async () => {
     setRotateAlertOpen(false)
+    try {
+      setRotatedSecret(await onRotate(apiKey.id))
+    } catch {
+      // The list shows the error; the old key keeps working.
+    }
   }
 
   const confirmRevoke = () => {
@@ -96,7 +94,7 @@ export default function ApiKeyRowMenu({
         description="The current secret stops working immediately. Update every integration with the new key after you rotate."
         actionLabel="Rotate key"
         actionVariant="destructive"
-        onAction={confirmRotate}
+        onAction={() => void confirmRotate()}
       />
       <AlertDialog
         isOpen={revokeAlertOpen}
