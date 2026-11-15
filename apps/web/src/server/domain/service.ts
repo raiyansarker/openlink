@@ -5,7 +5,7 @@ import { customDomain } from '@openlink/db/schema'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { Bindings } from '#/server/effect/services/bindings'
-import { DomainClient } from '#/server/effect/services/domain-client'
+import { useDomainClient } from '#/server/effect/services/domain-client'
 
 function mapReadiness(status: string): (typeof customDomain.$inferSelect)['readiness'] {
   if (status === 'active') return 'active'
@@ -49,7 +49,7 @@ export function refreshCustomDomain(domainId: string) {
     )
     if (!row) return null
 
-    const client = yield* DomainClient
+    const client = yield* useDomainClient
     const remote = yield* operation('domain.refresh.provider', () => client.refresh(row.hostname))
     const readiness = mapReadiness(remote.status)
     const activeAt = readiness === 'active' ? row.activeAt ?? new Date() : row.activeAt
@@ -79,7 +79,7 @@ export function registerCustomDomain(input: {
   return Effect.gen(function* () {
     const db = yield* Db
     const bindings = yield* Bindings
-    const client = yield* DomainClient
+    const client = yield* useDomainClient
     const created = yield* operation('domain.register.provider', () => client.add(input.hostname))
 
     const id = crypto.randomUUID()
@@ -121,7 +121,7 @@ export function removeCustomDomain(domainId: string, organizationId: string) {
     )
     if (!row) return false
 
-    const client = yield* DomainClient
+    const client = yield* useDomainClient
     yield* operation('domain.remove.provider', () => client.remove(row.hostname))
     yield* operation('domain.remove.delete', () =>
       db.delete(customDomain).where(eq(customDomain.id, domainId)),

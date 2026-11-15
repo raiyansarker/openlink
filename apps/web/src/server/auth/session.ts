@@ -1,11 +1,11 @@
 import { Effect } from 'effect'
-import { Auth } from '../effect/services/auth'
+import { useAuth } from '../effect/services/auth'
 import { operation } from '../effect/operations'
 import { toUserDto } from '../api/serializers'
 
 export function requireSession(request: Request) {
   return Effect.gen(function* () {
-    const auth = yield* Auth
+    const auth = yield* useAuth
     const session = yield* operation('auth.getSession', () =>
       auth.api.getSession({ headers: request.headers }),
     )
