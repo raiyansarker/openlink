@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as LoginRouteImport } from './routes/login'
@@ -43,6 +44,11 @@ import { Route as DashboardOrgSlugSettingsSectionRouteImport } from './routes/da
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SlugRoute = SlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
+  '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
   '/dashboard/$orgSlug': typeof DashboardOrgSlugRouteRouteWithChildren
@@ -236,6 +243,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
   '/api/docs': typeof ApiDocsRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
+  '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
   '/dashboard/$orgSlug': typeof DashboardOrgSlugRouteRouteWithChildren
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/settings'
+    | '/$slug'
     | '/about'
     | '/login'
     | '/dashboard/$orgSlug'
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$slug'
     | '/about'
     | '/login'
     | '/api/docs'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/settings'
+    | '/$slug'
     | '/about'
     | '/login'
     | '/dashboard/$orgSlug'
@@ -392,6 +404,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
+  SlugRoute: typeof SlugRoute
   AboutRoute: typeof AboutRoute
   LoginRoute: typeof LoginRoute
   ApiDocsRoute: typeof ApiDocsRoute
@@ -408,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$slug': {
+      id: '/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof SlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -717,6 +737,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   SettingsRouteRoute: SettingsRouteRouteWithChildren,
+  SlugRoute: SlugRoute,
   AboutRoute: AboutRoute,
   LoginRoute: LoginRoute,
   ApiDocsRoute: ApiDocsRoute,
