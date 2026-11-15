@@ -9,6 +9,7 @@ import { getDomainInOrganization } from '#/server/api/access'
 import {
   toActivityDto,
   toApiKeyDto,
+  toDeviceSessionDto,
   toCommentDto,
   toDomainDto,
   toFolderDto,
@@ -58,6 +59,7 @@ import {
   toggleCommentReaction,
   updateComment,
 } from '#/server/comments/service'
+import { DeviceSessions } from '#/server/devices/sessions'
 import { MediaStore } from '#/server/media/media-store'
 import { runHealthChecks } from '#/server/health/checks'
 import { addTagsToLinks, deleteLinks, moveLinks } from '#/server/links/bulk'
@@ -248,6 +250,40 @@ export const router = os.router({
       })
       const includeIp = isAdmin(membership.role)
       return { items: items.map((row) => toActivityDto(row, { includeIp })), ...(nextCursor ? { nextCursor } : {}) }
+    }),
+  },
+
+  account: {
+    // Cookie sessions only: an API key is not a device and must not sign people out.
+    listDeviceSessions: os.account.listDeviceSessions.effect(function* () {
+      const session = yield* requireAuthSession
+      const currentId = session.session.session.id
+      const rows = yield* DeviceSessions.list(session.session.user.id)
+      return { items: rows.map((row) => toDeviceSessionDto(row, currentId)) }
+    }),
+
+    revokeDeviceSession: os.account.revokeDeviceSession.effect(function* ({ input, errors }) {
+      const session = yield* requireAuthSession
+      yield* DeviceSessions.revoke({
+        userId: session.session.user.id,
+        sessionId: input.params.sessionId,
+        currentSessionId: session.session.session.id,
+      }).pipe(
+        Effect.catchTags({
+          DeviceSessionNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'That device is already signed out' })),
+          CannotRevokeCurrentSession: () => Effect.fail(errors.BAD_REQUEST({ message: 'Use Log out to sign out this device' })),
+        }),
+      )
+      return {}
+    }),
+
+    revokeOtherDeviceSessions: os.account.revokeOtherDeviceSessions.effect(function* () {
+      const session = yield* requireAuthSession
+      const revoked = yield* DeviceSessions.revokeOthers({
+        userId: session.session.user.id,
+        currentSessionId: session.session.session.id,
+      })
+      return { revoked }
     }),
   },
 
