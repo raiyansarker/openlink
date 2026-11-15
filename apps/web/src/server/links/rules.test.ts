@@ -7,6 +7,7 @@ function linkRow(overrides: Partial<typeof link.$inferSelect>): typeof link.$inf
     id: 'link-1',
     organizationId: 'org-1',
     domainId: 'domain-1',
+    folderId: null,
     slug: 'abc',
     alias: null,
     title: null,

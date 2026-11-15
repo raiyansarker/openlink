@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, mock, spyOn, test } from 'bun:test'
-import { Database } from 'bun:sqlite'
-import type { OpenLinkDb } from '@openlink/db'
+import type { Database } from 'bun:sqlite'
 import { link } from '@openlink/db/schema'
-import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { Effect } from 'effect'
 
 import { BackendError } from '#/server/effect/operations'
 import { Db, type Db as DbService } from '#/server/effect/services/db'
+import { createTestDatabase } from '#/server/testing/sqlite'
 import { verifyLinkPassword } from './password'
 
 const verify = (password: string, stored: string | null) =>
@@ -27,40 +26,8 @@ afterEach(() => {
 })
 
 function setup() {
-  const sqlite = new Database(':memory:')
+  const { sqlite, adapter, db } = createTestDatabase()
   databases.push(sqlite)
-  sqlite.exec(`
-    CREATE TABLE link (
-      id TEXT PRIMARY KEY NOT NULL,
-      organization_id TEXT NOT NULL,
-      domain_id TEXT NOT NULL,
-      slug TEXT NOT NULL,
-      alias TEXT,
-      title TEXT,
-      description TEXT,
-      destination_url TEXT NOT NULL,
-      redirect_status INTEGER NOT NULL DEFAULT 302,
-      status TEXT NOT NULL DEFAULT 'active',
-      enabled INTEGER NOT NULL DEFAULT 1,
-      activate_at INTEGER,
-      expires_at INTEGER,
-      max_clicks INTEGER,
-      click_count INTEGER NOT NULL DEFAULT 0,
-      password_hash TEXT,
-      expired_destination_url TEXT,
-      fallback_destination_url TEXT,
-      tags_json TEXT NOT NULL DEFAULT '[]',
-      utm_json TEXT,
-      metadata_json TEXT,
-      created_by_user_id TEXT,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
-      UNIQUE (domain_id, slug)
-    )
-  `)
-  const adapter = drizzle(sqlite)
-  // Both adapters expose the same SQLite query builders used by the service.
-  const db = adapter as unknown as OpenLinkDb
   const run = <A, E>(effect: Effect.Effect<A, E, DbService>) =>
     Effect.runPromise(effect.pipe(Effect.provideService(Db, db)))
   const seed = (overrides: Partial<typeof link.$inferInsert> = {}) =>
@@ -340,5 +307,26 @@ describe('Effect-native link services', () => {
     expect(insert).not.toHaveBeenCalled()
     expect(update).not.toHaveBeenCalled()
     expect(await run(getLinkInDomain(existing.domainId, existing.id))).toEqual(existing)
+  })
+})
+
+describe('link folders', () => {
+  const base = { organizationId: 'org-1', domainId: 'domain-1', userId: 'u1', destinationUrl: 'https://example.com' }
+
+  test('links are created in a folder, or at the root by default', async () => {
+    const t = setup()
+    expect((await t.run(createLinkRecord({ ...base, folderId: 'f1' }))).folderId).toBe('f1')
+    expect((await t.run(createLinkRecord({ ...base }))).folderId).toBeNull()
+  })
+
+  test('updates keep, change, or clear the folder', async () => {
+    const t = setup()
+    const row = await t.run(createLinkRecord({ ...base, folderId: 'f1' }))
+    const kept = await t.run(updateLinkRecord(row, { title: 'x' }))
+    expect(kept.folderId).toBe('f1')
+    const moved = await t.run(updateLinkRecord(kept, { folderId: 'f2' }))
+    expect(moved.folderId).toBe('f2')
+    const cleared = await t.run(updateLinkRecord(moved, { folderId: null }))
+    expect(cleared.folderId).toBeNull()
   })
 })

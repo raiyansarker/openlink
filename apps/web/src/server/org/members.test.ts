@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { Database } from 'bun:sqlite'
-import type { OpenLinkDb } from '@openlink/db'
+import type { Database } from 'bun:sqlite'
 import { organization, organizationInvite, organizationMember, user } from '@openlink/db/schema'
-import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { eq } from 'drizzle-orm'
 import { Effect } from 'effect'
 
 import { Db } from '#/server/effect/services/db'
+import { createTestDatabase } from '#/server/testing/sqlite'
 import { hashInviteToken } from './invites'
 import { InviteNotFound, MemberNotFound, MemberPermissionDenied, OrganizationConflict } from './errors'
 import {
@@ -27,36 +26,8 @@ afterEach(() => {
 })
 
 function setup() {
-  const sqlite = new Database(':memory:')
+  const { sqlite, adapter, db } = createTestDatabase({ foreignKeys: true })
   databases.push(sqlite)
-  sqlite.exec(`
-    PRAGMA foreign_keys = ON;
-    CREATE TABLE user (
-      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE,
-      email_verified INTEGER NOT NULL DEFAULT 0, image TEXT,
-      created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
-    );
-    CREATE TABLE organization (
-      id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
-      created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
-    );
-    CREATE TABLE organization_member (
-      id TEXT PRIMARY KEY NOT NULL,
-      organization_id TEXT NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
-      user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
-      role TEXT NOT NULL, joined_at INTEGER NOT NULL,
-      UNIQUE (organization_id, user_id)
-    );
-    CREATE TABLE organization_invite (
-      id TEXT PRIMARY KEY NOT NULL,
-      organization_id TEXT REFERENCES organization(id) ON DELETE CASCADE,
-      email TEXT NOT NULL, role TEXT NOT NULL, token_hash TEXT NOT NULL UNIQUE,
-      kind TEXT NOT NULL, expires_at INTEGER NOT NULL, accepted_at INTEGER,
-      created_by_user_id TEXT, created_at INTEGER NOT NULL
-    );
-  `)
-  const adapter = drizzle(sqlite)
-  const db = adapter as unknown as OpenLinkDb
   const at = (n: number) => new Date(2026, 0, n)
   adapter.insert(organization).values([
     { id: 'o1', name: 'Acme', slug: 'acme', createdAt: at(1), updatedAt: at(1) },

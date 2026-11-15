@@ -1,6 +1,7 @@
 import type {
   customDomain,
   link,
+  linkFolder,
   organization,
   organizationInvite,
   organizationMember,
@@ -53,6 +54,7 @@ export function toLinkDto(row: typeof link.$inferSelect) {
     organizationId: row.organizationId,
     domainId: row.domainId,
     slug: row.slug,
+    folderId: row.folderId,
     ...(row.alias ? { alias: row.alias } : {}),
     ...(row.title ? { title: row.title } : {}),
     ...(row.description ? { description: row.description } : {}),
@@ -76,6 +78,16 @@ export function toLinkDto(row: typeof link.$inferSelect) {
     ...(row.metadataJson ? { metadata: JSON.parse(row.metadataJson) } : {}),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+  }
+}
+
+export function toFolderDto(row: typeof linkFolder.$inferSelect) {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    parentId: row.parentId,
+    name: row.name,
+    createdAt: row.createdAt.toISOString(),
   }
 }
 

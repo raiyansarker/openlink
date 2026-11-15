@@ -26,3 +26,12 @@ describe('oRPC OpenAPI contract', () => {
     expect(contract.organizations.revokeOrganizationInvite).toBeDefined()
   })
 })
+
+describe('folders contract', () => {
+  test('covers folder CRUD', () => {
+    expect(contract.folders.listFolders).toBeDefined()
+    expect(contract.folders.createFolder).toBeDefined()
+    expect(contract.folders.updateFolder).toBeDefined()
+    expect(contract.folders.deleteFolder).toBeDefined()
+  })
+})

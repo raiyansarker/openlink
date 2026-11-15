@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test'
-import { Database } from 'bun:sqlite'
-import type { OpenLinkDb } from '@openlink/db'
+import type { Database } from 'bun:sqlite'
 import { customDomain, link } from '@openlink/db/schema'
-import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { eq } from 'drizzle-orm'
 import { Effect } from 'effect'
 
 import type { WorkerBindings } from '#/server/env'
+import { createTestDatabase } from '#/server/testing/sqlite'
 import { Bindings } from '#/server/effect/services/bindings'
 import { Db } from '#/server/effect/services/db'
 import { hashLinkPassword } from '#/server/links/password'
@@ -19,28 +18,8 @@ afterEach(() => {
 })
 
 function setup(options: { analyticsFails?: boolean } = {}) {
-  const sqlite = new Database(':memory:')
+  const { sqlite, adapter, db } = createTestDatabase()
   databases.push(sqlite)
-  sqlite.exec(`
-    CREATE TABLE custom_domain (
-      id TEXT PRIMARY KEY NOT NULL, organization_id TEXT NOT NULL, hostname TEXT NOT NULL UNIQUE,
-      readiness TEXT NOT NULL DEFAULT 'pending', provider TEXT NOT NULL, provider_domain_id TEXT,
-      dns_records_json TEXT NOT NULL DEFAULT '[]', default_redirect_status INTEGER NOT NULL DEFAULT 302,
-      active_at INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
-    );
-    CREATE TABLE link (
-      id TEXT PRIMARY KEY NOT NULL, organization_id TEXT NOT NULL, domain_id TEXT NOT NULL, slug TEXT NOT NULL,
-      alias TEXT, title TEXT, description TEXT, destination_url TEXT NOT NULL,
-      redirect_status INTEGER NOT NULL DEFAULT 302, status TEXT NOT NULL DEFAULT 'active',
-      enabled INTEGER NOT NULL DEFAULT 1, activate_at INTEGER, expires_at INTEGER, max_clicks INTEGER,
-      click_count INTEGER NOT NULL DEFAULT 0, password_hash TEXT, expired_destination_url TEXT,
-      fallback_destination_url TEXT, tags_json TEXT NOT NULL DEFAULT '[]', utm_json TEXT, metadata_json TEXT,
-      created_by_user_id TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
-      UNIQUE (domain_id, slug)
-    );
-  `)
-  const adapter = drizzle(sqlite)
-  const db = adapter as unknown as OpenLinkDb
   const writeDataPoint = mock(() => {
     if (options.analyticsFails) throw new Error('analytics down')
   })
