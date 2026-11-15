@@ -17,7 +17,7 @@ const domain: typeof customDomain.$inferSelect = {
   createdAt: now, updatedAt: now,
 }
 const linkRow: typeof link.$inferSelect = {
-  id: 'link-1', organizationId: org.id, domainId: domain.id, slug: 'hello',
+  id: 'link-1', organizationId: org.id, domainId: domain.id, slug: 'hello', folderId: null,
   alias: null, title: null, description: null, destinationUrl: 'https://example.com/',
   redirectStatus: 302, status: 'active', enabled: true, activateAt: null,
   expiresAt: null, maxClicks: null, clickCount: 0, passwordHash: null,

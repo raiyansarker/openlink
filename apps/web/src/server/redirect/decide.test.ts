@@ -9,6 +9,7 @@ function row(overrides: Partial<typeof link.$inferSelect> = {}): typeof link.$in
     id: 'l1',
     organizationId: 'o1',
     domainId: 'd1',
+    folderId: null,
     slug: 'abc',
     alias: null,
     title: null,
