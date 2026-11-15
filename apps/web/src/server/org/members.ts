@@ -1,5 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm'
-import { Data, Effect } from 'effect'
+import { Effect } from 'effect'
 import {
   organization,
   organizationInvite,
@@ -10,13 +10,7 @@ import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { createInviteToken, hashInviteToken } from './invites'
 import { assignableRoles, canManageMember, type OrganizationRole } from './permissions'
-import { OrganizationConflict } from './service'
-
-export class MemberNotFound extends Data.TaggedError('MemberNotFound')<{}> {}
-export class InviteNotFound extends Data.TaggedError('InviteNotFound')<{}> {}
-export class MemberPermissionDenied extends Data.TaggedError('MemberPermissionDenied')<{
-  reason: string
-}> {}
+import { InviteNotFound, MemberNotFound, MemberPermissionDenied, OrganizationConflict } from './errors'
 
 const INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 14
 

@@ -8,10 +8,8 @@ import { Effect } from 'effect'
 
 import { Db } from '#/server/effect/services/db'
 import { hashInviteToken } from './invites'
+import { InviteNotFound, MemberNotFound, MemberPermissionDenied, OrganizationConflict } from './errors'
 import {
-  InviteNotFound,
-  MemberNotFound,
-  MemberPermissionDenied,
   deleteOrganization,
   listMembers,
   listPendingInvites,
@@ -22,7 +20,6 @@ import {
   updateMemberRole,
   updateOrganization,
 } from './members'
-import { OrganizationConflict } from './service'
 
 const databases: Database[] = []
 afterEach(() => {
