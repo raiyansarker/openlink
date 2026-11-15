@@ -3,6 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import * as schema from '@openlink/db/schema'
 import { getBindings } from '../env'
 import { getDb } from '../db'
+import { AuthHooks } from './hooks'
 import { AuthOrigins } from './origins'
 import { SocialProviders } from './providers'
 
@@ -11,6 +12,7 @@ let authConfigKey: string | undefined
 
 function createAuth() {
   const bindings = getBindings()
+  const hooks = new AuthHooks(getDb)
 
   return betterAuth({
     appName: 'OpenLink',
@@ -31,6 +33,16 @@ function createAuth() {
       accountLinking: { enabled: true },
     },
     trustedOrigins: AuthOrigins.trusted(bindings),
+    user: {
+      // Blocked while the account still owns a workspace (see AccountPolicy).
+      deleteUser: { enabled: true, beforeDelete: (user) => hooks.beforeDeleteUser(user) },
+    },
+    databaseHooks: {
+      user: {
+        create: { before: (user) => hooks.beforeCreateUser(user) },
+        update: { before: (update) => hooks.beforeUpdateUser(update) },
+      },
+    },
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
