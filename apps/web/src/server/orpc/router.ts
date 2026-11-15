@@ -8,6 +8,7 @@ import { Effect } from 'effect'
 import { getDomainInOrganization } from '#/server/api/access'
 import {
   toDomainDto,
+  toFolderDto,
   toLinkDto,
   toMembershipDto,
   toOrganizationDto,
@@ -31,6 +32,14 @@ import {
 import { operation } from '#/server/effect/operations'
 import { Bindings } from '#/server/effect/services/bindings'
 import { readSessionEffect, requireAuthSession } from '#/server/effect/session'
+import type { FolderRuleViolation } from '#/server/folders/errors'
+import {
+  createFolder,
+  deleteFolder,
+  ensureFolderInOrganization,
+  listFolders,
+  updateFolder,
+} from '#/server/folders/service'
 import { runHealthChecks } from '#/server/health/checks'
 import {
   createLinkRecord,
@@ -103,6 +112,28 @@ const memberErrors = (errors: ErrorFactories) => ({
   ...onMemberNotFound(errors),
   ...onMemberDenied(errors),
 })
+
+const onFolderNotFound = (errors: ErrorFactories) => ({
+  FolderNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'Folder not found' })),
+})
+const onFolderRule = (errors: { BAD_REQUEST: MessageError }) => ({
+  FolderRuleViolation: (error: FolderRuleViolation) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
+})
+const onFolderNameTaken = (errors: { CONFLICT: MessageError }) => ({
+  FolderNameTaken: () => Effect.fail(errors.CONFLICT({ message: 'A folder with this name already exists here' })),
+})
+
+/** A link may only be filed into a folder of its own workspace. */
+const requireLinkFolder = (
+  organizationId: string,
+  folderId: string | null | undefined,
+  errors: { BAD_REQUEST: MessageError },
+) =>
+  folderId
+    ? ensureFolderInOrganization(organizationId, folderId).pipe(
+        Effect.catchTags({ FolderNotFound: () => Effect.fail(errors.BAD_REQUEST({ message: 'Folder not found' })) }),
+      )
+    : Effect.void
 
 type AuthPayload = {
   user?: { id: string; email: string; name: string; createdAt: string | Date }
@@ -363,6 +394,42 @@ export const router = os.router({
     }),
   },
 
+  folders: {
+    listFolders: os.folders.listFolders.effect(function* ({ input }) {
+      yield* requireOrgMemberEffect(input.params.organizationId)
+      const rows = yield* listFolders(input.params.organizationId)
+      return { items: rows.map(toFolderDto) }
+    }),
+
+    createFolder: os.folders.createFolder.effect(function* ({ input, errors }) {
+      yield* requireLinkWriterEffect(input.params.organizationId)
+      const row = yield* createFolder({ organizationId: input.params.organizationId, ...input.body }).pipe(
+        Effect.catchTags({ ...onFolderNotFound(errors), ...onFolderRule(errors), ...onFolderNameTaken(errors) }),
+      )
+      return toFolderDto(row)
+    }),
+
+    updateFolder: os.folders.updateFolder.effect(function* ({ input, errors }) {
+      yield* requireLinkWriterEffect(input.params.organizationId)
+      const row = yield* updateFolder({
+        organizationId: input.params.organizationId,
+        folderId: input.params.folderId,
+        ...input.body,
+      }).pipe(Effect.catchTags({ ...onFolderNotFound(errors), ...onFolderRule(errors), ...onFolderNameTaken(errors) }))
+      return toFolderDto(row)
+    }),
+
+    deleteFolder: os.folders.deleteFolder.effect(function* ({ input, errors }) {
+      yield* requireLinkWriterEffect(input.params.organizationId)
+      yield* deleteFolder({
+        organizationId: input.params.organizationId,
+        folderId: input.params.folderId,
+        mode: input.query.mode,
+      }).pipe(Effect.catchTags(onFolderNotFound(errors)))
+      return {}
+    }),
+  },
+
   links: {
     listLinks: os.links.listLinks.effect(function* ({ input }) {
       yield* requireOrgMemberEffect(input.params.organizationId)
@@ -374,6 +441,7 @@ export const router = os.router({
     createLink: os.links.createLink.effect(function* ({ input, errors }) {
       const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
       yield* requireDomain(input.params.organizationId, input.params.domainId)
+      yield* requireLinkFolder(input.params.organizationId, input.body.folderId, errors)
       const row = yield* createLinkRecord({
         ...input.body,
         organizationId: input.params.organizationId,
@@ -393,8 +461,9 @@ export const router = os.router({
       return toLinkDto(yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId))
     }),
 
-    updateLink: os.links.updateLink.effect(function* ({ input }) {
+    updateLink: os.links.updateLink.effect(function* ({ input, errors }) {
       yield* requireLinkWriterEffect(input.params.organizationId)
+      yield* requireLinkFolder(input.params.organizationId, input.body.folderId, errors)
       const existing = yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
       return toLinkDto(yield* updateLinkRecord(existing, input.body))
     }),
