@@ -28,4 +28,9 @@ describe('emailSignInErrorMessage', () => {
     expect(emailSignInErrorMessage({ status: 503 })).toContain('unavailable')
     expect(emailSignInErrorMessage(null)).toBe('Sign-in failed. Please try again.')
   })
+
+  test('a refused request (403) is not reported as a wrong password', () => {
+    expect(emailSignInErrorMessage({ status: 403 })).toContain('blocked')
+    expect(emailSignInErrorMessage({ status: 401 })).toBe('Incorrect email or password.')
+  })
 })

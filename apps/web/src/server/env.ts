@@ -7,6 +7,8 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   ANALYTICS: AnalyticsEngineDataset
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_URL: string
+  /** Extra origins allowed to call the auth API (comma separated), e.g. previews. */
+  BETTER_AUTH_TRUSTED_ORIGINS?: string
   BOOTSTRAP_ORG_INVITE_TOKEN?: string
   /** OAuth providers switch on only when both the id and secret are set. */
   GOOGLE_CLIENT_ID?: string

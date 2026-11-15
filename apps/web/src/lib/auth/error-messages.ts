@@ -21,6 +21,8 @@ export class AuthErrorMessages {
     if (!error) return 'Sign-in failed. Please try again.'
     if (error.status === 429) return 'Too many attempts. Wait a moment and try again.'
     if (error.status && error.status >= 500) return 'Sign-in is unavailable right now. Please try again.'
+    // Not a credentials problem: the request itself was refused (for example a blocked origin).
+    if (error.status === 403) return 'Sign-in was blocked. Reload the page and try again.'
     return 'Incorrect email or password.'
   }
 }
