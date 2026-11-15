@@ -1,5 +1,6 @@
 import { contract as auth } from './auth'
 import { contract as domains } from './domains'
+import { contract as folders } from './folders'
 import { contract as links } from './links'
 import { contract as organizations } from './organizations'
 import { contract as system } from './system'
@@ -11,6 +12,7 @@ const router = {
   auth,
   organizations,
   domains,
+  folders,
   links,
 } as const
 
