@@ -1,4 +1,4 @@
-import { buildDashboardOrgPath } from './build-org-path'
+import { WorkspaceUrl } from './build-org-path'
 import type { DashboardSection } from './build-org-path'
 
 export type DashboardNavItem = {
@@ -15,7 +15,7 @@ export type DashboardNavGroup = {
 }
 
 export function getDashboardNavGroups(orgSlug: string): DashboardNavGroup[] {
-  const path = (section: DashboardSection) => buildDashboardOrgPath(orgSlug, section)
+  const path = (section: DashboardSection) => WorkspaceUrl.build(orgSlug, section)
 
   return [
     {
