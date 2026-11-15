@@ -14,7 +14,8 @@ import ChangePasswordDialog from '#/components/settings/ChangePasswordDialog'
 import DeleteAccountDialog from '#/components/settings/DeleteAccountDialog'
 import { useCurrentUser, useLinkedAccounts, useRefreshCurrentUser } from '#/hooks/use-current-user'
 import { ProfileApi, ProfileError } from '#/lib/profile/api'
-import { AvatarImage } from '#/lib/profile/avatar'
+import { SquareImage } from '#/lib/media/square-image'
+import { MediaUploads } from '#/lib/media/uploads'
 import { ProfileRules } from '#/lib/profile/rules'
 
 const PICTURE_HELP = 'PNG, JPG, WebP, or GIF up to 10 MB. We crop it to a square.'
@@ -121,14 +122,15 @@ export default function ProfileSettingsFields() {
     }
   }
 
-  const savePicture = async (image: string | null) => {
+  const savePicture = async (image: Blob | null) => {
     setIsSavingPicture(true)
     setPictureStatus(null)
     try {
-      await ProfileApi.updateProfile({ image })
+      if (image) await MediaUploads.setAvatar(image)
+      else await MediaUploads.clearAvatar()
       await refresh()
     } catch (e) {
-      setPictureStatus(e instanceof ProfileError ? e.message : 'Could not update your picture.')
+      setPictureStatus(e instanceof Error ? e.message : 'Could not update your picture.')
     } finally {
       setIsSavingPicture(false)
     }
@@ -137,14 +139,14 @@ export default function ProfileSettingsFields() {
   const onAvatarFile = async (file: File | undefined) => {
     if (fileRef.current) fileRef.current.value = ''
     if (!file) return
-    let dataUrl: string
+    let image: Blob
     try {
-      dataUrl = await AvatarImage.toDataUrl(file)
+      image = await SquareImage.fromFile(file)
     } catch (e) {
       setPictureStatus(e instanceof Error ? e.message : 'That picture could not be used.')
       return
     }
-    await savePicture(dataUrl)
+    await savePicture(image)
   }
 
   const linked = accounts.data
@@ -188,7 +190,7 @@ export default function ProfileSettingsFields() {
         <input
           ref={fileRef}
           type="file"
-          accept={AvatarImage.ACCEPT}
+          accept={SquareImage.ACCEPT}
           tabIndex={-1}
           aria-hidden
           style={{

@@ -4,8 +4,10 @@ import type { Organization, WorkspaceMemberRole } from '#/data/demo/types'
 import { ApiClient, type OpenLinkClient } from './client'
 import { ApiError } from './error'
 
+type OrganizationDto = { id: string; name: string; slug: string; logoUrl?: string }
+
 type MembershipDto = {
-  organization: { id: string; name: string; slug: string }
+  organization: OrganizationDto
   role: WorkspaceMemberRole
 }
 
@@ -15,12 +17,16 @@ export class OrganizationMapper {
     return OrganizationMapper.fromOrganization(membership.organization, membership.role)
   }
 
-  static fromOrganization(
-    organization: { id: string; name: string; slug: string },
-    role: WorkspaceMemberRole,
-  ): Organization {
+  static fromOrganization(organization: OrganizationDto, role: WorkspaceMemberRole): Organization {
     // Billing plans do not exist on the backend yet, so every workspace is "free".
-    return { id: organization.id, name: organization.name, slug: organization.slug, plan: 'free', role }
+    return {
+      id: organization.id,
+      name: organization.name,
+      slug: organization.slug,
+      plan: 'free',
+      role,
+      ...(organization.logoUrl ? { logoUrl: organization.logoUrl } : {}),
+    }
   }
 }
 

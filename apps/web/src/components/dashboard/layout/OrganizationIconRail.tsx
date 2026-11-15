@@ -5,7 +5,6 @@ import type { Organization } from '#/data/demo/types'
 import { getOrganizationBrand } from '#/data/demo/organization-branding'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
-import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { useActivePathname } from '#/hooks/useActivePathname'
 import DashboardAccountMenu from './DashboardAccountMenu'
 import { PlusIcon, SettingsIcon } from '#/components/icons/IcnMcp'
@@ -136,7 +135,6 @@ export default function OrganizationIconRail({
   const [createHovered, setCreateHovered] = useState(false)
   const pathname = useActivePathname()
   const navigate = useNavigate()
-  const { orgCustomIcons } = useWorkspaceDirectory()
   function handleCreateOrganization() {
     void navigate({ to: '/create/organization' })
   }
@@ -185,7 +183,7 @@ export default function OrganizationIconRail({
                 name={org.name}
                 brand={brand}
                 size={ORG_LOGO_SIZE}
-                customImageUrl={orgCustomIcons[org.id]}
+                customImageUrl={org.logoUrl}
               />
             </OrgSwitchButton>
           )

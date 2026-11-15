@@ -10,12 +10,13 @@ import { Button } from '@astryxdesign/core/Button'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
+import { SquareImage } from '#/lib/media/square-image'
 import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 import { slugifyOrganizationSlug } from '#/lib/organization/slugify'
 
-const ICON_MAX_BYTES = 5 * 1024 * 1024
-const ICON_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif'
-const PICTURE_HELP = 'We support PNG, JPG, or GIF portraits under 5 MB.'
+const ICON_MAX_BYTES = SquareImage.MAX_UPLOAD_BYTES
+const ICON_ACCEPT = SquareImage.ACCEPT
+const PICTURE_HELP = 'PNG, JPG, WebP, or GIF up to 10 MB. We crop it to a square.'
 const SLUG_PLACEHOLDER = 'acme-inc'
 
 function MutedCaption({ children }: { children: ReactNode }) {
@@ -58,18 +59,6 @@ function FormBlock({
       {children}
     </VStack>
   )
-}
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') resolve(reader.result)
-      else reject(new Error('Could not read image.'))
-    }
-    reader.onerror = () => reject(new Error('Could not read image.'))
-    reader.readAsDataURL(file)
-  })
 }
 
 export default function CreateOrganizationForm() {
@@ -115,7 +104,7 @@ export default function CreateOrganizationForm() {
       return
     }
     if (file.size > ICON_MAX_BYTES) {
-      setUploadError('That file is larger than 5 MB. Choose a smaller image.')
+      setUploadError('That file is larger than 10 MB. Choose a smaller image.')
       return
     }
     setUploadError(null)
@@ -141,16 +130,12 @@ export default function CreateOrganizationForm() {
     setFormError(null)
     setIsSubmitting(true)
     try {
-      let iconDataUrl: string | null = null
-      if (pendingIconFile.current) {
-        iconDataUrl = await readFileAsDataUrl(pendingIconFile.current)
-      }
-
-      const org = await createOrganization({
+      // The logo is uploaded once the workspace exists; a failed upload keeps the workspace.
+      const { organization: org } = await createOrganization({
         name,
         slug,
         inviteToken,
-        iconDataUrl,
+        logo: pendingIconFile.current,
       })
       ActiveWorkspace.remember(org.slug)
       void navigate({ to: WorkspaceUrl.build(org.slug), replace: true })

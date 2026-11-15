@@ -7,6 +7,8 @@ export type Organization = {
   plan: OrganizationPlan
   /** Unknown until members are loaded; the API has no cheap count. */
   memberCount?: number
+  /** Uploaded logo URL, if the workspace has one. */
+  logoUrl?: string
   /** The signed-in user's role in this workspace (absent for demo data). */
   role?: WorkspaceMemberRole
 }

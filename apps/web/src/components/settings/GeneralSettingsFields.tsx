@@ -10,6 +10,9 @@ import { VStack } from '@astryxdesign/core/VStack'
 import DeleteWorkspaceDialog from '#/components/settings/DeleteWorkspaceDialog'
 import TransferOwnershipDialog from '#/components/settings/TransferOwnershipDialog'
 import { useOrganization } from '#/contexts/OrganizationContext'
+import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
+import { SquareImage } from '#/lib/media/square-image'
+import { MediaUploads } from '#/lib/media/uploads'
 import { getMembersForOrg } from '#/data/demo/queries'
 import {
   isValidOrganizationSlug,
@@ -18,8 +21,7 @@ import {
 import { exportLinks, type LinkExportFormat } from '#/lib/settings/export-links'
 
 const FIELDS_MAX_WIDTH = 560
-const LOGO_MAX_BYTES = 2 * 1024 * 1024
-const LOGO_ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml'
+const LOGO_ACCEPT = SquareImage.ACCEPT
 
 type GeneralForm = {
   name: string
@@ -87,8 +89,11 @@ export default function GeneralSettingsFields() {
   )
   const [saved, setSaved] = useState<GeneralForm>(initial)
   const [form, setForm] = useState<GeneralForm>(initial)
-  const [logoSrc, setLogoSrc] = useState<string | null>(null)
+  const { invalidate: refreshWorkspaces } = useWorkspaceDirectory()
+  const logoSrc = activeOrg.logoUrl ?? null
   const [logoError, setLogoError] = useState<string | null>(null)
+  const [isSavingLogo, setIsSavingLogo] = useState(false)
+  const canEditLogo = activeOrg.role === 'owner' || activeOrg.role === 'admin'
   const [transferOpen, setTransferOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [ownerName, setOwnerName] = useState<string | null>(null)
@@ -97,7 +102,6 @@ export default function GeneralSettingsFields() {
   useEffect(() => {
     setSaved(initial)
     setForm(initial)
-    setLogoSrc(null)
     setOwnerName(null)
     setNotice(null)
   }, [initial])
@@ -124,32 +128,27 @@ export default function GeneralSettingsFields() {
     slugChanged
   const canSave = isDirty && !nameError && !slugError
 
-  const onLogoFile = (file: File | undefined) => {
-    if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setLogoError('Choose a PNG, JPG, WebP, or SVG image.')
-      return
-    }
-    if (file.size > LOGO_MAX_BYTES) {
-      setLogoError('That image is larger than 2 MB.')
-      return
-    }
+  /** Upload (or clear, with null) the logo in R2, then refresh the workspace everywhere. */
+  const saveLogo = async (file: File | null) => {
+    if (fileRef.current) fileRef.current.value = ''
     setLogoError(null)
-    const url = URL.createObjectURL(file)
-    setLogoSrc((prev) => {
-      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev)
-      return url
-    })
+    setIsSavingLogo(true)
+    try {
+      if (file) await MediaUploads.setLogo(activeOrg.id, await SquareImage.fromFile(file))
+      else await MediaUploads.clearLogo(activeOrg.id)
+      await refreshWorkspaces()
+    } catch (error) {
+      setLogoError(error instanceof Error ? error.message : 'The logo could not be saved.')
+    } finally {
+      setIsSavingLogo(false)
+    }
   }
 
-  const removeLogo = () => {
-    setLogoError(null)
-    setLogoSrc((prev) => {
-      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev)
-      return null
-    })
-    if (fileRef.current) fileRef.current.value = ''
+  const onLogoFile = (file: File | undefined) => {
+    if (file) void saveLogo(file)
   }
+
+  const removeLogo = () => void saveLogo(null)
 
   const exportAs = (format: LinkExportFormat) => {
     exportLinks(links, format, saved.slug)
@@ -256,17 +255,24 @@ export default function GeneralSettingsFields() {
                 variant="secondary"
                 size="sm"
                 label={logoSrc ? 'Replace' : 'Upload'}
+                isLoading={isSavingLogo}
+                isDisabled={!canEditLogo}
                 onClick={() => {
                   setLogoError(null)
                   fileRef.current?.click()
                 }}
               />
               {logoSrc ? (
-                <Button variant="ghost" size="sm" label="Remove" onClick={removeLogo} />
+                <Button variant="ghost" size="sm" label="Remove" onClick={removeLogo} isDisabled={!canEditLogo || isSavingLogo} />
               ) : null}
             </HStack>
-            <Text type="supporting" color={logoError ? 'primary' : 'secondary'}>
-              {logoError ?? 'Square image, PNG or SVG, up to 2 MB.'}
+            <Text
+              type="supporting"
+              color={logoError ? 'primary' : 'secondary'}
+              role={logoError ? 'alert' : undefined}
+            >
+              {logoError ??
+                (canEditLogo ? 'PNG, JPG, WebP, or GIF up to 10 MB. We crop it to a square.' : 'Only owners and admins can change the logo.')}
             </Text>
           </VStack>
         </HStack>
