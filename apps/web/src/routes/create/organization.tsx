@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { AuthSession } from '#/lib/auth/client'
 import { OrganizationProvider } from '#/contexts/OrganizationContext'
 import { getDefaultOrgSlug } from '#/lib/dashboard/org-slug'
 import { createPageHead } from '#/lib/page-title'
@@ -6,6 +7,7 @@ import CreateOrganizationShell from '#/components/create-organization/CreateOrga
 import CreateOrganizationForm from '#/components/create-organization/CreateOrganizationForm'
 
 export const Route = createFileRoute('/create/organization')({
+  beforeLoad: ({ location }) => AuthSession.requireSignedIn(location),
   head: createPageHead('Create organization'),
   component: CreateOrganizationPage,
 })

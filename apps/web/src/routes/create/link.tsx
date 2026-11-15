@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import CreateLinkForm from '#/components/create-link/CreateLinkForm'
+import { AuthSession } from '#/lib/auth/client'
 import { OrganizationProvider } from '#/contexts/OrganizationContext'
 import { getDefaultOrgSlug } from '#/lib/dashboard/org-slug'
 import { createPageHead } from '#/lib/page-title'
@@ -12,6 +13,7 @@ type CreateLinkSearch = {
 }
 
 export const Route = createFileRoute('/create/link')({
+  beforeLoad: ({ location }) => AuthSession.requireSignedIn(location),
   head: createPageHead('Create link'),
   validateSearch: (search: Record<string, unknown>): CreateLinkSearch => ({
     org: typeof search.org === 'string' && search.org ? search.org : undefined,
