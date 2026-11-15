@@ -1,7 +1,7 @@
 import { redirect } from '@tanstack/react-router'
 import { createAuthClient } from 'better-auth/react'
 
-import { LoginRedirect } from './redirect'
+import { AccessRules } from './access'
 import { fetchAuthState } from './server-fn'
 import { AuthStateCache } from './state-cache'
 import type { AuthState } from './types'
@@ -26,19 +26,18 @@ export class AuthSession {
   }
 
   /**
-   * `beforeLoad` guard: send signed-out visitors to the login page, remembering
-   * where they were going. Returns the auth state for the route context.
+   * `beforeLoad` guard for every page behind sign-in. Signed-out visitors go to
+   * login (remembering where they were); people who have not onboarded go to
+   * /onboarding; onboarded people are kept off /onboarding.
    */
-  static async requireSignedIn(location: { href: string }): Promise<AuthState> {
+  static async requireSignedIn(location: { pathname: string; href: string }): Promise<AuthState> {
     const state = await AuthSession.state()
-    if (!state.user) {
-      throw redirect({
-        to: '/login',
-        search: { redirect: LoginRedirect.sanitize(location.href) },
-        replace: true,
-      })
+    const decision = AccessRules.decide(state, location)
+    if (decision.allow) return state
+    if (decision.to === '/login') {
+      throw redirect({ to: '/login', search: { redirect: decision.redirect }, replace: true })
     }
-    return state
+    throw redirect({ href: decision.to, replace: true })
   }
 
   static async signOut(): Promise<void> {

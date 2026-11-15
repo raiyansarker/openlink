@@ -30,7 +30,7 @@ export class OrganizationMapper {
   }
 }
 
-export type CreateOrganizationRequest = { name: string; slug: string; inviteToken: string }
+export type CreateOrganizationRequest = { name: string; slug: string }
 
 /** Workspace (organization) calls, expressed in UI types. */
 export class WorkspaceApi {
