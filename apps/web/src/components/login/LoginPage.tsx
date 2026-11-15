@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type SVGProps } from 'react'
+import { getRouteApi, useRouter } from '@tanstack/react-router'
 import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
 import { Grid } from '@astryxdesign/core/Grid'
@@ -12,7 +13,12 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import { DASHBOARD_SURFACE_BG } from '#/components/dashboard/layout/dashboard-shell-colors'
+import { AuthSession } from '#/lib/auth/client'
+import { AuthErrorMessages } from '#/lib/auth/error-messages'
+import { LoginRedirect } from '#/lib/auth/redirect'
 import { currentHostLabel } from '#/lib/url/format-host'
+
+const routeApi = getRouteApi('/login')
 
 const SHORTCUT_PATH = 'M8 12C8 73 100 61 164 61C227 61 246 14 212 14C171 14 179 100 247 100H365C389 100 405 108 405 127'
 
@@ -168,14 +174,61 @@ function EyeIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 export default function LoginPage() {
+  const router = useRouter()
+  const search = routeApi.useSearch()
+  const { providers } = routeApi.useRouteContext()
+  const destination = LoginRedirect.sanitize(search.redirect)
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [notice, setNotice] = useState('')
+  const [error, setError] = useState(AuthErrorMessages.oauth(search.error) ?? '')
+  const [pending, setPending] = useState<'email' | 'google' | 'github' | null>(null)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const enabledProviders = (['google', 'github'] as const).filter((name) => providers[name])
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setNotice('This is a UI preview. Sign-in is not connected yet.')
+    if (pending) return
+    setError('')
+    setNotice('')
+    setPending('email')
+    try {
+      const { error: signInError } = await AuthSession.client.signIn.email({ email: email.trim(), password })
+      if (signInError) {
+        setError(AuthErrorMessages.emailSignIn(signInError))
+        return
+      }
+      AuthSession.invalidate()
+      await router.navigate({ href: destination, replace: true })
+    } catch {
+      setError(AuthErrorMessages.emailSignIn(undefined))
+    } finally {
+      setPending(null)
+    }
+  }
+
+  async function handleSocial(provider: 'google' | 'github') {
+    if (pending) return
+    setError('')
+    setNotice('')
+    setPending(provider)
+    try {
+      // On success the browser is sent to the provider, so there is nothing to do afterwards.
+      const { error: socialError } = await AuthSession.client.signIn.social({
+        provider,
+        callbackURL: destination,
+        errorCallbackURL: `/login?redirect=${encodeURIComponent(destination)}`,
+      })
+      if (socialError) {
+        setError('Could not start sign-in. Please try again.')
+        setPending(null)
+      }
+    } catch {
+      setError('Could not start sign-in. Please try again.')
+      setPending(null)
+    }
   }
 
   return (
@@ -235,23 +288,25 @@ export default function LoginPage() {
               </VStack>
 
               <VStack gap={5}>
-                <Grid columns={2} gap={3}>
-                  <Button
-                    label="Google"
-                    size="md"
-                    width="100%"
-                    icon={<ProviderIcon provider="google" />}
-                    onClick={() => setNotice('Google sign-in is not connected in this UI preview.')}
-                  />
-                  <Button
-                    label="GitHub"
-                    size="md"
-                    width="100%"
-                    icon={<ProviderIcon provider="github" />}
-                    onClick={() => setNotice('GitHub sign-in is not connected in this UI preview.')}
-                  />
-                </Grid>
-                <Divider label={<Text size="xsm" color="secondary">or sign in with email</Text>} />
+                {enabledProviders.length > 0 && (
+                  <>
+                    <Grid columns={enabledProviders.length === 1 ? 1 : 2} gap={3}>
+                      {enabledProviders.map((name) => (
+                        <Button
+                          key={name}
+                          label={name === 'google' ? 'Google' : 'GitHub'}
+                          size="md"
+                          width="100%"
+                          icon={<ProviderIcon provider={name} />}
+                          isLoading={pending === name}
+                          isDisabled={pending !== null}
+                          onClick={() => void handleSocial(name)}
+                        />
+                      ))}
+                    </Grid>
+                    <Divider label={<Text size="xsm" color="secondary">or sign in with email</Text>} />
+                  </>
+                )}
               </VStack>
 
               <form onSubmit={handleSubmit}>
@@ -302,7 +357,7 @@ export default function LoginPage() {
                         color="secondary"
                         onClick={(event) => {
                           event.preventDefault()
-                          setNotice('Password recovery is not connected in this UI preview.')
+                          setNotice('Password recovery needs an email service, which is not set up yet. Ask a workspace admin for help.')
                         }}
                       >
                         Forgot password?
@@ -314,6 +369,8 @@ export default function LoginPage() {
                     variant="primary"
                     type="submit"
                     width="100%"
+                    isLoading={pending === 'email'}
+                    isDisabled={pending !== null}
                     endContent={<Icon icon="chevronRight" size="sm" />}
                   />
                 </VStack>
@@ -325,7 +382,11 @@ export default function LoginPage() {
             </Text>
 
             <Section id="login-notice" variant="transparent" padding={0} role="status" aria-live="polite">
-              {notice && <Text size="sm" color="secondary">{notice}</Text>}
+              {error ? (
+                <Text size="sm" weight="medium" role="alert">{error}</Text>
+              ) : notice ? (
+                <Text size="sm" color="secondary">{notice}</Text>
+              ) : null}
             </Section>
           </VStack>
         </Grid>

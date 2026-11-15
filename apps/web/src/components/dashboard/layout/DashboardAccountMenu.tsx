@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
+import { AuthSession } from '#/lib/auth/client'
 import { buildSettingsPath } from '#/lib/settings/sections'
 import {
   DASHBOARD_RAIL_BG,
@@ -19,6 +20,15 @@ export default function DashboardAccountMenu({
 }: DashboardAccountMenuProps) {
   const onRail = variant === 'rail'
   const navigate = useNavigate()
+
+  const signOut = async () => {
+    try {
+      await AuthSession.signOut()
+    } finally {
+      // Even if the request failed, leave the dashboard: the guard re-checks the session.
+      await navigate({ to: '/login', replace: true })
+    }
+  }
 
   const goToProfile = () => {
     void navigate({ to: buildSettingsPath('profile') })
@@ -85,7 +95,7 @@ export default function DashboardAccountMenu({
           id: 'sign-out',
           label: 'Sign out',
           variant: 'destructive',
-          onClick: () => {},
+          onClick: () => void signOut(),
         },
       ]}
     />
