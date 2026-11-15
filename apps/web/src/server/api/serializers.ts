@@ -8,6 +8,8 @@ import type {
   organizationMember,
 } from '@openlink/db/schema'
 
+import { parseReactions } from '#/server/comments/rules'
+import type { CommentRow } from '#/server/comments/service'
 import { ACTION_DEFINITIONS, isKnownAction, type Change } from '#/server/activity/actions'
 import { deriveLinkStatus } from '#/server/links/rules'
 
@@ -165,5 +167,19 @@ export function toActivityDto(row: typeof activityEvent.$inferSelect, options: {
     ...(changes ? { changes } : {}),
     ...(options.includeIp && row.ipAddress ? { ipAddress: row.ipAddress } : {}),
     occurredAt: row.createdAt.toISOString(),
+  }
+}
+
+export function toCommentDto(row: CommentRow) {
+  return {
+    id: row.id,
+    linkId: row.linkId,
+    authorId: row.authorUserId,
+    authorName: row.authorLabel,
+    ...(row.authorImage ? { authorImage: row.authorImage } : {}),
+    body: row.body,
+    createdAt: row.createdAt.toISOString(),
+    ...(row.editedAt ? { editedAt: row.editedAt.toISOString() } : {}),
+    reactions: parseReactions(row.reactionsJson),
   }
 }

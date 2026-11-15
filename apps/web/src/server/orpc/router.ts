@@ -8,6 +8,7 @@ import { Effect } from 'effect'
 import { getDomainInOrganization } from '#/server/api/access'
 import {
   toActivityDto,
+  toCommentDto,
   toDomainDto,
   toFolderDto,
   toLinkDto,
@@ -44,6 +45,15 @@ import {
 import { audit } from '#/server/activity/audit'
 import { diffLink, linkUpdateAction } from '#/server/activity/actions'
 import { listActivity } from '#/server/activity/service'
+import type { CommentForbidden, CommentInvalid } from '#/server/comments/errors'
+import { excerpt } from '#/server/comments/rules'
+import {
+  createComment,
+  deleteComment,
+  listComments,
+  toggleCommentReaction,
+  updateComment,
+} from '#/server/comments/service'
 import { runHealthChecks } from '#/server/health/checks'
 import { addTagsToLinks, deleteLinks, moveLinks } from '#/server/links/bulk'
 import { queryOrganizationLinks } from '#/server/links/queries'
@@ -117,6 +127,16 @@ const onMemberDenied = (errors: ErrorFactories) => ({
 const memberErrors = (errors: ErrorFactories) => ({
   ...onMemberNotFound(errors),
   ...onMemberDenied(errors),
+})
+
+const onCommentNotFound = (errors: ErrorFactories) => ({
+  CommentNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'Comment not found' })),
+})
+const onCommentForbidden = (errors: ErrorFactories) => ({
+  CommentForbidden: (error: CommentForbidden) => Effect.fail(errors.FORBIDDEN({ message: error.message })),
+})
+const onCommentInvalid = (errors: { BAD_REQUEST: MessageError }) => ({
+  CommentInvalid: (error: CommentInvalid) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
 })
 
 const onFolderNotFound = (errors: ErrorFactories) => ({
@@ -512,6 +532,73 @@ export const router = os.router({
         ...(input.query.mode === 'cascade' ? { changes: [{ label: 'Contents', from: 'kept', to: 'deleted' }] } : {}),
       })
       return {}
+    }),
+  },
+
+  comments: {
+    listLinkComments: os.comments.listLinkComments.effect(function* ({ input }) {
+      yield* requireOrgMemberEffect(input.params.organizationId)
+      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      const rows = yield* listComments(input.params.organizationId, input.params.linkId)
+      return { items: rows.map(toCommentDto) }
+    }),
+
+    createLinkComment: os.comments.createLinkComment.effect(function* ({ input, errors }) {
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      const existing = yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      const user = session.session.user
+      const row = yield* createComment({
+        organizationId: input.params.organizationId,
+        linkId: input.params.linkId,
+        author: { id: user.id, label: user.name || user.email },
+        body: input.body.body,
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'link.commented',
+        target: { type: 'link', id: existing.id, label: existing.title || existing.slug },
+        changes: [{ label: 'Comment', from: '—', to: excerpt(row.body) }],
+      })
+      return toCommentDto(row)
+    }),
+
+    updateLinkComment: os.comments.updateLinkComment.effect(function* ({ input, errors }) {
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      const row = yield* updateComment({
+        organizationId: input.params.organizationId,
+        linkId: input.params.linkId,
+        commentId: input.params.commentId,
+        actorUserId: session.session.user.id,
+        body: input.body.body,
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors), ...onCommentInvalid(errors) }))
+      return toCommentDto(row)
+    }),
+
+    deleteLinkComment: os.comments.deleteLinkComment.effect(function* ({ input, errors }) {
+      const { session, membership } = yield* requireOrgMemberEffect(input.params.organizationId)
+      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      yield* deleteComment({
+        organizationId: input.params.organizationId,
+        linkId: input.params.linkId,
+        commentId: input.params.commentId,
+        actorUserId: session.session.user.id,
+        actorIsAdmin: isAdmin(membership.role),
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors) }))
+      return {}
+    }),
+
+    toggleCommentReaction: os.comments.toggleCommentReaction.effect(function* ({ input, errors }) {
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
+      const row = yield* toggleCommentReaction({
+        organizationId: input.params.organizationId,
+        linkId: input.params.linkId,
+        commentId: input.params.commentId,
+        userId: session.session.user.id,
+        emoji: input.body.emoji,
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
+      return toCommentDto(row)
     }),
   },
 
