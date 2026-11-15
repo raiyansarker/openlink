@@ -55,6 +55,10 @@ const createFolder = mock((input: { name: string }) => Effect.succeed({ ...folde
 const updateFolder = mock((input: { name?: string }) => Effect.succeed({ ...folderRow, name: input.name ?? folderRow.name }))
 const deleteFolder = mock((_input: unknown) => Effect.void)
 const ensureFolderInOrganization = mock((_organizationId: string, _folderId: string) => Effect.succeed(folderRow))
+const queryOrganizationLinks = mock((_input: unknown) => Effect.succeed({ items: [linkRow], total: 7 }))
+const moveLinks = mock((_input: unknown) => Effect.succeed(2))
+const addTagsToLinks = mock((_input: unknown) => Effect.succeed(2))
+const deleteLinks = mock((_input: unknown) => Effect.succeed(2))
 const listDomainsForOrganization = mock((_organizationId: string) => Effect.succeed([domain]))
 const registerCustomDomain = mock((_input: unknown) => Effect.succeed(domain))
 const removeCustomDomain = mock((_domainId: string, _organizationId: string) => Effect.succeed(true))
@@ -94,6 +98,8 @@ mock.module('#/server/org/members', () => ({
 mock.module('#/server/folders/service', () => ({
   listFolders, createFolder, updateFolder, deleteFolder, ensureFolderInOrganization,
 }))
+mock.module('#/server/links/queries', () => ({ queryOrganizationLinks }))
+mock.module('#/server/links/bulk', () => ({ moveLinks, addTagsToLinks, deleteLinks }))
 mock.module('#/server/health/checks', () => ({ runHealthChecks }))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
@@ -105,12 +111,13 @@ const sideEffects = [
   acceptMemberInvite, createOrganizationWithBootstrapInvite, signIn, signUp, signOut, runHealthChecks,
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
+  moveLinks, addTagsToLinks, deleteLinks,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
-  listFolders, ensureFolderInOrganization,
+  listFolders, ensureFolderInOrganization, queryOrganizationLinks,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -256,6 +263,24 @@ const mutations = [
     assertWrite: () => expect(deleteFolder).toHaveBeenCalledWith({ organizationId: org.id, folderId: 'folder-1', mode: 'cascade' }),
     response: undefined,
   },
+  {
+    name: 'bulk move links', method: 'POST', path: `${orgPath}/links/move`, body: { linkIds: ['l1', 'l2'], folderId: 'folder-1' },
+    status: 200, allowed: ['owner', 'admin', 'member'], effects: [moveLinks],
+    assertWrite: () => expect(moveLinks).toHaveBeenCalledWith({ organizationId: org.id, linkIds: ['l1', 'l2'], folderId: 'folder-1' }),
+    response: { affected: 2 },
+  },
+  {
+    name: 'bulk add tags', method: 'POST', path: `${orgPath}/links/tags`, body: { linkIds: ['l1'], tags: ['x'] },
+    status: 200, allowed: ['owner', 'admin', 'member'], effects: [addTagsToLinks],
+    assertWrite: () => expect(addTagsToLinks).toHaveBeenCalledWith({ organizationId: org.id, linkIds: ['l1'], tags: ['x'] }),
+    response: { affected: 2 },
+  },
+  {
+    name: 'bulk delete links', method: 'POST', path: `${orgPath}/links/delete`, body: { linkIds: ['l1'] },
+    status: 200, allowed: ['owner', 'admin', 'member'], effects: [deleteLinks],
+    assertWrite: () => expect(deleteLinks).toHaveBeenCalledWith({ organizationId: org.id, linkIds: ['l1'] }),
+    response: { affected: 2 },
+  },
 ] as const
 
 const roles = ['owner', 'admin', 'member', 'viewer', null] as const
@@ -302,6 +327,7 @@ const reads = [
   { name: 'list domains', path: domainsPath, expected: { items: [{ id: domain.id }] }, read: listDomainsForOrganization, args: [org.id] },
   { name: 'get domain', path: domainPath, expected: { id: domain.id }, read: getDomainInOrganization, args: [domain.id, org.id] },
   { name: 'list folders', path: `${orgPath}/folders`, expected: { items: [{ id: 'folder-1', name: 'Docs' }] }, read: listFolders, args: [org.id] },
+  { name: 'search workspace links', path: `${orgPath}/links`, expected: { total: 7, items: [{ id: linkRow.id }] }, read: queryOrganizationLinks, args: [{ organizationId: org.id }] },
   { name: 'list links', path: linksPath, expected: { items: [{ id: linkRow.id }] }, read: listLinksForDomain, args: [domain.id] },
   { name: 'get link', path: linkPath, expected: { id: linkRow.id }, read: getLinkInDomain, args: [domain.id, linkRow.id] },
 ] as const
@@ -428,6 +454,40 @@ test('folder workflow failures map to typed HTTP errors', async () => {
   }
   deleteFolder.mockImplementationOnce(() => Effect.fail({ _tag: 'FolderNotFound' }) as never)
   expect((await request('DELETE', `${orgPath}/folders/missing`)).status).toBe(404)
+})
+
+test('workspace link search parses query parameters', async () => {
+  role = 'viewer'
+  const response = await request('GET', `${orgPath}/links?q=launch&folderId=root&tag=q4&status=expired&limit=25&offset=50`)
+  expect(response.status).toBe(200)
+  expect(queryOrganizationLinks).toHaveBeenCalledWith({
+    organizationId: org.id, q: 'launch', folderId: 'root', tag: 'q4', status: 'expired', limit: 25, offset: 50,
+  })
+})
+
+test('workspace link search rejects unknown statuses and non-numeric paging', async () => {
+  role = 'viewer'
+  expect((await request('GET', `${orgPath}/links?status=archived`)).status).toBe(400)
+  expect((await request('GET', `${orgPath}/links?limit=lots`)).status).toBe(400)
+  expect(queryOrganizationLinks).not.toHaveBeenCalled()
+})
+
+test('bulk requests are bounded and need at least one id', async () => {
+  role = 'member'
+  expect((await request('POST', `${orgPath}/links/delete`, { linkIds: [] })).status).toBe(400)
+  expect((await request('POST', `${orgPath}/links/delete`, { linkIds: Array.from({ length: 201 }, (_, i) => `l${i}`) })).status).toBe(400)
+  expect((await request('POST', `${orgPath}/links/tags`, { linkIds: ['l1'], tags: [] })).status).toBe(400)
+  expect(deleteLinks).not.toHaveBeenCalled()
+  expect(addTagsToLinks).not.toHaveBeenCalled()
+})
+
+test('bulk move validates the destination folder belongs to the workspace', async () => {
+  role = 'member'
+  ensureFolderInOrganization.mockImplementationOnce(() => Effect.fail({ _tag: 'FolderNotFound' }) as never)
+  const response = await request('POST', `${orgPath}/links/move`, { linkIds: ['l1'], folderId: 'foreign' })
+  expect(response.status).toBe(400)
+  expect(moveLinks).not.toHaveBeenCalled()
+  expect((await request('POST', `${orgPath}/links/move`, { linkIds: ['l1'], folderId: null })).status).toBe(200)
 })
 
 // catchTags matches structural tags; do not load real service modules just for error constructors.
