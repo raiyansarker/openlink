@@ -5,7 +5,9 @@ export type AuthUser = {
   image: string | null
 }
 
-export type AuthProviders = { google: boolean; github: boolean }
+export type SocialProvider = 'google' | 'github'
+
+export type AuthProviders = Record<SocialProvider, boolean>
 
 export type AuthState = {
   user: AuthUser | null
