@@ -41,24 +41,27 @@ const createMemberInvite = mock((input: { organizationId: string; email: string;
 const memberRow = { userId: 'user-2', name: 'Teammate', email: 'mate@example.com', image: null, role: 'member' as const, joinedAt: now }
 const inviteRow = { id: 'invite-1', organizationId: org.id, email: 'invitee@example.com', role: 'member' as const, tokenHash: 'h', kind: 'member' as const, expiresAt: now, acceptedAt: null, createdByUserId: null, createdAt: now }
 const listMembers = mock((_organizationId: string) => Effect.succeed([memberRow]))
-const updateMemberRole = mock((input: { role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ ...memberRow, role: input.role }))
-const removeMember = mock((_input: unknown) => Effect.void)
-const transferOwnership = mock((_input: unknown) => Effect.void)
+const updateMemberRole = mock((input: { role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ ...memberRow, role: input.role, previousRole: 'member' as const }))
+const removeMember = mock((_input: unknown) => Effect.succeed(memberRow))
+const transferOwnership = mock((_input: unknown) => Effect.succeed(memberRow))
 const updateOrganization = mock((input: { name?: string }) => Effect.succeed({ ...org, name: input.name ?? org.name }))
 const deleteOrganization = mock((_organizationId: string) => Effect.void)
 const listPendingInvites = mock((_organizationId: string) => Effect.succeed([inviteRow]))
-const revokeInvite = mock((_organizationId: string, _inviteId: string) => Effect.void)
+const revokeInvite = mock((_organizationId: string, _inviteId: string) => Effect.succeed({ id: 'invite-1', email: 'invitee@example.com' }))
 const resendInvite = mock((_organizationId: string, _inviteId: string) => Effect.succeed({ invite: inviteRow, token: 'rotated' }))
 const folderRow = { id: 'folder-1', organizationId: org.id, parentId: null, name: 'Docs', createdAt: now, updatedAt: now }
 const listFolders = mock((_organizationId: string) => Effect.succeed([folderRow]))
 const createFolder = mock((input: { name: string }) => Effect.succeed({ ...folderRow, name: input.name }))
 const updateFolder = mock((input: { name?: string }) => Effect.succeed({ ...folderRow, name: input.name ?? folderRow.name }))
-const deleteFolder = mock((_input: unknown) => Effect.void)
+const deleteFolder = mock((_input: unknown) => Effect.succeed(folderRow))
 const ensureFolderInOrganization = mock((_organizationId: string, _folderId: string) => Effect.succeed(folderRow))
 const queryOrganizationLinks = mock((_input: unknown) => Effect.succeed({ items: [linkRow], total: 7 }))
 const moveLinks = mock((_input: unknown) => Effect.succeed(2))
 const addTagsToLinks = mock((_input: unknown) => Effect.succeed(2))
 const deleteLinks = mock((_input: unknown) => Effect.succeed(2))
+const activityRow = { id: 'evt-1', organizationId: org.id, actorType: 'member' as const, actorUserId: 'user-1', actorLabel: 'Ada', action: 'link.created', category: 'links' as const, targetType: 'link', targetId: 'link-1', targetLabel: 'hello', source: 'dashboard' as const, detailsJson: JSON.stringify({ changes: [{ label: 'Title', from: '—', to: 'Hi' }] }), ipAddress: '203.0.113.9', createdAt: now }
+const listActivity = mock((_input: unknown) => Effect.succeed({ items: [activityRow], nextCursor: undefined as string | undefined }))
+const audit = mock((_session: unknown, _event: unknown) => Effect.void)
 const listDomainsForOrganization = mock((_organizationId: string) => Effect.succeed([domain]))
 const registerCustomDomain = mock((_input: unknown) => Effect.succeed(domain))
 const removeCustomDomain = mock((_domainId: string, _organizationId: string) => Effect.succeed(true))
@@ -100,6 +103,8 @@ mock.module('#/server/folders/service', () => ({
 }))
 mock.module('#/server/links/queries', () => ({ queryOrganizationLinks }))
 mock.module('#/server/links/bulk', () => ({ moveLinks, addTagsToLinks, deleteLinks }))
+mock.module('#/server/activity/service', () => ({ listActivity }))
+mock.module('#/server/activity/audit', () => ({ audit }))
 mock.module('#/server/health/checks', () => ({ runHealthChecks }))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
@@ -117,7 +122,7 @@ const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
-  listFolders, ensureFolderInOrganization, queryOrganizationLinks,
+  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -488,6 +493,101 @@ test('bulk move validates the destination folder belongs to the workspace', asyn
   expect(response.status).toBe(400)
   expect(moveLinks).not.toHaveBeenCalled()
   expect((await request('POST', `${orgPath}/links/move`, { linkIds: ['l1'], folderId: null })).status).toBe(200)
+})
+
+const auditedMutations = [
+  { name: 'create invitation', method: 'POST', path: `${orgPath}/invites`, body: inviteBody, action: 'member.invited' },
+  { name: 'add domain', method: 'POST', path: domainsPath, body: { hostname: domain.hostname }, action: 'domain.added' },
+  { name: 'remove domain', method: 'DELETE', path: domainPath, body: undefined, action: 'domain.removed' },
+  { name: 'create link', method: 'POST', path: linksPath, body: createBody, action: 'link.created' },
+  { name: 'delete link', method: 'DELETE', path: linkPath, body: undefined, action: 'link.deleted' },
+  { name: 'create folder', method: 'POST', path: `${orgPath}/folders`, body: { name: 'Docs' }, action: 'folder.created' },
+  { name: 'update folder', method: 'PATCH', path: `${orgPath}/folders/folder-1`, body: { name: 'New' }, action: 'folder.updated' },
+  { name: 'delete folder', method: 'DELETE', path: `${orgPath}/folders/folder-1`, body: undefined, action: 'folder.deleted' },
+  { name: 'update member role', method: 'PATCH', path: `${orgPath}/members/user-2`, body: { role: 'viewer' }, action: 'member.role_changed' },
+  { name: 'remove member', method: 'DELETE', path: `${orgPath}/members/user-2`, body: undefined, action: 'member.removed' },
+  { name: 'revoke invitation', method: 'DELETE', path: `${orgPath}/invites/invite-1`, body: undefined, action: 'invite.revoked' },
+  { name: 'update workspace', method: 'PATCH', path: orgPath, body: { name: 'Renamed' }, action: 'workspace.updated' },
+  { name: 'transfer ownership', method: 'POST', path: `${orgPath}/transfer-ownership`, body: { userId: 'user-2' }, action: 'workspace.ownership_transferred' },
+  { name: 'bulk move', method: 'POST', path: `${orgPath}/links/move`, body: { linkIds: ['l1'], folderId: null }, action: 'link.moved' },
+  { name: 'bulk tag', method: 'POST', path: `${orgPath}/links/tags`, body: { linkIds: ['l1'], tags: ['x'] }, action: 'link.tagged' },
+  { name: 'bulk delete', method: 'POST', path: `${orgPath}/links/delete`, body: { linkIds: ['l1'] }, action: 'link.deleted' },
+] as const
+for (const endpoint of auditedMutations) {
+  test(`${endpoint.name} writes a ${endpoint.action} audit event for the actor`, async () => {
+    role = 'owner'
+    const response = await request(endpoint.method, endpoint.path, endpoint.body)
+    expect(response.status).toBeLessThan(300)
+    expect(audit).toHaveBeenCalledTimes(1)
+    expect(audit).toHaveBeenCalledWith(session, expect.objectContaining({ organizationId: org.id, action: endpoint.action }))
+  })
+  test(`${endpoint.name} writes nothing when the caller is forbidden`, async () => {
+    role = 'viewer'
+    const response = await request(endpoint.method, endpoint.path, endpoint.body)
+    expect(response.status).toBe(403)
+    expect(audit).not.toHaveBeenCalled()
+  })
+}
+
+test('role changes and link edits carry before/after changes', async () => {
+  role = 'owner'
+  await request('PATCH', `${orgPath}/members/user-2`, { role: 'viewer' })
+  expect(audit).toHaveBeenLastCalledWith(session, expect.objectContaining({
+    target: { type: 'member', id: 'user-2', label: 'Teammate' },
+    changes: [{ label: 'Role', from: 'member', to: 'viewer' }],
+  }))
+  await request('PATCH', linkPath, { title: 'Updated' })
+  expect(audit).toHaveBeenLastCalledWith(session, expect.objectContaining({
+    action: 'link.updated',
+    changes: [{ label: 'Title', from: '—', to: 'Updated' }],
+  }))
+})
+
+test('a link edit that changes nothing is not audited', async () => {
+  role = 'owner'
+  updateLinkRecord.mockImplementationOnce((existing) => Effect.succeed(existing))
+  await request('PATCH', linkPath, {})
+  expect(audit).not.toHaveBeenCalled()
+})
+
+test('a failed workflow is not audited', async () => {
+  role = 'owner'
+  createLinkRecord.mockImplementationOnce(() => Effect.fail({ _tag: 'SlugConflict' }) as never)
+  expect((await request('POST', linksPath, createBody)).status).toBe(409)
+  expect(audit).not.toHaveBeenCalled()
+})
+
+test('the activity feed hides IP addresses from non-admins and forwards filters', async () => {
+  role = 'member'
+  let response = await request('GET', `${orgPath}/activity?category=links&limit=10&cursor=abc`)
+  expect(response.status).toBe(200)
+  expect(listActivity).toHaveBeenCalledWith({ organizationId: org.id, category: 'links', limit: 10, cursor: 'abc' })
+  let body = await response.json()
+  expect(body.items[0]).toMatchObject({
+    action: 'link.created', phrase: 'created link', actor: { type: 'member', label: 'Ada' },
+    target: { type: 'link', id: 'link-1', label: 'hello' }, changes: [{ label: 'Title', to: 'Hi' }],
+  })
+  expect(body.items[0]).not.toHaveProperty('ipAddress')
+  role = 'admin'
+  body = await (await request('GET', `${orgPath}/activity`)).json()
+  expect(body.items[0].ipAddress).toBe('203.0.113.9')
+})
+
+test('the activity feed requires membership and a valid category', async () => {
+  role = null
+  expect((await request('GET', `${orgPath}/activity`)).status).toBe(403)
+  role = 'viewer'
+  expect((await request('GET', `${orgPath}/activity?category=billing`)).status).toBe(400)
+  expect(listActivity).not.toHaveBeenCalled()
+})
+
+test('link history is scoped to the link and verifies it belongs to the domain', async () => {
+  role = 'viewer'
+  const response = await request('GET', `${linkPath}/history`)
+  expect(response.status).toBe(200)
+  expect(listActivity).toHaveBeenCalledWith({ organizationId: org.id, target: { type: 'link', id: linkRow.id }, limit: 100 })
+  getLinkInDomain.mockImplementationOnce(() => Effect.succeed(null as never))
+  expect((await request('GET', `${linkPath}/history`)).status).toBe(404)
 })
 
 // catchTags matches structural tags; do not load real service modules just for error constructors.
