@@ -7,6 +7,8 @@ import type {
   organizationMember,
 } from '@openlink/db/schema'
 
+import { deriveLinkStatus } from '#/server/links/rules'
+
 export function toUserDto(user: { id: string; email: string; name: string; createdAt: Date }) {
   return {
     id: user.id,
@@ -60,7 +62,8 @@ export function toLinkDto(row: typeof link.$inferSelect) {
     ...(row.description ? { description: row.description } : {}),
     destinationUrl: row.destinationUrl,
     redirectStatus: row.redirectStatus as RedirectCode,
-    status: row.status,
+    // Derived, so a link past its expiry or click limit reports `expired` rather than its stored status.
+    status: deriveLinkStatus(row),
     enabled: row.enabled,
     ...(row.activateAt ? { activateAt: row.activateAt.toISOString() } : {}),
     ...(row.expiresAt ? { expiresAt: row.expiresAt.toISOString() } : {}),

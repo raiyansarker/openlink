@@ -12,7 +12,9 @@ export function generateSlug(length = 8) {
   return output
 }
 
-export function deriveLinkStatus(row: typeof link.$inferSelect, now = new Date()) {
+export type LinkStatus = (typeof link.$inferSelect)['status']
+
+export function deriveLinkStatus(row: typeof link.$inferSelect, now = new Date()): LinkStatus {
   if (!row.enabled || row.status === 'disabled' || row.status === 'paused') {
     return row.status === 'paused' ? 'paused' : 'disabled'
   }

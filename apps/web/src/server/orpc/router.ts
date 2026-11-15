@@ -41,6 +41,8 @@ import {
   updateFolder,
 } from '#/server/folders/service'
 import { runHealthChecks } from '#/server/health/checks'
+import { addTagsToLinks, deleteLinks, moveLinks } from '#/server/links/bulk'
+import { queryOrganizationLinks } from '#/server/links/queries'
 import {
   createLinkRecord,
   deleteLinkRecord,
@@ -431,6 +433,34 @@ export const router = os.router({
   },
 
   links: {
+    listOrganizationLinks: os.links.listOrganizationLinks.effect(function* ({ input }) {
+      yield* requireOrgMemberEffect(input.params.organizationId)
+      const { items, total } = yield* queryOrganizationLinks({
+        organizationId: input.params.organizationId,
+        ...input.query,
+      })
+      return { items: items.map(toLinkDto), total }
+    }),
+
+    moveLinks: os.links.moveLinks.effect(function* ({ input, errors }) {
+      yield* requireLinkWriterEffect(input.params.organizationId)
+      yield* requireLinkFolder(input.params.organizationId, input.body.folderId, errors)
+      const affected = yield* moveLinks({ organizationId: input.params.organizationId, ...input.body })
+      return { affected }
+    }),
+
+    addLinkTags: os.links.addLinkTags.effect(function* ({ input }) {
+      yield* requireLinkWriterEffect(input.params.organizationId)
+      const affected = yield* addTagsToLinks({ organizationId: input.params.organizationId, ...input.body })
+      return { affected }
+    }),
+
+    deleteLinks: os.links.deleteLinks.effect(function* ({ input }) {
+      yield* requireLinkWriterEffect(input.params.organizationId)
+      const affected = yield* deleteLinks({ organizationId: input.params.organizationId, ...input.body })
+      return { affected }
+    }),
+
     listLinks: os.links.listLinks.effect(function* ({ input }) {
       yield* requireOrgMemberEffect(input.params.organizationId)
       yield* requireDomain(input.params.organizationId, input.params.domainId)
