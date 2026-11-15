@@ -3,11 +3,18 @@ import { type } from 'arktype'
 import { EmptyResponse } from '../system/schema'
 import { oc, openapi } from '../oc'
 import {
+  AddLinkTagsRequest,
+  BulkLinksResponse,
   CreateLinkRequest,
+  DeleteLinksRequest,
   DomainIdPath,
   Link,
   LinkIdPath,
   ListLinksResponse,
+  ListOrganizationLinksQuery,
+  ListOrganizationLinksResponse,
+  MoveLinksRequest,
+  OrganizationIdPath,
   UpdateLinkRequest,
 } from './schema'
 
@@ -78,7 +85,42 @@ export const updateLink = oc
   .input(type({ body: UpdateLinkRequest, params: LinkIdPath }))
   .output(Link)
 
+export const listOrganizationLinks = oc
+  .meta(
+    openapi({
+      method: 'GET',
+      operationId: 'listOrganizationLinks',
+      path: '/organizations/{organizationId}/links',
+      summary: 'Search links across every domain of a workspace',
+      inputStructure: 'detailed',
+      tags: ['Links'],
+    }),
+  )
+  .input(type({ params: OrganizationIdPath, query: ListOrganizationLinksQuery }))
+  .output(ListOrganizationLinksResponse)
+
+const bulk = (operationId: string, path: `/${string}`, summary: string) =>
+  oc.meta(
+    openapi({ method: 'POST', operationId, path, summary, inputStructure: 'detailed', tags: ['Links'] }),
+  )
+
+export const moveLinks = bulk('moveLinks', '/organizations/{organizationId}/links/move', 'Move links to a folder')
+  .input(type({ params: OrganizationIdPath, body: MoveLinksRequest }))
+  .output(BulkLinksResponse)
+
+export const addLinkTags = bulk('addLinkTags', '/organizations/{organizationId}/links/tags', 'Add tags to links, keeping existing ones')
+  .input(type({ params: OrganizationIdPath, body: AddLinkTagsRequest }))
+  .output(BulkLinksResponse)
+
+export const deleteLinks = bulk('deleteLinks', '/organizations/{organizationId}/links/delete', 'Delete several links')
+  .input(type({ params: OrganizationIdPath, body: DeleteLinksRequest }))
+  .output(BulkLinksResponse)
+
 export const contract = {
+  listOrganizationLinks,
+  moveLinks,
+  addLinkTags,
+  deleteLinks,
   listLinks,
   createLink,
   deleteLink,
