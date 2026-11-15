@@ -50,7 +50,7 @@ export default function SettingsSectionPanel({ section }: SettingsSectionPanelPr
       {section === 'appearance' && <AppearanceSettingsFields />}
       {section === 'devices' && <DevicesSettingsFields />}
       {isWorkspaceSection(section) ? (
-        <OrganizationProvider>
+        <OrganizationProvider presentation="inline">
           {section === 'general' && <GeneralSettingsFields />}
           {section === 'members' && <MembersSettingsFields />}
           {section === 'integrations' && <IntegrationsSettingsFields />}

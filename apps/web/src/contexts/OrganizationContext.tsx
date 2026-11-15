@@ -49,7 +49,7 @@ import {
 import { holdPageMeta } from '#/lib/links/hold-pages'
 import { linksWorkspace$ } from '#/state/links-workspace.state'
 import NotFoundPage from '#/components/not-found/NotFoundPage'
-import WorkspaceStatusScreen from '#/components/workspace/WorkspaceStatusScreen'
+import WorkspaceStatusScreen, { type StatusPresentation } from '#/components/workspace/WorkspaceStatusScreen'
 import {
   useWorkspaceDirectory,
   WorkspaceDirectoryProvider,
@@ -108,6 +108,8 @@ const OrganizationContext = createContext<OrganizationContextValue | null>(null)
 type OrganizationProviderProps = {
   /** Workspace from the URL. Without it, the remembered (or first) workspace is used. */
   orgSlugFromRoute?: string
+  /** `inline` when rendered inside another layout (settings), so loading states fit the panel. */
+  presentation?: StatusPresentation
   children: ReactNode
 }
 
@@ -116,15 +118,17 @@ type OrganizationProviderProps = {
  * Shows a loading or error screen meanwhile, a 404 for a workspace the user
  * does not belong to, and sends users with no workspace to create one.
  */
-export function OrganizationProvider({ orgSlugFromRoute, children }: OrganizationProviderProps) {
+export function OrganizationProvider({ orgSlugFromRoute, presentation, children }: OrganizationProviderProps) {
   return (
     <WorkspaceDirectoryProvider>
-      <WorkspaceGate orgSlugFromRoute={orgSlugFromRoute}>{children}</WorkspaceGate>
+      <WorkspaceGate orgSlugFromRoute={orgSlugFromRoute} presentation={presentation}>
+        {children}
+      </WorkspaceGate>
     </WorkspaceDirectoryProvider>
   )
 }
 
-function WorkspaceGate({ orgSlugFromRoute, children }: OrganizationProviderProps) {
+function WorkspaceGate({ orgSlugFromRoute, presentation = 'page', children }: OrganizationProviderProps) {
   const { organizations, status, errorMessage, refetch } = useWorkspaceDirectory()
   const navigate = useNavigate()
   const activeOrg = status === 'ready' ? ActiveWorkspace.pick(organizations, orgSlugFromRoute) : null
@@ -139,10 +143,10 @@ function WorkspaceGate({ orgSlugFromRoute, children }: OrganizationProviderProps
   }, [hasNoWorkspaces, navigate])
 
   if (status === 'error') {
-    return <WorkspaceStatusScreen state="error" message={errorMessage ?? 'Try again.'} onRetry={refetch} />
+    return <WorkspaceStatusScreen presentation={presentation} state="error" message={errorMessage ?? 'Try again.'} onRetry={refetch} />
   }
-  if (status === 'loading' || hasNoWorkspaces) return <WorkspaceStatusScreen state="loading" />
-  if (!activeOrg) return <NotFoundPage />
+  if (status === 'loading' || hasNoWorkspaces) return <WorkspaceStatusScreen presentation={presentation} state="loading" />
+  if (!activeOrg) return presentation === 'inline' ? <WorkspaceStatusScreen presentation="inline" state="missing" /> : <NotFoundPage />
   return <OrganizationScope activeOrg={activeOrg}>{children}</OrganizationScope>
 }
 

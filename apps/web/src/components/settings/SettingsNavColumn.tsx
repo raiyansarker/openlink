@@ -145,7 +145,9 @@ export default function SettingsNavColumn() {
   const { section } = useParams({ strict: false }) as { section?: string }
   const activeSection = section ?? 'profile'
   const [logoutHovered, setLogoutHovered] = useState(false)
-  const { organizations } = useWorkspaceDirectory()
+  const { organizations, status } = useWorkspaceDirectory()
+  // Hide workspace sections only once we know there are none (not while loading).
+  const hasNoWorkspaces = status === 'ready' && organizations.length === 0
 
   const signOut = async () => {
     try {
@@ -215,7 +217,7 @@ export default function SettingsNavColumn() {
           ))}
         </NavGroup>
 
-        {organizations.length > 0 ? (
+        {!hasNoWorkspaces ? (
           <NavGroup label="Workspace">
             {SETTINGS_WORKSPACE_SECTIONS.map((item) => (
               <SettingsNavLink
