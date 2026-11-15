@@ -10,7 +10,6 @@ export class QueryKeys {
   static readonly organizations = ['organizations'] as const
   static workspace = (organizationId: string) => ['workspace', organizationId] as const
   static members = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'members'] as const
-  static invites = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'invites'] as const
   static domains = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'domains'] as const
   static folders = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'folders'] as const
   static links = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'links'] as const

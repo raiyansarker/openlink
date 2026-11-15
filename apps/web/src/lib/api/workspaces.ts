@@ -64,4 +64,21 @@ export class WorkspaceApi {
       throw ApiError.from(error, 'Could not create the workspace.')
     }
   }
+
+  /** Callers refresh the workspace list afterwards, which also carries their role. */
+  async update(organizationId: string, changes: { name?: string; slug?: string }): Promise<void> {
+    try {
+      await this.client.organizations.updateOrganization({ params: { organizationId }, body: changes })
+    } catch (error) {
+      throw ApiError.from(error, 'Could not save the workspace.')
+    }
+  }
+
+  async delete(organizationId: string): Promise<void> {
+    try {
+      await this.client.organizations.deleteOrganization({ params: { organizationId } })
+    } catch (error) {
+      throw ApiError.from(error, 'Could not delete the workspace.')
+    }
+  }
 }
