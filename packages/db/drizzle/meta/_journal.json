@@ -57,6 +57,13 @@
       "when": 1794776247038,
       "tag": "0007_user_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794776801173,
+      "tag": "0008_session_device_details",
+      "breakpoints": true
     }
   ]
 }

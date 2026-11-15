@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 export const user = sqliteTable('user', {
   id: text('id').primaryKey(),
@@ -20,6 +20,13 @@ export const session = sqliteTable('session', {
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
+  /** Approximate place from the IP at sign-in (Cloudflare's request location). */
+  city: text('city'),
+  country: text('country'),
+  latitude: real('latitude'),
+  longitude: real('longitude'),
+  /** `google`, `github`, or `email`. */
+  signInMethod: text('sign_in_method'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
