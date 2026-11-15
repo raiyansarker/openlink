@@ -75,20 +75,11 @@ export default function DashboardAccountMenu({
         </button>
       )}
       items={[
-        ...(user
-          ? [
-              {
-                id: 'identity',
-                label: user.name,
-                description: user.email,
-                isDisabled: true,
-              },
-              { type: 'divider' as const },
-            ]
-          : []),
+        // Your name and email open your profile; shown as a normal row, not a disabled one.
         {
           id: 'profile',
-          label: 'My Profile',
+          label: user?.name ?? 'My Profile',
+          ...(user ? { description: user.email } : {}),
           onClick: goToProfile,
         },
         {
