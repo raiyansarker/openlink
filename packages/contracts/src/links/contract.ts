@@ -17,6 +17,7 @@ import {
   MoveLinksRequest,
   OrganizationIdPath,
   UpdateLinkRequest,
+  WorkspaceLinkIdPath,
 } from './schema'
 
 export const listLinks = oc
@@ -131,7 +132,28 @@ export const getLinkHistory = oc
   .input(type({ params: LinkIdPath }))
   .output(ListActivityResponse)
 
+const workspaceLinkOp = (method: 'GET' | 'POST' | 'PATCH', operationId: string, path: `/${string}`, extra: { successStatus?: 201; summary?: string } = {}) =>
+  oc.meta(openapi({ method, operationId, path, inputStructure: 'detailed', tags: ['Links'], ...extra }))
+
+export const createWorkspaceLink = workspaceLinkOp('POST', 'createWorkspaceLink', '/organizations/{organizationId}/links', {
+  successStatus: 201,
+  summary: 'Create a link on the app host, or on a custom domain via domainId',
+})
+  .input(type({ body: CreateLinkRequest, params: OrganizationIdPath }))
+  .output(Link)
+
+export const getWorkspaceLink = workspaceLinkOp('GET', 'getWorkspaceLink', '/organizations/{organizationId}/links/{linkId}')
+  .input(type({ params: WorkspaceLinkIdPath }))
+  .output(Link)
+
+export const updateWorkspaceLink = workspaceLinkOp('PATCH', 'updateWorkspaceLink', '/organizations/{organizationId}/links/{linkId}')
+  .input(type({ body: UpdateLinkRequest, params: WorkspaceLinkIdPath }))
+  .output(Link)
+
 export const contract = {
+  createWorkspaceLink,
+  getWorkspaceLink,
+  updateWorkspaceLink,
   getLinkHistory,
   listOrganizationLinks,
   moveLinks,
