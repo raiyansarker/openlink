@@ -50,6 +50,13 @@
       "when": 1794775477783,
       "tag": "0006_organization_logo",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794776247038,
+      "tag": "0007_user_onboarding",
+      "breakpoints": true
     }
   ]
 }
