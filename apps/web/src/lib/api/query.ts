@@ -6,6 +6,7 @@ import { ApiError } from './error'
 export class QueryKeys {
   static readonly currentUser = ['me'] as const
   static readonly linkedAccounts = ['me', 'accounts'] as const
+  static readonly deviceSessions = ['me', 'sessions'] as const
   static readonly organizations = ['organizations'] as const
   static workspace = (organizationId: string) => ['workspace', organizationId] as const
   static members = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'members'] as const

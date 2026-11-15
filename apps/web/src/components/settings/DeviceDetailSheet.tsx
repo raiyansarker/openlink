@@ -43,7 +43,7 @@ export default function DeviceDetailSheet({
 
   if (!session) return null
 
-  const place = `${session.city}, ${session.country}`
+  const place = [session.city, session.country].filter(Boolean).join(', ') || 'Unknown location'
 
   return (
     <>
@@ -72,21 +72,23 @@ export default function DeviceDetailSheet({
           content={
             <LayoutContent>
               <VStack gap={6} hAlign="stretch" width="100%">
+                {session.coordinates ? (
                 <VStack gap={2} hAlign="stretch" width="100%">
-                  <DeviceLocationMap
-                    lat={session.coordinates.lat}
-                    lng={session.coordinates.lng}
-                    label={`Approximate location: ${place}`}
-                  />
-                  <VStack gap={0.5} hAlign="start" width="100%">
-                    <Text type="supporting" color="secondary">
-                      Approximate location from the IP address.
-                    </Text>
-                    <Text type="supporting" color="secondary">
-                      {OPENFREEMAP_CREDIT}
-                    </Text>
+                    <DeviceLocationMap
+                      lat={session.coordinates.lat}
+                      lng={session.coordinates.lng}
+                      label={`Approximate location: ${place}`}
+                    />
+                    <VStack gap={0.5} hAlign="start" width="100%">
+                      <Text type="supporting" color="secondary">
+                        Approximate location from the IP address.
+                      </Text>
+                      <Text type="supporting" color="secondary">
+                        {OPENFREEMAP_CREDIT}
+                      </Text>
+                    </VStack>
                   </VStack>
-                </VStack>
+                ) : null}
 
                 <VStack gap={3} hAlign="stretch" width="100%">
                   <DetailRow label="Location">{place}</DetailRow>
