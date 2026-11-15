@@ -1,5 +1,9 @@
+import { contract as activity } from './activity'
+import { contract as apiKeys } from './api-keys'
 import { contract as auth } from './auth'
+import { contract as comments } from './comments'
 import { contract as domains } from './domains'
+import { contract as folders } from './folders'
 import { contract as links } from './links'
 import { contract as organizations } from './organizations'
 import { contract as system } from './system'
@@ -9,9 +13,13 @@ import { oc } from './oc'
 const router = {
   system,
   auth,
+  activity,
+  apiKeys,
   organizations,
   domains,
+  folders,
   links,
+  comments,
 } as const
 
 /** Full contract with typesafe errors on every procedure. */

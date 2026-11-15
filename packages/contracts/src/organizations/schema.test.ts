@@ -4,6 +4,8 @@ import {
   CreateOrganizationInviteRequest,
   OrganizationInvite,
   OrganizationRole,
+  UpdateMemberRoleRequest,
+  UpdateOrganizationRequest,
 } from './schema'
 
 const roles = ['owner', 'admin', 'member', 'viewer'] as const
@@ -35,5 +37,21 @@ describe('organization roles', () => {
 
   test('rejects unknown roles', () => {
     expect(OrganizationRole('superadmin')).toBeInstanceOf(type.errors)
+  })
+})
+
+describe('workspace management requests', () => {
+  test('owner cannot be assigned through a role update', () => {
+    expect(UpdateMemberRoleRequest({ role: 'owner' })).toBeInstanceOf(type.errors)
+    expect(UpdateMemberRoleRequest({ role: 'viewer' })).toEqual({ role: 'viewer' })
+  })
+
+  test('organization updates validate the slug and name', () => {
+    expect(UpdateOrganizationRequest({ slug: 'Bad Slug' })).toBeInstanceOf(type.errors)
+    expect(UpdateOrganizationRequest({ name: '' })).toBeInstanceOf(type.errors)
+    expect(UpdateOrganizationRequest({ name: 'Acme', slug: 'acme-co' })).toEqual({
+      name: 'Acme',
+      slug: 'acme-co',
+    })
   })
 })

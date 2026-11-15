@@ -2,6 +2,7 @@ import { type } from 'arktype'
 
 import { HttpUrl } from '../schema-utils'
 import { DomainIdPath, RedirectStatus } from '../domains/schema'
+import { OrganizationIdPath } from '../organizations/schema'
 
 export const LinkStatus = type(
   "'draft' | 'scheduled' | 'active' | 'paused' | 'expired' | 'disabled'",
@@ -21,6 +22,8 @@ export const Link = type({
   domainId: 'string',
   slug: 'string',
   'alias?': 'string',
+  /** Containing folder; null or absent means the workspace root. */
+  'folderId?': 'string | null',
   'title?': 'string',
   'description?': 'string',
   destinationUrl: HttpUrl,
@@ -43,6 +46,7 @@ export const Link = type({
 
 export const CreateLinkRequest = type({
   'slug?': /^[A-Za-z0-9_-]+$/,
+  'folderId?': 'string | null',
   destinationUrl: HttpUrl,
   'title?': 'string',
   'description?': 'string',
@@ -59,6 +63,8 @@ export const CreateLinkRequest = type({
 })
 
 export const UpdateLinkRequest = type({
+  /** Null moves the link to the workspace root. */
+  'folderId?': 'string | null',
   'destinationUrl?': HttpUrl,
   'title?': 'string',
   'description?': 'string',
@@ -87,4 +93,36 @@ export const ListLinksResponse = type({
   items: Link.array(),
 })
 
-export { DomainIdPath }
+export { DomainIdPath, OrganizationIdPath }
+
+/** Query params arrive as strings; `folderId=root` selects links not in any folder. */
+export const ListOrganizationLinksQuery = type({
+  'q?': 'string',
+  'folderId?': 'string',
+  'tag?': 'string',
+  'status?': LinkStatus,
+  'limit?': 'string.integer.parse',
+  'offset?': 'string.integer.parse',
+})
+
+export const ListOrganizationLinksResponse = type({
+  items: Link.array(),
+  total: 'number.integer>=0',
+})
+
+const LinkIds = type('string[] >= 1').and(type('string[] <= 200'))
+
+export const MoveLinksRequest = type({
+  linkIds: LinkIds,
+  /** Null moves the links to the workspace root. */
+  folderId: 'string | null',
+})
+
+export const AddLinkTagsRequest = type({
+  linkIds: LinkIds,
+  tags: type('string[] >= 1').and(type('string[] <= 20')),
+})
+
+export const DeleteLinksRequest = type({ linkIds: LinkIds })
+
+export const BulkLinksResponse = type({ affected: 'number.integer>=0' })

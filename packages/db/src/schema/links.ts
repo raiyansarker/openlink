@@ -1,7 +1,32 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import {
+  type AnySQLiteColumn,
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core'
 import { user } from './auth'
 import { customDomain } from './domains'
 import { organization } from './orgs'
+
+export const linkFolder = sqliteTable(
+  'link_folder',
+  {
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    /** Null means the workspace root. Nesting depth is enforced by the service. */
+    parentId: text('parent_id').references((): AnySQLiteColumn => linkFolder.id, {
+      onDelete: 'cascade',
+    }),
+    name: text('name').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (table) => [index('link_folder_org_idx').on(table.organizationId, table.parentId)],
+)
 
 export const link = sqliteTable(
   'link',
@@ -13,6 +38,7 @@ export const link = sqliteTable(
     domainId: text('domain_id')
       .notNull()
       .references(() => customDomain.id, { onDelete: 'cascade' }),
+    folderId: text('folder_id').references(() => linkFolder.id, { onDelete: 'set null' }),
     slug: text('slug').notNull(),
     alias: text('alias'),
     title: text('title'),
@@ -44,5 +70,6 @@ export const link = sqliteTable(
   (table) => [
     uniqueIndex('link_domain_slug_unique').on(table.domainId, table.slug),
     index('link_org_idx').on(table.organizationId),
+    index('link_folder_idx').on(table.folderId),
   ],
 )

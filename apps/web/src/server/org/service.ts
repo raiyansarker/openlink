@@ -1,5 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm'
-import { Data, Effect } from 'effect'
+import { Effect } from 'effect'
 import {
   organization,
   organizationInvite,
@@ -14,16 +14,18 @@ import {
   inviteEmailMatches,
 } from './invites'
 
-export class InvalidBootstrapInvite extends Data.TaggedError(
-  'InvalidBootstrapInvite',
-)<{}> {}
-export class InvalidInvite extends Data.TaggedError('InvalidInvite')<{}> {}
-export class InviteEmailMismatch extends Data.TaggedError(
-  'InviteEmailMismatch',
-)<{}> {}
-export class OrganizationConflict extends Data.TaggedError(
-  'OrganizationConflict',
-)<{}> {}
+export {
+  InvalidBootstrapInvite,
+  InvalidInvite,
+  InviteEmailMismatch,
+  OrganizationConflict,
+} from './errors'
+import {
+  InvalidBootstrapInvite,
+  InvalidInvite,
+  InviteEmailMismatch,
+  OrganizationConflict,
+} from './errors'
 
 function isUniqueViolation(cause: unknown): boolean {
   if (!(cause instanceof Error)) return false
@@ -120,7 +122,8 @@ export function createMemberInvite(input: {
   organizationId: string
   email: string
   role: typeof organizationInvite.$inferInsert.role
-  createdByUserId: string
+  /** Null when issued through an API key. */
+  createdByUserId: string | null
 }) {
   return Effect.gen(function* () {
     const db = yield* Db

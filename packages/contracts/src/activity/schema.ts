@@ -1,0 +1,50 @@
+import { type } from 'arktype'
+
+import { OrganizationIdPath } from '../organizations/schema'
+
+export const ActivityCategory = type("'links' | 'domains' | 'members' | 'security' | 'developers'")
+export const ActivitySource = type("'dashboard' | 'api' | 'automation'")
+
+export const ActivityChange = type({
+  label: 'string',
+  from: 'string',
+  to: 'string',
+})
+
+export const ActivityEvent = type({
+  id: 'string',
+  organizationId: 'string',
+  /** Machine key, e.g. `link.created`. */
+  action: 'string',
+  /** Past-tense phrase for display, e.g. "created link". */
+  phrase: 'string',
+  category: ActivityCategory,
+  source: ActivitySource,
+  actor: type({
+    type: "'member' | 'api_key' | 'system'",
+    label: 'string',
+    'userId?': 'string',
+  }),
+  target: type({
+    type: 'string',
+    'id?': 'string',
+    label: 'string',
+  }),
+  'changes?': ActivityChange.array(),
+  /** Only returned to administrators. */
+  'ipAddress?': 'string',
+  occurredAt: 'string',
+})
+
+export const ListActivityQuery = type({
+  'category?': ActivityCategory,
+  'limit?': 'string.integer.parse',
+  'cursor?': 'string',
+})
+
+export const ListActivityResponse = type({
+  items: ActivityEvent.array(),
+  'nextCursor?': 'string',
+})
+
+export { OrganizationIdPath }
