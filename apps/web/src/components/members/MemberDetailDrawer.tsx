@@ -6,7 +6,12 @@ import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import { getMemberActivities } from '#/data/demo/member-activities'
+import { useQuery } from '@tanstack/react-query'
+import { useOrganization } from '#/contexts/OrganizationContext'
+import type { MemberActivityEvent } from '#/data/demo/types'
+import { ApiClient } from '#/lib/api/client'
+import { MemberId } from '#/lib/api/members'
+import { QueryKeys } from '#/lib/api/query'
 import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
 import { formatShortDate } from '#/lib/format/short-date'
 import {
@@ -60,7 +65,27 @@ export default function MemberDetailDrawer({
   onResendInvite,
 }: MemberDetailDrawerProps) {
   const isOpen = member != null
-  const activities = member ? getMemberActivities(member.id) : []
+  const { activeOrg } = useOrganization()
+  const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
+  const userId = member ? MemberId.parse(member.id) : null
+  // What this person did recently, from the workspace activity feed.
+  const activityQuery = useQuery({
+    queryKey: [...QueryKeys.activity(activeOrg.id), 'recent'],
+    queryFn: () => ApiClient.instance.activity.listActivity({ params: { organizationId: activeOrg.id }, query: { limit: '100' } }),
+    enabled: isOpen && userId?.kind === 'user',
+  })
+  const activities: MemberActivityEvent[] =
+    userId?.kind === 'user'
+      ? (activityQuery.data?.items ?? [])
+          .filter((event) => event.actor.userId === userId.id)
+          .map((event) => ({
+            id: event.id,
+            memberId: member!.id,
+            title: `${event.phrase[0]!.toUpperCase()}${event.phrase.slice(1)} ${event.target.label}`,
+            ...(event.changes?.[0] ? { description: `${event.changes[0].label}: ${event.changes[0].from} → ${event.changes[0].to}` } : {}),
+            occurredAt: event.occurredAt,
+          }))
+      : []
 
   const isOwner = member?.role === 'owner'
   const isPending = member?.status === 'pending'
@@ -118,7 +143,7 @@ export default function MemberDetailDrawer({
                       </Text>
                     </VStack>
                   </HStack>
-                  {!isOwner ? (
+                  {!isOwner && canManage ? (
                     <MemberRowMenu
                       member={member}
                       onChangeRole={onChangeRole}

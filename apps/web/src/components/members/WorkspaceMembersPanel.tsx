@@ -1,4 +1,6 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
+import { Spinner } from '@astryxdesign/core/Spinner'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { Button } from '@astryxdesign/core/Button'
 import { Heading } from '@astryxdesign/core/Heading'
@@ -8,10 +10,11 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import { PlusIcon } from '#/components/icons/IcnMcp'
-import { getMembersForOrg } from '#/data/demo/queries'
+import { ApiError } from '#/lib/api/error'
+import { WorkspaceMembersApi, type AssignableRole } from '#/lib/api/members'
+import { QueryKeys } from '#/lib/api/query'
 import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { withDemoMemberAvatar } from '#/lib/members/demo-avatar'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import InviteMemberDrawer from './InviteMemberDrawer'
 import MemberDetailDrawer from './MemberDetailDrawer'
@@ -29,20 +32,25 @@ function matchesSearch(member: WorkspaceMember, query: string): boolean {
   )
 }
 
-function nameFromEmail(email: string): string {
-  const local = email.split('@')[0]?.replace(/[.+_-]/g, ' ') ?? 'Teammate'
-  return local
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
+const membersApi = new WorkspaceMembersApi()
 
 export default function WorkspaceMembersPanel() {
   const { activeOrg } = useOrganization()
-  const [members, setMembers] = useState<WorkspaceMember[]>(() =>
-    getMembersForOrg(activeOrg.id),
-  )
+  const queryClient = useQueryClient()
+  // Owners and admins manage people and see pending invites; everyone else gets a read-only list.
+  const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
+  const query = useQuery({
+    queryKey: [...QueryKeys.members(activeOrg.id), canManage],
+    queryFn: () => membersApi.list(activeOrg.id, { includeInvites: canManage }),
+  })
+  const members = query.data ?? []
+  const [actionError, setActionError] = useState<string | null>(null)
+  const action = useMutation({
+    mutationFn: (run: () => Promise<void>) => run(),
+    onMutate: () => setActionError(null),
+    onError: (error) => setActionError(ApiError.message(error)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: QueryKeys.members(activeOrg.id) }),
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [detailMember, setDetailMember] = useState<WorkspaceMember | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -51,7 +59,6 @@ export default function WorkspaceMembersPanel() {
   const [inviteError, setInviteError] = useState<string | null>(null)
 
   useEffect(() => {
-    setMembers(getMembersForOrg(activeOrg.id))
     setSearchQuery('')
     setDetailMember(null)
     setInviteEmail('')
@@ -74,24 +81,22 @@ export default function WorkspaceMembersPanel() {
     setDetailMember(member)
   }
 
-  const updateMember = (
-    memberId: string,
-    patch: Partial<WorkspaceMember>,
-  ) => {
-    setMembers((prev) =>
-      prev.map((member) =>
-        member.id === memberId ? { ...member, ...patch } : member,
-      ),
-    )
-    if (detailMember?.id === memberId) {
-      setDetailMember((prev) => (prev ? { ...prev, ...patch } : prev))
-    }
+  const changeRole = (memberId: string, role: WorkspaceMemberRole) => {
+    if (role === 'owner') return
+    action.mutate(async () => {
+      await membersApi.changeRole(activeOrg.id, memberId, role)
+      setDetailMember((prev) => (prev?.id === memberId ? { ...prev, role } : prev))
+    })
   }
 
   const removeMember = (memberId: string) => {
-    setMembers((prev) => prev.filter((member) => member.id !== memberId))
-    if (detailMember?.id === memberId) setDetailMember(null)
+    action.mutate(async () => {
+      await membersApi.remove(activeOrg.id, memberId)
+      setDetailMember((prev) => (prev?.id === memberId ? null : prev))
+    })
   }
+
+  const resendInvite = (memberId: string) => action.mutate(() => membersApi.resendInvite(activeOrg.id, memberId))
 
   const submitInvite = () => {
     const email = inviteEmail.trim().toLowerCase()
@@ -108,20 +113,17 @@ export default function WorkspaceMembersPanel() {
       return
     }
 
-    const invited = withDemoMemberAvatar({
-      id: `mbr_invite_${Date.now()}`,
-      orgId: activeOrg.id,
-      name: nameFromEmail(email),
-      email,
-      role: inviteRole,
-      status: 'pending',
-      joinedAt: new Date().toISOString(),
-    })
-
-    setMembers((prev) => [invited, ...prev])
-    setInviteOpen(false)
-    setInviteEmail('')
+    if (inviteRole === 'owner') return
+    const role: AssignableRole = inviteRole
     setInviteError(null)
+    membersApi
+      .invite(activeOrg.id, email, role)
+      .then(async () => {
+        await queryClient.invalidateQueries({ queryKey: QueryKeys.members(activeOrg.id) })
+        setInviteOpen(false)
+        setInviteEmail('')
+      })
+      .catch((error) => setInviteError(ApiError.message(error, 'Could not send the invite.')))
   }
 
   const rows = filteredMembers as MemberRow[]
@@ -136,13 +138,15 @@ export default function WorkspaceMembersPanel() {
         wrap="wrap"
       >
         <Heading level={1}>Manage members</Heading>
-        <Button
-          variant="secondary"
-          size="sm"
-          label="Invite people"
-          icon={<PlusIcon size={14} style={{ display: 'flex' }} />}
-          onClick={openInvite}
-        />
+        {canManage ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            label="Invite people"
+            icon={<PlusIcon size={14} style={{ display: 'flex' }} />}
+            onClick={openInvite}
+          />
+        ) : null}
       </HStack>
 
       <TextInput
@@ -211,19 +215,32 @@ export default function WorkspaceMembersPanel() {
             width: pixel(56),
             align: 'end',
             renderCell: (row) => (
-              <MemberRowMenu
+              canManage ? <MemberRowMenu
                 member={row}
-                onChangeRole={(id, role) => updateMember(id, { role })}
-                onResendInvite={() => undefined}
+                onChangeRole={changeRole}
+                onResendInvite={resendInvite}
                 onRemove={removeMember}
-              />
+              /> : null
             ),
           },
         ]}
         />
       </VStack>
 
-      {rows.length === 0 ? (
+      {query.isPending ? <Spinner size="md" label="Loading members…" /> : null}
+      {query.isError ? (
+        <VStack gap={2} hAlign="start" role="alert">
+          <Text>{ApiError.message(query.error, 'Could not load members.')}</Text>
+          <Button size="sm" variant="secondary" label="Try again" onClick={() => void query.refetch()} />
+        </VStack>
+      ) : null}
+      {actionError ? (
+        <Text type="supporting" weight="medium" role="alert">
+          {actionError}
+        </Text>
+      ) : null}
+
+      {query.isSuccess && rows.length === 0 ? (
         <Text type="supporting" color="secondary">
           No members match your search.
         </Text>
@@ -234,9 +251,9 @@ export default function WorkspaceMembersPanel() {
         onOpenChange={(open) => {
           if (!open) setDetailMember(null)
         }}
-        onChangeRole={(id, role) => updateMember(id, { role })}
+        onChangeRole={changeRole}
         onRemove={removeMember}
-        onResendInvite={() => undefined}
+        onResendInvite={resendInvite}
       />
 
       <InviteMemberDrawer
