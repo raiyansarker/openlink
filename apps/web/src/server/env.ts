@@ -8,6 +8,11 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_URL: string
   BOOTSTRAP_ORG_INVITE_TOKEN?: string
+  /** OAuth providers switch on only when both the id and secret are set. */
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  GITHUB_CLIENT_ID?: string
+  GITHUB_CLIENT_SECRET?: string
   /** When `"true"`, create-invite responses include the raw token (local dev only). */
   EXPOSE_INVITE_TOKENS_IN_API?: string
 }
