@@ -16,7 +16,7 @@ import { DASHBOARD_SURFACE_BG } from '#/components/dashboard/layout/dashboard-sh
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
 import { LoginRedirect } from '#/lib/auth/redirect'
-import { currentHostLabel } from '#/lib/url/format-host'
+import { useHostLabel } from '#/hooks/use-host-label'
 
 const routeApi = getRouteApi('/login')
 
@@ -175,6 +175,7 @@ function EyeIcon(props: SVGProps<SVGSVGElement>) {
 
 export default function LoginPage() {
   const router = useRouter()
+  const host = useHostLabel()
   const search = routeApi.useSearch()
   const { providers } = routeApi.useRouteContext()
   const destination = LoginRedirect.sanitize(search.redirect)
@@ -274,7 +275,7 @@ export default function LoginPage() {
                   <circle cx="8" cy="12" r="3" fill="var(--color-background-body)" stroke="currentColor" strokeWidth="1.5" />
                 </svg>
                 <Text size="base" weight="medium" justify="end" className="openlink-login-url openlink-login-destination">
-{`${currentHostLabel()}/your-next-thing`}
+{`${host}/your-next-thing`}
                 </Text>
               </VStack>
             </VStack>
@@ -309,7 +310,8 @@ export default function LoginPage() {
                 )}
               </VStack>
 
-              <form onSubmit={handleSubmit}>
+              {/* POST so credentials can never end up in the URL if this is submitted before hydration. */}
+              <form method="post" onSubmit={handleSubmit}>
                 <VStack gap={5}>
                   <TextInput
                     label="Email address"
