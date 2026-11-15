@@ -32,7 +32,8 @@ function isSlugConflict(cause: unknown): boolean {
 export function createLinkRecord(input: {
   organizationId: string
   domainId: string
-  userId: string
+  /** Null when created through an API key. */
+  userId: string | null
   slug?: string
   folderId?: string | null
   destinationUrl: string

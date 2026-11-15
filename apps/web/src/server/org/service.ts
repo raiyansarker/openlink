@@ -122,7 +122,8 @@ export function createMemberInvite(input: {
   organizationId: string
   email: string
   role: typeof organizationInvite.$inferInsert.role
-  createdByUserId: string
+  /** Null when issued through an API key. */
+  createdByUserId: string | null
 }) {
   return Effect.gen(function* () {
     const db = yield* Db

@@ -20,6 +20,9 @@ export const ACTION_DEFINITIONS = {
   'member.role_changed': { category: 'members', phrase: 'changed the role of' },
   'member.removed': { category: 'members', phrase: 'removed' },
   'invite.revoked': { category: 'members', phrase: 'revoked the invite for' },
+  'apikey.created': { category: 'developers', phrase: 'created API key' },
+  'apikey.role_changed': { category: 'developers', phrase: 'changed the role of API key' },
+  'apikey.revoked': { category: 'developers', phrase: 'revoked API key' },
   'workspace.updated': { category: 'members', phrase: 'updated workspace' },
   'workspace.ownership_transferred': { category: 'security', phrase: 'transferred ownership to' },
 } as const satisfies Record<string, { category: ActivityCategory; phrase: string }>
