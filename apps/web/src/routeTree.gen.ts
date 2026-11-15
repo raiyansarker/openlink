@@ -26,6 +26,8 @@ import { Route as SettingsSectionRouteImport } from './routes/settings/$section'
 import { Route as WIndexRouteImport } from './routes/w/index'
 import { Route as WOrgSlugRouteRouteImport } from './routes/w/$orgSlug/route'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
+import { Route as ApiUploadsAvatarRouteImport } from './routes/api/uploads/avatar'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
 import { Route as WOrgSlugIndexRouteImport } from './routes/w/$orgSlug/index'
 import { Route as WOrgSlugActivityRouteImport } from './routes/w/$orgSlug/activity'
@@ -40,6 +42,7 @@ import { Route as WOrgSlugLinksIndexRouteImport } from './routes/w/$orgSlug/link
 import { Route as WOrgSlugLinksLinkIdRouteImport } from './routes/w/$orgSlug/links/$linkId'
 import { Route as WOrgSlugSettingsIndexRouteImport } from './routes/w/$orgSlug/settings/index'
 import { Route as WOrgSlugSettingsSectionRouteImport } from './routes/w/$orgSlug/settings/$section'
+import { Route as ApiUploadsOrganizationsOrganizationIdLogoRouteImport } from './routes/api/uploads/organizations/$organizationId/logo'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -126,6 +129,16 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMediaSplatRoute = ApiMediaSplatRouteImport.update({
+  id: '/api/media/$',
+  path: '/api/media/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUploadsAvatarRoute = ApiUploadsAvatarRouteImport.update({
+  id: '/api/uploads/avatar',
+  path: '/api/uploads/avatar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
   id: '/api/v1/$',
   path: '/api/v1/$',
@@ -196,6 +209,12 @@ const WOrgSlugSettingsSectionRoute = WOrgSlugSettingsSectionRouteImport.update({
   path: '/$section',
   getParentRoute: () => WOrgSlugSettingsRouteRoute,
 } as any)
+const ApiUploadsOrganizationsOrganizationIdLogoRoute =
+  ApiUploadsOrganizationsOrganizationIdLogoRouteImport.update({
+    id: '/api/uploads/organizations/$organizationId/logo',
+    path: '/api/uploads/organizations/$organizationId/logo',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -217,6 +236,8 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/domains': typeof WOrgSlugDomainsRouteRouteWithChildren
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
+  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
@@ -229,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -245,6 +267,8 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsIndexRoute
   '/w': typeof WIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
+  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
@@ -257,6 +281,7 @@ export interface FileRoutesByTo {
   '/w/$orgSlug/domains': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -279,6 +304,8 @@ export interface FileRoutesById {
   '/w/$orgSlug/domains': typeof WOrgSlugDomainsRouteRouteWithChildren
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
+  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
@@ -291,6 +318,7 @@ export interface FileRoutesById {
   '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -314,6 +342,8 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains'
     | '/w/$orgSlug/settings'
     | '/api/auth/$'
+    | '/api/media/$'
+    | '/api/uploads/avatar'
     | '/api/v1/$'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
@@ -326,6 +356,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains/'
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
+    | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -342,6 +373,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/w'
     | '/api/auth/$'
+    | '/api/media/$'
+    | '/api/uploads/avatar'
     | '/api/v1/$'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
@@ -354,6 +387,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains'
     | '/w/$orgSlug/links'
     | '/w/$orgSlug/settings'
+    | '/api/uploads/organizations/$organizationId/logo'
   id:
     | '__root__'
     | '/'
@@ -375,6 +409,8 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains'
     | '/w/$orgSlug/settings'
     | '/api/auth/$'
+    | '/api/media/$'
+    | '/api/uploads/avatar'
     | '/api/v1/$'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
@@ -387,6 +423,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains/'
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
+    | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -403,7 +440,10 @@ export interface RootRouteChildren {
   EditLinkRoute: typeof EditLinkRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiMediaSplatRoute: typeof ApiMediaSplatRoute
+  ApiUploadsAvatarRoute: typeof ApiUploadsAvatarRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
+  ApiUploadsOrganizationsOrganizationIdLogoRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -527,6 +567,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/media/$': {
+      id: '/api/media/$'
+      path: '/api/media/$'
+      fullPath: '/api/media/$'
+      preLoaderRoute: typeof ApiMediaSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/uploads/avatar': {
+      id: '/api/uploads/avatar'
+      path: '/api/uploads/avatar'
+      fullPath: '/api/uploads/avatar'
+      preLoaderRoute: typeof ApiUploadsAvatarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/$': {
       id: '/api/v1/$'
       path: '/api/v1/$'
@@ -624,6 +678,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$orgSlug/settings/$section'
       preLoaderRoute: typeof WOrgSlugSettingsSectionRouteImport
       parentRoute: typeof WOrgSlugSettingsRouteRoute
+    }
+    '/api/uploads/organizations/$organizationId/logo': {
+      id: '/api/uploads/organizations/$organizationId/logo'
+      path: '/api/uploads/organizations/$organizationId/logo'
+      fullPath: '/api/uploads/organizations/$organizationId/logo'
+      preLoaderRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -725,7 +786,11 @@ const rootRouteChildren: RootRouteChildren = {
   EditLinkRoute: EditLinkRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiMediaSplatRoute: ApiMediaSplatRoute,
+  ApiUploadsAvatarRoute: ApiUploadsAvatarRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
+  ApiUploadsOrganizationsOrganizationIdLogoRoute:
+    ApiUploadsOrganizationsOrganizationIdLogoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
