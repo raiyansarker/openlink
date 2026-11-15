@@ -38,6 +38,17 @@ const listOrganizationsForUser = mock((_userId: string) => Effect.succeed([{ org
 const createMemberInvite = mock((input: { organizationId: string; email: string; role: string; createdByUserId: string }) => Effect.succeed({
   invite: { id: 'invite-1', ...input, expiresAt: now }, token: 'invite-token',
 }))
+const memberRow = { userId: 'user-2', name: 'Teammate', email: 'mate@example.com', image: null, role: 'member' as const, joinedAt: now }
+const inviteRow = { id: 'invite-1', organizationId: org.id, email: 'invitee@example.com', role: 'member' as const, tokenHash: 'h', kind: 'member' as const, expiresAt: now, acceptedAt: null, createdByUserId: null, createdAt: now }
+const listMembers = mock((_organizationId: string) => Effect.succeed([memberRow]))
+const updateMemberRole = mock((input: { role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ ...memberRow, role: input.role }))
+const removeMember = mock((_input: unknown) => Effect.void)
+const transferOwnership = mock((_input: unknown) => Effect.void)
+const updateOrganization = mock((input: { name?: string }) => Effect.succeed({ ...org, name: input.name ?? org.name }))
+const deleteOrganization = mock((_organizationId: string) => Effect.void)
+const listPendingInvites = mock((_organizationId: string) => Effect.succeed([inviteRow]))
+const revokeInvite = mock((_organizationId: string, _inviteId: string) => Effect.void)
+const resendInvite = mock((_organizationId: string, _inviteId: string) => Effect.succeed({ invite: inviteRow, token: 'rotated' }))
 const listDomainsForOrganization = mock((_organizationId: string) => Effect.succeed([domain]))
 const registerCustomDomain = mock((_input: unknown) => Effect.succeed(domain))
 const removeCustomDomain = mock((_domainId: string, _organizationId: string) => Effect.succeed(true))
@@ -70,6 +81,10 @@ mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
   acceptMemberInvite, createOrganizationWithBootstrapInvite,
 }))
+mock.module('#/server/org/members', () => ({
+  listMembers, updateMemberRole, removeMember, transferOwnership, updateOrganization,
+  deleteOrganization, listPendingInvites, revokeInvite, resendInvite,
+}))
 mock.module('#/server/health/checks', () => ({ runHealthChecks }))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
@@ -79,11 +94,13 @@ const sideEffects = [
   createMemberInvite, registerCustomDomain, removeCustomDomain, refreshCustomDomain,
   createLinkRecord, updateLinkRecord, deleteLinkRecord,
   acceptMemberInvite, createOrganizationWithBootstrapInvite, signIn, signUp, signOut, runHealthChecks,
+  updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
+  revokeInvite, resendInvite,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
-  listDomainsForOrganization,
+  listDomainsForOrganization, listMembers, listPendingInvites,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -163,6 +180,52 @@ const mutations = [
     name: 'delete link', method: 'DELETE', path: linkPath, body: undefined,
     status: 204, allowed: ['owner', 'admin', 'member'], effects: [deleteLinkRecord],
     assertWrite: () => expect(deleteLinkRecord).toHaveBeenCalledWith(linkRow.id),
+    response: undefined,
+  },
+  {
+    name: 'update organization', method: 'PATCH', path: orgPath, body: { name: 'Renamed' },
+    status: 200, allowed: ['owner', 'admin'], effects: [updateOrganization],
+    assertWrite: () => expect(updateOrganization).toHaveBeenCalledWith({ organizationId: org.id, name: 'Renamed' }),
+    response: { id: org.id, name: 'Renamed' },
+  },
+  {
+    name: 'delete organization', method: 'DELETE', path: orgPath, body: undefined,
+    status: 204, allowed: ['owner'], effects: [deleteOrganization],
+    assertWrite: () => expect(deleteOrganization).toHaveBeenCalledWith(org.id),
+    response: undefined,
+  },
+  {
+    name: 'transfer ownership', method: 'POST', path: `${orgPath}/transfer-ownership`, body: { userId: 'user-2' },
+    status: 200, allowed: ['owner'], effects: [transferOwnership],
+    assertWrite: () => expect(transferOwnership).toHaveBeenCalledWith({ organizationId: org.id, actorUserId: 'user-1', targetUserId: 'user-2' }),
+    response: { id: org.id },
+  },
+  {
+    name: 'update member role', method: 'PATCH', path: `${orgPath}/members/user-2`, body: { role: 'viewer' },
+    status: 200, allowed: ['owner', 'admin'], effects: [updateMemberRole],
+    assertWrite: () => expect(updateMemberRole).toHaveBeenCalledWith(expect.objectContaining({
+      organizationId: org.id, targetUserId: 'user-2', role: 'viewer', actorRole: role,
+    })),
+    response: { userId: 'user-2', role: 'viewer' },
+  },
+  {
+    name: 'remove member', method: 'DELETE', path: `${orgPath}/members/user-2`, body: undefined,
+    status: 204, allowed: ['owner', 'admin'], effects: [removeMember],
+    assertWrite: () => expect(removeMember).toHaveBeenCalledWith(expect.objectContaining({
+      organizationId: org.id, actorUserId: 'user-1', targetUserId: 'user-2',
+    })),
+    response: undefined,
+  },
+  {
+    name: 'resend invitation', method: 'POST', path: `${orgPath}/invites/invite-1/resend`, body: undefined,
+    status: 200, allowed: ['owner', 'admin'], effects: [resendInvite],
+    assertWrite: () => expect(resendInvite).toHaveBeenCalledWith(org.id, 'invite-1'),
+    response: { id: 'invite-1', organizationId: org.id },
+  },
+  {
+    name: 'revoke invitation', method: 'DELETE', path: `${orgPath}/invites/invite-1`, body: undefined,
+    status: 204, allowed: ['owner', 'admin'], effects: [revokeInvite],
+    assertWrite: () => expect(revokeInvite).toHaveBeenCalledWith(org.id, 'invite-1'),
     response: undefined,
   },
 ] as const
@@ -249,6 +312,55 @@ for (const endpoint of reads) {
     })
   }
 }
+
+test('any member may leave the workspace themselves', async () => {
+  role = 'viewer'
+  const response = await request('DELETE', `${orgPath}/members/user-1`)
+  expect(response.status).toBe(204)
+  expect(removeMember).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: 'user-1', targetUserId: 'user-1', actorRole: 'viewer' }))
+})
+
+test('invite tokens are only returned when exposure is enabled', async () => {
+  role = 'admin'
+  const response = await request('POST', `${orgPath}/invites/invite-1/resend`)
+  expect(await response.json()).not.toHaveProperty('token')
+})
+
+test('domain errors from member workflows map to typed HTTP errors', async () => {
+  role = 'admin'
+  updateMemberRole.mockImplementationOnce(() => Effect.fail({ _tag: 'MemberPermissionDenied', reason: 'You cannot assign this role' }) as never)
+  let response = await request('PATCH', `${orgPath}/members/user-2`, { role: 'admin' })
+  expect(response.status).toBe(403)
+  expect(await response.json()).toMatchObject({ code: 'FORBIDDEN', message: 'You cannot assign this role' })
+  updateMemberRole.mockImplementationOnce(() => Effect.fail({ _tag: 'MemberNotFound' }) as never)
+  response = await request('PATCH', `${orgPath}/members/ghost`, { role: 'member' })
+  expect(response.status).toBe(404)
+  revokeInvite.mockImplementationOnce(() => Effect.fail({ _tag: 'InviteNotFound' }) as never)
+  response = await request('DELETE', `${orgPath}/invites/missing`)
+  expect(response.status).toBe(404)
+})
+
+test('an owner role cannot be assigned through the API', async () => {
+  role = 'owner'
+  const response = await request('PATCH', `${orgPath}/members/user-2`, { role: 'owner' })
+  expect(response.status).toBe(400)
+  expect(updateMemberRole).not.toHaveBeenCalled()
+})
+
+test('members can be listed by viewers, invites only by admins', async () => {
+  role = 'viewer'
+  let response = await request('GET', `${orgPath}/members`)
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({ items: [{ userId: 'user-2', role: 'member' }] })
+  response = await request('GET', `${orgPath}/invites`)
+  expect(response.status).toBe(403)
+  expect(listPendingInvites).not.toHaveBeenCalled()
+  role = 'admin'
+  response = await request('GET', `${orgPath}/invites`)
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({ items: [{ id: 'invite-1' }] })
+  expect(await (await request('GET', `${orgPath}/invites`)).text()).not.toContain('tokenHash')
+})
 
 // catchTags matches structural tags; do not load real service modules just for error constructors.
 const typedFailures = [

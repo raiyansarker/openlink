@@ -39,3 +39,12 @@ export const requireLinkWriterEffect = (organizationId: string) =>
     }
     return result
   })
+
+export const requireOrgOwnerEffect = (organizationId: string) =>
+  Effect.gen(function* () {
+    const result = yield* requireOrgMemberEffect(organizationId)
+    if (result.membership.role !== 'owner') {
+      return yield* Effect.fail(forbidden('Owner role required'))
+    }
+    return result
+  })

@@ -2,6 +2,7 @@ import type {
   customDomain,
   link,
   organization,
+  organizationInvite,
   organizationMember,
 } from '@openlink/db/schema'
 
@@ -86,5 +87,34 @@ export function toMembershipDto(
     organization: toOrganizationDto(org),
     role: member.role,
     joinedAt: member.joinedAt.toISOString(),
+  }
+}
+
+export function toWorkspaceMemberDto(row: {
+  userId: string
+  name: string
+  email: string
+  image: string | null
+  role: typeof organizationMember.$inferSelect.role
+  joinedAt: Date
+}) {
+  return {
+    userId: row.userId,
+    name: row.name,
+    email: row.email,
+    ...(row.image ? { image: row.image } : {}),
+    role: row.role,
+    joinedAt: row.joinedAt.toISOString(),
+  }
+}
+
+export function toPendingInviteDto(row: typeof organizationInvite.$inferSelect) {
+  return {
+    id: row.id,
+    organizationId: row.organizationId!,
+    email: row.email,
+    role: row.role,
+    expiresAt: row.expiresAt.toISOString(),
+    createdAt: row.createdAt.toISOString(),
   }
 }

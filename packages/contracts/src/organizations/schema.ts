@@ -47,3 +47,52 @@ export const OrganizationIdPath = type({ organizationId: 'string' })
 export const ListOrganizationsResponse = type({
   items: OrganizationMembership.array(),
 })
+
+export const WorkspaceMember = type({
+  userId: 'string',
+  name: 'string',
+  email: Email,
+  'image?': 'string',
+  role: OrganizationRole,
+  joinedAt: 'string',
+})
+
+export const ListMembersResponse = type({
+  items: WorkspaceMember.array(),
+})
+
+export const PendingInvite = type({
+  id: 'string',
+  organizationId: 'string',
+  email: Email,
+  role: OrganizationInviteRole,
+  expiresAt: 'string',
+  createdAt: 'string',
+})
+
+export const ListInvitesResponse = type({
+  items: PendingInvite.array(),
+})
+
+export const MemberIdPath = type({
+  organizationId: 'string',
+  userId: 'string',
+})
+
+export const InviteIdPath = type({
+  organizationId: 'string',
+  inviteId: 'string',
+})
+
+export const UpdateMemberRoleRequest = type({
+  role: OrganizationInviteRole,
+})
+
+export const UpdateOrganizationRequest = type({
+  'name?': 'string>=1',
+  'slug?': /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+})
+
+export const TransferOwnershipRequest = type({
+  userId: 'string',
+})

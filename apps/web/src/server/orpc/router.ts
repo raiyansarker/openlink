@@ -11,7 +11,9 @@ import {
   toLinkDto,
   toMembershipDto,
   toOrganizationDto,
+  toPendingInviteDto,
   toUserDto,
+  toWorkspaceMemberDto,
 } from '#/server/api/serializers'
 import { signIn, signOut, signUp } from '#/server/auth/service'
 import {
@@ -24,6 +26,7 @@ import {
   requireLinkWriterEffect,
   requireOrgAdminEffect,
   requireOrgMemberEffect,
+  requireOrgOwnerEffect,
 } from '#/server/effect/access'
 import { operation } from '#/server/effect/operations'
 import { Bindings } from '#/server/effect/services/bindings'
@@ -36,6 +39,18 @@ import {
   listLinksForDomain,
   updateLinkRecord,
 } from '#/server/links/service'
+import type { MemberPermissionDenied } from '#/server/org/errors'
+import {
+  deleteOrganization,
+  listMembers,
+  listPendingInvites,
+  removeMember,
+  resendInvite,
+  revokeInvite,
+  transferOwnership,
+  updateMemberRole,
+  updateOrganization,
+} from '#/server/org/members'
 import {
   acceptMemberInvite,
   createMemberInvite,
@@ -45,6 +60,7 @@ import {
 } from '#/server/org/service'
 import type { ApiContext } from './context'
 import { mergeAuthResponseCookies } from './context'
+import { isAdmin } from '#/server/org/permissions'
 import { notFound } from './errors'
 
 const os = implement(contract).$context<ApiContext>()
@@ -68,6 +84,25 @@ const requireLink = (organizationId: string, domainId: string, linkId: string) =
     }
     return row
   })
+
+type MessageError = (options: { message: string }) => Error
+type ErrorFactories = { NOT_FOUND: MessageError; FORBIDDEN: MessageError }
+
+/** Map member-domain failures onto the typed API errors; spread only the ones an effect can raise. */
+const onMemberNotFound = (errors: ErrorFactories) => ({
+  MemberNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'Member not found' })),
+})
+const onInviteNotFound = (errors: ErrorFactories) => ({
+  InviteNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'Invite not found' })),
+})
+const onMemberDenied = (errors: ErrorFactories) => ({
+  MemberPermissionDenied: (error: MemberPermissionDenied) =>
+    Effect.fail(errors.FORBIDDEN({ message: error.reason })),
+})
+const memberErrors = (errors: ErrorFactories) => ({
+  ...onMemberNotFound(errors),
+  ...onMemberDenied(errors),
+})
 
 type AuthPayload = {
   user?: { id: string; email: string; name: string; createdAt: string | Date }
@@ -181,6 +216,94 @@ export const router = os.router({
       const org = yield* getOrganizationById(input.params.organizationId)
       if (!org) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Organization not found' }))
       return toOrganizationDto(org)
+    }),
+
+    updateOrganization: os.organizations.updateOrganization.effect(function* ({ input, errors }) {
+      yield* requireOrgAdminEffect(input.params.organizationId)
+      const org = yield* updateOrganization({ organizationId: input.params.organizationId, ...input.body }).pipe(
+        Effect.catchTags({
+          OrganizationConflict: () => Effect.fail(errors.CONFLICT({ message: 'That workspace URL is already taken' })),
+          BackendError: () => Effect.fail(errors.BAD_REQUEST({ message: 'Unable to update workspace' })),
+        }),
+      )
+      if (!org) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Organization not found' }))
+      return toOrganizationDto(org)
+    }),
+
+    deleteOrganization: os.organizations.deleteOrganization.effect(function* ({ input }) {
+      yield* requireOrgOwnerEffect(input.params.organizationId)
+      yield* deleteOrganization(input.params.organizationId)
+      return {}
+    }),
+
+    transferOwnership: os.organizations.transferOwnership.effect(function* ({ input, errors }) {
+      const { session } = yield* requireOrgOwnerEffect(input.params.organizationId)
+      yield* transferOwnership({
+        organizationId: input.params.organizationId,
+        actorUserId: session.session.user.id,
+        targetUserId: input.body.userId,
+      }).pipe(Effect.catchTags(memberErrors(errors)))
+      const org = yield* getOrganizationById(input.params.organizationId)
+      if (!org) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Organization not found' }))
+      return toOrganizationDto(org)
+    }),
+
+    listMembers: os.organizations.listMembers.effect(function* ({ input }) {
+      yield* requireOrgMemberEffect(input.params.organizationId)
+      const rows = yield* listMembers(input.params.organizationId)
+      return { items: rows.map(toWorkspaceMemberDto) }
+    }),
+
+    updateMemberRole: os.organizations.updateMemberRole.effect(function* ({ input, errors }) {
+      const { membership } = yield* requireOrgAdminEffect(input.params.organizationId)
+      const row = yield* updateMemberRole({
+        organizationId: input.params.organizationId,
+        actorRole: membership.role,
+        targetUserId: input.params.userId,
+        role: input.body.role,
+      }).pipe(Effect.catchTags(memberErrors(errors)))
+      return toWorkspaceMemberDto(row)
+    }),
+
+    removeMember: os.organizations.removeMember.effect(function* ({ input, errors }) {
+      const { session, membership } = yield* requireOrgMemberEffect(input.params.organizationId)
+      const actorUserId = session.session.user.id
+      if (actorUserId !== input.params.userId && !isAdmin(membership.role)) {
+        return yield* Effect.fail(errors.FORBIDDEN({ message: 'Admin role required' }))
+      }
+      yield* removeMember({
+        organizationId: input.params.organizationId,
+        actorUserId,
+        actorRole: membership.role,
+        targetUserId: input.params.userId,
+      }).pipe(Effect.catchTags(memberErrors(errors)))
+      return {}
+    }),
+
+    listOrganizationInvites: os.organizations.listOrganizationInvites.effect(function* ({ input }) {
+      yield* requireOrgAdminEffect(input.params.organizationId)
+      const rows = yield* listPendingInvites(input.params.organizationId)
+      return { items: rows.map(toPendingInviteDto) }
+    }),
+
+    resendOrganizationInvite: os.organizations.resendOrganizationInvite.effect(function* ({ input, errors }) {
+      yield* requireOrgAdminEffect(input.params.organizationId)
+      const { invite, token } = yield* resendInvite(input.params.organizationId, input.params.inviteId).pipe(
+        Effect.catchTags(onInviteNotFound(errors)),
+      )
+      const bindings = yield* Bindings
+      return {
+        ...toPendingInviteDto(invite),
+        ...(bindings.EXPOSE_INVITE_TOKENS_IN_API === 'true' ? { token } : {}),
+      }
+    }),
+
+    revokeOrganizationInvite: os.organizations.revokeOrganizationInvite.effect(function* ({ input, errors }) {
+      yield* requireOrgAdminEffect(input.params.organizationId)
+      yield* revokeInvite(input.params.organizationId, input.params.inviteId).pipe(
+        Effect.catchTags(onInviteNotFound(errors)),
+      )
+      return {}
     }),
 
     createOrganizationInvite: os.organizations.createOrganizationInvite.effect(function* ({ input }) {
