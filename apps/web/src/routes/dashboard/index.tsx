@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { AuthSession } from '#/lib/auth/client'
-import WorkspaceRedirect from '#/components/workspace/WorkspaceRedirect'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-/** Resolves the visitor's workspace from the API, then forwards to its URL. */
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
+
+/** The old dashboard URL; kept so existing bookmarks keep working. */
 export const Route = createFileRoute('/dashboard/')({
-  beforeLoad: ({ location }) => AuthSession.requireSignedIn(location),
-  component: () => <WorkspaceRedirect section="overview" />,
+  beforeLoad: () => {
+    throw redirect({ href: WorkspaceUrl.PREFIX, replace: true })
+  },
 })

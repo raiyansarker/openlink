@@ -1,7 +1,7 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 import { isSettingsSection } from '#/lib/settings/sections'
 
-export const Route = createFileRoute('/dashboard/$orgSlug/settings/$section')({
+export const Route = createFileRoute('/w/$orgSlug/settings/$section')({
   beforeLoad: ({ params }) => {
     if (!isSettingsSection(params.section)) {
       throw notFound()

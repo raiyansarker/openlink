@@ -3,7 +3,7 @@ import AddDomainForm from '#/components/domains/AddDomainForm'
 import DomainFlowShell from '#/components/domains/DomainFlowShell'
 import { createPageHead } from '#/lib/page-title'
 
-export const Route = createFileRoute('/dashboard/$orgSlug/domains/new')({
+export const Route = createFileRoute('/w/$orgSlug/domains/new')({
   head: createPageHead('Add domain'),
   component: AddDomainPage,
 })

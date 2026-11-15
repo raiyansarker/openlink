@@ -4,7 +4,7 @@ import { isValidOrganizationSlug } from '#/lib/organization/slugify'
 import { OrganizationProvider, useOrganization } from '#/contexts/OrganizationContext'
 import type { ReactNode } from 'react'
 
-export const Route = createFileRoute('/dashboard/$orgSlug')({
+export const Route = createFileRoute('/w/$orgSlug')({
   // Whether the user belongs to this workspace is decided once the list loads (see OrganizationProvider).
   beforeLoad: ({ params }) => {
     if (!isValidOrganizationSlug(params.orgSlug)) throw notFound()

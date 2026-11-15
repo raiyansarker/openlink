@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/dashboard/$orgSlug/settings/')({
+export const Route = createFileRoute('/w/$orgSlug/settings/')({
   beforeLoad: () => {
     throw redirect({
       to: '/settings/$section',

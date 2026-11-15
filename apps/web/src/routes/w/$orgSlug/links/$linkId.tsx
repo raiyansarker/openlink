@@ -11,7 +11,7 @@ type LinkDetailSearch = {
   tab?: LinkDetailTab
 }
 
-export const Route = createFileRoute('/dashboard/$orgSlug/links/$linkId')({
+export const Route = createFileRoute('/w/$orgSlug/links/$linkId')({
   head: createPageHead('Link'),
   validateSearch: (search: Record<string, unknown>): LinkDetailSearch => ({
     tab:
