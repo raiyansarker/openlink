@@ -1,13 +1,10 @@
 /** Profile field rules shared by the profile screen and the auth hooks that enforce them. */
 export class ProfileRules {
   static readonly NAME_MAX = 100
-  /** A 256px WebP portrait is ~10–30 KB; this leaves headroom while keeping session payloads small. */
-  static readonly AVATAR_DATA_URL_MAX = 150_000
-  static readonly AVATAR_SIZE_PX = 256
+  /** Pictures and logos are stored as squares of this size. */
+  static readonly IMAGE_SIZE_PX = 256
   static readonly PASSWORD_MIN = 8
   static readonly PASSWORD_MAX = 128
-
-  private static readonly DATA_URL = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+=*$/
 
   /** Trimmed name with inner whitespace collapsed, or an error message. */
   static name(value: unknown): { ok: true; value: string } | { ok: false; message: string } {
@@ -21,28 +18,17 @@ export class ProfileRules {
   }
 
   /**
-   * Avatars are an https URL (from Google or GitHub) or a small inline image
-   * uploaded from the profile screen. SVG and other schemes are never accepted,
-   * since every teammate's browser renders the value.
+   * Pictures arriving with a new account: an https URL from Google or GitHub.
+   * Uploaded pictures are written by the upload endpoint, never through here.
    */
-  static image(value: unknown): { ok: true; value: string | null } | { ok: false; message: string } {
-    if (value === null || value === undefined || value === '') return { ok: true, value: null }
-    if (typeof value !== 'string') return { ok: false, message: 'That picture could not be used.' }
-    if (value.startsWith('data:')) {
-      if (value.length > ProfileRules.AVATAR_DATA_URL_MAX) {
-        return { ok: false, message: 'That picture is too large. Choose a smaller one.' }
-      }
-      return ProfileRules.DATA_URL.test(value)
-        ? { ok: true, value }
-        : { ok: false, message: 'Use a PNG, JPG, WebP, or GIF picture.' }
-    }
+  static providerImage(value: unknown): string | null {
+    if (typeof value !== 'string' || value.length > 2048) return null
     try {
       const url = new URL(value)
-      if (url.protocol === 'https:' && value.length <= 2048) return { ok: true, value: url.href }
+      return url.protocol === 'https:' ? url.href : null
     } catch {
-      // fall through
+      return null
     }
-    return { ok: false, message: 'That picture could not be used.' }
   }
 
   /** Problems with a new password, checked before it is sent. */

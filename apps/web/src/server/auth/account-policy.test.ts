@@ -32,24 +32,29 @@ describe('AccountPolicy.sanitizeNewUser', () => {
 })
 
 describe('AccountPolicy.validateUpdate', () => {
-  test('passes through fields it does not govern and normalises the ones it does', async () => {
-    const result = await run(AccountPolicy.validateUpdate({ name: ' Ada ', updatedAt: 5 }))
-    expect(result).toEqual({ name: 'Ada', updatedAt: 5 })
+  const profile = { fromProfileEndpoint: true }
+
+  test('passes through fields it does not govern and normalises the name', async () => {
+    expect(await run(AccountPolicy.validateUpdate({ name: ' Ada ', updatedAt: 5 }, profile))).toEqual({ name: 'Ada', updatedAt: 5 })
   })
 
-  test('an update that does not touch name or image is unchanged', async () => {
-    expect(await run(AccountPolicy.validateUpdate({ emailVerified: true }))).toEqual({ emailVerified: true })
+  test('an update that touches neither name nor picture is unchanged', async () => {
+    expect(await run(AccountPolicy.validateUpdate({ emailVerified: true }, profile))).toEqual({ emailVerified: true })
   })
 
-  test('clearing the picture is allowed', async () => {
-    expect(await run(AccountPolicy.validateUpdate({ image: null }))).toEqual({ image: null })
+  test('the profile endpoint cannot set or clear the picture; the upload endpoint owns it', async () => {
+    for (const image of ['https://evil.example/a.png', '/api/media/avatars/someone-else/x.png', null]) {
+      const error = await flip(AccountPolicy.validateUpdate({ image }, profile))
+      expect(error).toMatchObject({ _tag: 'ProfileFieldRejected', message: expect.stringContaining('Upload') })
+    }
   })
 
-  test('rejects bad names and pictures with a message to show', async () => {
-    const badName = await flip(AccountPolicy.validateUpdate({ name: '' }))
-    expect(badName).toBeInstanceOf(ProfileFieldRejected)
-    const badImage = await flip(AccountPolicy.validateUpdate({ image: 'javascript:alert(1)' }))
-    expect(badImage).toMatchObject({ _tag: 'ProfileFieldRejected', message: expect.any(String) })
+  test('internal updates (not the profile endpoint) may still carry a picture', async () => {
+    expect(await run(AccountPolicy.validateUpdate({ image: null }, { fromProfileEndpoint: false }))).toEqual({ image: null })
+  })
+
+  test('rejects a blank name', async () => {
+    expect(await flip(AccountPolicy.validateUpdate({ name: '' }, profile))).toBeInstanceOf(ProfileFieldRejected)
   })
 })
 

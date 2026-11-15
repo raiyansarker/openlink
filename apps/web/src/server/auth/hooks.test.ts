@@ -4,6 +4,7 @@ import { organization, organizationMember, user } from '@openlink/db/schema'
 import { APIError } from 'better-auth/api'
 
 import { createTestDatabase } from '#/server/testing/sqlite'
+import { FakeBucket, IMAGES } from '#/server/media/test-support'
 import { AuthHooks } from './hooks'
 
 const databases: Database[] = []
@@ -17,7 +18,7 @@ function setup() {
   const now = new Date()
   adapter.insert(user).values({ id: 'u1', name: 'Ada', email: 'a@e.test', createdAt: now, updatedAt: now }).run()
   adapter.insert(organization).values({ id: 'o1', name: 'Acme', slug: 'acme', createdAt: now, updatedAt: now }).run()
-  return { hooks: new AuthHooks(() => db), adapter, now }
+  return { hooks: new AuthHooks(() => db, () => ({}) as never), adapter, now }
 }
 
 const rejection = async (promise: Promise<unknown>) => {
@@ -31,12 +32,23 @@ describe('AuthHooks', () => {
     expect(await hooks.beforeCreateUser({ name: ' Ada ', image: 'http://x/a.png' })).toEqual({ data: { name: 'Ada', image: null } })
   })
 
-  test('update: a bad field becomes a 400 APIError with the rule message', async () => {
+  test('update: a picture sent to the profile endpoint becomes a 400 APIError', async () => {
     const { hooks } = setup()
-    const error = await rejection(hooks.beforeUpdateUser({ image: 'data:image/svg+xml;base64,PHN2Zz4=' }))
+    const error = await rejection(hooks.beforeUpdateUser({ image: 'https://evil.example/a.png' }, '/update-user'))
     expect(error).toBeInstanceOf(APIError)
     expect(error?.status).toBe('BAD_REQUEST')
-    expect(error?.message).toContain('PNG, JPG, WebP, or GIF')
+    expect(error?.message).toContain('Upload')
+  })
+
+  test('delete: the uploaded picture is removed from R2 afterwards; provider pictures are left alone', async () => {
+    const bucket = new FakeBucket()
+    bucket.objects.set('avatars/u1/a.webp', { bytes: IMAGES.webp, contentType: 'image/webp' })
+    const { db } = createTestDatabase()
+    const hooks = new AuthHooks(() => db, () => ({ MEDIA: bucket }) as never)
+    await hooks.afterDeleteUser({ image: 'https://avatars.githubusercontent.com/u/1' })
+    expect(bucket.objects.size).toBe(1)
+    await hooks.afterDeleteUser({ image: '/api/media/avatars/u1/a.webp' })
+    expect(bucket.objects.size).toBe(0)
   })
 
   test('update: a valid edit is returned normalised', async () => {

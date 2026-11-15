@@ -2,8 +2,6 @@ import { describe, expect, test } from 'bun:test'
 
 import { ProfileRules } from './rules'
 
-const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-
 describe('ProfileRules.name', () => {
   test('trims and collapses whitespace', () => {
     expect(ProfileRules.name('  Ada   Lovelace ')).toEqual({ ok: true, value: 'Ada Lovelace' })
@@ -17,35 +15,24 @@ describe('ProfileRules.name', () => {
   })
 })
 
-describe('ProfileRules.image', () => {
-  test('accepts none, https URLs, and small raster data URLs', () => {
-    expect(ProfileRules.image(null)).toEqual({ ok: true, value: null })
-    expect(ProfileRules.image('')).toEqual({ ok: true, value: null })
-    expect(ProfileRules.image('https://avatars.githubusercontent.com/u/1?v=4')).toEqual({
-      ok: true,
-      value: 'https://avatars.githubusercontent.com/u/1?v=4',
-    })
-    expect(ProfileRules.image(PNG)).toEqual({ ok: true, value: PNG })
+describe('ProfileRules.providerImage', () => {
+  test('keeps https pictures from Google or GitHub', () => {
+    expect(ProfileRules.providerImage('https://avatars.githubusercontent.com/u/1?v=4')).toBe('https://avatars.githubusercontent.com/u/1?v=4')
   })
 
   test.each([
     'http://example.com/a.png',
     'javascript:alert(1)',
-    'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
-    'data:text/html;base64,PGgxPmhpPC9oMT4=',
-    'data:image/png;base64,not base64!',
-    'data:image/png,rawdata',
-    'ftp://example.com/a.png',
+    'data:image/png;base64,iVBORw0KGgo=',
     'not a url',
-  ])('rejects %p', (value) => {
-    expect(ProfileRules.image(value)).toMatchObject({ ok: false })
+    null,
+    42,
+  ])('drops %p', (value) => {
+    expect(ProfileRules.providerImage(value)).toBeNull()
   })
 
-  test('rejects oversized uploads and non-strings', () => {
-    const big = `data:image/png;base64,${'A'.repeat(ProfileRules.AVATAR_DATA_URL_MAX)}`
-    expect(ProfileRules.image(big)).toMatchObject({ ok: false, message: expect.stringContaining('too large') })
-    expect(ProfileRules.image(42)).toMatchObject({ ok: false })
-    expect(ProfileRules.image(`https://e.com/${'a'.repeat(2100)}`)).toMatchObject({ ok: false })
+  test('drops absurdly long URLs', () => {
+    expect(ProfileRules.providerImage(`https://e.com/${'a'.repeat(2100)}`)).toBeNull()
   })
 })
 

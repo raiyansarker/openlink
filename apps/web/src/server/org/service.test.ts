@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import type { OpenLinkDb } from '@openlink/db'
 import * as schema from '@openlink/db/schema'
 import { drizzle } from 'drizzle-orm/sqlite-proxy'
@@ -31,10 +31,10 @@ const ioFailure = new Error('injected database failure')
 beforeEach(() => {
   sqlite = new Database(':memory:')
   sqlite.exec('PRAGMA foreign_keys = ON')
-  for (const migration of [
-    '0000_panoramic_patch.sql',
-    '0001_workspace_owners.sql',
-  ]) {
+  // Every checked-in migration, in order, so the test schema never drifts from production.
+  for (const migration of readdirSync(new URL('../../../../../packages/db/drizzle/', import.meta.url))
+    .filter((file) => file.endsWith('.sql'))
+    .sort()) {
     sqlite.exec(
       readFileSync(
         new URL(
@@ -64,7 +64,7 @@ beforeEach(() => {
     'INSERT INTO user (id, name, email, created_at, updated_at) VALUES (?, ?, ?, 0, 0)',
     ['user-1', 'User', 'user@example.com'],
   )
-  sqlite.run('INSERT INTO organization VALUES (?, ?, ?, 0, 0)', [
+  sqlite.run('INSERT INTO organization (id, name, slug, created_at, updated_at) VALUES (?, ?, ?, 0, 0)', [
     'org-1',
     'Organization',
     'organization',
@@ -103,7 +103,7 @@ function seedInvite(
 }
 
 function seedMember(role = 'owner') {
-  sqlite.run('INSERT INTO organization_member VALUES (?, ?, ?, ?, 0)', [
+  sqlite.run('INSERT INTO organization_member (id, organization_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, 0)', [
     'member-1',
     'org-1',
     'user-1',

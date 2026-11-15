@@ -53,7 +53,8 @@ export class ProfileApi {
     return result.data
   }
 
-  static async updateProfile(changes: { name?: string; image?: string | null }): Promise<void> {
+  /** Pictures change through `MediaUploads`, which stores them in R2. */
+  static async updateProfile(changes: { name: string }): Promise<void> {
     await ProfileApi.call(() => AuthSession.client.updateUser(changes), 'Could not save your profile.')
     AuthSession.invalidate()
   }

@@ -31,13 +31,16 @@ export class AccountPolicy {
     return Effect.gen(function* () {
       const name = ProfileRules.name(user.name)
       if (!name.ok) return yield* Effect.fail(new ProfileFieldRejected({ message: name.message }))
-      const image = ProfileRules.image(user.image)
-      return { ...user, name: name.value, image: image.ok ? image.value : null }
+      return { ...user, name: name.value, image: ProfileRules.providerImage(user.image) }
     })
   }
 
-  /** Profile edits are rejected outright, so the person sees why. */
-  static validateUpdate<T extends UserFields>(update: T) {
+  /**
+   * Profile edits through Better Auth's update endpoint. The picture changes
+   * only through the upload endpoint (which stores it in R2), so a client cannot
+   * point its picture at an arbitrary URL here.
+   */
+  static validateUpdate<T extends UserFields>(update: T, options: { fromProfileEndpoint: boolean }) {
     return Effect.gen(function* () {
       const next: UserFields = { ...update }
       if ('name' in update && update.name !== undefined) {
@@ -45,10 +48,8 @@ export class AccountPolicy {
         if (!name.ok) return yield* Effect.fail(new ProfileFieldRejected({ message: name.message }))
         next.name = name.value
       }
-      if ('image' in update) {
-        const image = ProfileRules.image(update.image)
-        if (!image.ok) return yield* Effect.fail(new ProfileFieldRejected({ message: image.message }))
-        next.image = image.value
+      if (options.fromProfileEndpoint && 'image' in update && update.image !== undefined) {
+        return yield* Effect.fail(new ProfileFieldRejected({ message: 'Change your picture with the Upload button.' }))
       }
       return next as T
     })

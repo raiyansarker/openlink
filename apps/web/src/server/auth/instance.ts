@@ -12,7 +12,7 @@ let authConfigKey: string | undefined
 
 function createAuth() {
   const bindings = getBindings()
-  const hooks = new AuthHooks(getDb)
+  const hooks = new AuthHooks(getDb, getBindings)
 
   return betterAuth({
     appName: 'OpenLink',
@@ -35,12 +35,16 @@ function createAuth() {
     trustedOrigins: AuthOrigins.trusted(bindings),
     user: {
       // Blocked while the account still owns a workspace (see AccountPolicy).
-      deleteUser: { enabled: true, beforeDelete: (user) => hooks.beforeDeleteUser(user) },
+      deleteUser: {
+        enabled: true,
+        beforeDelete: (user) => hooks.beforeDeleteUser(user),
+        afterDelete: (user) => hooks.afterDeleteUser(user),
+      },
     },
     databaseHooks: {
       user: {
         create: { before: (user) => hooks.beforeCreateUser(user) },
-        update: { before: (update) => hooks.beforeUpdateUser(update) },
+        update: { before: (update, context) => hooks.beforeUpdateUser(update, context?.path) },
       },
     },
     emailAndPassword: {

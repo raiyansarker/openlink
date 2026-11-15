@@ -2,7 +2,11 @@ import type { OpenLinkDb } from '@openlink/db'
 import { APIError } from 'better-auth/api'
 import { Effect } from 'effect'
 
+import type { WorkerBindings } from '../env'
+import { Bindings } from '../effect/services/bindings'
 import { Db } from '../effect/services/db'
+import { MediaKey } from '../media/media-key'
+import { MediaStore } from '../media/media-store'
 import { AccountPolicy } from './account-policy'
 
 /**
@@ -10,7 +14,10 @@ import { AccountPolicy } from './account-policy'
  * Rejections become `APIError`s so the browser gets a 400 with a readable message.
  */
 export class AuthHooks {
-  constructor(private readonly db: () => OpenLinkDb) {}
+  constructor(
+    private readonly db: () => OpenLinkDb,
+    private readonly bindings: () => WorkerBindings,
+  ) {}
 
   private static badRequest(message: string) {
     return new APIError('BAD_REQUEST', { message })
@@ -25,9 +32,10 @@ export class AuthHooks {
     return { data }
   }
 
-  async beforeUpdateUser<T extends Record<string, unknown>>(update: T) {
+  /** `path` is the auth endpoint that triggered the write, when there is one. */
+  async beforeUpdateUser<T extends Record<string, unknown>>(update: T, path?: string) {
     const data = await Effect.runPromise(
-      AccountPolicy.validateUpdate(update).pipe(
+      AccountPolicy.validateUpdate(update, { fromProfileEndpoint: path === '/update-user' }).pipe(
         Effect.catchTag('ProfileFieldRejected', (e) => Effect.die(AuthHooks.badRequest(e.message))),
       ),
     )
@@ -44,6 +52,13 @@ export class AuthHooks {
           BackendError: () => Effect.die(new APIError('INTERNAL_SERVER_ERROR', { message: 'Could not delete the account. Try again.' })),
         }),
       ),
+    )
+  }
+
+  /** The account is gone; remove its uploaded picture. Never fails the deletion. */
+  async afterDeleteUser(user: { image?: string | null }) {
+    await Effect.runPromise(
+      MediaStore.removeQuietly(MediaKey.fromUrl(user.image)).pipe(Effect.provideService(Bindings, this.bindings())),
     )
   }
 }
