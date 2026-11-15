@@ -4,6 +4,7 @@ import { Effect } from 'effect'
 import type { getAuth } from '#/server/auth/instance'
 import type { WorkerBindings } from '#/server/env'
 
+import { BackendError } from '#/server/effect/operations'
 import { Auth } from '#/server/effect/services/auth'
 import { Bindings } from '#/server/effect/services/bindings'
 import { DomainClient } from '#/server/effect/services/domain-client'
@@ -13,6 +14,7 @@ function fixture(options: {
   bindings?: Partial<WorkerBindings>
   first?: () => Promise<unknown>
   client?: object
+  auth?: Effect.Effect<ReturnType<typeof getAuth>, BackendError>
 } = {}) {
   const write = mock(() => {})
   const first = mock(options.first ?? (async () => ({ ok: 1 })))
@@ -30,8 +32,8 @@ function fixture(options: {
   const client = (options.client ?? { provider: 'memory' }) as ReturnType<typeof createOpenLinkDomainClient>
   const effect = runHealthChecks().pipe(
     Effect.provideService(Bindings, bindings),
-    Effect.provideService(Auth, {} as ReturnType<typeof getAuth>),
-    Effect.provideService(DomainClient, client),
+    Effect.provideService(Auth, options.auth ?? Effect.succeed({} as ReturnType<typeof getAuth>)),
+    Effect.provideService(DomainClient, Effect.succeed(client)),
   )
   return { effect, write, first, prepare }
 }
@@ -93,6 +95,24 @@ describe('runHealthChecks', () => {
       DOMAIN_PROVIDER: 'cloudflare', CF_API_TOKEN: 'test', CF_ZONE_ID: 'test', CF_SAAS_CNAME_TARGET: 'target',
     }, client: { provider: 'cloudflare' } }).effect)
     expect(report.checks[3]).toMatchObject({ status: 'ok', message: 'provider=cloudflare' })
+  })
+
+  test('an auth initialization failure becomes an entry instead of failing the report', async () => {
+    const report = await Effect.runPromise(fixture({
+      auth: Effect.fail(new BackendError({ operation: 'auth.initialize', cause: new Error('bad secret') })),
+    }).effect)
+    expect(report.status).toBe('error')
+    expect(report.checks[2]).toEqual({ name: 'auth', status: 'error', required: true, message: 'bad secret' })
+    expect(report.checks.filter((check) => check.status === 'ok')).toHaveLength(4)
+  })
+
+  test('a domain client initialization failure becomes an entry', async () => {
+    const report = await Effect.runPromise(runHealthChecks().pipe(
+      Effect.provideService(Bindings, { DB: { prepare: () => ({ first: async () => ({ ok: 1 }) }) }, ANALYTICS: {}, BETTER_AUTH_SECRET: 'long-enough-test-secret', DOMAIN_PROVIDER: 'memory' } as unknown as WorkerBindings),
+      Effect.provideService(Auth, Effect.succeed({} as ReturnType<typeof getAuth>)),
+      Effect.provideService(DomainClient, Effect.fail(new BackendError({ operation: 'domain.initializeClient', cause: new Error('bad provider config') }))),
+    ))
+    expect(report.checks[3]).toEqual({ name: 'domain_provider', status: 'error', required: true, message: 'bad provider config' })
   })
 
   test('missing provider id becomes an error entry', async () => {

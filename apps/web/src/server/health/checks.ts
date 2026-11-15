@@ -1,9 +1,9 @@
 import { contract } from '@openlink/contracts'
 import { Effect } from 'effect'
 import { BackendError, operation } from '#/server/effect/operations'
-import { Auth } from '#/server/effect/services/auth'
+import { type Auth, useAuth } from '#/server/effect/services/auth'
 import { Bindings } from '#/server/effect/services/bindings'
-import { DomainClient } from '#/server/effect/services/domain-client'
+import { type DomainClient, useDomainClient } from '#/server/effect/services/domain-client'
 import { resolveHealthReportStatus } from './report'
 
 export type HealthCheckResult = {
@@ -72,8 +72,8 @@ function checkAuth() {
         throw new Error('BETTER_AUTH_SECRET is missing or too short')
       }
     })
-    // Resolving the injected instance replaces initializing auth in the probe.
-    yield* Auth
+    // Initializes Better Auth; a configuration failure becomes a failing entry.
+    yield* useAuth
     return undefined
   }))
 }
@@ -92,7 +92,7 @@ function checkDomainProvider() {
         }
       }
     })
-    const client = yield* DomainClient
+    const client = yield* useDomainClient
     yield* operation('health.domain_provider', () => {
       if (!client.provider) throw new Error('domain client missing provider id')
     })

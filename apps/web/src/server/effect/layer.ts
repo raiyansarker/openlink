@@ -1,20 +1,25 @@
-import { Effect, Layer, Scheduler } from 'effect'
+import { Layer, Scheduler } from 'effect'
 import { createOpenLinkDomainClient } from '@openlink/domain'
 import { getAuth } from '#/server/auth/instance'
 import { getDb } from '#/server/db'
 import { getBindings } from '#/server/env'
+import { operation } from './operations'
 import { Auth } from './services/auth'
 import { Bindings } from './services/bindings'
 import { Db } from './services/db'
 import { DomainClient } from './services/domain-client'
 
+// Bindings and Db are required for any request, so they are built eagerly.
+// Auth and the domain client are constructed from configuration that can be
+// invalid; they stay lazy so a bad secret surfaces as a typed failure (and a
+// failing /health entry) instead of preventing the whole runtime from starting.
 const DbLive = Layer.sync(Db, getDb)
-const AuthLive = Layer.sync(Auth, getAuth)
 const BindingsLive = Layer.sync(Bindings, getBindings)
-const DomainClientLive = Layer.effect(DomainClient, Effect.gen(function* () {
-  const bindings = yield* Bindings
-  return createOpenLinkDomainClient(bindings)
-}))
+const AuthLive = Layer.succeed(Auth, operation('auth.initialize', getAuth))
+const DomainClientLive = Layer.succeed(
+  DomainClient,
+  operation('domain.initializeClient', () => createOpenLinkDomainClient(getBindings())),
+)
 
 const SyncScheduler = Layer.succeed(
   Scheduler.Scheduler,
@@ -24,8 +29,9 @@ const SyncScheduler = Layer.succeed(
 export const AppLayer = Layer.mergeAll(
   SyncScheduler,
   DbLive,
+  BindingsLive,
   AuthLive,
-  DomainClientLive.pipe(Layer.provideMerge(BindingsLive)),
+  DomainClientLive,
 )
 
 /** Services provided by the module-scoped runtime (per-request services are added in ApiContext). */

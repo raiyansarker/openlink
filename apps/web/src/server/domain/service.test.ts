@@ -63,7 +63,7 @@ function fixture(options: {
   const provide = <A, E>(effect: Effect.Effect<A, E, Db | Bindings | DomainClient>) => effect.pipe(
     Effect.provideService(Db, db),
     Effect.provideService(Bindings, { DOMAIN_PROVIDER: options.provider ?? 'memory' } as WorkerBindings),
-    Effect.provideService(DomainClient, client),
+    Effect.provideService(DomainClient, Effect.succeed(client)),
   )
   return { calls, row, provide, values: () => values }
 }
