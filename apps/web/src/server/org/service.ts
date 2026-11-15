@@ -7,6 +7,7 @@ import {
 } from '@openlink/db/schema'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
+import { Onboarding } from '#/server/auth/onboarding'
 import {
   createInviteToken,
   findBootstrapInviteByToken,
@@ -67,15 +68,20 @@ export function getOrganizationById(organizationId: string) {
   })
 }
 
+/**
+ * Create a workspace owned by `userId`, completing their onboarding. An invite
+ * token is optional; when one is given it must be a valid bootstrap invite and
+ * is consumed.
+ */
 export function createOrganizationWithBootstrapInvite(input: {
   userId: string
   name: string
   slug: string
-  inviteToken: string
+  inviteToken?: string
 }) {
   return Effect.gen(function* () {
-    const bootstrap = yield* findBootstrapInviteByToken(input.inviteToken)
-    if (!bootstrap) {
+    const bootstrap = input.inviteToken ? yield* findBootstrapInviteByToken(input.inviteToken) : null
+    if (input.inviteToken && !bootstrap) {
       return yield* Effect.fail(new InvalidBootstrapInvite())
     }
 
@@ -108,12 +114,15 @@ export function createOrganizationWithBootstrapInvite(input: {
         joinedAt: now,
       }),
     )
-    yield* operation('org.acceptBootstrapInvite', () =>
-      db
-        .update(organizationInvite)
-        .set({ acceptedAt: now })
-        .where(eq(organizationInvite.id, bootstrap.id)),
-    )
+    if (bootstrap) {
+      yield* operation('org.acceptBootstrapInvite', () =>
+        db
+          .update(organizationInvite)
+          .set({ acceptedAt: now })
+          .where(eq(organizationInvite.id, bootstrap.id)),
+      )
+    }
+    yield* Onboarding.markComplete(input.userId, now)
     return org!
   })
 }
@@ -209,6 +218,8 @@ export function acceptMemberInvite(input: {
         .set({ acceptedAt: now })
         .where(eq(organizationInvite.id, invite.id)),
     )
+    // Joining someone else's workspace also counts as finishing onboarding.
+    yield* Onboarding.markComplete(input.userId, now)
     const org = yield* getOrganizationById(organizationId)
     if (existingMember) {
       return { org: org!, member: existingMember }

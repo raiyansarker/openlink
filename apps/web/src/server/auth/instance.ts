@@ -48,7 +48,7 @@ function createAuth() {
       },
     },
     emailAndPassword: {
-      enabled: true,
+      enabled: bindings.EMAIL_PASSWORD_SIGN_IN === 'true',
       minPasswordLength: 8,
     },
     advanced: {
@@ -67,6 +67,7 @@ export function getAuth() {
     bindings.GOOGLE_CLIENT_SECRET,
     bindings.GITHUB_CLIENT_ID,
     bindings.GITHUB_CLIENT_SECRET,
+    bindings.EMAIL_PASSWORD_SIGN_IN,
   ].join(':')
   if (!auth || authConfigKey !== configKey) {
     auth = createAuth()

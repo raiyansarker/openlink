@@ -39,7 +39,7 @@ export const createOrganization = oc
       operationId: 'createOrganization',
       path: '/organizations',
       successStatus: 201,
-      summary: 'Create an organization (invite token required)',
+      summary: 'Create a workspace; the first one completes onboarding',
       inputStructure: 'detailed',
       tags: ['Organizations'],
     }),
