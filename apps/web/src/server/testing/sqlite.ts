@@ -24,6 +24,8 @@ export function createTestDatabase(options: { foreignKeys?: boolean } = {}) {
       if (statement.trim()) sqlite.exec(statement)
     }
   }
+  // Migrations may toggle foreign keys themselves; restore what the test asked for.
+  sqlite.exec(`PRAGMA foreign_keys = ${options.foreignKeys ? 'ON' : 'OFF'}`)
   const adapter = drizzle(sqlite)
   // Both drizzle adapters expose the same SQLite query builders the services use.
   const db = adapter as unknown as OpenLinkDb

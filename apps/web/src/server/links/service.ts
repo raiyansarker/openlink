@@ -20,7 +20,7 @@ function isSlugConflict(cause: unknown): boolean {
     seen.add(cause)
     if (
       /UNIQUE/i.test(cause.message) &&
-      /\blink\.slug\b|\blink_domain_slug_unique\b/.test(cause.message)
+      /\blink\.slug\b|\blink_domain_slug_unique\b|\blink_default_slug_unique\b/.test(cause.message)
     ) {
       return true
     }
@@ -31,7 +31,8 @@ function isSlugConflict(cause: unknown): boolean {
 
 export function createLinkRecord(input: {
   organizationId: string
-  domainId: string
+  /** Null for the app's own host. */
+  domainId: string | null
   /** Null when created through an API key. */
   userId: string | null
   slug?: string
@@ -102,6 +103,17 @@ export function listLinksForDomain(domainId: string) {
     return yield* operation('links.list', () =>
       db.select().from(link).where(eq(link.domainId, domainId)),
     )
+  })
+}
+
+/** A link of this workspace by id, whatever domain it is on. */
+export function getLinkInOrganization(organizationId: string, linkId: string) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const rows = yield* operation('links.getInOrganization', () =>
+      db.select().from(link).where(and(eq(link.organizationId, organizationId), eq(link.id, linkId))).limit(1),
+    )
+    return rows.at(0) ?? null
   })
 }
 

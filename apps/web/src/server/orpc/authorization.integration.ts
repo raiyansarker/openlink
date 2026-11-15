@@ -87,6 +87,7 @@ const removeCustomDomain = mock((_domainId: string, _organizationId: string) => 
 const refreshCustomDomain = mock((_domainId: string) => Effect.succeed(domain))
 const createLinkRecord = mock((_input: unknown) => Effect.succeed(linkRow))
 const getLinkInDomain = mock((_domainId: string, _linkId: string) => Effect.succeed(linkRow))
+const getLinkInOrganization = mock((_organizationId: string, _linkId: string) => Effect.succeed(linkRow as typeof linkRow | null))
 const listLinksForDomain = mock((_domainId: string) => Effect.succeed([linkRow]))
 const updateLinkRecord = mock((existing: typeof linkRow, input: { title?: string; password?: string | null }) => Effect.succeed({
   ...existing, title: input.title ?? existing.title,
@@ -108,7 +109,7 @@ mock.module('#/server/auth/session', () => ({ requireSession }))
 mock.module('#/server/auth/service', () => ({ signIn, signUp, signOut }))
 mock.module('#/server/api/access', () => ({ requireOrgMembership, getDomainInOrganization }))
 mock.module('#/server/domain/service', () => ({ listDomainsForOrganization, registerCustomDomain, removeCustomDomain, refreshCustomDomain }))
-mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
+mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, getLinkInOrganization, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
 mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
   acceptMemberInvite, createOrganizationWithBootstrapInvite,
@@ -153,7 +154,7 @@ const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
-  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments, authenticateApiKey, listApiKeys, listDeviceSessions,
+  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -991,6 +992,57 @@ describe('no-content responses', () => {
       expect(() => new Response(response.body, { status: response.status })).not.toThrow()
     })
   }
+})
+
+describe('workspace links (app host by default)', () => {
+  const create = (body: Record<string, unknown>) => request('POST', `${orgPath}/links`, body)
+
+  test('a link without a domain goes on the app host', async () => {
+    role = 'member'
+    const response = await create({ slug: 'launch', destinationUrl: 'https://example.com/' })
+    expect(response.status).toBe(201)
+    expect(createLinkRecord).toHaveBeenCalledWith(expect.objectContaining({ organizationId: org.id, domainId: null, slug: 'launch' }))
+    expect(getDomainInOrganization).not.toHaveBeenCalled()
+  })
+
+  test('a custom domain must belong to the workspace', async () => {
+    role = 'member'
+    expect((await create({ slug: 'x', destinationUrl: 'https://example.com/', domainId: domain.id })).status).toBe(201)
+    expect(getDomainInOrganization).toHaveBeenCalledWith(domain.id, org.id)
+    expect(createLinkRecord).toHaveBeenLastCalledWith(expect.objectContaining({ domainId: domain.id }))
+    getDomainInOrganization.mockImplementationOnce(() => Effect.succeed(null as never))
+    expect((await create({ slug: 'y', destinationUrl: 'https://example.com/', domainId: 'foreign' })).status).toBe(404)
+  })
+
+  test('app-host slugs cannot shadow app pages; custom domains can use them', async () => {
+    role = 'member'
+    for (const slug of ['login', 'Settings', 'w', 'api', 'onboarding']) {
+      const response = await create({ slug, destinationUrl: 'https://example.com/' })
+      expect(response.status).toBe(400)
+      expect(await response.json()).toMatchObject({ message: expect.stringContaining('reserved') })
+    }
+    expect(createLinkRecord).not.toHaveBeenCalled()
+    expect((await create({ slug: 'login', destinationUrl: 'https://example.com/', domainId: domain.id })).status).toBe(201)
+  })
+
+  test('a taken back-half is a conflict', async () => {
+    role = 'member'
+    createLinkRecord.mockImplementationOnce(() => Effect.fail({ _tag: 'SlugConflict' }) as never)
+    const response = await create({ slug: 'taken', destinationUrl: 'https://example.com/' })
+    expect(response.status).toBe(409)
+  })
+
+  test('viewers cannot create, and get/update are scoped to the workspace', async () => {
+    role = 'viewer'
+    expect((await create({ slug: 'v', destinationUrl: 'https://example.com/' })).status).toBe(403)
+    expect((await request('GET', `${orgPath}/links/${linkRow.id}`)).status).toBe(200)
+    expect(getLinkInOrganization).toHaveBeenCalledWith(org.id, linkRow.id)
+    expect((await request('PATCH', `${orgPath}/links/${linkRow.id}`, { title: 'x' })).status).toBe(403)
+    role = 'member'
+    expect((await request('PATCH', `${orgPath}/links/${linkRow.id}`, { title: 'New' })).status).toBe(200)
+    getLinkInOrganization.mockImplementationOnce(() => Effect.succeed(null))
+    expect((await request('GET', `${orgPath}/links/other`)).status).toBe(404)
+  })
 })
 
 // catchTags matches structural tags; do not load real service modules just for error constructors.

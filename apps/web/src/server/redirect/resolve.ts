@@ -49,17 +49,22 @@ function claimClick(row: typeof link.$inferSelect) {
  * Unknown hosts and slugs both resolve to `not_found`. Analytics failures never
  * block the redirect.
  */
-export function resolveRedirect(input: { host: string; slug: string; password?: string }) {
+/**
+ * `appHost` is the app's own host: links there have no custom domain (the
+ * default domain every workspace shares).
+ */
+export function resolveRedirect(input: { host: string; slug: string; password?: string; appHost?: string | null }) {
   return Effect.gen(function* () {
     const db = yield* Db
-    const domain = yield* findActiveDomainByHost(input.host)
-    if (!domain) return { type: 'not_found' } as ResolveOutcome
+    const onAppHost = !!input.appHost && normalizeHost(input.host) === normalizeHost(input.appHost)
+    const domain = onAppHost ? null : yield* findActiveDomainByHost(input.host)
+    if (!onAppHost && !domain) return { type: 'not_found' } as ResolveOutcome
 
     const [row] = yield* operation('redirect.findLink', () =>
       db
         .select()
         .from(link)
-        .where(and(eq(link.domainId, domain.id), eq(link.slug, input.slug)))
+        .where(and(domain ? eq(link.domainId, domain.id) : isNull(link.domainId), eq(link.slug, input.slug)))
         .limit(1),
     )
     if (!row) return { type: 'not_found' } as ResolveOutcome
