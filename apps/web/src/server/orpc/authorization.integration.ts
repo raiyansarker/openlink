@@ -128,6 +128,8 @@ mock.module('#/server/health/checks', () => ({ runHealthChecks }))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
 const { handleOpenApiRequest } = await import('./openapi-handler')
+const { ApiClient } = await import('#/lib/api/client')
+const { ApiError } = await import('#/lib/api/error')
 
 const sideEffects = [
   createMemberInvite, registerCustomDomain, removeCustomDomain, refreshCustomDomain,
@@ -857,6 +859,65 @@ describe('requests authenticated with an API key', () => {
     expect(response.status).toBe(200)
     expect(authenticateApiKey).not.toHaveBeenCalled()
     expect(requireSession).toHaveBeenCalled()
+  })
+})
+
+// The real browser client against the real router: proves the two sides agree on the wire format.
+describe('frontend ApiClient against the real server', () => {
+  const client = ApiClient.create({
+    origin: () => 'http://localhost',
+    fetch: async (url, init) => {
+      const result = await handleOpenApiRequest(new Request(url, init))
+      if (!result.response) throw new Error(`unmatched ${url}`)
+      return result.response
+    },
+  })
+  const failure = async (promise: Promise<unknown>) => ApiError.from(await promise.then(() => null, (e) => e))
+
+  test('parses successful, validated responses', async () => {
+    role = 'viewer'
+    const orgs = await client.organizations.listOrganizations()
+    expect(orgs.items[0]).toMatchObject({ role: 'viewer', organization: { id: org.id } })
+    const links = await client.links.listOrganizationLinks({ params: { organizationId: org.id }, query: { q: 'x', limit: '10' } })
+    expect(links.total).toBe(7)
+  })
+
+  test('sends bodies and path params the server accepts', async () => {
+    role = 'member'
+    const folder = await client.folders.createFolder({ params: { organizationId: org.id }, body: { name: 'Docs', parentId: null } })
+    expect(folder.name).toBe('Docs')
+    const created = await client.links.createLink({
+      params: { organizationId: org.id, domainId: domain.id },
+      body: { slug: 'hello', destinationUrl: 'https://example.com/' },
+    })
+    expect(created.id).toBe(linkRow.id)
+    await client.links.deleteLink({ params: { organizationId: org.id, domainId: domain.id, linkId: linkRow.id } })
+    expect(deleteLinkRecord).toHaveBeenCalledWith(linkRow.id)
+  })
+
+  test('maps HTTP errors to ApiError with codes, statuses and server messages', async () => {
+    authenticated = false
+    expect(await failure(client.organizations.listOrganizations())).toMatchObject({ code: 'UNAUTHORIZED', status: 401, isUnauthorized: true })
+    authenticated = true
+    role = null
+    expect(await failure(client.organizations.getOrganization({ params: { organizationId: org.id } }))).toMatchObject({
+      code: 'FORBIDDEN', status: 403, message: 'Not a member of this organization',
+    })
+    role = 'owner'
+    createLinkRecord.mockImplementationOnce(() => Effect.fail({ _tag: 'SlugConflict' }) as never)
+    expect(await failure(client.links.createLink({
+      params: { organizationId: org.id, domainId: domain.id },
+      body: { slug: 'hello', destinationUrl: 'https://example.com/' },
+    }))).toMatchObject({ code: 'CONFLICT', status: 409, message: 'Slug already exists on this domain', isRetryable: false })
+  })
+
+  test('input the contract rejects never reaches the network call as a success', async () => {
+    role = 'owner'
+    const error = await failure(client.organizations.createOrganizationInvite({
+      params: { organizationId: org.id },
+      body: { email: 'a@example.com', role: 'owner' as never },
+    }))
+    expect(error.status).toBe(400)
   })
 })
 
