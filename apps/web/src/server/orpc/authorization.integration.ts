@@ -62,6 +62,12 @@ const deleteLinks = mock((_input: unknown) => Effect.succeed(2))
 const activityRow = { id: 'evt-1', organizationId: org.id, actorType: 'member' as const, actorUserId: 'user-1', actorLabel: 'Ada', action: 'link.created', category: 'links' as const, targetType: 'link', targetId: 'link-1', targetLabel: 'hello', source: 'dashboard' as const, detailsJson: JSON.stringify({ changes: [{ label: 'Title', from: '—', to: 'Hi' }] }), ipAddress: '203.0.113.9', createdAt: now }
 const listActivity = mock((_input: unknown) => Effect.succeed({ items: [activityRow], nextCursor: undefined as string | undefined }))
 const audit = mock((_session: unknown, _event: unknown) => Effect.void)
+const commentRow = { id: 'c1', organizationId: org.id, linkId: linkRow.id, authorUserId: 'user-1', authorLabel: 'Ada', authorImage: null, body: 'Looks good to me', reactionsJson: '{"👍":["user-2"]}', createdAt: now, editedAt: null }
+const listComments = mock((_organizationId: string, _linkId: string) => Effect.succeed([commentRow]))
+const createComment = mock((_input: unknown) => Effect.succeed(commentRow))
+const updateComment = mock((_input: unknown) => Effect.succeed({ ...commentRow, editedAt: now }))
+const deleteComment = mock((_input: unknown) => Effect.succeed(commentRow))
+const toggleCommentReaction = mock((_input: unknown) => Effect.succeed(commentRow))
 const listDomainsForOrganization = mock((_organizationId: string) => Effect.succeed([domain]))
 const registerCustomDomain = mock((_input: unknown) => Effect.succeed(domain))
 const removeCustomDomain = mock((_domainId: string, _organizationId: string) => Effect.succeed(true))
@@ -105,6 +111,9 @@ mock.module('#/server/links/queries', () => ({ queryOrganizationLinks }))
 mock.module('#/server/links/bulk', () => ({ moveLinks, addTagsToLinks, deleteLinks }))
 mock.module('#/server/activity/service', () => ({ listActivity }))
 mock.module('#/server/activity/audit', () => ({ audit }))
+mock.module('#/server/comments/service', () => ({
+  listComments, createComment, updateComment, deleteComment, toggleCommentReaction,
+}))
 mock.module('#/server/health/checks', () => ({ runHealthChecks }))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
@@ -116,13 +125,13 @@ const sideEffects = [
   acceptMemberInvite, createOrganizationWithBootstrapInvite, signIn, signUp, signOut, runHealthChecks,
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
-  moveLinks, addTagsToLinks, deleteLinks,
+  moveLinks, addTagsToLinks, deleteLinks, createComment, updateComment, deleteComment, toggleCommentReaction,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
-  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit,
+  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -588,6 +597,101 @@ test('link history is scoped to the link and verifies it belongs to the domain',
   expect(listActivity).toHaveBeenCalledWith({ organizationId: org.id, target: { type: 'link', id: linkRow.id }, limit: 100 })
   getLinkInDomain.mockImplementationOnce(() => Effect.succeed(null as never))
   expect((await request('GET', `${linkPath}/history`)).status).toBe(404)
+})
+
+const commentsPath = `${linkPath}/comments`
+
+describe('link comments', () => {
+  test('every member can read the thread, with reactions and author data', async () => {
+    role = 'viewer'
+    const response = await request('GET', commentsPath)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      items: [{ id: 'c1', authorId: 'user-1', authorName: 'Ada', body: 'Looks good to me', reactions: { '👍': ['user-2'] } }],
+    })
+    expect(listComments).toHaveBeenCalledWith(org.id, linkRow.id)
+  })
+
+  test('unknown links do not leak a thread', async () => {
+    role = 'viewer'
+    getLinkInDomain.mockImplementationOnce(() => Effect.succeed(null as never))
+    expect((await request('GET', commentsPath)).status).toBe(404)
+    expect(listComments).not.toHaveBeenCalled()
+  })
+
+  for (const actor of ['owner', 'admin', 'member', 'viewer', null] as const) {
+    const permitted = actor !== 'viewer' && actor !== null
+    test(`${actor ?? 'non-member'} ${permitted ? 'can' : 'cannot'} comment`, async () => {
+      role = actor
+      const response = await request('POST', commentsPath, { body: 'Ship it' })
+      expect(response.status).toBe(permitted ? 201 : 403)
+      expect(createComment).toHaveBeenCalledTimes(permitted ? 1 : 0)
+      if (permitted) {
+        expect(createComment).toHaveBeenCalledWith({
+          organizationId: org.id, linkId: linkRow.id, body: 'Ship it', author: { id: 'user-1', label: 'user@example.com' },
+        })
+        expect(audit).toHaveBeenCalledWith(session, expect.objectContaining({
+          action: 'link.commented', changes: [{ label: 'Comment', from: '—', to: 'Looks good to me' }],
+        }))
+      } else {
+        expect(audit).not.toHaveBeenCalled()
+      }
+    })
+  }
+
+  test('empty and oversized bodies are rejected before the service runs', async () => {
+    role = 'member'
+    expect((await request('POST', commentsPath, { body: '' })).status).toBe(400)
+    expect((await request('POST', commentsPath, { body: 'x'.repeat(4001) })).status).toBe(400)
+    expect(createComment).not.toHaveBeenCalled()
+  })
+
+  test('editing passes the actor so only the author succeeds', async () => {
+    role = 'member'
+    expect((await request('PATCH', `${commentsPath}/c1`, { body: 'Edited' })).status).toBe(200)
+    expect(updateComment).toHaveBeenCalledWith({
+      organizationId: org.id, linkId: linkRow.id, commentId: 'c1', actorUserId: 'user-1', body: 'Edited',
+    })
+    updateComment.mockImplementationOnce(() => Effect.fail({ _tag: 'CommentForbidden', message: 'You can only edit your own comments' }) as never)
+    const forbidden = await request('PATCH', `${commentsPath}/c1`, { body: 'Edited' })
+    expect(forbidden.status).toBe(403)
+    expect(await forbidden.json()).toMatchObject({ message: 'You can only edit your own comments' })
+  })
+
+  test('deleting tells the service whether the actor is an administrator', async () => {
+    for (const [actor, isAdminActor] of [['viewer', false], ['member', false], ['admin', true], ['owner', true]] as const) {
+      deleteComment.mockClear()
+      role = actor
+      expect((await request('DELETE', `${commentsPath}/c1`)).status).toBe(204)
+      expect(deleteComment).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: 'user-1', actorIsAdmin: isAdminActor }))
+    }
+    role = null
+    expect((await request('DELETE', `${commentsPath}/c1`)).status).toBe(403)
+  })
+
+  test('service failures map to typed HTTP errors', async () => {
+    role = 'member'
+    deleteComment.mockImplementationOnce(() => Effect.fail({ _tag: 'CommentNotFound' }) as never)
+    expect((await request('DELETE', `${commentsPath}/missing`)).status).toBe(404)
+    deleteComment.mockImplementationOnce(() => Effect.fail({ _tag: 'CommentForbidden', message: 'nope' }) as never)
+    expect((await request('DELETE', `${commentsPath}/c1`)).status).toBe(403)
+    toggleCommentReaction.mockImplementationOnce(() => Effect.fail({ _tag: 'CommentInvalid', message: 'Too many reactions' }) as never)
+    const invalid = await request('POST', `${commentsPath}/c1/reactions`, { emoji: '🎉' })
+    expect(invalid.status).toBe(400)
+    expect(await invalid.json()).toMatchObject({ message: 'Too many reactions' })
+  })
+
+  test('reactions need writer access and a valid emoji', async () => {
+    role = 'viewer'
+    expect((await request('POST', `${commentsPath}/c1/reactions`, { emoji: '👍' })).status).toBe(403)
+    role = 'member'
+    expect((await request('POST', `${commentsPath}/c1/reactions`, { emoji: '' })).status).toBe(400)
+    expect((await request('POST', `${commentsPath}/c1/reactions`, { emoji: '👍' })).status).toBe(200)
+    expect(toggleCommentReaction).toHaveBeenCalledTimes(1)
+    expect(toggleCommentReaction).toHaveBeenCalledWith({
+      organizationId: org.id, linkId: linkRow.id, commentId: 'c1', userId: 'user-1', emoji: '👍',
+    })
+  })
 })
 
 // catchTags matches structural tags; do not load real service modules just for error constructors.
