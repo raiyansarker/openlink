@@ -1,3 +1,5 @@
+import { AuthSession } from '#/lib/auth/client'
+import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import {
@@ -143,6 +145,16 @@ export default function SettingsNavColumn() {
   const { section } = useParams({ strict: false }) as { section?: string }
   const activeSection = section ?? 'profile'
   const [logoutHovered, setLogoutHovered] = useState(false)
+  const { organizations } = useWorkspaceDirectory()
+
+  const signOut = async () => {
+    try {
+      await AuthSession.signOut()
+    } finally {
+      // Even if the request failed, leave settings: the guard re-checks the session.
+      await navigate({ to: '/login', replace: true })
+    }
+  }
 
   return (
     <div
@@ -203,21 +215,23 @@ export default function SettingsNavColumn() {
           ))}
         </NavGroup>
 
-        <NavGroup label="Workspace">
-          {SETTINGS_WORKSPACE_SECTIONS.map((item) => (
-            <SettingsNavLink
-              key={item.id}
-              section={item.id}
-              label={item.label}
-              activeSection={activeSection}
-            />
-          ))}
-        </NavGroup>
+        {organizations.length > 0 ? (
+          <NavGroup label="Workspace">
+            {SETTINGS_WORKSPACE_SECTIONS.map((item) => (
+              <SettingsNavLink
+                key={item.id}
+                section={item.id}
+                label={item.label}
+                activeSection={activeSection}
+              />
+            ))}
+          </NavGroup>
+        ) : null}
 
         <NavGroup label="Other">
           <button
             type="button"
-            onClick={() => {}}
+            onClick={() => void signOut()}
             style={{
               ...navLinkBaseStyle,
               color: 'var(--color-text-error)',

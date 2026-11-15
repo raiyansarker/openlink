@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
-import { OrganizationProvider } from '#/contexts/OrganizationContext'
+import { WorkspaceDirectoryProvider } from '#/contexts/WorkspaceDirectoryContext'
 import SettingsShell from '#/components/settings/SettingsShell'
 import { AuthSession } from '#/lib/auth/client'
 import { createPageHead } from '#/lib/page-title'
@@ -12,10 +12,11 @@ export const Route = createFileRoute('/settings')({
 
 function SettingsLayout() {
   return (
-    <OrganizationProvider>
+    // Personal sections need no workspace; workspace sections add their own (see SettingsSectionPanel).
+    <WorkspaceDirectoryProvider>
       <SettingsShell>
         <Outlet />
       </SettingsShell>
-    </OrganizationProvider>
+    </WorkspaceDirectoryProvider>
   )
 }

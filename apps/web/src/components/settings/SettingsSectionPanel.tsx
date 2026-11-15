@@ -3,6 +3,7 @@ import { Heading } from '@astryxdesign/core/Heading'
 import { Text } from '@astryxdesign/core/Text'
 import {
   getSettingsSectionMeta,
+  isWorkspaceSection,
   type SettingsSection,
 } from '#/lib/settings/sections'
 import ProfileSettingsFields from '#/components/settings/ProfileSettingsFields'
@@ -12,6 +13,7 @@ import ApiKeysSettingsFields from '#/components/settings/ApiKeysSettingsFields'
 import IntegrationsSettingsFields from '#/components/settings/IntegrationsSettingsFields'
 import MembersSettingsFields from '#/components/settings/MembersSettingsFields'
 import GeneralSettingsFields from '#/components/settings/GeneralSettingsFields'
+import { OrganizationProvider } from '#/contexts/OrganizationContext'
 
 type SettingsSectionPanelProps = {
   section: SettingsSection
@@ -47,10 +49,14 @@ export default function SettingsSectionPanel({ section }: SettingsSectionPanelPr
       {section === 'profile' && <ProfileSettingsFields />}
       {section === 'appearance' && <AppearanceSettingsFields />}
       {section === 'devices' && <DevicesSettingsFields />}
-      {section === 'general' && <GeneralSettingsFields />}
-      {section === 'members' && <MembersSettingsFields />}
-      {section === 'integrations' && <IntegrationsSettingsFields />}
-      {section === 'api-keys' && <ApiKeysSettingsFields />}
+      {isWorkspaceSection(section) ? (
+        <OrganizationProvider>
+          {section === 'general' && <GeneralSettingsFields />}
+          {section === 'members' && <MembersSettingsFields />}
+          {section === 'integrations' && <IntegrationsSettingsFields />}
+          {section === 'api-keys' && <ApiKeysSettingsFields />}
+        </OrganizationProvider>
+      ) : null}
     </VStack>
   )
 }

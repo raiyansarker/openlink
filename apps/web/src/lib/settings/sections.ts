@@ -53,6 +53,13 @@ const ALL_SECTIONS = new Set<string>([
   ...SETTINGS_WORKSPACE_SECTIONS.map((s) => s.id),
 ])
 
+const WORKSPACE_SECTION_IDS = new Set<string>(SETTINGS_WORKSPACE_SECTIONS.map((s) => s.id))
+
+/** Workspace sections need an active workspace; personal ones do not. */
+export function isWorkspaceSection(id: SettingsSection): id is SettingsWorkspaceSection {
+  return WORKSPACE_SECTION_IDS.has(id)
+}
+
 export function isSettingsSection(id: string): id is SettingsSection {
   return ALL_SECTIONS.has(id)
 }
