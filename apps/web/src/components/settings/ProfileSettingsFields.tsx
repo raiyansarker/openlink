@@ -1,4 +1,5 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { VStack } from '@astryxdesign/core/VStack'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Heading } from '@astryxdesign/core/Heading'
@@ -7,14 +8,16 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { Grid, GridSpan } from '@astryxdesign/core/Grid'
 import { Button } from '@astryxdesign/core/Button'
 import { Avatar } from '@astryxdesign/core/Avatar'
-import { DEMO_USER_AVATAR_URL } from '#/components/dashboard/layout/dashboard-shell-colors'
+import { Spinner } from '@astryxdesign/core/Spinner'
 
-const EMAIL = 'raiyan@example.com'
+import ChangePasswordDialog from '#/components/settings/ChangePasswordDialog'
+import DeleteAccountDialog from '#/components/settings/DeleteAccountDialog'
+import { useCurrentUser, useLinkedAccounts, useRefreshCurrentUser } from '#/hooks/use-current-user'
+import { ProfileApi, ProfileError } from '#/lib/profile/api'
+import { AvatarImage } from '#/lib/profile/avatar'
+import { ProfileRules } from '#/lib/profile/rules'
 
-const AVATAR_MAX_BYTES = 5 * 1024 * 1024
-const AVATAR_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif'
-
-const PICTURE_HELP = 'We support PNG, JPG, or GIF portraits under 5 MB.'
+const PICTURE_HELP = 'PNG, JPG, WebP, or GIF up to 10 MB. We crop it to a square.'
 
 /** Cap line length; inputs use full width up to this edge. */
 const PROFILE_FIELDS_MAX_WIDTH = 560
@@ -61,46 +64,92 @@ function ProfileBlock({
   )
 }
 
+const PROVIDER_LABEL = { google: 'Google', github: 'GitHub' } as const
+
+function Status({ message, tone }: { message: string; tone: 'error' | 'info' }) {
+  return (
+    <Text type="supporting" weight={tone === 'error' ? 'medium' : undefined} color={tone === 'info' ? 'secondary' : undefined} role={tone === 'error' ? 'alert' : 'status'}>
+      {message}
+    </Text>
+  )
+}
+
 export default function ProfileSettingsFields() {
+  const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
-  const [firstName, setFirstName] = useState('Raiyan')
-  const [lastName, setLastName] = useState('Sarker')
-  const [avatarSrc, setAvatarSrc] = useState<string | null>(DEMO_USER_AVATAR_URL)
-  const [uploadError, setUploadError] = useState<string | null>(null)
+  const { user, isLoading } = useCurrentUser()
+  const refresh = useRefreshCurrentUser()
+  const accounts = useLinkedAccounts()
 
-  const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ') || 'User'
+  const [name, setName] = useState('')
+  const [nameStatus, setNameStatus] = useState<{ message: string; tone: 'error' | 'info' } | null>(null)
+  const [isSavingName, setIsSavingName] = useState(false)
+  const [pictureStatus, setPictureStatus] = useState<string | null>(null)
+  const [isSavingPicture, setIsSavingPicture] = useState(false)
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null)
+  const [passwordOpen, setPasswordOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
-  const openFilePicker = () => {
-    setUploadError(null)
-    fileRef.current?.click()
+  // Start from the saved name, and follow it if it changes elsewhere.
+  useEffect(() => {
+    if (user) setName(user.name)
+  }, [user?.name])
+
+  if (isLoading || !user) {
+    return <Spinner size="md" label="Loading your profile…" />
   }
 
-  const onAvatarFile = (file: File | undefined) => {
-    if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Please choose a PNG, JPG, or GIF image.')
+  const trimmed = name.trim().replace(/\s+/g, ' ')
+  const nameCheck = ProfileRules.name(name)
+  const isNameDirty = trimmed !== user.name
+
+  const saveName = async () => {
+    if (!nameCheck.ok) {
+      setNameStatus({ message: nameCheck.message, tone: 'error' })
       return
     }
-    if (file.size > AVATAR_MAX_BYTES) {
-      setUploadError('That file is larger than 5 MB. Choose a smaller portrait.')
-      return
+    setIsSavingName(true)
+    setNameStatus(null)
+    try {
+      await ProfileApi.updateProfile({ name: nameCheck.value })
+      await refresh()
+      setNameStatus({ message: 'Saved.', tone: 'info' })
+    } catch (e) {
+      setNameStatus({ message: e instanceof ProfileError ? e.message : 'Could not save your name.', tone: 'error' })
+    } finally {
+      setIsSavingName(false)
     }
-    setUploadError(null)
-    const url = URL.createObjectURL(file)
-    setAvatarSrc((prev) => {
-      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev)
-      return url
-    })
   }
 
-  const removeAvatar = () => {
-    setUploadError(null)
-    setAvatarSrc((prev) => {
-      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev)
-      return null
-    })
+  const savePicture = async (image: string | null) => {
+    setIsSavingPicture(true)
+    setPictureStatus(null)
+    try {
+      await ProfileApi.updateProfile({ image })
+      await refresh()
+    } catch (e) {
+      setPictureStatus(e instanceof ProfileError ? e.message : 'Could not update your picture.')
+    } finally {
+      setIsSavingPicture(false)
+    }
+  }
+
+  const onAvatarFile = async (file: File | undefined) => {
     if (fileRef.current) fileRef.current.value = ''
+    if (!file) return
+    let dataUrl: string
+    try {
+      dataUrl = await AvatarImage.toDataUrl(file)
+    } catch (e) {
+      setPictureStatus(e instanceof Error ? e.message : 'That picture could not be used.')
+      return
+    }
+    await savePicture(dataUrl)
   }
+
+  const linked = accounts.data
+  const hasPassword = linked?.hasPassword ?? false
+  const providerNames = (linked?.providers ?? []).map((p) => PROVIDER_LABEL[p])
 
   return (
     <VStack
@@ -111,41 +160,35 @@ export default function ProfileSettingsFields() {
     >
       <ProfileBlock title="Picture">
         <HStack gap={4} vAlign="start" wrap="wrap">
-          <Avatar
-            src={avatarSrc ?? undefined}
-            name={fullName}
-            size={72}
-            shape="rounded"
-            tooltip={false}
-          />
+          <Avatar src={user.image ?? undefined} name={user.name} size={72} shape="rounded" tooltip={false} />
           <VStack gap={2} hAlign="start">
             <HStack gap={2} vAlign="center" wrap="wrap">
               <Button
                 variant="secondary"
                 size="sm"
                 label="Upload"
-                onClick={openFilePicker}
+                isLoading={isSavingPicture}
+                onClick={() => {
+                  setPictureStatus(null)
+                  fileRef.current?.click()
+                }}
               />
               <Button
                 variant="ghost"
                 size="sm"
                 label="Remove"
-                onClick={removeAvatar}
-                isDisabled={!avatarSrc}
+                onClick={() => void savePicture(null)}
+                isDisabled={!user.image || isSavingPicture}
               />
             </HStack>
             <PictureHelpCaption>{PICTURE_HELP}</PictureHelpCaption>
-            {uploadError ? (
-              <Text type="supporting" color="primary">
-                {uploadError}
-              </Text>
-            ) : null}
+            {pictureStatus ? <Status message={pictureStatus} tone="error" /> : null}
           </VStack>
         </HStack>
         <input
           ref={fileRef}
           type="file"
-          accept={AVATAR_ACCEPT}
+          accept={AvatarImage.ACCEPT}
           tabIndex={-1}
           aria-hidden
           style={{
@@ -159,42 +202,49 @@ export default function ProfileSettingsFields() {
             whiteSpace: 'nowrap',
             border: 0,
           }}
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            onAvatarFile(file)
-          }}
+          onChange={(e) => void onAvatarFile(e.target.files?.[0])}
         />
       </ProfileBlock>
 
-      <ProfileBlock
-        title="Name"
-        description="Your first and last name appear on your profile and in workspaces you join."
-      >
-        <Grid columns={2} gap={4} width="100%">
-          <TextInput
-            label="First name"
-            size="sm"
-            width="100%"
-            placeholder="First name"
-            value={firstName}
-            onChange={setFirstName}
-            autoComplete="given-name"
-          />
-          <TextInput
-            label="Last name"
-            size="sm"
-            width="100%"
-            placeholder="Last name"
-            value={lastName}
-            onChange={setLastName}
-            autoComplete="family-name"
-          />
-        </Grid>
+      <ProfileBlock title="Name" description="Shown on your profile and to people in workspaces you join.">
+        <form
+          style={{ width: '100%' }}
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (isNameDirty && !isSavingName) void saveName()
+          }}
+        >
+          <VStack gap={2} hAlign="start" width="100%">
+            <TextInput
+              label="Full name"
+              size="sm"
+              width="100%"
+              value={name}
+              onChange={(value) => {
+                setName(value)
+                setNameStatus(null)
+              }}
+              autoComplete="name"
+              status={nameStatus?.tone === 'error' ? { type: 'error', message: nameStatus.message } : undefined}
+            />
+            <HStack gap={3} vAlign="center">
+              <Button
+                variant="primary"
+                size="sm"
+                type="submit"
+                label="Save"
+                isDisabled={!isNameDirty}
+                isLoading={isSavingName}
+              />
+              {nameStatus?.tone === 'info' ? <Status message={nameStatus.message} tone="info" /> : null}
+            </HStack>
+          </VStack>
+        </form>
       </ProfileBlock>
 
       <ProfileBlock
         title="Email"
-        description="Your sign-in email is managed by your account provider and cannot be changed here."
+        description="Your sign-in email cannot be changed here."
       >
         <Grid columns={2} gap={4} width="100%">
           <GridSpan columns="full">
@@ -203,13 +253,9 @@ export default function ProfileSettingsFields() {
               label="Email address"
               size="sm"
               width="100%"
-              placeholder="you@example.com"
-              value={EMAIL}
+              value={user.email}
               isReadOnly
-              controlStyle={{
-                cursor: 'default',
-                pointerEvents: 'none',
-              }}
+              controlStyle={{ cursor: 'default', pointerEvents: 'none' }}
             />
           </GridSpan>
         </Grid>
@@ -217,29 +263,56 @@ export default function ProfileSettingsFields() {
 
       <ProfileBlock
         title="Password"
-        description="Use a strong password you do not reuse on other sites."
+        description={
+          accounts.isPending
+            ? 'Checking how you sign in…'
+            : hasPassword
+              ? 'Use a strong password you do not reuse on other sites.'
+              : `You sign in with ${providerNames.join(' or ') || 'a connected account'}, so there is no password to change.`
+        }
       >
-        <HStack gap={2} vAlign="center" wrap="wrap">
-          <Button
-            variant="secondary"
-            size="sm"
-            label="Change password"
-            onClick={() => {}}
-          />
-        </HStack>
+        {hasPassword ? (
+          <VStack gap={2} hAlign="start">
+            <Button
+              variant="secondary"
+              size="sm"
+              label="Change password"
+              onClick={() => {
+                setPasswordNotice(null)
+                setPasswordOpen(true)
+              }}
+            />
+            {passwordNotice ? <Status message={passwordNotice} tone="info" /> : null}
+          </VStack>
+        ) : null}
+        {accounts.isError ? <Status message="Could not load your sign-in methods." tone="error" /> : null}
       </ProfileBlock>
 
       <ProfileBlock
         title="Danger zone"
-        description="Deleting your account permanently removes your profile and personal data. This cannot be undone."
+        description="Deleting your account removes your profile and sign-in methods. You must first transfer or delete any workspace you own."
       >
         <Button
           variant="destructive"
           size="sm"
           label="Delete account"
-          onClick={() => {}}
+          isDisabled={accounts.isPending}
+          onClick={() => setDeleteOpen(true)}
         />
       </ProfileBlock>
+
+      <ChangePasswordDialog
+        isOpen={passwordOpen}
+        onOpenChange={setPasswordOpen}
+        onChanged={() => setPasswordNotice('Password changed. Other devices were signed out.')}
+      />
+      <DeleteAccountDialog
+        isOpen={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        email={user.email}
+        hasPassword={hasPassword}
+        onDeleted={() => void navigate({ to: '/login', replace: true })}
+      />
     </VStack>
   )
 }
