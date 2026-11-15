@@ -64,6 +64,13 @@
       "when": 1794776801173,
       "tag": "0008_session_device_details",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794778830279,
+      "tag": "0009_link_default_domain",
+      "breakpoints": true
     }
   ]
 }

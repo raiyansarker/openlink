@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import {
   type AnySQLiteColumn,
   index,
@@ -35,9 +36,8 @@ export const link = sqliteTable(
     organizationId: text('organization_id')
       .notNull()
       .references(() => organization.id, { onDelete: 'cascade' }),
-    domainId: text('domain_id')
-      .notNull()
-      .references(() => customDomain.id, { onDelete: 'cascade' }),
+    /** Null means the app's own host, which every workspace shares. */
+    domainId: text('domain_id').references(() => customDomain.id, { onDelete: 'cascade' }),
     folderId: text('folder_id').references(() => linkFolder.id, { onDelete: 'set null' }),
     slug: text('slug').notNull(),
     alias: text('alias'),
@@ -69,6 +69,8 @@ export const link = sqliteTable(
   },
   (table) => [
     uniqueIndex('link_domain_slug_unique').on(table.domainId, table.slug),
+    // SQLite treats NULLs as distinct, so app-host slugs need their own index to stay unique.
+    uniqueIndex('link_default_slug_unique').on(table.slug).where(sql`${table.domainId} IS NULL`),
     index('link_org_idx').on(table.organizationId),
     index('link_folder_idx').on(table.folderId),
   ],
