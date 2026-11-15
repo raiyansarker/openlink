@@ -49,6 +49,12 @@ const deleteOrganization = mock((_organizationId: string) => Effect.void)
 const listPendingInvites = mock((_organizationId: string) => Effect.succeed([inviteRow]))
 const revokeInvite = mock((_organizationId: string, _inviteId: string) => Effect.void)
 const resendInvite = mock((_organizationId: string, _inviteId: string) => Effect.succeed({ invite: inviteRow, token: 'rotated' }))
+const folderRow = { id: 'folder-1', organizationId: org.id, parentId: null, name: 'Docs', createdAt: now, updatedAt: now }
+const listFolders = mock((_organizationId: string) => Effect.succeed([folderRow]))
+const createFolder = mock((input: { name: string }) => Effect.succeed({ ...folderRow, name: input.name }))
+const updateFolder = mock((input: { name?: string }) => Effect.succeed({ ...folderRow, name: input.name ?? folderRow.name }))
+const deleteFolder = mock((_input: unknown) => Effect.void)
+const ensureFolderInOrganization = mock((_organizationId: string, _folderId: string) => Effect.succeed(folderRow))
 const listDomainsForOrganization = mock((_organizationId: string) => Effect.succeed([domain]))
 const registerCustomDomain = mock((_input: unknown) => Effect.succeed(domain))
 const removeCustomDomain = mock((_domainId: string, _organizationId: string) => Effect.succeed(true))
@@ -85,6 +91,9 @@ mock.module('#/server/org/members', () => ({
   listMembers, updateMemberRole, removeMember, transferOwnership, updateOrganization,
   deleteOrganization, listPendingInvites, revokeInvite, resendInvite,
 }))
+mock.module('#/server/folders/service', () => ({
+  listFolders, createFolder, updateFolder, deleteFolder, ensureFolderInOrganization,
+}))
 mock.module('#/server/health/checks', () => ({ runHealthChecks }))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
@@ -95,12 +104,13 @@ const sideEffects = [
   createLinkRecord, updateLinkRecord, deleteLinkRecord,
   acceptMemberInvite, createOrganizationWithBootstrapInvite, signIn, signUp, signOut, runHealthChecks,
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
-  revokeInvite, resendInvite,
+  revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
+  listFolders, ensureFolderInOrganization,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -228,6 +238,24 @@ const mutations = [
     assertWrite: () => expect(revokeInvite).toHaveBeenCalledWith(org.id, 'invite-1'),
     response: undefined,
   },
+  {
+    name: 'create folder', method: 'POST', path: `${orgPath}/folders`, body: { name: 'Docs' },
+    status: 201, allowed: ['owner', 'admin', 'member'], effects: [createFolder],
+    assertWrite: () => expect(createFolder).toHaveBeenCalledWith({ organizationId: org.id, name: 'Docs' }),
+    response: { id: 'folder-1', name: 'Docs' },
+  },
+  {
+    name: 'update folder', method: 'PATCH', path: `${orgPath}/folders/folder-1`, body: { name: 'Renamed', parentId: null },
+    status: 200, allowed: ['owner', 'admin', 'member'], effects: [updateFolder],
+    assertWrite: () => expect(updateFolder).toHaveBeenCalledWith({ organizationId: org.id, folderId: 'folder-1', name: 'Renamed', parentId: null }),
+    response: { id: 'folder-1', name: 'Renamed' },
+  },
+  {
+    name: 'delete folder', method: 'DELETE', path: `${orgPath}/folders/folder-1?mode=cascade`, body: undefined,
+    status: 204, allowed: ['owner', 'admin', 'member'], effects: [deleteFolder],
+    assertWrite: () => expect(deleteFolder).toHaveBeenCalledWith({ organizationId: org.id, folderId: 'folder-1', mode: 'cascade' }),
+    response: undefined,
+  },
 ] as const
 
 const roles = ['owner', 'admin', 'member', 'viewer', null] as const
@@ -273,6 +301,7 @@ const reads = [
   { name: 'get organization', path: orgPath, expected: { id: org.id }, read: getOrganizationById, args: [org.id] },
   { name: 'list domains', path: domainsPath, expected: { items: [{ id: domain.id }] }, read: listDomainsForOrganization, args: [org.id] },
   { name: 'get domain', path: domainPath, expected: { id: domain.id }, read: getDomainInOrganization, args: [domain.id, org.id] },
+  { name: 'list folders', path: `${orgPath}/folders`, expected: { items: [{ id: 'folder-1', name: 'Docs' }] }, read: listFolders, args: [org.id] },
   { name: 'list links', path: linksPath, expected: { items: [{ id: linkRow.id }] }, read: listLinksForDomain, args: [domain.id] },
   { name: 'get link', path: linkPath, expected: { id: linkRow.id }, read: getLinkInDomain, args: [domain.id, linkRow.id] },
 ] as const
@@ -360,6 +389,45 @@ test('members can be listed by viewers, invites only by admins', async () => {
   expect(response.status).toBe(200)
   expect(await response.json()).toMatchObject({ items: [{ id: 'invite-1' }] })
   expect(await (await request('GET', `${orgPath}/invites`)).text()).not.toContain('tokenHash')
+})
+
+test('links can only be filed into folders of their own workspace', async () => {
+  role = 'member'
+  ensureFolderInOrganization.mockImplementationOnce(() => Effect.fail({ _tag: 'FolderNotFound' }) as never)
+  let response = await request('POST', linksPath, { ...createBody, folderId: 'foreign' })
+  expect(response.status).toBe(400)
+  expect(await response.json()).toMatchObject({ message: 'Folder not found' })
+  expect(createLinkRecord).not.toHaveBeenCalled()
+
+  response = await request('POST', linksPath, { ...createBody, folderId: 'folder-1' })
+  expect(response.status).toBe(201)
+  expect(ensureFolderInOrganization).toHaveBeenCalledWith(org.id, 'folder-1')
+  expect(createLinkRecord).toHaveBeenCalledWith(expect.objectContaining({ folderId: 'folder-1' }))
+})
+
+test('moving a link to the root skips the folder lookup', async () => {
+  role = 'member'
+  const response = await request('PATCH', linkPath, { folderId: null })
+  expect(response.status).toBe(200)
+  expect(ensureFolderInOrganization).not.toHaveBeenCalled()
+  expect(updateLinkRecord).toHaveBeenCalledWith(linkRow, { folderId: null })
+})
+
+test('folder workflow failures map to typed HTTP errors', async () => {
+  role = 'member'
+  const cases = [
+    [{ _tag: 'FolderNotFound' }, 404, 'NOT_FOUND'],
+    [{ _tag: 'FolderRuleViolation', message: 'Folders can only be nested 10 levels deep.' }, 400, 'BAD_REQUEST'],
+    [{ _tag: 'FolderNameTaken' }, 409, 'CONFLICT'],
+  ] as const
+  for (const [failure, status, code] of cases) {
+    updateFolder.mockImplementationOnce(() => Effect.fail(failure) as never)
+    const response = await request('PATCH', `${orgPath}/folders/folder-1`, { name: 'x' })
+    expect(response.status).toBe(status)
+    expect(await response.json()).toMatchObject({ code })
+  }
+  deleteFolder.mockImplementationOnce(() => Effect.fail({ _tag: 'FolderNotFound' }) as never)
+  expect((await request('DELETE', `${orgPath}/folders/missing`)).status).toBe(404)
 })
 
 // catchTags matches structural tags; do not load real service modules just for error constructors.
