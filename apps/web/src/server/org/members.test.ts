@@ -78,7 +78,7 @@ describe('updateMemberRole', () => {
   test('an owner can promote a member to admin', async () => {
     const t = setup()
     const row = await t.run(updateMemberRole({ organizationId: 'o1', actorRole: 'owner', targetUserId: 'member', role: 'admin' }))
-    expect(row.role).toBe('admin')
+    expect(row).toMatchObject({ role: 'admin', previousRole: 'member' })
     expect(t.roleOf('member')).toBe('admin')
   })
 
@@ -109,7 +109,8 @@ describe('updateMemberRole', () => {
 describe('removeMember', () => {
   test('admins remove members; the membership row is deleted', async () => {
     const t = setup()
-    await t.run(removeMember({ organizationId: 'o1', actorUserId: 'admin', actorRole: 'admin', targetUserId: 'member' }))
+    const removed = await t.run(removeMember({ organizationId: 'o1', actorUserId: 'admin', actorRole: 'admin', targetUserId: 'member' }))
+    expect(removed).toMatchObject({ userId: 'member', name: 'Mia' })
     expect(t.roleOf('member')).toBeUndefined()
   })
 
@@ -139,7 +140,8 @@ describe('removeMember', () => {
 describe('transferOwnership', () => {
   test('the target becomes owner and the previous owner an admin', async () => {
     const t = setup()
-    await t.run(transferOwnership({ organizationId: 'o1', actorUserId: 'owner', targetUserId: 'member' }))
+    const target = await t.run(transferOwnership({ organizationId: 'o1', actorUserId: 'owner', targetUserId: 'member' }))
+    expect(target.name).toBe('Mia')
     expect(t.roleOf('member')).toBe('owner')
     expect(t.roleOf('owner')).toBe('admin')
   })
@@ -191,7 +193,7 @@ describe('pending invites', () => {
   test('revoke deletes the invite, and missing ones are not found', async () => {
     const t = setup()
     t.invite()
-    await t.run(revokeInvite('o1', 'i1'))
+    expect(await t.run(revokeInvite('o1', 'i1'))).toEqual({ id: 'i1', email: 'new@example.com' })
     expect(await t.run(listPendingInvites('o1'))).toEqual([])
     expect(await t.fail(revokeInvite('o1', 'i1'))).toBeInstanceOf(InviteNotFound)
   })
