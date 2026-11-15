@@ -58,6 +58,7 @@ import {
   toggleCommentReaction,
   updateComment,
 } from '#/server/comments/service'
+import { MediaStore } from '#/server/media/media-store'
 import { runHealthChecks } from '#/server/health/checks'
 import { addTagsToLinks, deleteLinks, moveLinks } from '#/server/links/bulk'
 import { queryOrganizationLinks } from '#/server/links/queries'
@@ -376,7 +377,9 @@ export const router = os.router({
 
     deleteOrganization: os.organizations.deleteOrganization.effect(function* ({ input }) {
       yield* requireOrgOwnerEffect(input.params.organizationId)
+      const existing = yield* getOrganizationById(input.params.organizationId)
       yield* deleteOrganization(input.params.organizationId)
+      yield* MediaStore.removeQuietly(existing?.logoKey)
       return {}
     }),
 

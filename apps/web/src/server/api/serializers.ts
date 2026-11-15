@@ -12,6 +12,7 @@ import type {
 import { parseReactions } from '#/server/comments/rules'
 import type { CommentRow } from '#/server/comments/service'
 import { ACTION_DEFINITIONS, isKnownAction, type Change } from '#/server/activity/actions'
+import { MediaKey } from '#/server/media/media-key'
 import { deriveLinkStatus } from '#/server/links/rules'
 
 export function toUserDto(user: { id: string; email: string; name: string; createdAt: Date }) {
@@ -28,6 +29,7 @@ export function toOrganizationDto(row: typeof organization.$inferSelect) {
     id: row.id,
     name: row.name,
     slug: row.slug,
+    ...(row.logoKey ? { logoUrl: MediaKey.toUrl(row.logoKey) } : {}),
     createdAt: row.createdAt.toISOString(),
   }
 }

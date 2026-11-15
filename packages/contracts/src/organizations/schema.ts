@@ -9,6 +9,8 @@ export const Organization = type({
   id: 'string',
   name: 'string',
   slug: 'string',
+  /** Uploaded logo, served from this app. */
+  'logoUrl?': 'string',
   createdAt: 'string',
 })
 
