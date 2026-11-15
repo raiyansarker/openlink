@@ -3,7 +3,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import { Card } from '@astryxdesign/core/Card'
 import { Text } from '@astryxdesign/core/Text'
 import { useResolvedColorScheme } from '#/hooks/use-resolved-color-scheme'
-import { OPENFREEMAP_STYLES, loadMapLibre } from '#/lib/maps/load-maplibre'
+import { OPENFREEMAP_STYLES, loadMapLibre, collapseAttribution } from '#/lib/maps/load-maplibre'
 
 
 const MAP_HEIGHT = 200
@@ -66,9 +66,12 @@ export default function DeviceLocationMap({ lat, lng, label }: DeviceLocationMap
           zoom: ZOOM,
           interactive: false,
           // The required credit is rendered as text under the map instead.
-          attributionControl: false,
+          // Map data licences (OpenStreetMap ODbL, OpenFreeMap) require attribution; the compact
+          // control shows it as a small ⓘ on the map instead of a separate line of text.
+          attributionControl: { compact: true },
           fadeDuration: 0,
         })
+        collapseAttribution(map)
 
         // Hide the map layers until the first full render, so the blank
         // canvas and late tiles never flash.

@@ -5,7 +5,6 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from '@astryxdesign/core/SegmentedControl'
-import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import AnalyticsCard from '#/components/analytics/AnalyticsCard'
 import RankedBars from '#/components/analytics/RankedBars'
@@ -13,7 +12,6 @@ import WorldBubbleMap from '#/components/analytics/WorldBubbleMap'
 import { SERIES_COLORS } from '#/components/analytics/chart-theme'
 import type { AnalyticsReport, BreakdownRow } from '#/lib/analytics/demo-dataset'
 import { countryFlag } from '#/lib/analytics/flag'
-import { OPENFREEMAP_CREDIT } from '#/lib/maps/load-maplibre'
 
 type LocationsCardProps = {
   report: AnalyticsReport
@@ -60,9 +58,6 @@ export default function LocationsCard({ report, isComparing }: LocationsCardProp
         <VStack gap={2} hAlign="stretch" width="100%">
           <WorldBubbleMap countries={report.countries} height={300} />
           <HStack>
-            <Text type="supporting" color="secondary">
-              {OPENFREEMAP_CREDIT}
-            </Text>
           </HStack>
         </VStack>
         <RankedBars

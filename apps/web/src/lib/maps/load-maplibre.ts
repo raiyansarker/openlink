@@ -5,7 +5,6 @@ export const OPENFREEMAP_STYLES = {
 } as const
 
 /** Credit line OpenFreeMap and the OSM licence (ODbL) require wherever a map shows. */
-export const OPENFREEMAP_CREDIT = '© OpenFreeMap · OpenMapTiles · OpenStreetMap contributors'
 
 /**
  * Loads MapLibre, its worker, and its stylesheet on the client only.
@@ -34,4 +33,14 @@ export function resolveCssColor(element: Element, variable: string, fallback: st
   const value = getComputedStyle(probe).color
   probe.remove()
   return value || fallback
+}
+
+/**
+ * Start the compact attribution collapsed (just the ⓘ). MapLibre opens it the
+ * first time a map loads; the credits stay one tap away, as the licences require.
+ */
+export function collapseAttribution(map: { getContainer(): HTMLElement; once(event: 'load', handler: () => void): unknown }) {
+  map.once('load', () => {
+    map.getContainer().querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
+  })
 }

@@ -12,8 +12,7 @@ import { formatNumber } from '#/lib/analytics/format'
 import {
   OPENFREEMAP_STYLES,
   loadMapLibre,
-  resolveCssColor,
-} from '#/lib/maps/load-maplibre'
+  resolveCssColor, collapseAttribution } from '#/lib/maps/load-maplibre'
 
 type WorldBubbleMapProps = {
   countries: CountryRow[]
@@ -73,10 +72,13 @@ export default function WorldBubbleMap({ countries, height = 280 }: WorldBubbleM
           ],
           fitBoundsOptions: { padding: 8 },
           interactive: false,
-          attributionControl: false,
+          // Map data licences (OpenStreetMap ODbL, OpenFreeMap) require attribution; the compact
+          // control shows it as a small ⓘ on the map instead of a separate line of text.
+          attributionControl: { compact: true },
           fadeDuration: 0,
           renderWorldCopies: false,
         })
+        collapseAttribution(map)
 
         const canvasLayer = map.getCanvasContainer()
         canvasLayer.style.transition = 'none'
