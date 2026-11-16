@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
 import { barX, defineChart, text } from '@tanstack/charts'
+import { VStack } from '@astryxdesign/core/VStack'
 import { Chart } from '@tanstack/charts/react'
 import { scaleBand } from '@tanstack/charts/scales/band'
 import { scaleLinear } from '@tanstack/charts/scales/linear'
 import { tooltip } from '@tanstack/charts/tooltip'
 import { chartHostStyle } from '#/components/analytics/chart-theme'
-import type { BreakdownRow } from '#/lib/analytics/demo-dataset'
+import type { BreakdownRow } from '#/lib/analytics/report'
 import {
   formatDelta,
   formatNumber,
@@ -27,6 +28,11 @@ type RankedBarsProps = {
 }
 
 const ROW_HEIGHT = 30
+/**
+ * Room kept for at least this many rows, so cards with one or two rows are the
+ * same size as their neighbours instead of collapsing.
+ */
+const MIN_ROWS = 6
 
 /** Horizontal ranked bars with the value and share printed at the end of each bar. */
 export default function RankedBars({
@@ -85,6 +91,8 @@ export default function RankedBars({
         },
         margin: 0,
         focus: 'nearest-y',
+        // The tooltip already names the row; the generated ring drew a dot on every mark of it.
+        focusRing: false,
         tooltip: {
           use: tooltip,
           format: (point) => {
@@ -105,6 +113,7 @@ export default function RankedBars({
   )
 
   return (
+    <VStack hAlign="stretch" width="100%" style={{ minHeight: MIN_ROWS * ROW_HEIGHT }}>
     <Chart
       definition={definition}
       height={Math.max(1, visible.length) * ROW_HEIGHT}
@@ -119,5 +128,6 @@ export default function RankedBars({
           : undefined
       }
     />
+    </VStack>
   )
 }

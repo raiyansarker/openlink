@@ -5,7 +5,8 @@ import { operation } from '#/server/effect/operations'
 import { effectRuntime } from '#/server/effect/runtime'
 import { Bindings } from '#/server/effect/services/bindings'
 import { resolveRedirect } from '#/server/redirect/resolve'
-import { outcomeToResponse } from '#/server/redirect/response'
+import { RedirectResponses } from '#/server/redirect/response'
+import { Visitor } from '#/server/redirect/visitor'
 
 const unavailable = () =>
   new Response('Service unavailable', { status: 503, headers: { 'cache-control': 'no-store' } })
@@ -22,8 +23,16 @@ const serve = (request: Request, slug: string, withPassword: boolean) =>
       const password = withPassword ? yield* readPassword(request) : undefined
       const { BETTER_AUTH_URL } = yield* Bindings
       const appHost = URL.canParse(BETTER_AUTH_URL) ? new URL(BETTER_AUTH_URL).host : null
-      const outcome = yield* resolveRedirect({ host: new URL(request.url).host, slug, password, appHost })
-      return outcomeToResponse(outcome)
+      const outcome = yield* resolveRedirect({
+        host: new URL(request.url).host,
+        slug,
+        password,
+        appHost,
+        visitor: Visitor.fromRequest(request),
+        clientIp: request.headers.get('cf-connecting-ip'),
+      })
+      const url = new URL(request.url)
+      return RedirectResponses.for(outcome, url, !!appHost && url.host === appHost)
     }).pipe(Effect.catch(() => Effect.succeed(unavailable()))),
   )
 

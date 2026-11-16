@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { MAX_LINK_NOTES_LENGTH } from '@openlink/contracts'
+import PasswordField from '#/components/common/PasswordField'
 import { useNavigate } from '@tanstack/react-router'
 import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
@@ -6,7 +8,6 @@ import {
   DateTimeInput,
   type ISODateTimeString,
 } from '@astryxdesign/core/DateTimeInput'
-import { FileInput } from '@astryxdesign/core/FileInput'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { IconButton } from '@astryxdesign/core/IconButton'
@@ -23,9 +24,11 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { Tokenizer } from '@astryxdesign/core/Tokenizer'
 import { createStaticSource } from '@astryxdesign/core/Typeahead'
 import { VStack } from '@astryxdesign/core/VStack'
+import { useFrameCheck } from '#/hooks/use-frame-check'
 import { useKeyPress } from '#/hooks/use-key-press'
 import CreateLinkSuccess from '#/components/create-link/CreateLinkSuccess'
 import Favicon from '#/components/create-link/Favicon'
+import PreviewImageField from '#/components/create-link/PreviewImageField'
 import HoldPagePreview from '#/components/create-link/HoldPagePreview'
 import FormSection, {
   FieldRow,
@@ -40,6 +43,7 @@ import LinkPreviewPanel, {
 import SocialPreviewCard from '#/components/create-link/SocialPreviewCard'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { ShortUrl } from '#/lib/links/short-url'
+import { MediaUploads } from '#/lib/media/uploads'
 import type { HoldPage, RedirectStatusCode, ShortLink } from '#/data/demo/types'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatCompactNumber } from '#/lib/format/compact-number'
@@ -180,6 +184,8 @@ export default function CreateLinkForm({
   editLink,
 }: CreateLinkFormProps) {
   const isEditing = editLink != null
+  /** Editing a link that already has a password (its value is never sent to the browser). */
+  const hasSavedPassword = isEditing && !!editLink.passwordProtected
   const navigate = useNavigate()
   const {
     activeOrg,
@@ -197,36 +203,34 @@ export default function CreateLinkForm({
   )
   const [showErrors, setShowErrors] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [created, setCreated] = useState<ShortLink | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [previewFileError, setPreviewFileError] = useState<string | null>(null)
 
-  /** Reads an uploaded social image into a data: URL (kept with the link). */
+  const [isUploadingPreview, setIsUploadingPreview] = useState(false)
+
+  /** Uploads a social image; the link keeps its URL. */
   const choosePreviewImage = (file: File | null) => {
     setPreviewFileError(null)
-    setPreviewFile(file)
     if (!file) {
       update('previewImage', '')
       return
     }
     if (!PREVIEW_IMAGE_ACCEPT.split(',').includes(file.type)) {
       setPreviewFileError('Use a PNG, JPG, WebP or GIF image.')
-      setPreviewFile(null)
       return
     }
     if (file.size > MAX_PREVIEW_IMAGE_BYTES) {
       setPreviewFileError('Images must be 5 MB or smaller.')
-      setPreviewFile(null)
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') update('previewImage', reader.result)
-    }
-    reader.onerror = () => setPreviewFileError('That image couldn’t be read.')
-    reader.readAsDataURL(file)
+    setIsUploadingPreview(true)
+    MediaUploads.setLinkPreview(activeOrg.id, file)
+      .then((url) => update('previewImage', url))
+      .catch((err: unknown) => {
+        setPreviewFileError(err instanceof Error ? err.message : 'The upload failed. Please try again.')
+      })
+      .finally(() => setIsUploadingPreview(false))
   }
 
   const update = <K extends keyof CreateLinkDraft>(
@@ -314,6 +318,7 @@ export default function CreateLinkForm({
   const shortHost = shortHostFor(draft.domainId)
   const shortUrl = shortUrlFor(draft.slug.trim() || '…', draft.domainId)
   const status = initialStatus(draft)
+  const frameCheck = useFrameCheck(activeOrg.id, destinationIsValid ? destination : '', draft.cloakEnabled && destinationIsValid)
   const host = hostOf(destination)
   const displayTitle = draft.title.trim() || host || 'Untitled link'
 
@@ -424,6 +429,10 @@ export default function CreateLinkForm({
 
   const submit = async () => {
     if (created || isSubmitting) return
+    if (isUploadingPreview) {
+      setSubmitError('Wait for the preview image to finish uploading.')
+      return
+    }
     setShowErrors(true)
     if (Object.keys(errors).length > 0) {
       setSubmitError('Fix the highlighted fields to create the link.')
@@ -521,7 +530,6 @@ export default function CreateLinkForm({
             onCreateAnother={() => {
               setCreated(null)
               setShowErrors(false)
-              setPreviewFile(null)
               setPreviewFileError(null)
               setDraft({ ...emptyDraft(created.folderId ?? null), slug: generateSlug() })
             }}
@@ -571,7 +579,6 @@ export default function CreateLinkForm({
                 <InputGroup
                   label="Short link"
                   isLabelHidden
-                  className="ol-connected-group"
                   status={statusFor('slug')}
                 >
                   <Selector
@@ -656,28 +663,21 @@ export default function CreateLinkForm({
                 onChange: (on) => update('passwordEnabled', on),
               }}
             >
-              <HStack gap={2} vAlign="end" width="100%">
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <TextInput
-                    type={isPasswordVisible ? 'text' : 'password'}
-                    label="Password"
-                    description={
-                      isEditing && editLink?.passwordProtected
-                        ? 'Leave blank to keep the current password, or type a new one.'
-                        : `At least ${MIN_PASSWORD_LENGTH} characters. Share it separately from the link.`
-                    }
-                    value={draft.password}
-                    onChange={(value) => update('password', value)}
-                    status={statusFor('password')}
-                    width="100%"
-                  />
-                </div>
-                <Button
-                  variant="secondary"
-                  label={isPasswordVisible ? 'Hide' : 'Show'}
-                  onClick={() => setIsPasswordVisible((v) => !v)}
-                />
-              </HStack>
+              <PasswordField
+                label="Password"
+                description={
+                  hasSavedPassword
+                    ? 'A password is set. Leave this blank to keep it, or type a new one.'
+                    : `At least ${MIN_PASSWORD_LENGTH} characters. Share it separately from the link.`
+                }
+                // The real password is never readable; dots show one is set.
+                placeholder={hasSavedPassword ? '••••••••••••' : undefined}
+                value={draft.password}
+                onChange={(value) => update('password', value)}
+                status={statusFor('password')}
+                // A visitor password, not the user's own: keep the browser from filling theirs in.
+                autoComplete="new-password"
+              />
             </FormSection>
 
             <FormSection
@@ -698,6 +698,7 @@ export default function CreateLinkForm({
                 value={draft.description}
                 onChange={(value) => update('description', value)}
                 rows={3}
+                maxLength={MAX_LINK_NOTES_LENGTH}
                 isOptional
                 width="100%"
               />
@@ -893,51 +894,17 @@ export default function CreateLinkForm({
                   width="100%"
                 />
               </WithCounter>
-              {draft.previewImage && !previewFile ? (
-                <HStack gap={3} vAlign="center" width="100%">
-                  <img
-                    src={draft.previewImage}
-                    alt="Current social preview image"
-                    style={{
-                      width: 96,
-                      aspectRatio: '1.91 / 1',
-                      objectFit: 'cover',
-                      borderRadius: 8,
-                      border: '1px solid var(--color-border)',
-                    }}
-                  />
-                  <VStack gap={1} style={{ flex: 1, minWidth: 0 }}>
-                    <Text weight="semibold">Current image</Text>
-                    <Text type="supporting" color="secondary">
-                      Drop a new one below to replace it.
-                    </Text>
-                  </VStack>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    label="Remove"
-                    onClick={() => update('previewImage', '')}
-                  />
-                </HStack>
-              ) : null}
-              <FileInput
-                label="Image"
-                mode="dropzone"
+              <PreviewImageField
+                imageUrl={draft.previewImage}
+                isUploading={isUploadingPreview}
+                error={previewFileError ?? visibleError('previewImage') ?? null}
                 accept={PREVIEW_IMAGE_ACCEPT}
-                maxSize={MAX_PREVIEW_IMAGE_BYTES}
-                description="PNG, JPG, WebP or GIF up to 5 MB. 1200 × 630 px looks best everywhere."
-                placeholder="Drop an image here, or click to browse"
-                value={previewFile}
-                onChange={(files) =>
-                  choosePreviewImage(Array.isArray(files) ? (files[0] ?? null) : files)
-                }
-                status={
-                  previewFileError
-                    ? { type: 'error', message: previewFileError }
-                    : statusFor('previewImage')
-                }
-                isOptional
-                width="100%"
+                maxBytes={MAX_PREVIEW_IMAGE_BYTES}
+                onChoose={choosePreviewImage}
+                onRemove={() => {
+                  setPreviewFileError(null)
+                  update('previewImage', '')
+                }}
               />
             </FormSection>
 
@@ -989,11 +956,21 @@ export default function CreateLinkForm({
                     'Clicks on links inside the page stay in the frame; links that open new tabs show the real site.',
                   ]}
                 />
-                <Banner
-                  status="warning"
-                  title="Not every site can be cloaked"
-                  description="Sites that block being framed (most banks, Google, and social networks) show a blank page. Check the destination after creating the link."
-                />
+                {frameCheck.frameable === false ? (
+                  <Banner
+                    status="warning"
+                    title={`${host || 'This site'} doesn’t allow being shown in a frame`}
+                    description="Visitors will be redirected to it normally, so the address bar shows the real URL."
+                  />
+                ) : frameCheck.frameable === true ? (
+                  <Banner status="success" title={`${host} can be cloaked`} description="It allows being shown in a frame." />
+                ) : (
+                  <Text type="supporting" color="secondary">
+                    {frameCheck.isChecking
+                      ? 'Checking whether the destination allows being framed…'
+                      : 'Sites that refuse to be framed (most banks, Google, social networks) are redirected normally instead.'}
+                  </Text>
+                )}
               </OptionRow>
             </FormSection>
 

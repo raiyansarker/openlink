@@ -11,14 +11,22 @@ import { PlusIcon, SettingsIcon } from '#/components/icons/IcnMcp'
 import { isDashboardSettingsPath } from '#/lib/dashboard/paths/settings'
 import type { CSSProperties, ReactNode } from 'react'
 import {
-  DASHBOARD_CHROME_TOP_PADDING,
   DASHBOARD_RAIL_BG,
   DASHBOARD_RAIL_HOVER_BG,
   DASHBOARD_RAIL_SELECTED_BG,
+  DASHBOARD_CONTENT_PANEL_BORDER,
+  DASHBOARD_CONTENT_PANEL_RADIUS,
+  DASHBOARD_CONTENT_PANEL_SHADOW,
+  DASHBOARD_SURFACE_BG,
 } from './dashboard-shell-colors'
 
+/** Gap around the rail, matching the content panel's inset. */
+const RAIL_INSET = 10
 const ORG_CONTROL_SIZE = 34
 const ORG_LOGO_SIZE = 28
+const ORG_CONTROL_RADIUS = 9
+/** Concentric corners: the logo's radius is the control's minus the gap between them. */
+const ORG_LOGO_RADIUS = ORG_CONTROL_RADIUS - (ORG_CONTROL_SIZE - ORG_LOGO_SIZE) / 2
 
 type OrganizationIconRailProps = {
   organizations: Organization[]
@@ -34,7 +42,7 @@ const orgControlBase: CSSProperties = {
   minWidth: ORG_CONTROL_SIZE,
   minHeight: ORG_CONTROL_SIZE,
   flexShrink: 0,
-  borderRadius: 9,
+  borderRadius: ORG_CONTROL_RADIUS,
   padding: 0,
   border: 'none',
   cursor: 'pointer',
@@ -114,7 +122,10 @@ function RailSettingsButton() {
           ...orgControlBase,
           backgroundColor,
           boxShadow,
-          color: isActive || hovered ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.72)',
+          color:
+            isActive || hovered
+              ? 'rgba(255, 255, 255, 0.95)'
+              : 'rgba(255, 255, 255, 0.72)',
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -141,103 +152,124 @@ export default function OrganizationIconRail({
   return (
     <div
       style={{
-        width: 52,
-        minWidth: 52,
         height: '100%',
+        padding: RAIL_INSET,
+        paddingRight: 0,
+        boxSizing: 'border-box',
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        paddingTop: DASHBOARD_CHROME_TOP_PADDING,
-        paddingBottom: 12,
-        backgroundColor: DASHBOARD_RAIL_BG,
         flexShrink: 0,
+        backgroundColor: DASHBOARD_SURFACE_BG,
       }}
     >
       <div
         style={{
+          width: 52,
+          minWidth: 52,
+          height: '100%',
+          boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 6,
-          width: '100%',
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden',
+          // Same inset above the first org as on its sides, so it doesn't touch the rounded top.
+          paddingTop: (52 - ORG_CONTROL_SIZE) / 2,
+          paddingBottom: 10,
+          backgroundColor: DASHBOARD_RAIL_BG,
+          borderRadius: DASHBOARD_CONTENT_PANEL_RADIUS,
+          border: DASHBOARD_CONTENT_PANEL_BORDER,
+          boxShadow: DASHBOARD_CONTENT_PANEL_SHADOW,
+          overflow: 'hidden',
+          flexShrink: 0,
         }}
       >
-        {organizations.map((org) => {
-          const brand = getOrganizationBrand(org.id)
-          const target = WorkspaceUrl.replaceOrg(pathname, org.slug)
-          const isActive = org.slug === activeOrgSlug
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 6,
+            width: '100%',
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+          }}
+        >
+          {organizations.map((org) => {
+            const brand = getOrganizationBrand(org.id)
+            const target = WorkspaceUrl.replaceOrg(pathname, org.slug)
+            const isActive = org.slug === activeOrgSlug
 
-          return (
-            <OrgSwitchButton
-              key={org.id}
-              orgName={org.name}
-              isActive={isActive}
-              onClick={() => void navigate({ to: target })}
-            >
-              <OrganizationLogo
-                name={org.name}
-                brand={brand}
-                size={ORG_LOGO_SIZE}
-                customImageUrl={org.logoUrl}
-              />
-            </OrgSwitchButton>
-          )
-        })}
+            return (
+              <OrgSwitchButton
+                key={org.id}
+                orgName={org.name}
+                isActive={isActive}
+                onClick={() => void navigate({ to: target })}
+              >
+                <OrganizationLogo
+                  name={org.name}
+                  brand={brand}
+                  size={ORG_LOGO_SIZE}
+                  radius={ORG_LOGO_RADIUS}
+                  customImageUrl={org.logoUrl}
+                />
+              </OrgSwitchButton>
+            )
+          })}
+
+          <div
+            style={{
+              position: 'sticky',
+              bottom: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              width: '100%',
+              paddingTop: 6,
+              paddingBottom: 2,
+              marginTop: 2,
+              backgroundColor: DASHBOARD_RAIL_BG,
+              boxShadow: `0 -10px 12px ${DASHBOARD_RAIL_BG}`,
+            }}
+          >
+            <Tooltip content="Create organization" placement="end">
+              <button
+                type="button"
+                aria-label="Create organization"
+                onClick={handleCreateOrganization}
+                style={{
+                  ...orgControlBase,
+                  border: '1px dashed rgba(255, 255, 255, 0.22)',
+                  backgroundColor: createHovered
+                    ? DASHBOARD_RAIL_HOVER_BG
+                    : 'transparent',
+                  color: createHovered
+                    ? 'rgba(255, 255, 255, 0.95)'
+                    : 'rgba(255, 255, 255, 0.72)',
+                }}
+                onMouseEnter={() => setCreateHovered(true)}
+                onMouseLeave={() => setCreateHovered(false)}
+                onFocus={() => setCreateHovered(true)}
+                onBlur={() => setCreateHovered(false)}
+              >
+                <PlusIcon size={16} />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
 
         <div
           style={{
-            position: 'sticky',
-            bottom: 0,
+            flexShrink: 0,
+            marginTop: 10,
             display: 'flex',
-            justifyContent: 'center',
-            width: '100%',
-            paddingTop: 6,
-            paddingBottom: 2,
-            marginTop: 2,
-            backgroundColor: DASHBOARD_RAIL_BG,
-            boxShadow: `0 -10px 12px ${DASHBOARD_RAIL_BG}`,
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8,
           }}
         >
-          <Tooltip content="Create organization" placement="end">
-            <button
-              type="button"
-              aria-label="Create organization"
-              onClick={handleCreateOrganization}
-              style={{
-                ...orgControlBase,
-                border: '1px dashed rgba(255, 255, 255, 0.22)',
-                backgroundColor: createHovered
-                  ? DASHBOARD_RAIL_HOVER_BG
-                  : 'transparent',
-                color: createHovered ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.72)',
-              }}
-              onMouseEnter={() => setCreateHovered(true)}
-              onMouseLeave={() => setCreateHovered(false)}
-              onFocus={() => setCreateHovered(true)}
-              onBlur={() => setCreateHovered(false)}
-            >
-              <PlusIcon size={16} />
-            </button>
-          </Tooltip>
+          <RailSettingsButton />
+          <DashboardAccountMenu variant="rail" />
         </div>
-      </div>
-
-      <div
-        style={{
-          flexShrink: 0,
-          marginTop: 10,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 8,
-        }}
-      >
-        <RailSettingsButton />
-        <DashboardAccountMenu variant="rail" />
       </div>
     </div>
   )

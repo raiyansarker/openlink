@@ -55,8 +55,8 @@ export default function DeleteAccountDialog({ isOpen, onOpenChange, email, hasPa
           <LayoutContent>
             <VStack gap={4} hAlign="stretch" width="100%">
               <Text type="supporting" color="secondary">
-                Your profile and sign-in methods are removed and you leave every workspace. Links and
-                comments you made stay with their workspace. This cannot be undone.
+                Your profile and sign-in methods are removed and you leave every workspace. Links you
+                made stay with their workspace. This cannot be undone.
               </Text>
               <TextInput
                 label={`Type ${email} to confirm`}

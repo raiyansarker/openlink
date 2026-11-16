@@ -1,3 +1,4 @@
+import type { HoldPageId, LinkHold, LinkTargeting, SocialPreview } from '@openlink/contracts'
 export type OrganizationPlan = 'free' | 'pro' | 'enterprise'
 
 export type Organization = {
@@ -71,8 +72,6 @@ export type ShortLink = {
   health?: LinkHealth
   /** Newest first. */
   history?: LinkHistoryEvent[]
-  /** Oldest first, like a conversation. */
-  comments?: LinkComment[]
 }
 
 export type LinkHealthStatus = 'healthy' | 'redirects' | 'slow' | 'broken'
@@ -97,6 +96,8 @@ export type LinkHistoryEvent = {
   id: string
   at: string
   actor: string
+  /** The actor's profile picture, when they have one. */
+  actorImageUrl?: string
   type:
     | 'created'
     | 'updated'
@@ -107,61 +108,15 @@ export type LinkHistoryEvent = {
     | 'tagged'
     /** A destination health check ran. */
     | 'checked'
-    /** Someone left a comment (the comment itself lives in `comments`). */
-    | 'commented'
   /** Human summary, e.g. "Moved to Docs / Guides". */
   summary: string
   changes?: LinkHistoryChange[]
-  /** Short quote shown under the summary (e.g. a comment excerpt). */
-  excerpt?: string
-  /** For `commented` events: the comment, so edits and deletes stay in sync. */
-  commentId?: string
 }
 
-/** A note left on a link by a teammate. */
-export type LinkComment = {
-  id: string
-  at: string
-  authorId: string
-  authorName: string
-  authorAvatarUrl?: string
-  body: string
-  editedAt?: string
-  /** Emoji → ids of the people who reacted with it. */
-  reactions?: Record<string, string[]>
-}
-
-/** Placeholder pages Hold mode can show. */
-export type HoldPage =
-  | 'bad-gateway'
-  | 'service-unavailable'
-  | 'gateway-timeout'
-  | 'maintenance'
-
-export type LinkHold = {
-  page: HoldPage
-  /** ISO time the hold lifts automatically; absent = until released by hand. */
-  releaseAt?: string
-}
-
-export type GeoTargetRule = {
-  /** ISO 3166-1 alpha-2 code, e.g. "US". */
-  country: string
-  url: string
-}
-
-/** Device rules are checked before country rules. */
-export type LinkTargeting = {
-  ios?: string
-  android?: string
-  geo?: GeoTargetRule[]
-}
-
-export type SocialPreview = {
-  title?: string
-  description?: string
-  imageUrl?: string
-}
+/** Delivery settings share the API's types so the editor cannot drift from what the server accepts. */
+export type { LinkHold, LinkTargeting, SocialPreview }
+export type HoldPage = HoldPageId
+export type GeoTargetRule = NonNullable<LinkTargeting['geo']>[number]
 
 /** Org-scoped folder. Folders nest recursively via `parentId` (null = root). */
 export type LinkFolder = {

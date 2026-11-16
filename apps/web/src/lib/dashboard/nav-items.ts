@@ -70,12 +70,6 @@ export function getDashboardNavGroups(orgSlug: string): DashboardNavGroup[] {
           href: path('analytics'),
           description: 'Traffic and trends',
         },
-        {
-          id: 'reports',
-          label: 'Reports',
-          href: path('reports'),
-          description: 'Exports and scheduled digests',
-        },
       ],
     },
   ]

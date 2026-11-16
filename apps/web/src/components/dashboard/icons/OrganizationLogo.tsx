@@ -7,6 +7,8 @@ type OrganizationLogoProps = {
   name: string
   brand: OrganizationBrand
   size?: number
+  /** Corner radius in px; defaults to a quarter of `size`. Pass the inner radius when the logo sits inside a rounded control. */
+  radius?: number
   customImageUrl?: string
 }
 
@@ -125,6 +127,7 @@ export default function OrganizationLogo({
   name,
   brand,
   size = 40,
+  radius = Math.round(size / 4),
   customImageUrl,
 }: OrganizationLogoProps) {
   const gradId = useId().replace(/:/g, '')
@@ -141,7 +144,7 @@ export default function OrganizationLogo({
             display: 'block',
             width: size,
             height: size,
-            borderRadius: 9,
+            borderRadius: radius,
             objectFit: 'cover',
           }}
         />
@@ -173,8 +176,9 @@ export default function OrganizationLogo({
 
   void gradId // suppress unused warning
 
+  // The tiles are drawn with their own corners; clipping makes every logo use `radius`.
   return (
-    <VStack width={size} height={size} hAlign="center" vAlign="center">
+    <VStack width={size} height={size} hAlign="center" vAlign="center" style={{ borderRadius: radius, overflow: 'hidden' }}>
       {glyph}
     </VStack>
   )

@@ -7,7 +7,7 @@ import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { SERIES_COLORS, chartHostStyle } from '#/components/analytics/chart-theme'
-import type { BreakdownRow } from '#/lib/analytics/demo-dataset'
+import type { BreakdownRow } from '#/lib/analytics/report'
 import { formatDelta, formatNumber, formatPercent } from '#/lib/analytics/format'
 
 type DeviceDonutProps = {

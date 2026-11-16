@@ -547,7 +547,6 @@
   }
 
   .astryx-text-input {
-    border-radius: 5px;
     box-shadow: none;
     background-color: light-dark(var(--color-background-surface), var(--color-background-muted));
   }
@@ -562,7 +561,6 @@
   }
 
   .astryx-text-area {
-    border-radius: 5px;
     box-shadow: none;
     background-color: light-dark(var(--color-background-surface), var(--color-background-muted));
   }
@@ -577,10 +575,8 @@
   }
 
   .astryx-number-input {
-    border-radius: 5px;
     box-shadow: none;
     background-color: light-dark(var(--color-background-surface), var(--color-background-muted));
-    --_field-radius: 5px;
   }
 
   .astryx-number-input:hover:where(:not(:disabled,[aria-disabled="true"])) {
@@ -593,7 +589,6 @@
   }
 
   .astryx-selector[data-variant="input"] {
-    border-radius: 5px;
     box-shadow: none;
     background-color: light-dark(var(--color-background-surface), var(--color-background-muted));
   }
@@ -608,7 +603,6 @@
   }
 
   .astryx-tokenizer {
-    border-radius: 5px;
     box-shadow: none;
     background-color: light-dark(var(--color-background-surface), var(--color-background-muted));
   }
@@ -623,7 +617,6 @@
   }
 
   .astryx-date-time-input {
-    border-radius: 5px;
     box-shadow: none;
     background-color: light-dark(var(--color-background-surface), var(--color-background-muted));
   }
@@ -635,6 +628,15 @@
   .astryx-date-time-input:focus-within {
     box-shadow: none;
     border-color: var(--color-accent);
+  }
+
+  .astryx-input-group {
+    border-radius: var(--radius-element);
+  }
+
+  .astryx-input-group-text {
+    color: var(--color-text-secondary);
+    background-color: var(--color-background-muted);
   }
 
   .astryx-field-label {

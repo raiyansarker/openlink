@@ -1,4 +1,5 @@
 import { redirect } from '@tanstack/react-router'
+import { passkeyClient } from '@better-auth/passkey/client'
 import { createAuthClient } from 'better-auth/react'
 
 import { AccessRules } from './access'
@@ -9,7 +10,7 @@ import type { AuthState } from './types'
 /** The browser's view of authentication: sign-in client, cached session state and route guards. */
 export class AuthSession {
   /** Talks to Better Auth at `/api/auth/*` on the same origin. */
-  static readonly client = createAuthClient()
+  static readonly client = createAuthClient({ plugins: [passkeyClient()] })
 
   /** Browser only: on the server this module is shared by all visitors, so nothing may be cached. */
   private static readonly cache = new AuthStateCache(() => fetchAuthState(), {

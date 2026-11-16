@@ -2,7 +2,8 @@ import { type } from 'arktype'
 
 import { EmptyResponse } from '../system/schema'
 import { oc, openapi } from '../oc'
-import { ListDeviceSessionsResponse, RevokeOtherSessionsResponse, SessionIdPath } from './schema'
+import { OrganizationMembership } from '../organizations/schema'
+import { ListDeviceSessionsResponse, ListMyInvitesResponse, MyInviteIdPath, RevokeOtherSessionsResponse, SessionIdPath } from './schema'
 
 export const listDeviceSessions = oc
   .meta(openapi({ method: 'GET', operationId: 'listDeviceSessions', path: '/me/sessions', summary: 'Devices you are signed in on', tags: ['Account'] }))
@@ -35,4 +36,44 @@ export const revokeOtherDeviceSessions = oc
   )
   .output(RevokeOtherSessionsResponse)
 
-export const contract = { listDeviceSessions, revokeDeviceSession, revokeOtherDeviceSessions } as const
+export const listMyInvites = oc
+  .meta(openapi({ method: 'GET', operationId: 'listMyInvites', path: '/me/invites', summary: 'Workspace invites sent to your email', tags: ['Account'] }))
+  .output(ListMyInvitesResponse)
+
+export const acceptMyInvite = oc
+  .meta(
+    openapi({
+      method: 'POST',
+      operationId: 'acceptMyInvite',
+      path: '/me/invites/{inviteId}/accept',
+      summary: 'Join the workspace an invite is for',
+      inputStructure: 'detailed',
+      tags: ['Account'],
+    }),
+  )
+  .input(type({ params: MyInviteIdPath }))
+  .output(OrganizationMembership)
+
+export const declineMyInvite = oc
+  .meta(
+    openapi({
+      method: 'DELETE',
+      operationId: 'declineMyInvite',
+      path: '/me/invites/{inviteId}',
+      successStatus: 204,
+      summary: 'Turn down a workspace invite',
+      inputStructure: 'detailed',
+      tags: ['Account'],
+    }),
+  )
+  .input(type({ params: MyInviteIdPath }))
+  .output(EmptyResponse)
+
+export const contract = {
+  listDeviceSessions,
+  revokeDeviceSession,
+  revokeOtherDeviceSessions,
+  listMyInvites,
+  acceptMyInvite,
+  declineMyInvite,
+} as const

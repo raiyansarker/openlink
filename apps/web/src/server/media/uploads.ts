@@ -5,7 +5,7 @@ import { Data, Effect } from 'effect'
 
 import { audit } from '../activity/audit'
 import { AuthOrigins } from '../auth/origins'
-import { requireOrgAdminEffect } from '../effect/access'
+import { requireLinkWriterEffect, requireOrgAdminEffect } from '../effect/access'
 import { operation } from '../effect/operations'
 import { Bindings } from '../effect/services/bindings'
 import { Db } from '../effect/services/db'
@@ -22,6 +22,8 @@ export class UploadRejected extends Data.TaggedError('UploadRejected')<{ status:
 export class MediaUploads {
   /** Already resized in the browser (256px WebP is ~20 KB); this only stops abuse. */
   static readonly MAX_BYTES = 1024 * 1024
+  /** Share cards are shown large (1200×630), so they get more room. */
+  static readonly MAX_PREVIEW_BYTES = 5 * 1024 * 1024
 
   /**
    * Cookie-authenticated writes must come from the app itself. Browsers always
@@ -37,25 +39,41 @@ export class MediaUploads {
   })
 
   /** Read the body as an image, checking size and the real format. */
-  static readonly readImage = Effect.gen(function* () {
-    const request = yield* WorkerRequest
-    const declared = Number(request.headers.get('content-length') ?? NaN)
-    if (Number.isFinite(declared) && declared > MediaUploads.MAX_BYTES) {
-      return yield* Effect.fail(new UploadRejected({ status: 413, message: 'That picture is too large.' }))
-    }
-    const buffer = yield* operation('media.readBody', () => request.arrayBuffer()).pipe(
-      Effect.mapError(() => new UploadRejected({ status: 400, message: 'The upload could not be read.' })),
-    )
-    if (buffer.byteLength > MediaUploads.MAX_BYTES) {
-      return yield* Effect.fail(new UploadRejected({ status: 413, message: 'That picture is too large.' }))
-    }
-    const bytes = new Uint8Array(buffer)
-    const format = ImageFormat.detect(bytes)
-    if (!format) {
-      return yield* Effect.fail(new UploadRejected({ status: 415, message: 'Use a PNG, JPG, WebP, or GIF picture.' }))
-    }
-    return { bytes, ...format }
-  })
+  static readonly readImage = MediaUploads.readImageUpTo(MediaUploads.MAX_BYTES)
+
+  static readImageUpTo(maxBytes: number) {
+    return Effect.gen(function* () {
+      const request = yield* WorkerRequest
+      const tooLarge = () => new UploadRejected({ status: 413, message: 'That picture is too large.' })
+      const declared = Number(request.headers.get('content-length') ?? NaN)
+      if (Number.isFinite(declared) && declared > maxBytes) return yield* Effect.fail(tooLarge())
+      const buffer = yield* operation('media.readBody', () => request.arrayBuffer()).pipe(
+        Effect.mapError(() => new UploadRejected({ status: 400, message: 'The upload could not be read.' })),
+      )
+      if (buffer.byteLength > maxBytes) return yield* Effect.fail(tooLarge())
+      const bytes = new Uint8Array(buffer)
+      const format = ImageFormat.detect(bytes)
+      if (!format) {
+        return yield* Effect.fail(new UploadRejected({ status: 415, message: 'Use a PNG, JPG, WebP, or GIF picture.' }))
+      }
+      return { bytes, ...format }
+    })
+  }
+
+  /**
+   * Store a share-card image for a workspace's links; anyone who can edit links.
+   * The URL is then saved on the link through the regular link API.
+   */
+  static setLinkPreview(organizationId: string) {
+    return Effect.gen(function* () {
+      yield* MediaUploads.requireTrustedOrigin
+      yield* requireLinkWriterEffect(organizationId)
+      const image = yield* MediaUploads.readImageUpTo(MediaUploads.MAX_PREVIEW_BYTES)
+      const key = MediaKey.create('previews', organizationId, image.extension)
+      yield* MediaStore.put(key, image.bytes, image.mime)
+      return { url: MediaKey.toUrl(key) }
+    })
+  }
 
   /** Replace the signed-in person's picture. API keys cannot change a person's profile. */
   static readonly setAvatar = Effect.gen(function* () {

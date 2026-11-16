@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 
 import { ApiError } from './error'
 
@@ -7,6 +7,9 @@ export class QueryKeys {
   static readonly currentUser = ['me'] as const
   static readonly linkedAccounts = ['me', 'accounts'] as const
   static readonly deviceSessions = ['me', 'sessions'] as const
+  static readonly passkeys = ['me', 'passkeys'] as const
+  /** Workspace invites addressed to you: the Notifications inbox. */
+  static readonly myInvites = ['me', 'invites'] as const
   static readonly organizations = ['organizations'] as const
   static workspace = (organizationId: string) => ['workspace', organizationId] as const
   static members = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'members'] as const
@@ -14,8 +17,14 @@ export class QueryKeys {
   static folders = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'folders'] as const
   static links = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'links'] as const
   static activity = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'activity'] as const
-  static comments = (organizationId: string, linkId: string) =>
-    [...QueryKeys.workspace(organizationId), 'comments', linkId] as const
+  static linkHistory = (organizationId: string, linkId: string) =>
+    [...QueryKeys.workspace(organizationId), 'history', linkId] as const
+  static analytics = (organizationId: string, range: string, linkId: string | null) =>
+    [...QueryKeys.workspace(organizationId), 'analytics', range, linkId ?? 'all'] as const
+  static analyticsSummary = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'analytics', 'summary'] as const
+  static frameCheck = (organizationId: string, url: string) => [...QueryKeys.workspace(organizationId), 'frame-check', url] as const
+  static recentClicks = (organizationId: string, linkId: string | null) =>
+    [...QueryKeys.workspace(organizationId), 'analytics', 'recent', linkId ?? 'all'] as const
   static apiKeys = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'api-keys'] as const
 }
 
@@ -27,15 +36,37 @@ export class AppQueryClient {
     return failureCount < AppQueryClient.MAX_RETRIES && ApiError.from(error).isRetryable
   }
 
+  /** At most one membership re-check per this many ms, however many calls fail at once. */
+  static readonly ACCESS_RECHECK_MS = 5_000
+
   static create() {
-    return new QueryClient({
+    let lastRecheck = 0
+    /**
+     * A 403 from any call can mean you were just removed from the workspace (or
+     * your role changed). Re-read your workspaces, so the shell can move you out
+     * of one you no longer belong to.
+     */
+    const onError = (error: unknown) => {
+      if (ApiError.from(error).status !== 403) return
+      const now = Date.now()
+      if (now - lastRecheck < AppQueryClient.ACCESS_RECHECK_MS) return
+      lastRecheck = now
+      void client.invalidateQueries({ queryKey: QueryKeys.organizations })
+    }
+    const client: QueryClient = new QueryClient({
+      queryCache: new QueryCache({ onError }),
+      mutationCache: new MutationCache({ onError }),
       defaultOptions: {
         queries: {
           staleTime: 30_000,
-          refetchOnWindowFocus: false,
+          // Coming back to the tab refreshes what's on screen if it's older than
+          // `staleTime`, so teammates' changes show without a reload. Forms keep
+          // their own drafts, so a refresh never overwrites what you're typing.
+          refetchOnWindowFocus: true,
           retry: AppQueryClient.shouldRetry,
         },
       },
     })
+    return client
   }
 }

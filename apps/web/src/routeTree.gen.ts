@@ -15,6 +15,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as WRouteRouteImport } from './routes/w/route'
 import { Route as ApiDocsRouteImport } from './routes/api/docs'
 import { Route as CreateLinkRouteImport } from './routes/create/link'
@@ -44,7 +45,6 @@ import { Route as WOrgSlugActivityRouteImport } from './routes/w/$orgSlug/activi
 import { Route as WOrgSlugAnalyticsRouteImport } from './routes/w/$orgSlug/analytics'
 import { Route as WOrgSlugDomainsRouteRouteImport } from './routes/w/$orgSlug/domains/route'
 import { Route as WOrgSlugNotificationsRouteImport } from './routes/w/$orgSlug/notifications'
-import { Route as WOrgSlugReportsRouteImport } from './routes/w/$orgSlug/reports'
 import { Route as WOrgSlugSettingsRouteRouteImport } from './routes/w/$orgSlug/settings/route'
 import { Route as WOrgSlugDomainsIndexRouteImport } from './routes/w/$orgSlug/domains/index'
 import { Route as WOrgSlugDomainsNewRouteImport } from './routes/w/$orgSlug/domains/new'
@@ -52,6 +52,7 @@ import { Route as WOrgSlugLinksIndexRouteImport } from './routes/w/$orgSlug/link
 import { Route as WOrgSlugLinksLinkIdRouteImport } from './routes/w/$orgSlug/links/$linkId'
 import { Route as WOrgSlugSettingsIndexRouteImport } from './routes/w/$orgSlug/settings/index'
 import { Route as WOrgSlugSettingsSplatRouteImport } from './routes/w/$orgSlug/settings/$'
+import { Route as ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport } from './routes/api/uploads/organizations/$organizationId/link-preview'
 import { Route as ApiUploadsOrganizationsOrganizationIdLogoRouteImport } from './routes/api/uploads/organizations/$organizationId/logo'
 
 const IndexRoute = IndexRouteImport.update({
@@ -82,6 +83,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WRouteRoute = WRouteRouteImport.update({
@@ -232,11 +238,6 @@ const WOrgSlugNotificationsRoute = WOrgSlugNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => WOrgSlugRouteRoute,
 } as any)
-const WOrgSlugReportsRoute = WOrgSlugReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => WOrgSlugRouteRoute,
-} as any)
 const WOrgSlugSettingsRouteRoute = WOrgSlugSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -272,6 +273,12 @@ const WOrgSlugSettingsSplatRoute = WOrgSlugSettingsSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => WOrgSlugSettingsRouteRoute,
 } as any)
+const ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute =
+  ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport.update({
+    id: '/api/uploads/organizations/$organizationId/link-preview',
+    path: '/api/uploads/organizations/$organizationId/link-preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiUploadsOrganizationsOrganizationIdLogoRoute =
   ApiUploadsOrganizationsOrganizationIdLogoRouteImport.update({
     id: '/api/uploads/organizations/$organizationId/logo',
@@ -287,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/signup': typeof SignupRoute
   '/w/$orgSlug': typeof WOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
@@ -314,7 +322,6 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
-  '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -322,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
   '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesByTo {
@@ -330,6 +338,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/signup': typeof SignupRoute
   '/settings': typeof SettingsIndexRoute
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
@@ -354,7 +363,6 @@ export interface FileRoutesByTo {
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
-  '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
   '/w/$orgSlug': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -362,6 +370,7 @@ export interface FileRoutesByTo {
   '/w/$orgSlug/domains': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
   '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesById {
@@ -373,6 +382,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/signup': typeof SignupRoute
   '/settings/_workspace': typeof SettingsWorkspaceRouteRouteWithChildren
   '/w/$orgSlug': typeof WOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
@@ -401,7 +411,6 @@ export interface FileRoutesById {
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
-  '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -409,6 +418,7 @@ export interface FileRoutesById {
   '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
   '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRouteTypes {
@@ -421,6 +431,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/login'
     | '/onboarding'
+    | '/signup'
     | '/w/$orgSlug'
     | '/api/docs'
     | '/create/link'
@@ -448,7 +459,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
     | '/w/$orgSlug/notifications'
-    | '/w/$orgSlug/reports'
     | '/w/$orgSlug/'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -456,6 +466,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains/'
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
+    | '/api/uploads/organizations/$organizationId/link-preview'
     | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -464,6 +475,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/login'
     | '/onboarding'
+    | '/signup'
     | '/settings'
     | '/api/docs'
     | '/create/link'
@@ -488,7 +500,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
     | '/w/$orgSlug/notifications'
-    | '/w/$orgSlug/reports'
     | '/w/$orgSlug'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains'
     | '/w/$orgSlug/links'
     | '/w/$orgSlug/settings'
+    | '/api/uploads/organizations/$organizationId/link-preview'
     | '/api/uploads/organizations/$organizationId/logo'
   id:
     | '__root__'
@@ -506,6 +518,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/login'
     | '/onboarding'
+    | '/signup'
     | '/settings/_workspace'
     | '/w/$orgSlug'
     | '/api/docs'
@@ -534,7 +547,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
     | '/w/$orgSlug/notifications'
-    | '/w/$orgSlug/reports'
     | '/w/$orgSlug/'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -542,6 +554,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains/'
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
+    | '/api/uploads/organizations/$organizationId/link-preview'
     | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesById: FileRoutesById
 }
@@ -553,6 +566,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  SignupRoute: typeof SignupRoute
   ApiDocsRoute: typeof ApiDocsRoute
   CreateLinkRoute: typeof CreateLinkRoute
   CreateOrganizationRoute: typeof CreateOrganizationRoute
@@ -563,6 +577,7 @@ export interface RootRouteChildren {
   ApiMediaSplatRoute: typeof ApiMediaSplatRoute
   ApiUploadsAvatarRoute: typeof ApiUploadsAvatarRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
+  ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute: typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
   ApiUploadsOrganizationsOrganizationIdLogoRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 
@@ -608,6 +623,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/w': {
@@ -813,13 +835,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WOrgSlugNotificationsRouteImport
       parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/w/$orgSlug/reports': {
-      id: '/w/$orgSlug/reports'
-      path: '/reports'
-      fullPath: '/w/$orgSlug/reports'
-      preLoaderRoute: typeof WOrgSlugReportsRouteImport
-      parentRoute: typeof WOrgSlugRouteRoute
-    }
     '/w/$orgSlug/settings': {
       id: '/w/$orgSlug/settings'
       path: '/settings'
@@ -868,6 +883,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$orgSlug/settings/$'
       preLoaderRoute: typeof WOrgSlugSettingsSplatRouteImport
       parentRoute: typeof WOrgSlugSettingsRouteRoute
+    }
+    '/api/uploads/organizations/$organizationId/link-preview': {
+      id: '/api/uploads/organizations/$organizationId/link-preview'
+      path: '/api/uploads/organizations/$organizationId/link-preview'
+      fullPath: '/api/uploads/organizations/$organizationId/link-preview'
+      preLoaderRoute: typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/uploads/organizations/$organizationId/logo': {
       id: '/api/uploads/organizations/$organizationId/logo'
@@ -957,7 +979,6 @@ interface WOrgSlugRouteRouteChildren {
   WOrgSlugActivityRoute: typeof WOrgSlugActivityRoute
   WOrgSlugAnalyticsRoute: typeof WOrgSlugAnalyticsRoute
   WOrgSlugNotificationsRoute: typeof WOrgSlugNotificationsRoute
-  WOrgSlugReportsRoute: typeof WOrgSlugReportsRoute
   WOrgSlugIndexRoute: typeof WOrgSlugIndexRoute
   WOrgSlugLinksLinkIdRoute: typeof WOrgSlugLinksLinkIdRoute
   WOrgSlugLinksIndexRoute: typeof WOrgSlugLinksIndexRoute
@@ -969,7 +990,6 @@ const WOrgSlugRouteRouteChildren: WOrgSlugRouteRouteChildren = {
   WOrgSlugActivityRoute: WOrgSlugActivityRoute,
   WOrgSlugAnalyticsRoute: WOrgSlugAnalyticsRoute,
   WOrgSlugNotificationsRoute: WOrgSlugNotificationsRoute,
-  WOrgSlugReportsRoute: WOrgSlugReportsRoute,
   WOrgSlugIndexRoute: WOrgSlugIndexRoute,
   WOrgSlugLinksLinkIdRoute: WOrgSlugLinksLinkIdRoute,
   WOrgSlugLinksIndexRoute: WOrgSlugLinksIndexRoute,
@@ -1000,6 +1020,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  SignupRoute: SignupRoute,
   ApiDocsRoute: ApiDocsRoute,
   CreateLinkRoute: CreateLinkRoute,
   CreateOrganizationRoute: CreateOrganizationRoute,
@@ -1010,6 +1031,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaSplatRoute: ApiMediaSplatRoute,
   ApiUploadsAvatarRoute: ApiUploadsAvatarRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
+  ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute:
+    ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute,
   ApiUploadsOrganizationsOrganizationIdLogoRoute:
     ApiUploadsOrganizationsOrganizationIdLogoRoute,
 }

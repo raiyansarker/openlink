@@ -71,6 +71,34 @@
       "when": 1794778830279,
       "tag": "0009_link_default_domain",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794812148124,
+      "tag": "0010_link_delivery",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1794815625646,
+      "tag": "0011_link_clicks",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1794819943744,
+      "tag": "0012_passkeys",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1794821818402,
+      "tag": "0013_remove_link_comments",
+      "breakpoints": true
     }
   ]
 }

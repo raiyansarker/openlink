@@ -1,8 +1,9 @@
 import { type } from 'arktype'
 
-import { ListActivityResponse } from '../activity/schema'
+import { LinkHistoryQuery, LinkHistoryResponse } from '../activity/schema'
 import { EmptyResponse } from '../system/schema'
 import { oc, openapi } from '../oc'
+import { HttpUrl } from '../schema-utils'
 import {
   AddLinkTagsRequest,
   BulkLinksResponse,
@@ -129,8 +130,8 @@ export const getLinkHistory = oc
       tags: ['Links'],
     }),
   )
-  .input(type({ params: LinkIdPath }))
-  .output(ListActivityResponse)
+  .input(type({ params: LinkIdPath, query: LinkHistoryQuery }))
+  .output(LinkHistoryResponse)
 
 const workspaceLinkOp = (method: 'GET' | 'POST' | 'PATCH', operationId: string, path: `/${string}`, extra: { successStatus?: 201; summary?: string } = {}) =>
   oc.meta(openapi({ method, operationId, path, inputStructure: 'detailed', tags: ['Links'], ...extra }))
@@ -150,8 +151,27 @@ export const updateWorkspaceLink = workspaceLinkOp('PATCH', 'updateWorkspaceLink
   .input(type({ body: UpdateLinkRequest, params: WorkspaceLinkIdPath }))
   .output(Link)
 
+export const getWorkspaceLinkHistory = workspaceLinkOp('GET', 'getWorkspaceLinkHistory', '/organizations/{organizationId}/links/{linkId}/history', {
+  summary: 'Audit events for one link, newest first',
+})
+  .input(type({ params: WorkspaceLinkIdPath, query: LinkHistoryQuery }))
+  .output(LinkHistoryResponse)
+
+const workspacePost = (operationId: string, path: `/${string}`, summary: string) =>
+  oc.meta(openapi({ method: 'POST', operationId, path, summary, inputStructure: 'detailed', tags: ['Links'] }))
+
+export const checkFraming = workspacePost(
+  'checkFraming',
+  '/organizations/{organizationId}/links/frame-check',
+  'Whether a destination can be shown in a frame (cloaked links fall back to a redirect when not)',
+)
+  .input(type({ params: OrganizationIdPath, body: type({ url: HttpUrl }) }))
+  .output(type({ frameable: 'boolean' }))
+
 export const contract = {
+  checkFraming,
   createWorkspaceLink,
+  getWorkspaceLinkHistory,
   getWorkspaceLink,
   updateWorkspaceLink,
   getLinkHistory,

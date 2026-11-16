@@ -8,7 +8,7 @@ const row = (overrides: Partial<typeof link.$inferSelect> = {}): typeof link.$in
   description: null, destinationUrl: 'https://example.com', redirectStatus: 302, status: 'active',
   enabled: true, activateAt: null, expiresAt: null, maxClicks: null, clickCount: 0, passwordHash: null,
   expiredDestinationUrl: null, fallbackDestinationUrl: null, tagsJson: '[]', utmJson: null,
-  metadataJson: null, createdByUserId: null, createdAt: now, updatedAt: now, ...overrides,
+  metadataJson: null, deliveryJson: null, createdByUserId: null, createdAt: now, updatedAt: now, ...overrides,
 })
 
 describe('diffLink', () => {
@@ -47,6 +47,11 @@ describe('linkUpdateAction', () => {
     expect(linkUpdateAction([{ label: 'Tags', from: '—', to: 'a' }])).toBe('link.tagged')
     expect(linkUpdateAction([{ label: 'Title', from: 'a', to: 'b' }])).toBe('link.updated')
     expect(linkUpdateAction([{ label: 'Folder', from: '—', to: 'f1' }, { label: 'Tags', from: '—', to: 'a' }])).toBe('link.updated')
+  })
+
+  test('a hold-only edit is held or released', () => {
+    expect(linkUpdateAction([{ label: 'Hold', from: '—', to: '{"page":"maintenance"}' }])).toBe('link.held')
+    expect(linkUpdateAction([{ label: 'Hold', from: '{"page":"maintenance"}', to: '—' }])).toBe('link.released')
   })
 })
 

@@ -35,7 +35,8 @@ describe('migration 0009 (links may use the app host)', () => {
       const original = db.exec.bind(db)
       db.exec = ((sql: string) => original(sql.replace(/PRAGMA foreign_keys=OFF;?/gi, 'SELECT 1;'))) as typeof db.exec
     }
-    for (const file of files.filter((f) => f >= '0009')) apply(db, file)
+    // Only 0009 itself: later migrations (e.g. 0013 drops comments) are not what this checks.
+    for (const file of files.filter((f) => f.startsWith('0009'))) apply(db, file)
     return db
   }
 

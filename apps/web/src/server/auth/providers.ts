@@ -39,3 +39,10 @@ export class SocialProviders {
     return { google: 'google' in config, github: 'github' in config }
   }
 }
+
+/** Email and password sign-in: on unless `EMAIL_PASSWORD_SIGN_IN` is exactly "false". */
+export class EmailPasswordSignIn {
+  static enabled(env: { EMAIL_PASSWORD_SIGN_IN?: string }): boolean {
+    return env.EMAIL_PASSWORD_SIGN_IN?.trim().toLowerCase() !== 'false'
+  }
+}

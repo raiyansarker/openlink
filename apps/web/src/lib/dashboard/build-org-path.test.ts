@@ -12,7 +12,6 @@ describe('WorkspaceUrl.build', () => {
       links: '/w/acme/links',
       analytics: '/w/acme/analytics',
       domains: '/w/acme/domains',
-      reports: '/w/acme/reports',
       settings: '/w/acme/settings',
     }
     for (const [section, path] of Object.entries(expected)) {

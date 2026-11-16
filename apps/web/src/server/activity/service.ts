@@ -1,9 +1,11 @@
-import { activityEvent } from '@openlink/db/schema'
-import { and, desc, eq, lt, or, type SQL } from 'drizzle-orm'
+import { EventBus } from '#/server/events/bus'
+import { activityEvent, user } from '@openlink/db/schema'
+import { and, count, countDistinct, desc, eq, getTableColumns, inArray, lt, min, or, sql, type SQL } from 'drizzle-orm'
 import { Effect } from 'effect'
 
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
+import { contains } from '#/server/sql/contains'
 import { ACTION_DEFINITIONS, type ActivityAction, type ActivityCategory, type Change } from './actions'
 
 export type ActivityActor =
@@ -50,12 +52,26 @@ export function recordActivity(input: RecordActivityInput) {
  * Audit logging must never fail the user's action, which has already
  * succeeded. A failed write is logged and dropped.
  */
+/** Record activity and publish it as a workspace event; neither can fail the caller. */
 export const recordActivityQuietly = (input: RecordActivityInput) =>
   recordActivity(input).pipe(
     Effect.catch((error) =>
       Effect.logWarning(`activity.record failed for ${input.action}: ${String(error.cause)}`),
     ),
+    Effect.andThen(EventBus.publish(activityToEvent(input))),
   )
+
+/** The workspace event an activity entry stands for. */
+export function activityToEvent(input: RecordActivityInput) {
+  const { actor } = input
+  return EventBus.create(input.action, input.organizationId, {
+    subject: input.target,
+    ...(actor.type === 'system'
+      ? {}
+      : { actor: actor.type === 'member' ? { type: 'member' as const, id: actor.userId, label: actor.label } : { type: 'api_key' as const, label: actor.label } }),
+    ...(input.changes && input.changes.length > 0 ? { data: { changes: input.changes } } : {}),
+  })
+}
 
 export const DEFAULT_ACTIVITY_PAGE = 50
 export const MAX_ACTIVITY_PAGE = 100
@@ -79,6 +95,26 @@ type ListInput = {
   target?: { type: string; id: string }
   limit?: number
   cursor?: string
+  /** User id of the member who acted. */
+  actor?: string
+  /** Free text: actor, action phrase or target. */
+  q?: string
+  /** Only these actions. */
+  actions?: readonly string[]
+}
+
+/** Text search over who, what and which item. Phrases aren't stored, so they match through the catalog. */
+const searchCondition = (text: string): SQL | undefined => {
+  const needle = text.trim().toLowerCase()
+  if (!needle) return undefined
+  const actions = Object.entries(ACTION_DEFINITIONS)
+    .filter(([, definition]) => definition.phrase.toLowerCase().includes(needle))
+    .map(([action]) => action)
+  return or(
+    contains(activityEvent.actorLabel, needle),
+    contains(activityEvent.targetLabel, needle),
+    actions.length > 0 ? inArray(activityEvent.action, actions) : undefined,
+  )
 }
 
 /** Newest first, with a cursor that stays stable while new events arrive. */
@@ -89,8 +125,10 @@ export function listActivity(input: ListInput) {
     const cursor = decodeCursor(input.cursor)
     const rows = yield* operation('activity.list', () =>
       db
-        .select()
+        // The actor's current profile picture, so the feed shows faces, not just initials.
+        .select({ ...getTableColumns(activityEvent), actorImage: user.image })
         .from(activityEvent)
+        .leftJoin(user, eq(user.id, activityEvent.actorUserId))
         .where(
           and(
             eq(activityEvent.organizationId, input.organizationId),
@@ -98,6 +136,9 @@ export function listActivity(input: ListInput) {
             input.target
               ? and(eq(activityEvent.targetType, input.target.type), eq(activityEvent.targetId, input.target.id))
               : undefined,
+            input.actor ? eq(activityEvent.actorUserId, input.actor) : undefined,
+            input.q ? searchCondition(input.q) : undefined,
+            input.actions ? inArray(activityEvent.action, [...input.actions]) : undefined,
             cursor ? beforeCursor(cursor) : undefined,
           ),
         )
@@ -106,5 +147,50 @@ export function listActivity(input: ListInput) {
     )
     const items = rows.slice(0, limit)
     return { items, nextCursor: rows.length > limit ? encodeCursor(items[items.length - 1]!) : undefined }
+  })
+}
+
+/**
+ * Totals for one target's events (e.g. a link's history): all events, events
+ * per named group of actions, distinct people, and the oldest event.
+ */
+export function summarizeTarget<K extends string>(input: {
+  organizationId: string
+  target: { type: string; id: string }
+  kinds: Record<K, readonly string[]>
+}) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const kindColumns = Object.fromEntries(
+      Object.entries<readonly string[]>(input.kinds).map(([kind, actions]) => [
+        kind,
+        sql<number>`coalesce(sum(case when ${inArray(activityEvent.action, [...actions])} then 1 else 0 end), 0)`,
+      ]),
+    )
+    const [row] = yield* operation('activity.summarizeTarget', () =>
+      db
+        .select({
+          total: count(),
+          people: countDistinct(activityEvent.actorLabel),
+          since: min(activityEvent.createdAt),
+          ...kindColumns,
+        })
+        .from(activityEvent)
+        .where(
+          and(
+            eq(activityEvent.organizationId, input.organizationId),
+            eq(activityEvent.targetType, input.target.type),
+            eq(activityEvent.targetId, input.target.id),
+          ),
+        ),
+    )
+    const record = (row ?? {}) as Record<string, unknown>
+    const kinds = Object.fromEntries(Object.keys(input.kinds).map((kind) => [kind, Number(record[kind] ?? 0)])) as Record<K, number>
+    return {
+      total: Number(record.total ?? 0),
+      people: Number(record.people ?? 0),
+      ...(record.since ? { since: new Date(record.since as string | number | Date).toISOString() } : {}),
+      kinds,
+    }
   })
 }

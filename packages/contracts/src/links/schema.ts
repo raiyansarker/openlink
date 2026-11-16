@@ -2,7 +2,11 @@ import { type } from 'arktype'
 
 import { HttpUrl } from '../schema-utils'
 import { DomainIdPath, RedirectStatus } from '../domains/schema'
+import { LinkHold, LinkTargeting, SocialPreview } from './delivery'
 import { OrganizationIdPath } from '../organizations/schema'
+
+/** Team notes on a link (stored as its `description`). */
+export const MAX_LINK_NOTES_LENGTH = 5000
 
 export const LinkStatus = type(
   "'draft' | 'scheduled' | 'active' | 'paused' | 'expired' | 'disabled'",
@@ -41,6 +45,13 @@ export const Link = type({
   'tags?': 'string[]',
   'utm?': UtmParameters,
   'metadata?': type({ '[string]': 'unknown' }),
+  /** Serves a placeholder page instead of redirecting while set (and before `releaseAt`). */
+  'hold?': LinkHold,
+  'targeting?': LinkTargeting,
+  /** Shows the destination inside a frame so the short URL stays in the address bar. */
+  'cloaked?': 'boolean',
+  /** Card shown to social and chat crawlers instead of the destination's own. */
+  'socialPreview?': SocialPreview,
   createdAt: 'string',
   updatedAt: 'string',
 })
@@ -52,7 +63,7 @@ export const CreateLinkRequest = type({
   'folderId?': 'string | null',
   destinationUrl: HttpUrl,
   'title?': 'string',
-  'description?': 'string',
+  'description?': `string <= ${MAX_LINK_NOTES_LENGTH}`,
   'redirectStatus?': RedirectStatus,
   'activateAt?': 'string',
   'expiresAt?': 'string',
@@ -63,6 +74,10 @@ export const CreateLinkRequest = type({
   'tags?': 'string[]',
   'utm?': UtmParameters,
   'metadata?': type({ '[string]': 'unknown' }),
+  'hold?': LinkHold,
+  'targeting?': LinkTargeting,
+  'cloaked?': 'boolean',
+  'socialPreview?': SocialPreview,
 })
 
 export const UpdateLinkRequest = type({
@@ -70,20 +85,25 @@ export const UpdateLinkRequest = type({
   'folderId?': 'string | null',
   'destinationUrl?': HttpUrl,
   'title?': 'string',
-  'description?': 'string',
+  /** For every optional setting below, null removes it and an absent field keeps it. */
+  'description?': type(`string <= ${MAX_LINK_NOTES_LENGTH}`).or('null'),
   'redirectStatus?': RedirectStatus,
   'status?': LinkStatus,
   'enabled?': 'boolean',
-  'activateAt?': 'string',
-  'expiresAt?': 'string',
-  'maxClicks?': 'number.integer>=1',
+  'activateAt?': 'string | null',
+  'expiresAt?': 'string | null',
+  'maxClicks?': type('number.integer>=1').or('null'),
   'password?': 'string>=4',
   'clearPassword?': 'boolean',
-  'expiredDestinationUrl?': HttpUrl,
-  'fallbackDestinationUrl?': HttpUrl,
+  'expiredDestinationUrl?': HttpUrl.or('null'),
+  'fallbackDestinationUrl?': HttpUrl.or('null'),
   'tags?': 'string[]',
-  'utm?': UtmParameters,
-  'metadata?': type({ '[string]': 'unknown' }),
+  'utm?': UtmParameters.or('null'),
+  'metadata?': type({ '[string]': 'unknown' }).or('null'),
+  'hold?': LinkHold.or('null'),
+  'targeting?': LinkTargeting.or('null'),
+  'cloaked?': 'boolean',
+  'socialPreview?': SocialPreview.or('null'),
 })
 
 export const LinkIdPath = type({

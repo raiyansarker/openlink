@@ -6,12 +6,10 @@ import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import { useQuery } from '@tanstack/react-query'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import type { MemberActivityEvent } from '#/data/demo/types'
-import { ApiClient } from '#/lib/api/client'
+import { useMemberActivity } from '#/hooks/use-activity'
 import { MemberId } from '#/lib/api/members'
-import { QueryKeys } from '#/lib/api/query'
 import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
 import { formatShortDate } from '#/lib/format/short-date'
 import {
@@ -68,23 +66,17 @@ export default function MemberDetailDrawer({
   const { activeOrg } = useOrganization()
   const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
   const userId = member ? MemberId.parse(member.id) : null
-  // What this person did recently, from the workspace activity feed.
-  const activityQuery = useQuery({
-    queryKey: [...QueryKeys.activity(activeOrg.id), 'recent'],
-    queryFn: () => ApiClient.instance.activity.listActivity({ params: { organizationId: activeOrg.id }, query: { limit: '100' } }),
-    enabled: isOpen && userId?.kind === 'user',
-  })
+  // What this person did most recently: their last 20 actions, filtered on the server.
+  const activityQuery = useMemberActivity(activeOrg.id, isOpen && userId?.kind === 'user' ? userId.id : null)
   const activities: MemberActivityEvent[] =
     userId?.kind === 'user'
-      ? (activityQuery.data?.items ?? [])
-          .filter((event) => event.actor.userId === userId.id)
-          .map((event) => ({
-            id: event.id,
-            memberId: member!.id,
-            title: `${event.phrase[0]!.toUpperCase()}${event.phrase.slice(1)} ${event.target.label}`,
-            ...(event.changes?.[0] ? { description: `${event.changes[0].label}: ${event.changes[0].from} → ${event.changes[0].to}` } : {}),
-            occurredAt: event.occurredAt,
-          }))
+      ? (activityQuery.data?.items ?? []).map((event) => ({
+          id: event.id,
+          memberId: member!.id,
+          title: `${event.action[0]!.toUpperCase()}${event.action.slice(1)} ${event.target}`,
+          ...(event.details?.[0] ? { description: `${event.details[0].label}: ${event.details[0].value}` } : {}),
+          occurredAt: event.occurredAt,
+        }))
       : []
 
   const isOwner = member?.role === 'owner'

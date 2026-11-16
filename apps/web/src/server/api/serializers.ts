@@ -1,3 +1,4 @@
+import { LinkDelivery } from '#/server/links/delivery'
 import type {
   activityEvent,
   apiKey,
@@ -9,8 +10,6 @@ import type {
   organizationMember,
 } from '@openlink/db/schema'
 
-import { parseReactions } from '#/server/comments/rules'
-import type { CommentRow } from '#/server/comments/service'
 import { ACTION_DEFINITIONS, isKnownAction, type Change } from '#/server/activity/actions'
 import { MediaKey } from '#/server/media/media-key'
 import { deriveLinkStatus } from '#/server/links/rules'
@@ -116,6 +115,7 @@ export function toLinkDto(row: typeof link.$inferSelect) {
     tags: JSON.parse(row.tagsJson) as string[],
     ...(row.utmJson ? { utm: JSON.parse(row.utmJson) } : {}),
     ...(row.metadataJson ? { metadata: JSON.parse(row.metadataJson) } : {}),
+    ...LinkDelivery.fromJson(row.deliveryJson).toDto(),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
@@ -171,6 +171,36 @@ export function toPendingInviteDto(row: typeof organizationInvite.$inferSelect) 
   }
 }
 
+/** An invite as its recipient sees it in their inbox. */
+export function toMyInviteDto(row: {
+  id: string
+  role: 'admin' | 'member' | 'viewer'
+  expiresAt: Date
+  createdAt: Date
+  organizationId: string
+  organizationName: string
+  organizationSlug: string
+  organizationLogoKey: string | null
+  invitedByName: string | null
+  invitedByImage: string | null
+}) {
+  return {
+    id: row.id,
+    role: row.role,
+    invitedAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt.toISOString(),
+    organization: {
+      id: row.organizationId,
+      name: row.organizationName,
+      slug: row.organizationSlug,
+      ...(row.organizationLogoKey ? { logoUrl: MediaKey.toUrl(row.organizationLogoKey) } : {}),
+    },
+    ...(row.invitedByName
+      ? { invitedBy: { name: row.invitedByName, ...(row.invitedByImage ? { imageUrl: row.invitedByImage } : {}) } }
+      : {}),
+  }
+}
+
 function parseChanges(json: string | null): Change[] | undefined {
   if (!json) return undefined
   try {
@@ -182,7 +212,10 @@ function parseChanges(json: string | null): Change[] | undefined {
 }
 
 /** `includeIp` is for administrators only. */
-export function toActivityDto(row: typeof activityEvent.$inferSelect, options: { includeIp: boolean }) {
+export function toActivityDto(
+  row: typeof activityEvent.$inferSelect & { actorImage?: string | null },
+  options: { includeIp: boolean },
+) {
   const changes = parseChanges(row.detailsJson)
   return {
     id: row.id,
@@ -195,25 +228,12 @@ export function toActivityDto(row: typeof activityEvent.$inferSelect, options: {
       type: row.actorType,
       label: row.actorLabel,
       ...(row.actorUserId ? { userId: row.actorUserId } : {}),
+      ...(row.actorImage ? { imageUrl: row.actorImage } : {}),
     },
     target: { type: row.targetType, ...(row.targetId ? { id: row.targetId } : {}), label: row.targetLabel },
     ...(changes ? { changes } : {}),
     ...(options.includeIp && row.ipAddress ? { ipAddress: row.ipAddress } : {}),
     occurredAt: row.createdAt.toISOString(),
-  }
-}
-
-export function toCommentDto(row: CommentRow) {
-  return {
-    id: row.id,
-    linkId: row.linkId,
-    authorId: row.authorUserId,
-    authorName: row.authorLabel,
-    ...(row.authorImage ? { authorImage: row.authorImage } : {}),
-    body: row.body,
-    createdAt: row.createdAt.toISOString(),
-    ...(row.editedAt ? { editedAt: row.editedAt.toISOString() } : {}),
-    reactions: parseReactions(row.reactionsJson),
   }
 }
 

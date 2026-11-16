@@ -1,5 +1,6 @@
 import { useState, type ComponentProps } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { BottomSheet } from '@astryxdesign/core/BottomSheet'
 import { BreadcrumbItem, Breadcrumbs } from '@astryxdesign/core/Breadcrumbs'
@@ -19,8 +20,10 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { useClipboard } from '@astryxdesign/core/hooks'
 import { QrBlock } from '#/components/create-link/LinkPreviewPanel'
 import LinkAnalyticsSection from '#/components/analytics/LinkAnalyticsSection'
-import LinkComments from '#/components/link-detail/LinkComments'
-import LinkHistoryTimeline from '#/components/link-detail/LinkHistoryTimeline'
+import LinkNotes, { lastNotesEdit } from '#/components/link-detail/LinkNotes'
+import { useLinkHistory } from '#/hooks/use-link-history'
+import { QueryKeys } from '#/lib/api/query'
+import LinkHistoryTimeline, { type HistoryKind } from '#/components/link-detail/LinkHistoryTimeline'
 import LinkSettingsPanel from '#/components/link-detail/LinkSettingsPanel'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
 import MoveToFolderDialog, { type MoveSubject } from '#/components/links/MoveToFolderDialog'
@@ -29,17 +32,23 @@ import { useOrganization } from '#/contexts/OrganizationContext'
 import type { ShortLink } from '#/data/demo/types'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatNumber } from '#/lib/analytics/format'
+import type { AnalyticsView } from '#/lib/analytics/search'
 import { isOnHold } from '#/lib/links/create-link'
 import { getFolderPath } from '#/lib/links/folder-tree'
 import { linkStatusLabel, linkStatusLine } from '#/lib/links/link-summary'
 
-export const LINK_DETAIL_TABS = ['analytics', 'comments', 'settings', 'history'] as const
+export const LINK_DETAIL_TABS = ['analytics', 'notes', 'settings', 'history'] as const
 export type LinkDetailTab = (typeof LINK_DETAIL_TABS)[number]
 
 type LinkDetailPageProps = {
   linkId: string
   tab: LinkDetailTab
   onTabChange: (tab: LinkDetailTab) => void
+  analyticsView: AnalyticsView
+  onAnalyticsViewChange: (change: Partial<AnalyticsView>) => void
+  /** History tab filter; null is All. */
+  historyKind: HistoryKind | null
+  onHistoryKindChange: (kind: HistoryKind | null) => void
 }
 
 const stripScheme = (url: string) => url.replace(/^https?:\/\//, '')
@@ -53,30 +62,6 @@ function TabCount({ count }: { count: number }) {
     <Text type="supporting" color="secondary">
       {count}
     </Text>
-  )
-}
-
-/** Monochrome status: a solid dot while serving, a ring otherwise. No color. */
-function StatusMark({ link }: { link: ShortLink }) {
-  const isServing = !isOnHold(link) && link.status === 'active'
-  return (
-    <HStack gap={1.5} vAlign="center">
-      <span
-        aria-hidden="true"
-        style={{
-          width: 7,
-          height: 7,
-          borderRadius: '50%',
-          flexShrink: 0,
-          boxSizing: 'border-box',
-          background: isServing ? 'var(--color-text-primary)' : 'transparent',
-          border: '1.5px solid var(--color-text-primary)',
-        }}
-      />
-      <Text type="supporting" weight="medium">
-        {linkStatusLabel(link)}
-      </Text>
-    </HStack>
   )
 }
 
@@ -101,7 +86,9 @@ function LinkHeader({
       <VStack gap={2} style={{ minWidth: 0, flex: '1 1 24rem' }}>
         <Heading level={1}>{link.title}</Heading>
         <HStack gap={3} vAlign="center" wrap="wrap">
-          <StatusMark link={link} />
+          <Text type="supporting" weight="medium">
+            {linkStatusLabel(link)}
+          </Text>
           <Text type="supporting" color="secondary">
             {link.clicks > 0 ? `${formatNumber(link.clicks)} lifetime clicks · ` : ''}
             {linkStatusLine(link)}
@@ -186,9 +173,17 @@ function QrSheet({
 
 /**
  * One short link: a header with its identity and actions, then tabs for its
- * analytics (the Insights panels scoped to this link), settings, and history.
+ * analytics (the Insights panels scoped to this link), team notes, settings, and history.
  */
-export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailPageProps) {
+export default function LinkDetailPage({
+  linkId,
+  tab,
+  onTabChange,
+  analyticsView,
+  onAnalyticsViewChange,
+  historyKind,
+  onHistoryKindChange,
+}: LinkDetailPageProps) {
   const navigate = useNavigate()
   const {
     activeOrg,
@@ -197,12 +192,9 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
     duplicateLink,
     moveLink,
     setLinkHold,
+    saveLinkNotes,
     deleteLink,
     checkLinksHealth,
-    addLinkComment,
-    editLinkComment,
-    deleteLinkComment,
-    toggleCommentReaction,
     shortHostFor,
     shortUrlFor,
   } = useOrganization()
@@ -210,6 +202,9 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isQrOpen, setIsQrOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+  // The filter only applies on the History tab; elsewhere (tab count, Notes) the newest events of any kind.
+  const history = useLinkHistory(activeOrg.id, linkId, tab === 'history' ? historyKind : null)
   const run = (action: () => Promise<unknown>) => {
     setActionError(null)
     action().catch((err: unknown) =>
@@ -241,8 +236,7 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
   const host = shortHostFor(link.domainId)
   const path = getFolderPath(folders, link.folderId ?? null)
   const held = isOnHold(link)
-  const historyCount = link.history?.length ?? 0
-  const comments = link.comments ?? []
+  const historyCount = history.summary?.total ?? 0
   const goToFolder = (folderId: string | null) =>
     void navigate({ to: linksPath, search: { folder: folderId ?? undefined } })
   const openEdit = (id = link.id) =>
@@ -328,11 +322,10 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
             panelId={panelId('analytics')}
           />
           <Tab
-            value="comments"
-            label="Comments"
-            id={tabId('comments')}
-            panelId={panelId('comments')}
-            endContent={<TabCount count={comments.length} />}
+            value="notes"
+            label="Notes"
+            id={tabId('notes')}
+            panelId={panelId('notes')}
           />
           <Tab
             value="settings"
@@ -360,17 +353,16 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
           // crowd the header.
           paddingBlockStart={tab === 'analytics' ? 6 : 2}
         >
-          {tab === 'analytics' ? <LinkAnalyticsSection linkId={link.id} /> : null}
+          {tab === 'analytics' ? <LinkAnalyticsSection linkId={link.id} view={analyticsView} onViewChange={onAnalyticsViewChange} /> : null}
 
-          {tab === 'comments' ? (
-            <LinkComments
-              comments={comments}
-              onAdd={(body) => addLinkComment(link.id, body)}
-              onEdit={(commentId, body) => editLinkComment(link.id, commentId, body)}
-              onDelete={(commentId) => deleteLinkComment(link.id, commentId)}
-              onToggleReaction={(commentId, emoji) =>
-                toggleCommentReaction(link.id, commentId, emoji)
-              }
+          {tab === 'notes' ? (
+            <LinkNotes
+              notes={link.description ?? ''}
+              lastEdit={lastNotesEdit(history.events)}
+              onSave={async (notes) => {
+                await saveLinkNotes(link.id, notes)
+                void queryClient.invalidateQueries({ queryKey: QueryKeys.linkHistory(activeOrg.id, link.id) })
+              }}
             />
           ) : null}
 
@@ -384,7 +376,20 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
             />
           ) : null}
 
-          {tab === 'history' ? <LinkHistoryTimeline events={link.history ?? []} /> : null}
+          {tab === 'history' ? (
+            <LinkHistoryTimeline
+              events={history.events}
+              summary={history.summary}
+              kind={historyKind}
+              onKindChange={onHistoryKindChange}
+              isLoading={history.isLoading}
+              loadError={history.error}
+              onRetry={history.retry}
+              hasMore={history.hasMore}
+              isLoadingMore={history.isLoadingMore}
+              onLoadMore={history.loadMore}
+            />
+          ) : null}
         </VStack>
       </VStack>
 

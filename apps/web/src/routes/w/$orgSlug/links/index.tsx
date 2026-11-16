@@ -24,11 +24,12 @@ function DashboardLinksPage() {
   const navigate = useNavigate({ from: Route.fullPath })
 
   return (
-    <Section padding={6}>
-      <VStack gap={4}>
-        <HStack hAlign="between" vAlign="start" gap={4} wrap="wrap" width="100%">
-          <VStack gap={1}>
-            <Heading level={2}>Links</Heading>
+    // Same frame as the other dashboard pages (Overview, Activity, Domains, Analytics).
+    <Section paddingInline={8} paddingBlockStart={8} paddingBlockEnd={10}>
+      <VStack gap={8} width="fill">
+        <HStack hAlign="between" vAlign="center" gap={4} wrap="wrap" width="fill">
+          <VStack gap={2}>
+            <Heading level={1}>Links</Heading>
             <Text color="secondary">Organize short links into folders.</Text>
           </VStack>
           {/* Creates in the folder you're viewing. */}

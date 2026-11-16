@@ -4,11 +4,15 @@ import LinkDetailPage, {
   LINK_DETAIL_TABS,
   type LinkDetailTab,
 } from '#/components/link-detail/LinkDetailPage'
+import { AnalyticsSearchParams, type AnalyticsSearch, type AnalyticsView } from '#/lib/analytics/search'
+import type { HistoryKind } from '#/components/link-detail/LinkHistoryTimeline'
 import { createPageHead } from '#/lib/page-title'
 
-type LinkDetailSearch = {
+type LinkDetailSearch = Omit<AnalyticsSearch, 'link'> & {
   /** Open tab; omitted means Analytics. */
   tab?: LinkDetailTab
+  /** History tab filter; omitted means All. */
+  kind?: HistoryKind
 }
 
 export const Route = createFileRoute('/w/$orgSlug/links/$linkId')({
@@ -20,24 +24,42 @@ export const Route = createFileRoute('/w/$orgSlug/links/$linkId')({
       search.tab !== 'analytics'
         ? (search.tab as LinkDetailTab)
         : undefined,
+    kind: search.kind === 'edits' || search.kind === 'hold' ? search.kind : undefined,
+    // The Analytics tab's period, comparison and chart view.
+    ...AnalyticsSearchParams.parse(search, { withLink: false }),
   }),
   component: LinkDetailRoute,
 })
 
 function LinkDetailRoute() {
   const { linkId } = Route.useParams()
-  const { tab = 'analytics' } = Route.useSearch()
+  const search = Route.useSearch()
+  const { tab = 'analytics' } = search
   const navigate = Route.useNavigate()
+  const analyticsView = AnalyticsSearchParams.toView(search)
+  const changeAnalyticsView = (change: Partial<AnalyticsView>) =>
+    void navigate({
+      search: (prev) => ({ ...prev, ...AnalyticsSearchParams.toSearch({ ...analyticsView, ...change, linkId: null }) }),
+      replace: true,
+      resetScroll: false,
+    })
   return (
     <Section padding={6}>
       <LinkDetailPage
         linkId={linkId}
         tab={tab}
+        // Switching tabs keeps the analytics settings, so coming back shows the same period.
         onTabChange={(next) =>
           void navigate({
-            search: { tab: next === 'analytics' ? undefined : next },
+            search: (prev) => ({ ...prev, tab: next === 'analytics' ? undefined : next }),
             replace: true,
           })
+        }
+        analyticsView={analyticsView}
+        onAnalyticsViewChange={changeAnalyticsView}
+        historyKind={search.kind ?? null}
+        onHistoryKindChange={(kind) =>
+          void navigate({ search: (prev) => ({ ...prev, kind: kind ?? undefined }), replace: true, resetScroll: false })
         }
       />
     </Section>

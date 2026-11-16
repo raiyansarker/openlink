@@ -446,7 +446,6 @@ export const openlinkNeutralTheme = {
     },
     "text-input": {
       "base": {
-        "borderRadius": "5px",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -460,7 +459,6 @@ export const openlinkNeutralTheme = {
     },
     "text-area": {
       "base": {
-        "borderRadius": "5px",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -474,7 +472,6 @@ export const openlinkNeutralTheme = {
     },
     "number-input": {
       "base": {
-        "borderRadius": "5px",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -488,7 +485,6 @@ export const openlinkNeutralTheme = {
     },
     "selector": {
       "variant:input": {
-        "borderRadius": "5px",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -502,7 +498,6 @@ export const openlinkNeutralTheme = {
     },
     "tokenizer": {
       "base": {
-        "borderRadius": "5px",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -516,7 +511,6 @@ export const openlinkNeutralTheme = {
     },
     "date-time-input": {
       "base": {
-        "borderRadius": "5px",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -526,6 +520,17 @@ export const openlinkNeutralTheme = {
           "borderColor": "var(--color-accent)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
+      }
+    },
+    "input-group": {
+      "base": {
+        "borderRadius": "var(--radius-element)"
+      }
+    },
+    "input-group-text": {
+      "base": {
+        "color": "var(--color-text-secondary)",
+        "backgroundColor": "var(--color-background-muted)"
       }
     },
     "field-label": {

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
+import { stableContext } from '#/lib/react/stable-context'
+import { useCallback, useContext, useMemo, type ReactNode } from 'react'
 
 import type { Organization } from '#/data/demo/types'
 import { ApiError } from '#/lib/api/error'
@@ -34,15 +35,22 @@ type WorkspaceDirectoryContextValue = {
   invalidate: () => Promise<void>
 }
 
-const WorkspaceDirectoryContext = createContext<WorkspaceDirectoryContextValue | null>(null)
+const WorkspaceDirectoryContext = stableContext<WorkspaceDirectoryContextValue | null>('WorkspaceDirectory', null)
 
 const NO_ORGANIZATIONS: Organization[] = []
+
+/** How often the workspace list is re-read while a tab is open. */
+const DIRECTORY_REFRESH_MS = 60_000
 
 export function WorkspaceDirectoryProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const query = useQuery({
     queryKey: QueryKeys.organizations,
     queryFn: () => WorkspaceApi.shared.listOrganizations(),
+    // Someone else can remove you, rename a workspace or invite you to one: keep the list current.
+    refetchInterval: DIRECTORY_REFRESH_MS,
+    // Coming back to the tab always re-checks, even if the list was read seconds ago.
+    refetchOnWindowFocus: 'always',
   })
 
   const create = useMutation({

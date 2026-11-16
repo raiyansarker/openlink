@@ -1,11 +1,11 @@
-export type MediaKind = 'avatars' | 'logos'
+export type MediaKind = 'avatars' | 'logos' | 'previews'
 
 /** Where uploads live in the bucket, and the URL each one is served from. */
 export class MediaKey {
   static readonly URL_PREFIX = '/api/media/'
 
-  private static readonly KINDS: readonly MediaKind[] = ['avatars', 'logos']
-  private static readonly SAFE_KEY = /^(avatars|logos)\/[A-Za-z0-9_-]+\/[A-Za-z0-9-]+\.(png|jpg|gif|webp)$/
+  private static readonly KINDS: readonly MediaKind[] = ['avatars', 'logos', 'previews']
+  private static readonly SAFE_KEY = /^(avatars|logos|previews)\/[A-Za-z0-9_-]+\/[A-Za-z0-9-]+\.(png|jpg|gif|webp)$/
 
   /** A fresh, unguessable key; a new key per upload means URLs can be cached forever. */
   static create(kind: MediaKind, ownerId: string, extension: string): string {

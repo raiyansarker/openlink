@@ -1,3 +1,5 @@
+import { FrameCheck } from '#/server/redirect/frame-check'
+import { AnalyticsReports, AnalyticsSummaries, RecentClicks } from '#/server/analytics/report'
 import { contract } from '@openlink/contracts'
 import '@orpc/effect/extensions/effect'
 import { ArkTypeToJsonSchemaConverter } from '@orpc/arktype'
@@ -10,13 +12,13 @@ import {
   toActivityDto,
   toApiKeyDto,
   toDeviceSessionDto,
-  toCommentDto,
   toDomainDto,
   toFolderDto,
   toLinkDto,
   toMembershipDto,
   toOrganizationDto,
   toPendingInviteDto,
+  toMyInviteDto,
   toUserDto,
   toWorkspaceMemberDto,
 } from '#/server/api/serializers'
@@ -50,15 +52,7 @@ import { createApiKey, listApiKeys, revokeApiKey, updateApiKeyRole } from '#/ser
 import { audit } from '#/server/activity/audit'
 import { diffLink, linkUpdateAction } from '#/server/activity/actions'
 import { listActivity } from '#/server/activity/service'
-import type { CommentForbidden, CommentInvalid } from '#/server/comments/errors'
-import { excerpt } from '#/server/comments/rules'
-import {
-  createComment,
-  deleteComment,
-  listComments,
-  toggleCommentReaction,
-  updateComment,
-} from '#/server/comments/service'
+import { LinkHistory, type LinkHistoryKind } from '#/server/activity/link-history'
 import { DeviceSessions } from '#/server/devices/sessions'
 import { MediaStore } from '#/server/media/media-store'
 import { ReservedSlugs } from '@openlink/contracts'
@@ -87,6 +81,9 @@ import {
 } from '#/server/org/members'
 import {
   acceptMemberInvite,
+  acceptInviteById,
+  declineInviteForEmail,
+  listInvitesForEmail,
   createMemberInvite,
   createOrganizationWithBootstrapInvite,
   getOrganizationById,
@@ -138,15 +135,38 @@ const memberErrors = (errors: ErrorFactories) => ({
   ...onMemberDenied(errors),
 })
 
-const onCommentNotFound = (errors: ErrorFactories) => ({
-  CommentNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'Comment not found' })),
-})
-const onCommentForbidden = (errors: ErrorFactories) => ({
-  CommentForbidden: (error: CommentForbidden) => Effect.fail(errors.FORBIDDEN({ message: error.message })),
-})
-const onCommentInvalid = (errors: { BAD_REQUEST: MessageError }) => ({
-  CommentInvalid: (error: CommentInvalid) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
-})
+/** A link addressed by workspace and link id, optionally pinned to a domain. */
+type LinkAddress = { organizationId: string; linkId: string; domainId?: string }
+
+/**
+ * A link's history. Served at both the per-domain paths and
+ * the workspace paths (which also reach links on the app's own host).
+ */
+class LinkHistoryRoutes {
+  static locate(address: LinkAddress) {
+    return Effect.gen(function* () {
+      if (address.domainId) return yield* requireLink(address.organizationId, address.domainId, address.linkId)
+      const row = yield* getLinkInOrganization(address.organizationId, address.linkId)
+      if (!row) return yield* Effect.fail(notFound('Link not found'))
+      return row
+    })
+  }
+
+  static history(address: LinkAddress, query: { kind?: LinkHistoryKind; limit?: number; cursor?: string }) {
+    return Effect.gen(function* () {
+      const { membership } = yield* requireOrgMemberEffect(address.organizationId)
+      yield* LinkHistoryRoutes.locate(address)
+      const { items, nextCursor } = yield* LinkHistory.page({ organizationId: address.organizationId, linkId: address.linkId, ...query })
+      // Totals only with the first page; later pages don't change them.
+      const summary = query.cursor ? undefined : yield* LinkHistory.summary(address.organizationId, address.linkId)
+      return {
+        items: items.map((row) => toActivityDto(row, { includeIp: isAdmin(membership.role) })),
+        ...(nextCursor ? { nextCursor } : {}),
+        ...(summary ? { summary } : {}),
+      }
+    })
+  }
+}
 
 const onFolderNotFound = (errors: ErrorFactories) => ({
   FolderNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'Folder not found' })),
@@ -255,6 +275,30 @@ export const router = os.router({
     }),
   },
 
+  analytics: {
+    getAnalyticsReport: os.analytics.getAnalyticsReport.effect(function* ({ input }) {
+      const organizationId = input.params.organizationId
+      yield* requireOrgMemberEffect(organizationId)
+      const { linkId, range = '30d', tzOffset = 0 } = input.query
+      // A link outside this workspace must not reveal whether it exists.
+      if (linkId && !(yield* getLinkInOrganization(organizationId, linkId))) return yield* Effect.fail(notFound('Link not found'))
+      return yield* AnalyticsReports.build({ organizationId, ...(linkId ? { linkId } : {}) }, range, tzOffset)
+    }),
+
+    listRecentClicks: os.analytics.listRecentClicks.effect(function* ({ input }) {
+      const organizationId = input.params.organizationId
+      yield* requireOrgMemberEffect(organizationId)
+      const { linkId, limit } = input.query
+      if (linkId && !(yield* getLinkInOrganization(organizationId, linkId))) return yield* Effect.fail(notFound('Link not found'))
+      return yield* RecentClicks.list({ organizationId, ...(linkId ? { linkId } : {}) }, limit)
+    }),
+
+    getAnalyticsSummary: os.analytics.getAnalyticsSummary.effect(function* ({ input }) {
+      yield* requireOrgMemberEffect(input.params.organizationId)
+      return yield* AnalyticsSummaries.build(input.params.organizationId, input.query.tzOffset ?? 0)
+    }),
+  },
+
   account: {
     // Cookie sessions only: an API key is not a device and must not sign people out.
     listDeviceSessions: os.account.listDeviceSessions.effect(function* () {
@@ -286,6 +330,45 @@ export const router = os.router({
         currentSessionId: session.session.session.id,
       })
       return { revoked }
+    }),
+
+    // Invites addressed to you. Matched on your signed-in email, so only you can see or answer them.
+    listMyInvites: os.account.listMyInvites.effect(function* () {
+      const session = yield* requireAuthSession
+      const rows = yield* listInvitesForEmail(session.session.user.email)
+      return { items: rows.map(toMyInviteDto) }
+    }),
+
+    acceptMyInvite: os.account.acceptMyInvite.effect(function* ({ input, errors }) {
+      const session = yield* requireAuthSession
+      const { org, member } = yield* acceptInviteById({
+        inviteId: input.params.inviteId,
+        userId: session.session.user.id,
+        userEmail: session.session.user.email,
+      }).pipe(Effect.catchTags({
+        // Not yours, gone or expired: all look the same, so ids can't be probed.
+        InviteEmailMismatch: () => Effect.fail(errors.NOT_FOUND({ message: 'This invite is no longer available' })),
+        InvalidInvite: () => Effect.fail(errors.NOT_FOUND({ message: 'This invite is no longer available' })),
+      }))
+      yield* audit(session, {
+        organizationId: org.id,
+        action: 'member.joined',
+        target: { type: 'member', id: session.session.user.id, label: session.session.user.name || session.session.user.email },
+      })
+      return toMembershipDto(org, member)
+    }),
+
+    declineMyInvite: os.account.declineMyInvite.effect(function* ({ input, errors }) {
+      const session = yield* requireAuthSession
+      const declined = yield* declineInviteForEmail({ inviteId: input.params.inviteId, userEmail: session.session.user.email }).pipe(
+        Effect.catchTags({ InvalidInvite: () => Effect.fail(errors.NOT_FOUND({ message: 'This invite is no longer available' })) }),
+      )
+      yield* audit(session, {
+        organizationId: declined.organizationId,
+        action: 'invite.declined',
+        target: { type: 'invite', id: declined.id, label: declined.email },
+      })
+      return {}
     }),
   },
 
@@ -638,76 +721,6 @@ export const router = os.router({
     }),
   },
 
-  comments: {
-    listLinkComments: os.comments.listLinkComments.effect(function* ({ input }) {
-      yield* requireOrgMemberEffect(input.params.organizationId)
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      const rows = yield* listComments(input.params.organizationId, input.params.linkId)
-      return { items: rows.map(toCommentDto) }
-    }),
-
-    createLinkComment: os.comments.createLinkComment.effect(function* ({ input, errors }) {
-      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
-      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
-      const existing = yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      const user = session.session.user
-      const row = yield* createComment({
-        organizationId: input.params.organizationId,
-        linkId: input.params.linkId,
-        author: { id: user.id, label: user.name || user.email },
-        body: input.body.body,
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
-      yield* audit(session, {
-        organizationId: input.params.organizationId,
-        action: 'link.commented',
-        target: { type: 'link', id: existing.id, label: existing.title || existing.slug },
-        changes: [{ label: 'Comment', from: '—', to: excerpt(row.body) }],
-      })
-      return toCommentDto(row)
-    }),
-
-    updateLinkComment: os.comments.updateLinkComment.effect(function* ({ input, errors }) {
-      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
-      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      const row = yield* updateComment({
-        organizationId: input.params.organizationId,
-        linkId: input.params.linkId,
-        commentId: input.params.commentId,
-        actorUserId: session.session.user.id,
-        body: input.body.body,
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors), ...onCommentInvalid(errors) }))
-      return toCommentDto(row)
-    }),
-
-    deleteLinkComment: os.comments.deleteLinkComment.effect(function* ({ input, errors }) {
-      const { session, membership } = yield* requireOrgMemberEffect(input.params.organizationId)
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      yield* deleteComment({
-        organizationId: input.params.organizationId,
-        linkId: input.params.linkId,
-        commentId: input.params.commentId,
-        actorUserId: session.session.user.id,
-        actorIsAdmin: isAdmin(membership.role),
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors) }))
-      return {}
-    }),
-
-    toggleCommentReaction: os.comments.toggleCommentReaction.effect(function* ({ input, errors }) {
-      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
-      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Reactions require a signed-in member' }))
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      const row = yield* toggleCommentReaction({
-        organizationId: input.params.organizationId,
-        linkId: input.params.linkId,
-        commentId: input.params.commentId,
-        userId: session.session.user.id,
-        emoji: input.body.emoji,
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
-      return toCommentDto(row)
-    }),
-  },
-
   links: {
     listOrganizationLinks: os.links.listOrganizationLinks.effect(function* ({ input }) {
       yield* requireOrgMemberEffect(input.params.organizationId)
@@ -757,6 +770,12 @@ export const router = os.router({
         })
       }
       return { affected }
+    }),
+
+    checkFraming: os.links.checkFraming.effect(function* ({ input }) {
+      // Only people who can edit links can make the server fetch a URL.
+      yield* requireLinkWriterEffect(input.params.organizationId)
+      return { frameable: yield* FrameCheck.frameable(input.body.url) }
     }),
 
     createWorkspaceLink: os.links.createWorkspaceLink.effect(function* ({ input, errors }) {
@@ -879,14 +898,10 @@ export const router = os.router({
     }),
 
     getLinkHistory: os.links.getLinkHistory.effect(function* ({ input }) {
-      const { membership } = yield* requireOrgMemberEffect(input.params.organizationId)
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      const { items } = yield* listActivity({
-        organizationId: input.params.organizationId,
-        target: { type: 'link', id: input.params.linkId },
-        limit: 100,
-      })
-      return { items: items.map((row) => toActivityDto(row, { includeIp: isAdmin(membership.role) })) }
+      return yield* LinkHistoryRoutes.history(input.params, input.query)
+    }),
+    getWorkspaceLinkHistory: os.links.getWorkspaceLinkHistory.effect(function* ({ input }) {
+      return yield* LinkHistoryRoutes.history(input.params, input.query)
     }),
   },
 })

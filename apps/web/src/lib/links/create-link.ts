@@ -1,3 +1,4 @@
+import { HoldPages } from '@openlink/contracts'
 import type {
   HoldPage,
   LinkHold,
@@ -315,8 +316,8 @@ export function validateDraft(
     if (description.length > MAX_PREVIEW_DESCRIPTION) {
       errors.previewDescription = `Use ${MAX_PREVIEW_DESCRIPTION} characters or fewer.`
     }
-    // Uploaded images are stored as data: URLs; http(s) URLs are accepted too.
-    if (image && !image.startsWith('data:image/') && !isHttpUrl(image)) {
+    // Uploads come back as our own media paths; public http(s) images are accepted too.
+    if (image && !image.startsWith('/api/media/previews/') && !isHttpUrl(image)) {
       errors.previewImage = 'Upload a PNG, JPG, WebP or GIF image.'
     }
   }
@@ -366,8 +367,8 @@ export function cleanHold(draft: CreateLinkDraft): LinkHold | undefined {
 
 /** True while a link's hold is in effect (it lifts itself at `releaseAt`). */
 export function isOnHold(link: Pick<ShortLink, 'hold'>, now = new Date()): boolean {
-  if (!link.hold) return false
-  return !link.hold.releaseAt || new Date(link.hold.releaseAt) > now
+  // Same rule the redirect engine applies.
+  return HoldPages.isActive(link.hold, now)
 }
 
 /** Targeting rules, or undefined when targeting is off or empty. */

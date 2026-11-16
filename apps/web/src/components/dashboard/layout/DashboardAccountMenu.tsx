@@ -57,6 +57,8 @@ export default function DashboardAccountMenu({
             overflow: 'hidden',
             cursor: 'pointer',
             backgroundColor: onRail ? DASHBOARD_RAIL_BG : SHELL_POPOVER_SURFACE,
+            // The rail is dark in both modes, so the Avatar's initials fallback uses its dark-mode colours there.
+            ...(onRail ? { colorScheme: 'dark' } : {}),
             flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
@@ -65,7 +67,7 @@ export default function DashboardAccountMenu({
           }}
         >
           <Avatar
-            src={user?.image ?? undefined}
+            src={user?.image || undefined}
             name={user?.name ?? 'Account'}
             size={36}
             shape="rounded"

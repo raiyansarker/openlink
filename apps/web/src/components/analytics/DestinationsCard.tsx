@@ -1,7 +1,7 @@
 import AnalyticsCard from '#/components/analytics/AnalyticsCard'
 import RankedBars from '#/components/analytics/RankedBars'
 import { SERIES_COLORS } from '#/components/analytics/chart-theme'
-import type { DestinationRow } from '#/lib/analytics/demo-dataset'
+import type { DestinationRow } from '#/lib/analytics/report'
 
 type DestinationsCardProps = {
   rows: DestinationRow[]

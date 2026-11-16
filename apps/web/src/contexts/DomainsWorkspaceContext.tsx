@@ -1,5 +1,4 @@
 import {
-  createContext,
   useCallback,
   useContext,
   useEffect,
@@ -7,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { stableContext } from '#/lib/react/stable-context'
 import { useQueryClient } from '@tanstack/react-query'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
@@ -25,7 +25,7 @@ type DomainsWorkspaceContextValue = {
   consumeDetailRequest: () => string | null
 }
 
-const DomainsWorkspaceContext = createContext<DomainsWorkspaceContextValue | null>(null)
+const DomainsWorkspaceContext = stableContext<DomainsWorkspaceContextValue | null>('DomainsWorkspace', null)
 
 const domainsApi = new DomainsApi()
 

@@ -1,3 +1,4 @@
+import { getAuthenticatorName, passkey } from '@better-auth/passkey'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import * as schema from '@openlink/db/schema'
@@ -5,7 +6,7 @@ import { getBindings } from '../env'
 import { getDb } from '../db'
 import { AuthHooks } from './hooks'
 import { AuthOrigins } from './origins'
-import { SocialProviders } from './providers'
+import { EmailPasswordSignIn, SocialProviders } from './providers'
 
 let auth: ReturnType<typeof createAuth> | undefined
 let authConfigKey: string | undefined
@@ -25,6 +26,7 @@ function createAuth() {
         session: schema.session,
         account: schema.account,
         verification: schema.verification,
+        passkey: schema.passkey,
       },
     }),
     socialProviders: SocialProviders.config(bindings),
@@ -61,9 +63,24 @@ function createAuth() {
       },
     },
     emailAndPassword: {
-      enabled: bindings.EMAIL_PASSWORD_SIGN_IN === 'true',
+      enabled: EmailPasswordSignIn.enabled(bindings),
       minPasswordLength: 8,
     },
+    plugins: [
+      passkey({
+        rpName: 'OpenLink',
+        // The app's own host: passkeys belong to the domain people sign in on.
+        rpID: new URL(bindings.BETTER_AUTH_URL).hostname,
+        origin: AuthOrigins.trusted(bindings),
+        registration: {
+          // Unnamed passkeys get their authenticator's name (e.g. "iCloud Keychain") when it is known.
+          afterVerification: async ({ verification }) => {
+            const name = getAuthenticatorName(verification.registrationInfo?.aaguid)
+            return name ? { name } : {}
+          },
+        },
+      }),
+    ],
     advanced: {
       cookiePrefix: 'openlink',
     },

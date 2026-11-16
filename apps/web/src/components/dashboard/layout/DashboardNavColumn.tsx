@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Badge } from '@astryxdesign/core/Badge'
+import { useMyInvites } from '#/hooks/use-my-invites'
 import { useNavigate } from '@tanstack/react-router'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import {
@@ -12,7 +14,6 @@ import {
   DashboardIcon,
   LinkIcon,
   BarChartIcon,
-  ReportIcon,
   GlobeIcon,
   ActivityIcon,
   BellIcon,
@@ -63,16 +64,18 @@ const NAV_ICONS: Record<DashboardSection, ReactNode> = {
   links: <LinkIcon size={16} strokeWidth={1.2} />,
   analytics: <BarChartIcon size={16} strokeWidth={1.2} />,
   domains: <GlobeIcon size={16} strokeWidth={1.2} />,
-  reports: <ReportIcon size={16} strokeWidth={1.2} />,
   settings: <SettingsIcon size={16} strokeWidth={1.2} />,
 }
 
 function NavLinkItem({
   item,
   isSelected,
+  count = 0,
 }: {
   item: DashboardNavItem
   isSelected: boolean
+  /** Shown as a badge when above zero (e.g. waiting notifications). */
+  count?: number
 }) {
   const [hovered, setHovered] = useState(false)
   const navigate = useNavigate()
@@ -103,6 +106,11 @@ function NavLinkItem({
         {NAV_ICONS[item.id]}
       </span>
       {item.label}
+      {count > 0 ? (
+        <span style={{ marginInlineStart: 'auto', display: 'flex' }} aria-label={`${count} waiting`}>
+          <Badge variant="neutral" label={count > 99 ? '99+' : String(count)} />
+        </span>
+      ) : null}
     </button>
   )
 }
@@ -131,6 +139,7 @@ export default function DashboardNavColumn() {
   const pathname = useActivePathname()
   const section = WorkspaceUrl.sectionOf(pathname, activeOrg.slug)
   const groups = getDashboardNavGroups(activeOrg.slug)
+  const waitingInvites = useMyInvites().data?.length ?? 0
   return (
     <div
       style={{
@@ -174,6 +183,7 @@ export default function DashboardNavColumn() {
                   key={item.id}
                   item={item}
                   isSelected={section === item.id}
+                  count={item.id === 'notifications' ? waitingInvites : 0}
                 />
               ))}
             </div>

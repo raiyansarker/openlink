@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Text } from '@astryxdesign/core/Text'
+import { VStack } from '@astryxdesign/core/VStack'
 import { Layer, Source, useMap } from '@vis.gl/react-maplibre'
 import type { GeoJSONSourceSpecification } from 'maplibre-gl'
 import StaticMap from '#/components/maps/StaticMap'
 import { useResolvedColorScheme } from '#/hooks/use-resolved-color-scheme'
-import type { CountryRow } from '#/lib/analytics/demo-dataset'
-import { formatNumber } from '#/lib/analytics/format'
+import type { CountryRow } from '#/lib/analytics/report'
+import { formatNumber, formatPercent } from '#/lib/analytics/format'
 import { resolveCssColor } from '#/lib/maps/load-maplibre'
 
 type WorldBubbleMapProps = {
@@ -28,22 +30,29 @@ function toGeoJson(countries: CountryRow[]): GeoJSONSourceSpecification['data'] 
   const max = Math.max(1, ...countries.map((c) => c.clicks))
   return {
     type: 'FeatureCollection',
-    features: countries.map((country) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [country.lng, country.lat] },
+    // Countries without a known location (e.g. local development) have no bubble.
+    features: countries.flatMap((country) =>
+      country.lat == null || country.lng == null ? [] : [{
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [country.lng, country.lat] },
       properties: {
         label: country.label,
         clicks: country.clicks,
         // 0..1 by area, so a bubble twice the size means twice the clicks.
         weight: Math.sqrt(country.clicks / max),
       },
-    })),
+    }]),
   }
 }
 
+/** Bubble radius in px for a 0..1 weight; matches the layer's `circle-radius`. */
+const BUBBLE_MIN_PX = 3
+const BUBBLE_MAX_PX = 26
+const bubbleRadius = (weight: number) => BUBBLE_MIN_PX + (BUBBLE_MAX_PX - BUBBLE_MIN_PX) * weight
+
 /**
- * Click volume by country as bubbles on an OpenFreeMap world map.
- * Non-interactive by design; exact numbers live in the list beside it.
+ * Click volume by country as bubbles on an OpenFreeMap world map. The map
+ * doesn't pan or zoom; hovering a bubble names the country and its clicks.
  */
 export default function WorldBubbleMap({ countries, height = 280 }: WorldBubbleMapProps) {
   const scheme = useResolvedColorScheme()
@@ -73,7 +82,7 @@ export default function WorldBubbleMap({ countries, height = 280 }: WorldBubbleM
           id="country-clicks-circles"
           type="circle"
           paint={{
-            'circle-radius': ['interpolate', ['linear'], ['get', 'weight'], 0, 3, 1, 26],
+            'circle-radius': ['interpolate', ['linear'], ['get', 'weight'], 0, BUBBLE_MIN_PX, 1, BUBBLE_MAX_PX],
             'circle-color': accent,
             'circle-opacity': 0.32,
             'circle-stroke-color': accent,
@@ -82,6 +91,7 @@ export default function WorldBubbleMap({ countries, height = 280 }: WorldBubbleM
           }}
         />
       </Source>
+      <BubbleHover countries={countries} />
     </StaticMap>
   )
 }
@@ -113,4 +123,80 @@ function HideBasemapLabels() {
   }, [ref])
 
   return null
+}
+
+type Hovered = { country: CountryRow; x: number; y: number; width: number }
+
+/**
+ * Hover for a map that takes no input of its own (MapLibre attaches no
+ * listeners when `interactive` is off): the pointer is tested against each
+ * bubble's on-screen circle, smallest first so a small country inside a big
+ * one's bubble can still be reached.
+ */
+function BubbleHover({ countries }: { countries: CountryRow[] }) {
+  const { current: ref } = useMap()
+  const [hovered, setHovered] = useState<Hovered | null>(null)
+  const total = countries.reduce((sum, c) => sum + c.clicks, 0)
+
+  useEffect(() => {
+    const map = ref?.getMap()
+    if (!map) return
+    const container = map.getCanvasContainer()
+    const max = Math.max(1, ...countries.map((c) => c.clicks))
+    const placed = countries
+      .filter((c): c is CountryRow & { lat: number; lng: number } => c.lat != null && c.lng != null)
+      .map((country) => ({ country, radius: bubbleRadius(Math.sqrt(country.clicks / max)) }))
+      .sort((a, b) => a.radius - b.radius)
+
+    const onMove = (event: MouseEvent) => {
+      const box = container.getBoundingClientRect()
+      const x = event.clientX - box.left
+      const y = event.clientY - box.top
+      const hit = placed.find(({ country, radius }) => {
+        const point = map.project([country.lng, country.lat])
+        return Math.hypot(point.x - x, point.y - y) <= radius + 2
+      })
+      container.style.cursor = hit ? 'default' : ''
+      setHovered(hit ? { country: hit.country, x, y, width: box.width } : null)
+    }
+    const onLeave = () => setHovered(null)
+    container.addEventListener('mousemove', onMove)
+    container.addEventListener('mouseleave', onLeave)
+    return () => {
+      container.removeEventListener('mousemove', onMove)
+      container.removeEventListener('mouseleave', onLeave)
+    }
+  }, [ref, countries])
+
+  if (!hovered) return null
+  const share = total > 0 ? hovered.country.clicks / total : 0
+  return (
+    <VStack
+      role="tooltip"
+      gap={0.5}
+      paddingBlock={1.5}
+      paddingInline={3}
+      style={{
+        position: 'absolute',
+        left: hovered.x,
+        top: hovered.y,
+        // Beside the pointer, on whichever side has room, so the card never clips it.
+        transform: `translate(${hovered.x > hovered.width / 2 ? 'calc(-100% - 12px)' : '12px'}, ${hovered.y < 64 ? '12px' : 'calc(-100% - 8px)'})`,
+        pointerEvents: 'none',
+        zIndex: 1,
+        whiteSpace: 'nowrap',
+        background: 'var(--color-background-popover)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-inner)',
+        boxShadow: 'var(--shadow-med)',
+      }}
+    >
+      <Text type="supporting" weight="semibold">
+        {hovered.country.label}
+      </Text>
+      <Text type="supporting" color="secondary">
+        {formatNumber(hovered.country.clicks)} clicks · {formatPercent(share)}
+      </Text>
+    </VStack>
+  )
 }

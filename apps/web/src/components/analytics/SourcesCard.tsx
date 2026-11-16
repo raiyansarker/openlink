@@ -6,7 +6,7 @@ import {
 import AnalyticsCard from '#/components/analytics/AnalyticsCard'
 import RankedBars from '#/components/analytics/RankedBars'
 import { SERIES_COLORS } from '#/components/analytics/chart-theme'
-import type { AnalyticsReport } from '#/lib/analytics/demo-dataset'
+import type { AnalyticsReport } from '#/lib/analytics/report'
 import { formatPercent } from '#/lib/analytics/format'
 
 type SourcesCardProps = {

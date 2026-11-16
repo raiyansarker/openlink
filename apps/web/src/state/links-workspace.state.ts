@@ -1,8 +1,8 @@
 import { observable } from '@legendapp/state'
 import type { ShortLink } from '#/data/demo/types'
 
-/** Parts of a link the API does not store yet (comments, health checks, their timeline). */
-export type LinkLocalExtras = Pick<ShortLink, 'comments' | 'health' | 'history'>
+/** Parts of a link the API does not store yet (destination health checks). */
+export type LinkLocalExtras = Pick<ShortLink, 'health'>
 
 /**
  * Session-only link extras, keyed by link id. Module-level so every

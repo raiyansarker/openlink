@@ -13,11 +13,15 @@ const OPENLINK_BG_SURFACE = ['#ffffff', '#18181b'] as const
 const OPENLINK_BG_MUTED = ['#ececec', '#121214'] as const
 const OPENLINK_BG_POPOVER = ['#ffffff', '#1f1f24'] as const
 
-const INPUT_FIELD_RADIUS = '5px'
+/** Same corner as buttons (`--radius-element`), so fields and the buttons beside them match. */
+const INPUT_FIELD_RADIUS = 'var(--radius-element)'
 
-/** Border-only focus — semantic accent (blue), no inset shadow rings on fields. */
+/**
+ * Border-only focus — semantic accent (blue), no inset shadow rings on fields.
+ * No `borderRadius` here: fields already use `--radius-element`, and setting it
+ * in the theme layer would override InputGroup's square inner corners.
+ */
 const INPUT_QUIET_FOCUS = {
-  borderRadius: INPUT_FIELD_RADIUS,
   boxShadow: 'none',
   ':hover': { boxShadow: 'none' },
   ':focus-within': {
@@ -123,6 +127,17 @@ export const openlinkTheme = defineTheme({
         ...INPUT_QUIET_FOCUS,
         backgroundColor:
           'light-dark(var(--color-background-surface), var(--color-background-muted))',
+      },
+    },
+    // Grouped inputs (prefix + field, e.g. "https://" + hostname) round as one control.
+    'input-group': {
+      base: { borderRadius: INPUT_FIELD_RADIUS },
+    },
+    // Static prefixes and suffixes ("https://", "/") read as part of the field, not as input.
+    'input-group-text': {
+      base: {
+        color: 'var(--color-text-secondary)',
+        backgroundColor: 'var(--color-background-muted)',
       },
     },
     'field-label': {

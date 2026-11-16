@@ -8,14 +8,6 @@ type FolderDto = Awaited<ReturnType<OpenLinkClient['folders']['createFolder']>>
 type CreateBody = Parameters<OpenLinkClient['links']['createWorkspaceLink']>[0]['body']
 type UpdateBody = Parameters<OpenLinkClient['links']['updateWorkspaceLink']>[0]['body']
 
-/**
- * Settings the editor offers that the redirect service does not apply yet
- * (cloaking, social preview, device/geo targeting, hold). They are kept in the
- * link's metadata under this key so they round-trip instead of being lost.
- */
-const UI_KEY = '__openlink_ui'
-type UiExtras = Pick<ShortLink, 'cloaked' | 'socialPreview' | 'targeting' | 'hold'>
-
 /** API links ↔ the shape the links screens render. */
 export class LinkMapper {
   static status(status: LinkDto['status']): ShortLinkStatus {
@@ -26,10 +18,7 @@ export class LinkMapper {
   }
 
   static toShortLink(row: LinkDto): ShortLink {
-    const meta = { ...row.metadata } as Record<string, unknown>
-    const extras = (meta[UI_KEY] ?? {}) as UiExtras
-    delete meta[UI_KEY]
-    const userMeta = Object.fromEntries(Object.entries(meta).map(([k, v]) => [k, String(v)]))
+    const userMeta = Object.fromEntries(Object.entries(row.metadata ?? {}).map(([k, v]) => [k, String(v)]))
     const utm = row.utm as ShortLink['utm']
     return {
       id: row.id,
@@ -56,19 +45,15 @@ export class LinkMapper {
       ...(row.fallbackDestinationUrl ? { fallbackDestinationUrl: row.fallbackDestinationUrl } : {}),
       ...(utm ? { utm } : {}),
       ...(Object.keys(userMeta).length > 0 ? { metadata: userMeta } : {}),
-      ...extras,
+      ...(row.hold ? { hold: row.hold } : {}),
+      ...(row.targeting ? { targeting: row.targeting } : {}),
+      ...(row.cloaked ? { cloaked: true } : {}),
+      ...(row.socialPreview ? { socialPreview: row.socialPreview } : {}),
     }
   }
 
   /** The fields a draft-built link sends to the API. */
-  static toBody(link: ShortLink, password?: string): CreateBody & UpdateBody {
-    const extras: UiExtras = {
-      ...(link.cloaked ? { cloaked: true } : {}),
-      ...(link.socialPreview ? { socialPreview: link.socialPreview } : {}),
-      ...(link.targeting ? { targeting: link.targeting } : {}),
-      ...(link.hold ? { hold: link.hold } : {}),
-    }
-    const metadata = { ...link.metadata, ...(Object.keys(extras).length > 0 ? { [UI_KEY]: extras } : {}) }
+  static toBody(link: ShortLink, password?: string): CreateBody {
     return {
       destinationUrl: link.destinationUrl ?? link.targetUrl,
       title: link.title,
@@ -82,8 +67,31 @@ export class LinkMapper {
       ...(link.fallbackDestinationUrl ? { fallbackDestinationUrl: link.fallbackDestinationUrl } : {}),
       tags: link.tags,
       ...(link.utm ? { utm: link.utm } : {}),
-      metadata,
+      ...(link.metadata ? { metadata: link.metadata } : {}),
       folderId: link.folderId ?? null,
+      ...(link.hold ? { hold: link.hold } : {}),
+      ...(link.targeting ? { targeting: link.targeting } : {}),
+      cloaked: link.cloaked === true,
+      ...(link.socialPreview ? { socialPreview: link.socialPreview } : {}),
+    }
+  }
+
+  /** A full replacement for an edit: settings the link no longer has are cleared. */
+  static toUpdateBody(link: ShortLink, password?: string): UpdateBody {
+    // Every optional setting is sent, as null when off, so turning one off clears it.
+    return {
+      ...LinkMapper.toBody(link, password),
+      description: link.description ?? null,
+      activateAt: link.activateAt ?? null,
+      expiresAt: link.expiresAt ?? null,
+      maxClicks: link.maxClicks ?? null,
+      expiredDestinationUrl: link.expiredDestinationUrl ?? null,
+      fallbackDestinationUrl: link.fallbackDestinationUrl ?? null,
+      utm: link.utm ?? null,
+      metadata: link.metadata ?? null,
+      hold: link.hold ?? null,
+      targeting: link.targeting ?? null,
+      socialPreview: link.socialPreview ?? null,
     }
   }
 

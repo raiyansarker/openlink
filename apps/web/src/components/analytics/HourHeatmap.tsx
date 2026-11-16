@@ -8,7 +8,7 @@ import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { BLUE_RAMP, chartHostStyle } from '#/components/analytics/chart-theme'
-import type { AnalyticsReport } from '#/lib/analytics/demo-dataset'
+import type { AnalyticsReport } from '#/lib/analytics/report'
 import { formatCompact, formatNumber } from '#/lib/analytics/format'
 
 type HourHeatmapProps = { report: AnalyticsReport }

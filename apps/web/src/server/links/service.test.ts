@@ -211,6 +211,44 @@ describe('Effect-native link services', () => {
     expect(await run(getLinkInDomain(existing.domainId, existing.id))).toEqual(updated)
   })
 
+  test('null clears optional settings, so turning one off in the editor sticks', async () => {
+    const { run, seed } = setup()
+    const existing = seed({
+      description: 'Notes',
+      utmJson: JSON.stringify({ source: 'mail' }),
+      metadataJson: JSON.stringify({ team: 'growth' }),
+      activateAt: new Date('2026-01-01'),
+      expiresAt: new Date('2027-01-01'),
+      maxClicks: 10,
+      expiredDestinationUrl: 'https://example.com/over',
+      fallbackDestinationUrl: 'https://example.com/fallback',
+    })
+    const cleared = await run(
+      updateLinkRecord(existing, {
+        description: null,
+        utm: null,
+        metadata: null,
+        activateAt: null,
+        expiresAt: null,
+        maxClicks: null,
+        expiredDestinationUrl: null,
+        fallbackDestinationUrl: null,
+      }),
+    )
+    expect(cleared).toMatchObject({
+      description: null,
+      utmJson: null,
+      metadataJson: null,
+      activateAt: null,
+      expiresAt: null,
+      maxClicks: null,
+      expiredDestinationUrl: null,
+      fallbackDestinationUrl: null,
+    })
+    // An empty UTM object is the same as none.
+    expect((await run(updateLinkRecord(existing, { utm: {} }))).utmJson).toBeNull()
+  })
+
   test('update preserves false, empty strings/collections, dates and password clear precedence', async () => {
     const { run, seed } = setup()
     const existing = seed()
@@ -234,7 +272,8 @@ describe('Effect-native link services', () => {
       activateAt, expiresAt, maxClicks: 1, passwordHash: null,
       expiredDestinationUrl: 'https://example.com/expired-new',
       fallbackDestinationUrl: 'https://example.com/fallback-new',
-      tagsJson: '[]', utmJson: '{}', metadataJson: '{}',
+      // Empty UTM and metadata objects store as nothing, so "none" has one representation.
+      tagsJson: '[]', utmJson: null, metadataJson: null,
     })
     expect(hash).not.toHaveBeenCalled()
     expect(await run(getLinkInDomain(untouched.domainId, untouched.id))).toEqual(untouched)

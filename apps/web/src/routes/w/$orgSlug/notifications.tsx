@@ -1,12 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import DashboardSectionPlaceholder from '#/components/dashboard/DashboardSectionPlaceholder'
+import NotificationsPanel from '#/components/notifications/NotificationsPanel'
 import { createPageHead } from '#/lib/page-title'
 
 export const Route = createFileRoute('/w/$orgSlug/notifications')({
   head: createPageHead('Notifications'),
-  component: DashboardNotificationsPage,
+  component: NotificationsPanel,
 })
-
-function DashboardNotificationsPage() {
-  return <DashboardSectionPlaceholder title="Notifications" />
-}

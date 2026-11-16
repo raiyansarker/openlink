@@ -7,7 +7,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import Sparkline from '#/components/analytics/Sparkline'
 import { SERIES_COLORS } from '#/components/analytics/chart-theme'
-import type { AnalyticsReport } from '#/lib/analytics/demo-dataset'
+import type { AnalyticsReport } from '#/lib/analytics/report'
 import {
   deltaDirection,
   formatCompact,

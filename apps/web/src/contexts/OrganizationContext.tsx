@@ -1,26 +1,26 @@
 import { useNavigate } from '@tanstack/react-router'
+import { stableContext } from '#/lib/react/stable-context'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react'
+import { useToast } from '@astryxdesign/core/Toast'
 import { use$ } from '@legendapp/state/react'
-import { getStatsForOrg } from '#/data/demo/queries'
+import { MAX_LINK_NOTES_LENGTH } from '@openlink/contracts'
+import { useAnalyticsSummary } from '#/hooks/use-analytics'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
 import type {
-  LinkComment,
   LinkFolder,
   LinkHold,
   Organization,
   OrgDashboardStats,
   ShortLink,
 } from '#/data/demo/types'
-import { demoCurrentUser } from '#/data/demo/current-user'
-import { DEMO_USER_AVATAR_URL } from '#/components/dashboard/layout/dashboard-shell-colors'
 import { DomainsApi } from '#/lib/api/domains'
 import { LinkMapper, LinksApi } from '#/lib/api/links'
 import { QueryKeys } from '#/lib/api/query'
@@ -38,14 +38,9 @@ import {
   validateDraft,
   type CreateLinkDraft,
 } from '#/lib/links/create-link'
-import { HEALTH_LABEL, demoCheckHealth } from '#/lib/links/demo-health'
-import {
-  COMMENT_MAX_LENGTH,
-  commentExcerpt,
-  historyEvent,
-  withEvent,
-} from '#/lib/links/link-history'
+import { demoCheckHealth } from '#/lib/links/demo-health'
 import { ShortUrl } from '#/lib/links/short-url'
+import { LinkLiveStatus } from '#/lib/links/link-summary'
 import { linksWorkspace$, type LinkLocalExtras } from '#/state/links-workspace.state'
 import NotFoundPage from '#/components/not-found/NotFoundPage'
 import WorkspaceStatusScreen, { type StatusPresentation } from '#/components/workspace/WorkspaceStatusScreen'
@@ -54,6 +49,8 @@ import {
   WorkspaceDirectoryProvider,
 } from '#/contexts/WorkspaceDirectoryContext'
 import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
+import { WorkspaceDeparture } from '#/lib/dashboard/workspace-departure'
 
 type OrganizationContextValue = {
   organizations: Organization[]
@@ -82,6 +79,8 @@ type OrganizationContextValue = {
   /** Copies a link with a new back-half; resolves to the copy. */
   duplicateLink: (linkId: string) => Promise<ShortLink>
   moveLink: (linkId: string, folderId: string | null) => Promise<void>
+  /** Saves only the link's team notes; an empty string clears them. */
+  saveLinkNotes: (linkId: string, notes: string) => Promise<void>
   /** Puts a link on hold (or releases it with `null`). */
   setLinkHold: (linkId: string, hold: LinkHold | null) => Promise<void>
   moveLinks: (linkIds: string[], folderId: string | null) => Promise<void>
@@ -91,17 +90,9 @@ type OrganizationContextValue = {
   /** Runs (demo) destination health checks; resolves when results are in. */
   checkLinksHealth: (linkIds: string[]) => Promise<void>
   deleteLink: (linkId: string) => Promise<void>
-  /**
-   * Comments on a link (kept for this session only until the comments API is
-   * wired). Adding throws on empty or overlong text; only the author can edit or delete.
-   */
-  addLinkComment: (linkId: string, body: string) => LinkComment
-  editLinkComment: (linkId: string, commentId: string, body: string) => void
-  deleteLinkComment: (linkId: string, commentId: string) => void
-  toggleCommentReaction: (linkId: string, commentId: string, emoji: string) => void
 }
 
-const OrganizationContext = createContext<OrganizationContextValue | null>(null)
+const OrganizationContext = stableContext<OrganizationContextValue | null>('Organization', null)
 
 type OrganizationProviderProps = {
   /** Workspace from the URL. Without it, the remembered (or first) workspace is used. */
@@ -110,6 +101,9 @@ type OrganizationProviderProps = {
   presentation?: StatusPresentation
   children: ReactNode
 }
+
+/** How often the links list (clicks, status) refreshes while the tab is visible. */
+const LINKS_REFRESH_MS = 30_000
 
 /**
  * Loads the user's workspaces, then renders `children` inside the chosen one.
@@ -131,6 +125,39 @@ function WorkspaceGate({ orgSlugFromRoute, presentation = 'page', children }: Or
   const navigate = useNavigate()
   const activeOrg = status === 'ready' ? ActiveWorkspace.pick(organizations, orgSlugFromRoute) : null
   const hasNoWorkspaces = status === 'ready' && organizations.length === 0
+  const showToast = useToast()
+
+  // The workspace we were just in. If it drops out of the list while we're on
+  // its pages, we were removed from it (or it was deleted or renamed).
+  const lastActive = useRef<Organization | null>(null)
+  const departure = useMemo(
+    () =>
+      status === 'ready' && !activeOrg && orgSlugFromRoute && lastActive.current?.slug === orgSlugFromRoute
+        ? WorkspaceDeparture.of(lastActive.current, organizations)
+        : null,
+    [status, activeOrg, orgSlugFromRoute, organizations],
+  )
+
+  useEffect(() => {
+    if (activeOrg) lastActive.current = activeOrg
+  }, [activeOrg])
+
+  useEffect(() => {
+    if (!departure) return
+    if (departure.kind === 'renamed') {
+      // Same workspace, new URL: follow it, keeping the section you were on.
+      const next = WorkspaceUrl.replaceOrg(window.location.pathname, departure.to.slug)
+      void navigate({ href: `${next}${window.location.search}`, replace: true })
+      return
+    }
+    lastActive.current = null
+    showToast({
+      body: `You no longer have access to ${departure.from.name}.`,
+      uniqueID: `left-${departure.from.id}`,
+    })
+    // `/w` opens one of your other workspaces, or sets up a new one.
+    void navigate({ to: '/w', replace: true })
+  }, [departure, navigate, showToast])
 
   useEffect(() => {
     if (activeOrg) ActiveWorkspace.remember(activeOrg.slug)
@@ -143,7 +170,7 @@ function WorkspaceGate({ orgSlugFromRoute, presentation = 'page', children }: Or
   if (status === 'error') {
     return <WorkspaceStatusScreen presentation={presentation} state="error" message={errorMessage ?? 'Try again.'} onRetry={refetch} />
   }
-  if (status === 'loading' || hasNoWorkspaces) return <WorkspaceStatusScreen presentation={presentation} state="loading" />
+  if (status === 'loading' || hasNoWorkspaces || departure) return <WorkspaceStatusScreen presentation={presentation} state="loading" />
   if (!activeOrg) return presentation === 'inline' ? <WorkspaceStatusScreen presentation="inline" state="missing" /> : <NotFoundPage />
   return (
     <OrganizationScope activeOrg={activeOrg} presentation={presentation}>
@@ -184,12 +211,19 @@ function OrganizationScope({
   const linksKey = QueryKeys.links(orgId)
   const foldersKey = QueryKeys.folders(orgId)
 
-  const linksQuery = useQuery({ queryKey: linksKey, queryFn: () => linksApi.listLinks(orgId) })
+  // Clicks land on the redirect path, outside this page, so the list refreshes
+  // itself: on a timer while the tab is visible, and when you come back to it.
+  const linksQuery = useQuery({
+    queryKey: linksKey,
+    queryFn: () => linksApi.listLinks(orgId),
+    refetchInterval: LINKS_REFRESH_MS,
+    refetchOnWindowFocus: true,
+  })
   const foldersQuery = useQuery({ queryKey: foldersKey, queryFn: () => linksApi.listFolders(orgId) })
   // Domains never block the workspace; without them links fall back to the app host.
   const domainsQuery = useQuery({ queryKey: QueryKeys.domains(orgId), queryFn: () => domainsApi.list(orgId) })
 
-  // Comments and health checks have no API wiring yet; they live for the session.
+  // Health checks have no API yet; their results live for the session.
   const localExtras = use$(linksWorkspace$.extrasByLink)
 
   const domains = useMemo(() => domainsQuery.data ?? [], [domainsQuery.data])
@@ -227,18 +261,19 @@ function OrganizationScope({
     [domains],
   )
 
-  // Link counts come from the links themselves. Demo traffic only applies
-  // once the org has links — no links means no clicks.
-  const stats = useMemo<OrgDashboardStats>(() => {
-    const counts = {
+  // Link counts come from the links; click numbers from recorded clicks.
+  const summary = useAnalyticsSummary(orgId).data
+  const stats = useMemo<OrgDashboardStats>(
+    () => ({
       totalLinks: links.length,
-      activeLinks: links.filter((link) => link.status === 'active').length,
-    }
-    if (links.length === 0) {
-      return { ...counts, clicksToday: 0, clicksThisWeek: 0, uniqueVisitorsWeek: 0, topReferrer: '—' }
-    }
-    return { ...getStatsForOrg(orgId), ...counts }
-  }, [orgId, links])
+      activeLinks: links.filter((link) => LinkLiveStatus.current(link) === 'active' && !LinkLiveStatus.isExpired(link)).length,
+      clicksToday: summary?.clicksToday ?? 0,
+      clicksThisWeek: summary?.clicksThisWeek ?? 0,
+      uniqueVisitorsWeek: summary?.uniqueVisitorsWeek ?? 0,
+      topReferrer: summary?.topReferrer ?? '—',
+    }),
+    [links, summary],
+  )
 
   const requireFolder = useCallback(
     (folderId: string | null, message = 'That folder no longer exists.') => {
@@ -281,7 +316,7 @@ function OrganizationScope({
       )
       const password = draft.passwordEnabled && draft.password ? draft.password : undefined
       const body = {
-        ...LinkMapper.toBody(rebuilt, password),
+        ...LinkMapper.toUpdateBody(rebuilt, password),
         ...(!draft.passwordEnabled && before.passwordProtected ? { clearPassword: true } : {}),
       }
       const saved = await linksApi.updateLink(orgId, linkId, body)
@@ -331,7 +366,7 @@ function OrganizationScope({
       const targets = links.filter((l) => linkIds.includes(l.id) && (hold || l.hold))
       // Hold travels in the link's metadata, so each link is saved on its own.
       const saved = await Promise.all(
-        targets.map((l) => linksApi.updateLink(orgId, l.id, LinkMapper.toBody({ ...l, hold: hold ?? undefined }))),
+        targets.map((l) => linksApi.updateLink(orgId, l.id, LinkMapper.toUpdateBody({ ...l, hold: hold ?? undefined }))),
       )
       saved.forEach(putLink)
     },
@@ -339,6 +374,17 @@ function OrganizationScope({
   )
 
   const setLinkHold = useCallback((linkId: string, hold: LinkHold | null) => setLinksHold([linkId], hold), [setLinksHold])
+
+  const saveLinkNotes = useCallback(
+    async (linkId: string, notes: string) => {
+      if (notes.length > MAX_LINK_NOTES_LENGTH) {
+        throw new Error(`Keep notes under ${MAX_LINK_NOTES_LENGTH.toLocaleString()} characters.`)
+      }
+      const description = notes.trim() || null
+      putLink(await linksApi.updateLink(orgId, linkId, { description }))
+    },
+    [orgId, putLink],
+  )
 
   const addTagsToLinks = useCallback(
     async (linkIds: string[], tags: string[]) => {
@@ -420,7 +466,7 @@ function OrganizationScope({
     [orgId, queryClient],
   )
 
-  /** Applies a session-only change (comments, health, their history) to links. */
+  /** Applies a session-only change (health checks) to links. */
   const updateLocal = useCallback(
     (linkIds: string[], change: (link: ShortLink) => ShortLink | null) => {
       for (const id of linkIds) {
@@ -428,7 +474,7 @@ function OrganizationScope({
         if (!current) continue
         const next = change(current)
         if (!next) continue
-        const extras: LinkLocalExtras = { comments: next.comments, health: next.health, history: next.history }
+        const extras: LinkLocalExtras = { health: next.health }
         linksWorkspace$.extrasByLink[id].set(extras)
       }
     },
@@ -439,111 +485,7 @@ function OrganizationScope({
     async (linkIds: string[]) => {
       // Demo: the backend runs real checks; simulate its latency.
       await new Promise((resolve) => setTimeout(resolve, 900))
-      updateLocal(linkIds, (l) => {
-        const health = demoCheckHealth(l)
-        const before = l.health
-        const changes =
-          before && before.status !== health.status
-            ? [{ label: 'Status', from: HEALTH_LABEL[before.status], to: HEALTH_LABEL[health.status] }]
-            : []
-        return withEvent(
-          { ...l, health },
-          historyEvent(
-            'checked',
-            `Checked destination: ${HEALTH_LABEL[health.status].toLowerCase()} (HTTP ${health.statusCode}, ${health.responseMs.toLocaleString()} ms)`,
-            changes,
-          ),
-          { touch: false },
-        )
-      })
-    },
-    [updateLocal],
-  )
-
-  const addLinkComment = useCallback(
-    (linkId: string, body: string) => {
-      const text = body.trim()
-      if (!text) throw new Error('Write something first.')
-      if (text.length > COMMENT_MAX_LENGTH) throw new Error(`Comments can be up to ${COMMENT_MAX_LENGTH} characters.`)
-      if (!links.some((l) => l.id === linkId)) throw new Error('That link no longer exists.')
-      const now = new Date()
-      const comment: LinkComment = {
-        id: `cmt_${now.getTime()}_${Math.random().toString(36).slice(2, 7)}`,
-        at: now.toISOString(),
-        authorId: demoCurrentUser.id,
-        authorName: demoCurrentUser.name,
-        authorAvatarUrl: DEMO_USER_AVATAR_URL,
-        body: text,
-      }
-      updateLocal([linkId], (l) =>
-        withEvent(
-          { ...l, comments: [...(l.comments ?? []), comment] },
-          { ...historyEvent('commented', 'Left a comment', undefined, now, commentExcerpt(text)), commentId: comment.id },
-          { touch: false },
-        ),
-      )
-      return comment
-    },
-    [links, updateLocal],
-  )
-
-  const editLinkComment = useCallback(
-    (linkId: string, commentId: string, body: string) => {
-      const text = body.trim()
-      if (!text) throw new Error('A comment cannot be empty. Delete it instead.')
-      if (text.length > COMMENT_MAX_LENGTH) throw new Error(`Comments can be up to ${COMMENT_MAX_LENGTH} characters.`)
-      updateLocal([linkId], (l) => {
-        const target = l.comments?.find((c) => c.id === commentId)
-        // Only the author can edit, and an unchanged body is not an edit.
-        if (!target || target.authorId !== demoCurrentUser.id || target.body === text) return null
-        return {
-          ...l,
-          comments: l.comments!.map((c) => (c.id === commentId ? { ...c, body: text, editedAt: new Date().toISOString() } : c)),
-          // The timeline quotes the comment as it reads now.
-          history: l.history?.map((e) => (e.commentId === commentId ? { ...e, excerpt: commentExcerpt(text) } : e)),
-        }
-      })
-    },
-    [updateLocal],
-  )
-
-  const deleteLinkComment = useCallback(
-    (linkId: string, commentId: string) => {
-      updateLocal([linkId], (l) => {
-        const target = l.comments?.find((c) => c.id === commentId)
-        if (!target || target.authorId !== demoCurrentUser.id) return null
-        return {
-          ...l,
-          comments: l.comments!.filter((c) => c.id !== commentId),
-          // Keep the fact that a comment happened, but not its words.
-          history: l.history?.map((e) => {
-            if (e.commentId !== commentId) return e
-            const { excerpt: _dropped, ...rest } = e
-            return { ...rest, summary: 'Left a comment (since deleted)' }
-          }),
-        }
-      })
-    },
-    [updateLocal],
-  )
-
-  const toggleCommentReaction = useCallback(
-    (linkId: string, commentId: string, emoji: string) => {
-      updateLocal([linkId], (l) => {
-        if (!l.comments?.some((c) => c.id === commentId)) return null
-        return {
-          ...l,
-          comments: l.comments.map((c) => {
-            if (c.id !== commentId) return c
-            const people = c.reactions?.[emoji] ?? []
-            const nextPeople = people.includes(demoCurrentUser.id)
-              ? people.filter((id) => id !== demoCurrentUser.id)
-              : [...people, demoCurrentUser.id]
-            const { [emoji]: _removed, ...rest } = c.reactions ?? {}
-            return { ...c, reactions: nextPeople.length > 0 ? { ...rest, [emoji]: nextPeople } : rest }
-          }),
-        }
-      })
+      updateLocal(linkIds, (l) => ({ ...l, health: demoCheckHealth(l) }))
     },
     [updateLocal],
   )
@@ -567,6 +509,7 @@ function OrganizationScope({
       updateLink: (id, draft) => friendly(() => updateLink(id, draft), 'Could not save the link.'),
       duplicateLink: (id) => friendly(() => duplicateLink(id), 'Could not duplicate the link.'),
       moveLink: (id, folderId) => friendly(() => moveLink(id, folderId), 'Could not move the link.'),
+      saveLinkNotes: (id, notes) => friendly(() => saveLinkNotes(id, notes), 'Could not save the notes.'),
       setLinkHold: (id, hold) => friendly(() => setLinkHold(id, hold), 'Could not update the hold.'),
       moveLinks: (ids, folderId) => friendly(() => moveLinks(ids, folderId), 'Could not move the links.'),
       setLinksHold: (ids, hold) => friendly(() => setLinksHold(ids, hold), 'Could not update the hold.'),
@@ -574,10 +517,6 @@ function OrganizationScope({
       deleteLinks: (ids) => friendly(() => deleteLinks(ids), 'Could not delete the links.'),
       checkLinksHealth,
       deleteLink: (id) => friendly(() => deleteLink(id), 'Could not delete the link.'),
-      addLinkComment,
-      editLinkComment,
-      deleteLinkComment,
-      toggleCommentReaction,
     }),
     [
       organizations,
@@ -596,6 +535,7 @@ function OrganizationScope({
       updateLink,
       duplicateLink,
       moveLink,
+      saveLinkNotes,
       setLinkHold,
       moveLinks,
       setLinksHold,
@@ -603,10 +543,6 @@ function OrganizationScope({
       deleteLinks,
       checkLinksHealth,
       deleteLink,
-      addLinkComment,
-      editLinkComment,
-      deleteLinkComment,
-      toggleCommentReaction,
     ],
   )
 
