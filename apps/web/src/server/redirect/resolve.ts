@@ -6,7 +6,7 @@ import { recordClickEvent } from '#/server/analytics/clicks'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { verifyLinkPassword } from '#/server/links/password'
-import { decideRedirect, type RedirectDecision } from './decide'
+import { RedirectRules, type RedirectDecision } from './decide'
 
 export type ResolveOutcome = RedirectDecision | { type: 'password_invalid' }
 
@@ -75,12 +75,12 @@ export function resolveRedirect(input: { host: string; slug: string; password?: 
       if (!passwordVerified) return { type: 'password_invalid' } as ResolveOutcome
     }
 
-    const decision = decideRedirect(row, { passwordVerified })
+    const decision = RedirectRules.decide(row, { passwordVerified })
     if (decision.type !== 'redirect' || !decision.countsClick) return decision
 
     const claimed = yield* claimClick(row)
     if (!claimed) {
-      return decideRedirect({ ...row, clickCount: row.maxClicks ?? row.clickCount }) as ResolveOutcome
+      return RedirectRules.decide({ ...row, clickCount: row.maxClicks ?? row.clickCount }) as ResolveOutcome
     }
 
     yield* recordClickEvent({

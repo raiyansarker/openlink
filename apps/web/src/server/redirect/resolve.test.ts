@@ -10,7 +10,7 @@ import { Bindings } from '#/server/effect/services/bindings'
 import { Db } from '#/server/effect/services/db'
 import { hashLinkPassword } from '#/server/links/password'
 import { normalizeHost, resolveRedirect } from './resolve'
-import { outcomeToResponse } from './response'
+import { RedirectResponses } from './response'
 
 const databases: Database[] = []
 afterEach(() => {
@@ -123,16 +123,26 @@ describe('resolveRedirect', () => {
   })
 })
 
-describe('outcomeToResponse', () => {
+describe('RedirectResponses.for', () => {
   test('maps outcomes to HTTP responses', async () => {
-    const redirect = outcomeToResponse({ type: 'redirect', url: 'https://a.test/', status: 301, countsClick: true })
+    const redirect = RedirectResponses.for({ type: 'redirect', url: 'https://a.test/', status: 301, countsClick: true })
     expect(redirect.status).toBe(301)
     expect(redirect.headers.get('location')).toBe('https://a.test/')
-    expect(outcomeToResponse({ type: 'not_found' }).status).toBe(404)
-    expect(outcomeToResponse({ type: 'gone' }).status).toBe(410)
-    const form = outcomeToResponse({ type: 'password_invalid' })
+    expect(RedirectResponses.for({ type: 'not_found' }).status).toBe(404)
+    expect(RedirectResponses.for({ type: 'gone' }).status).toBe(410)
+    const form = RedirectResponses.for({ type: 'password_invalid' })
     expect(form.status).toBe(401)
     expect(await form.text()).toContain('Incorrect password')
+  })
+
+  test('hold pages use their status and look like the real thing', async () => {
+    const gateway = RedirectResponses.for({ type: 'hold', page: 'bad-gateway' })
+    expect(gateway.status).toBe(502)
+    expect(await gateway.text()).toContain('<center><h1>502 Bad Gateway</h1></center>')
+    const maintenance = RedirectResponses.for({ type: 'hold', page: 'maintenance' })
+    expect(maintenance.status).toBe(503)
+    expect(maintenance.headers.get('retry-after')).toBe('3600')
+    expect(maintenance.headers.get('cache-control')).toBe('no-store')
   })
 })
 
