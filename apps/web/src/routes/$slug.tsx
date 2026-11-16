@@ -29,7 +29,6 @@ const serve = (request: Request, slug: string, withPassword: boolean) =>
         password,
         appHost,
         visitor: Visitor.fromRequest(request),
-        cookieHeader: request.headers.get('cookie'),
         clientIp: request.headers.get('cf-connecting-ip'),
       })
       const url = new URL(request.url)

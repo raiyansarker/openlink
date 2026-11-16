@@ -168,10 +168,7 @@ export class LinkMissingView {
 
 /** Turns a resolved short-link request into its HTTP response. */
 export class RedirectResponses {
-  /**
-   * `shortUrl` is the URL that was requested (used for share cards and to come
-   * back after a password); `onAppHost` adds a way into the app on 404s.
-   */
+  /** `shortUrl` is the URL that was requested (used for share cards); `onAppHost` adds a way into the app on 404s. */
   static for(outcome: ResolveOutcome, shortUrl: URL = new URL('https://localhost/'), onAppHost = false): Response {
     switch (outcome.type) {
       case 'cloak':
@@ -182,11 +179,6 @@ export class RedirectResponses {
         return new Response(null, {
           status: outcome.status,
           headers: { location: outcome.url, 'cache-control': 'private, no-store' },
-        })
-      case 'password_accepted':
-        return new Response(null, {
-          status: 303,
-          headers: { location: `${shortUrl.pathname}${shortUrl.search}`, 'set-cookie': outcome.setCookie, 'cache-control': 'no-store' },
         })
       case 'hold':
         return HoldPageView.render(outcome.page)

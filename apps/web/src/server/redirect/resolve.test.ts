@@ -53,11 +53,10 @@ function setup(options: { analyticsFails?: boolean; attemptsLeft?: number } = {}
         Effect.provideService(Bindings, bindings),
       ),
     )
-  const rehash = (id: string, passwordHash: string) => adapter.update(link).set({ passwordHash }).where(eq(link.id, id)).run()
   const clicks = (id: string) =>
     adapter.select().from(link).where(eq(link.id, id)).get()!.clickCount
   const storedClicks = () => adapter.select().from(linkClick).all()
-  return { seed, resolve, clicks, rehash, writeDataPoint, limiter, storedClicks }
+  return { seed, resolve, clicks, writeDataPoint, limiter, storedClicks }
 }
 
 describe('normalizeHost', () => {
@@ -118,35 +117,22 @@ describe('resolveRedirect', () => {
     expect(t.clicks(row.id)).toBe(2)
   })
 
-  test('password protected links require the right password', async () => {
+  test('password protected links require the right password on every visit', async () => {
     const t = setup()
-    const row = t.seed({ passwordHash: await Effect.runPromise(hashLinkPassword('s3cret')) })
+    const row = t.seed({ passwordHash: await Effect.runPromise(hashLinkPassword('s3cret')), redirectStatus: 308 })
     expect(await t.resolve({ host: 'go.example.com', slug: 'abc' })).toEqual({ type: 'password_required' })
-    expect(await t.resolve({ host: 'go.example.com', slug: 'abc', password: 'wrong' })).toEqual({
-      type: 'password_invalid',
-    })
+    expect(await t.resolve({ host: 'go.example.com', slug: 'abc', password: 'wrong' })).toEqual({ type: 'password_invalid' })
     expect(t.clicks(row.id)).toBe(0)
-    const accepted = await t.resolve({ host: 'go.example.com', slug: 'abc', password: 's3cret' })
-    expect(accepted.type).toBe('password_accepted')
-    // The click is counted when the remembered visitor reopens the link.
-    expect(t.clicks(row.id)).toBe(0)
-    const cookie = accepted.type === 'password_accepted' ? accepted.setCookie.split(';')[0]! : ''
-    expect(await t.resolve({ host: 'go.example.com', slug: 'abc', cookieHeader: `other=1; ${cookie}` })).toMatchObject({
+    // The right password goes straight on, as a 303 so even a 308 link turns the POST into a GET.
+    expect(await t.resolve({ host: 'go.example.com', slug: 'abc', password: 's3cret' })).toEqual({
       type: 'redirect',
+      url: 'https://example.com/dest',
+      status: 303,
+      countsClick: true,
     })
     expect(t.clicks(row.id)).toBe(1)
-  })
-
-  test('a remembered password must be untampered and stops working when the password changes', async () => {
-    const t = setup()
-    const row = t.seed({ passwordHash: await Effect.runPromise(hashLinkPassword('one1')) })
-    const accepted = await t.resolve({ host: 'go.example.com', slug: 'abc', password: 'one1' })
-    const cookie = accepted.type === 'password_accepted' ? accepted.setCookie.split(';')[0]! : ''
-    const tampered = cookie.slice(0, -1) + (cookie.endsWith('A') ? 'B' : 'A')
-    expect(await t.resolve({ host: 'go.example.com', slug: 'abc', cookieHeader: tampered })).toEqual({ type: 'password_required' })
-    expect((await t.resolve({ host: 'go.example.com', slug: 'abc', cookieHeader: cookie })).type).toBe('redirect')
-    t.rehash(row.id, await Effect.runPromise(hashLinkPassword('two2')))
-    expect(await t.resolve({ host: 'go.example.com', slug: 'abc', cookieHeader: cookie })).toEqual({ type: 'password_required' })
+    // Nothing is remembered: the next visit asks again.
+    expect(await t.resolve({ host: 'go.example.com', slug: 'abc' })).toEqual({ type: 'password_required' })
   })
 
   test('password guesses are capped per link and visitor', async () => {
@@ -270,15 +256,10 @@ describe('RedirectResponses.for', () => {
     expect(html).toContain('Big &#60;news&#62;')
   })
 
-  test('an accepted password reopens the short link with a GET and a scoped cookie', () => {
-    const accepted = RedirectResponses.for(
-      { type: 'password_accepted', setCookie: 'ol_pw_l1=1.x; Path=/abc' },
-      new URL('https://go.example.com/abc?ref=mail'),
-    )
-    expect(accepted.status).toBe(303)
-    expect(accepted.headers.get('location')).toBe('/abc?ref=mail')
-    expect(accepted.headers.get('set-cookie')).toBe('ol_pw_l1=1.x; Path=/abc')
-    expect(RedirectResponses.for({ type: 'password_rate_limited' }).status).toBe(429)
+  test('too many password attempts answer 429 without a cookie', () => {
+    const limited = RedirectResponses.for({ type: 'password_rate_limited' })
+    expect(limited.status).toBe(429)
+    expect(limited.headers.get('set-cookie')).toBeNull()
   })
 
   test('cloak pages frame the destination', async () => {

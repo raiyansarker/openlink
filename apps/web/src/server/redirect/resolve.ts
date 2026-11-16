@@ -23,8 +23,6 @@ class LinkSubject {
 
 export type ResolveOutcome =
   | RedirectDecision
-  /** The right password: remember it, then reopen the link with a plain GET. */
-  | { type: 'password_accepted'; setCookie: string }
   | { type: 'password_invalid' }
   | { type: 'password_rate_limited' }
 
@@ -77,8 +75,6 @@ export function resolveRedirect(input: {
   password?: string
   appHost?: string | null
   visitor?: Visitor
-  /** The request's Cookie header, for remembered passwords. */
-  cookieHeader?: string | null
   /** For capping password guesses per visitor. */
   clientIp?: string | null
   /** Whether a destination can be framed, for cloaked links; real check by default. */
@@ -99,22 +95,16 @@ export function resolveRedirect(input: {
     )
     if (!row) return { type: 'not_found' } as ResolveOutcome
 
+    // Nothing is remembered: a protected link asks for its password on every visit.
     let passwordVerified = false
-    if (row.passwordHash) {
-      const { BETTER_AUTH_SECRET, LINK_PASSWORD_LIMITER } = yield* Bindings
-      if (input.password !== undefined) {
-        if (!(yield* PasswordGate.allowAttempt(LINK_PASSWORD_LIMITER, row, input.clientIp ?? null))) {
-          yield* EventBus.publish(
-            EventBus.create('link.password_locked', row.organizationId, { subject: LinkSubject.of(row) }),
-          )
-          return { type: 'password_rate_limited' } as ResolveOutcome
-        }
-        if (!(yield* verifyLinkPassword(input.password, row.passwordHash))) return { type: 'password_invalid' } as ResolveOutcome
-        // Never answer the POST with the destination: a 307/308 link would re-send the password there.
-        return { type: 'password_accepted', setCookie: yield* PasswordGate.remember(row, BETTER_AUTH_SECRET) } as ResolveOutcome
-      } else {
-        passwordVerified = yield* PasswordGate.isRemembered(row, input.cookieHeader ?? null, BETTER_AUTH_SECRET)
+    if (row.passwordHash && input.password !== undefined) {
+      const { LINK_PASSWORD_LIMITER } = yield* Bindings
+      if (!(yield* PasswordGate.allowAttempt(LINK_PASSWORD_LIMITER, row, input.clientIp ?? null))) {
+        yield* EventBus.publish(EventBus.create('link.password_locked', row.organizationId, { subject: LinkSubject.of(row) }))
+        return { type: 'password_rate_limited' } as ResolveOutcome
       }
+      passwordVerified = yield* verifyLinkPassword(input.password, row.passwordHash)
+      if (!passwordVerified) return { type: 'password_invalid' } as ResolveOutcome
     }
 
     const visitor = input.visitor ?? Visitor.ANONYMOUS
@@ -122,6 +112,9 @@ export function resolveRedirect(input: {
     if (decision.type === 'cloak' && !(yield* (input.frameable ?? FrameCheck.frameable)(decision.url))) {
       decision = { type: 'redirect', url: decision.url, status: row.redirectStatus, countsClick: true }
     }
+    // The password arrived in a POST. 303 makes the browser follow with a GET, so a
+    // 307/308 link can never re-send the form (and its password) to the destination.
+    if (passwordVerified && decision.type === 'redirect') decision = { ...decision, status: 303 }
     if (!('countsClick' in decision) || !decision.countsClick) return decision
 
     const clickCount = yield* claimClick(row)
