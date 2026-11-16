@@ -50,6 +50,9 @@
       "enabled": true,
       "head_sampling_rate": 1,
       "persist": true
+    },
+    "issue_detection": {
+      "enabled": true
     }
   },
   // Readable stack traces in Workers Logs (the Vite plugin emits the Worker's maps).
