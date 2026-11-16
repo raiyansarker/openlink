@@ -11,6 +11,7 @@ import { Db } from '#/server/effect/services/db'
 import { hashLinkPassword } from '#/server/links/password'
 import { normalizeHost, resolveRedirect } from './resolve'
 import { RedirectResponses } from './response'
+import { Visitor } from './visitor'
 
 const databases: Database[] = []
 afterEach(() => {
@@ -38,7 +39,7 @@ function setup(options: { analyticsFails?: boolean } = {}) {
       id: crypto.randomUUID(), organizationId: 'o1', domainId: 'd1', slug: 'abc',
       destinationUrl: 'https://example.com/dest', createdAt: now, updatedAt: now, ...overrides,
     }).returning().get()
-  const resolve = (input: { host: string; slug: string; password?: string; appHost?: string }) =>
+  const resolve = (input: Parameters<typeof resolveRedirect>[0]) =>
     Effect.runPromise(
       resolveRedirect(input).pipe(
         Effect.provideService(Db, db),
@@ -123,6 +124,26 @@ describe('resolveRedirect', () => {
   })
 })
 
+describe('resolveRedirect cloaking', () => {
+  test('frames the destination when it allows it, and redirects when it does not', async () => {
+    const t = setup()
+    const row = t.seed({ deliveryJson: JSON.stringify({ cloaked: true }), title: 'Docs' })
+    const yes = await t.resolve({ host: 'go.example.com', slug: 'abc', frameable: () => Effect.succeed(true) })
+    expect(yes).toEqual({ type: 'cloak', url: 'https://example.com/dest', title: 'Docs', countsClick: true })
+    const no = await t.resolve({ host: 'go.example.com', slug: 'abc', frameable: () => Effect.succeed(false) })
+    expect(no).toEqual({ type: 'redirect', url: 'https://example.com/dest', status: 302, countsClick: true })
+    expect(t.clicks(row.id)).toBe(2)
+  })
+
+  test('a share card for a crawler counts no click', async () => {
+    const t = setup()
+    const row = t.seed({ deliveryJson: JSON.stringify({ socialPreview: { title: 'Card' } }) })
+    const outcome = await t.resolve({ host: 'go.example.com', slug: 'abc', visitor: new Visitor('Twitterbot/1.0', null, null) })
+    expect(outcome.type).toBe('preview')
+    expect(t.clicks(row.id)).toBe(0)
+  })
+})
+
 describe('RedirectResponses.for', () => {
   test('maps outcomes to HTTP responses', async () => {
     const redirect = RedirectResponses.for({ type: 'redirect', url: 'https://a.test/', status: 301, countsClick: true })
@@ -143,6 +164,25 @@ describe('RedirectResponses.for', () => {
     expect(maintenance.status).toBe(503)
     expect(maintenance.headers.get('retry-after')).toBe('3600')
     expect(maintenance.headers.get('cache-control')).toBe('no-store')
+  })
+
+  test('share cards carry absolute Open Graph and Twitter tags', async () => {
+    const card = RedirectResponses.for(
+      { type: 'preview', title: 'Launch', preview: { description: 'Big <news>', imageUrl: '/api/media/previews/o1/a.png' } },
+      new URL('https://go.example.com/abc'),
+    )
+    const html = await card.text()
+    expect(card.status).toBe(200)
+    expect(html).toContain('<meta property="og:url" content="https://go.example.com/abc">')
+    expect(html).toContain('<meta property="og:image" content="https://go.example.com/api/media/previews/o1/a.png">')
+    expect(html).toContain('<meta name="twitter:card" content="summary_large_image">')
+    expect(html).toContain('Big &#60;news&#62;')
+  })
+
+  test('cloak pages frame the destination', async () => {
+    const page = RedirectResponses.for({ type: 'cloak', url: 'https://example.com/?a=1&b=2', title: 'Docs', countsClick: true })
+    expect(await page.text()).toContain('<iframe src="https://example.com/?a=1&#38;b=2"')
+    expect(page.headers.get('content-security-policy')).toContain('frame-src https: http:')
   })
 })
 

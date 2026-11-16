@@ -1,4 +1,4 @@
-import { HoldPages, type HoldPageId } from '@openlink/contracts'
+import { HoldPages, type HoldPageId, type SocialPreview } from '@openlink/contracts'
 
 import type { ResolveOutcome } from './resolve'
 
@@ -40,6 +40,47 @@ export class HoldPageView {
   }
 }
 
+/** The card crawlers read when a link is shared (Open Graph and Twitter tags). */
+export class PreviewPageView {
+  static render(preview: SocialPreview, fallbackTitle: string, shortUrl: URL): Response {
+    const title = preview.title || fallbackTitle
+    // Our own uploads are stored as paths; crawlers need absolute URLs.
+    const image = preview.imageUrl ? new URL(preview.imageUrl, shortUrl.origin).toString() : null
+    const meta = (attribute: 'property' | 'name', key: string, value: string) =>
+      `<meta ${attribute}="${key}" content="${PublicPage.escape(value)}">`
+    const tags = [
+      meta('property', 'og:type', 'website'),
+      meta('property', 'og:url', shortUrl.toString()),
+      meta('property', 'og:title', title),
+      preview.description ? meta('property', 'og:description', preview.description) : '',
+      image ? meta('property', 'og:image', image) : '',
+      meta('name', 'twitter:card', image ? 'summary_large_image' : 'summary'),
+      meta('name', 'twitter:title', title),
+      preview.description ? meta('name', 'twitter:description', preview.description) : '',
+      image ? meta('name', 'twitter:image', image) : '',
+      preview.description ? meta('name', 'description', preview.description) : '',
+    ].join('')
+    const document = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${PublicPage.escape(title)}</title>${tags}</head><body><h1>${PublicPage.escape(title)}</h1></body></html>`
+    // Short cache: crawlers re-fetch rarely, and owners may edit the card.
+    return new Response(document, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300', 'x-robots-tag': 'noindex' },
+    })
+  }
+}
+
+/** A cloaked link: the destination fills the page while the short URL stays in the address bar. */
+export class CloakPageView {
+  static render(destination: string, title: string): Response {
+    const document = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${PublicPage.escape(title)}</title><style>html,body{margin:0;height:100%;overflow:hidden}iframe{border:0;width:100%;height:100%;display:block}</style></head><body><iframe src="${PublicPage.escape(destination)}" title="${PublicPage.escape(title)}" referrerpolicy="strict-origin-when-cross-origin" allow="fullscreen; clipboard-write; autoplay; encrypted-media; picture-in-picture"></iframe></body></html>`
+    return PublicPage.html(200, document, {
+      // The destination may redirect elsewhere, so any web origin may fill the frame.
+      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; frame-src https: http:",
+      'referrer-policy': 'strict-origin-when-cross-origin',
+    })
+  }
+}
+
 export class PasswordPageView {
   static render(message?: string): Response {
     const alert = message ? `<p role="alert">${PublicPage.escape(message)}</p>` : ''
@@ -55,8 +96,13 @@ export class PasswordPageView {
 
 /** Turns a resolved short-link request into its HTTP response. */
 export class RedirectResponses {
-  static for(outcome: ResolveOutcome): Response {
+  /** `shortUrl` is the URL that was requested, used for share cards. */
+  static for(outcome: ResolveOutcome, shortUrl: URL = new URL('https://localhost/')): Response {
     switch (outcome.type) {
+      case 'cloak':
+        return CloakPageView.render(outcome.url, outcome.title)
+      case 'preview':
+        return PreviewPageView.render(outcome.preview, outcome.title, shortUrl)
       case 'redirect':
         return new Response(null, {
           status: outcome.status,

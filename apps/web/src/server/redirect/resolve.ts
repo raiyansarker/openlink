@@ -7,6 +7,7 @@ import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { verifyLinkPassword } from '#/server/links/password'
 import { RedirectRules, type RedirectDecision } from './decide'
+import { FrameCheck } from './frame-check'
 import { Visitor } from './visitor'
 
 export type ResolveOutcome = RedirectDecision | { type: 'password_invalid' }
@@ -60,6 +61,8 @@ export function resolveRedirect(input: {
   password?: string
   appHost?: string | null
   visitor?: Visitor
+  /** Whether a destination can be framed, for cloaked links; real check by default. */
+  frameable?: (url: string) => Effect.Effect<boolean>
 }) {
   return Effect.gen(function* () {
     const db = yield* Db
@@ -83,8 +86,11 @@ export function resolveRedirect(input: {
     }
 
     const visitor = input.visitor ?? Visitor.ANONYMOUS
-    const decision = RedirectRules.decide(row, { passwordVerified, visitor })
-    if (decision.type !== 'redirect' || !decision.countsClick) return decision
+    let decision = RedirectRules.decide(row, { passwordVerified, visitor })
+    if (decision.type === 'cloak' && !(yield* (input.frameable ?? FrameCheck.frameable)(decision.url))) {
+      decision = { type: 'redirect', url: decision.url, status: row.redirectStatus, countsClick: true }
+    }
+    if (!('countsClick' in decision) || !decision.countsClick) return decision
 
     const claimed = yield* claimClick(row)
     if (!claimed) {

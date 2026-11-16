@@ -41,6 +41,11 @@ export class Visitor {
     return Visitor.PREVIEW_BOTS.test(this.userAgent)
   }
 
+  /**
+   * Only fetchers that exist to draw cards. Search engines are left out (they
+   * should follow the redirect), and so are in-app browsers whose user agents
+   * name their app (LINE, Pinterest, Snapchat), since real people use those.
+   */
   private static readonly PREVIEW_BOTS =
-    /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Slack-ImgProxy|Discordbot|TelegramBot|WhatsApp|SkypeUriPreview|Pinterest|redditbot|Embedly|Iframely|vkShare|Applebot|bingbot|Googlebot|Mastodon|Bluesky|Snapchat|Viber|Line\/|KakaoTalk|Zalo|Signal|MicrosoftPreview|Teams/i
+    /facebookexternalhit|Facebot|meta-externalagent|Twitterbot|LinkedInBot|Slackbot|Slack-ImgProxy|Discordbot|TelegramBot|WhatsApp\/|SkypeUriPreview|Pinterestbot|redditbot|Embedly|Iframely|vkShare|Mastodon\/|Bluesky Cardyb|MicrosoftPreview/i
 }

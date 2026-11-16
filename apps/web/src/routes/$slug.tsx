@@ -30,7 +30,7 @@ const serve = (request: Request, slug: string, withPassword: boolean) =>
         appHost,
         visitor: Visitor.fromRequest(request),
       })
-      return RedirectResponses.for(outcome)
+      return RedirectResponses.for(outcome, new URL(request.url))
     }).pipe(Effect.catch(() => Effect.succeed(unavailable()))),
   )
 

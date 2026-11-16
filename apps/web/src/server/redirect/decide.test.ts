@@ -179,3 +179,31 @@ describe('targeting', () => {
     expect(urlFor(Visitor.ANONYMOUS)).toBe('https://example.com/main?utm_source=qr')
   })
 })
+
+describe('social preview and cloaking', () => {
+  const BOT = new Visitor('Slackbot-LinkExpanding 1.0', null, null)
+  const PERSON = new Visitor('Mozilla/5.0 (Macintosh)', null, null)
+  const preview = { title: 'Spring launch', imageUrl: '/api/media/previews/o1/abc.png' }
+
+  test('crawlers get the card, people get the destination', () => {
+    const shared = row({ title: 'Launch', deliveryJson: JSON.stringify({ socialPreview: preview }) })
+    expect(RedirectRules.decide(shared, { now: NOW, visitor: BOT })).toEqual({ type: 'preview', preview, title: 'Launch' })
+    expect(RedirectRules.decide(shared, { now: NOW, visitor: PERSON }).type).toBe('redirect')
+  })
+
+  test('the card is served even before the password form; without one crawlers follow the rules', () => {
+    const locked = row({ passwordHash: 'x', deliveryJson: JSON.stringify({ socialPreview: preview }) })
+    expect(RedirectRules.decide(locked, { now: NOW, visitor: BOT }).type).toBe('preview')
+    expect(RedirectRules.decide(row({ passwordHash: 'x' }), { now: NOW, visitor: BOT }).type).toBe('password_required')
+  })
+
+  test('cloaked links frame the chosen destination and count the click', () => {
+    const cloaked = row({ deliveryJson: JSON.stringify({ cloaked: true }) })
+    expect(RedirectRules.decide(cloaked, { now: NOW, visitor: PERSON })).toEqual({
+      type: 'cloak',
+      url: 'https://example.com/page',
+      title: 'example.com',
+      countsClick: true,
+    })
+  })
+})

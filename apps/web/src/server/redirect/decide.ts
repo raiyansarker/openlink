@@ -1,4 +1,4 @@
-import { HoldPages, type HoldPageId } from '@openlink/contracts'
+import { HoldPages, type HoldPageId, type SocialPreview } from '@openlink/contracts'
 import type { link } from '@openlink/db/schema'
 
 import { LinkDelivery } from '#/server/links/delivery'
@@ -10,6 +10,10 @@ type LinkRow = typeof link.$inferSelect
 /** What a visitor gets. `countsClick` marks a real visit to the destination. */
 export type RedirectDecision =
   | { type: 'redirect'; url: string; status: number; countsClick: boolean }
+  /** The destination shown in a frame, so the short URL stays in the address bar. */
+  | { type: 'cloak'; url: string; title: string; countsClick: true }
+  /** A share card for a link-preview crawler; never the destination. */
+  | { type: 'preview'; preview: SocialPreview; title: string }
   | { type: 'hold'; page: HoldPageId }
   | { type: 'password_required' }
   | { type: 'not_found' }
@@ -60,9 +64,12 @@ export class Utm {
  * 1. Expired → its after-expiry destination, the fallback, or 410.
  * 2. Not live (scheduled, paused, disabled, draft) → the fallback or 404.
  * 3. On hold → the hold page, for everyone (it stands in for the whole site).
- * 4. Password protected → the password form until the visitor knows it.
- * 5. Otherwise → the destination, with UTM parameters. Device rules (iOS,
+ * 4. A link-preview crawler and a custom social card → the card. It holds only
+ *    what the owner wrote, so it is safe even for password-protected links.
+ * 5. Password protected → the password form until the visitor knows it.
+ * 6. Otherwise → the destination, with UTM parameters. Device rules (iOS,
  *    Android) win over country rules; everyone else gets the main destination.
+ *    Cloaked links show it in a frame instead of redirecting.
  */
 export class RedirectRules {
   static decide(row: LinkRow, options: DecideOptions = {}): RedirectDecision {
@@ -80,10 +87,26 @@ export class RedirectRules {
     const delivery = LinkDelivery.fromJson(row.deliveryJson)
     if (HoldPages.isActive(delivery.hold, now)) return { type: 'hold', page: delivery.hold.page }
 
+    const visitor = options.visitor ?? Visitor.ANONYMOUS
+    if (visitor.isPreviewBot && delivery.socialPreview) {
+      return { type: 'preview', preview: delivery.socialPreview, title: RedirectRules.title(row) }
+    }
+
     if (row.passwordHash && !options.passwordVerified) return { type: 'password_required' }
 
-    const destination = RedirectRules.target(row, delivery, options.visitor ?? Visitor.ANONYMOUS)
-    return RedirectRules.redirect(row, Utm.apply(destination, Utm.parse(row.utmJson)), true)
+    const url = Utm.apply(RedirectRules.target(row, delivery, visitor), Utm.parse(row.utmJson))
+    if (delivery.cloaked) return { type: 'cloak', url, title: RedirectRules.title(row), countsClick: true }
+    return RedirectRules.redirect(row, url, true)
+  }
+
+  /** What to call the link on pages we render for it. */
+  static title(row: LinkRow): string {
+    if (row.title) return row.title
+    try {
+      return new URL(row.destinationUrl).hostname.replace(/^www\./, '')
+    } catch {
+      return row.slug
+    }
   }
 
   /** The destination for this visitor. */
