@@ -24,15 +24,15 @@ export class AnalyticsWindow {
   ) {}
 
   /**
-   * The last full `range` before `now`: the in-progress hour or day is left
-   * out, since a partial bucket reads as a sudden drop.
+   * `range` worth of whole buckets ending with the one in progress, so a click
+   * shows up the moment it happens.
    */
   static of(range: AnalyticsRange, now: Date, tzOffsetMinutes = 0): AnalyticsWindow {
     const hours = AnalyticsWindow.HOURS[range]
     const bucket = hours <= 24 * 7 ? 'hour' : 'day'
     const offset = tzOffsetMinutes * 60_000
     const size = bucket === 'hour' ? HOUR : DAY
-    const end = Math.floor((now.getTime() + offset) / size) * size - offset
+    const end = (Math.floor((now.getTime() + offset) / size) + 1) * size - offset
     return new AnalyticsWindow(range, bucket, offset, end - hours * HOUR, end)
   }
 
@@ -72,7 +72,8 @@ export class AnalyticsReports {
       const window = AnalyticsWindow.of(range, now, tzOffsetMinutes)
       const inWindow = AnalyticsReports.where(scope, window.previousStart, window.end)
       const isCurrent = sql<number>`case when ${linkClick.occurredAt} >= ${window.start} then 1 else 0 end`
-      const bucketOf = sql<number>`((${linkClick.occurredAt} + ${window.offset}) / ${window.bucketSize})`
+      // D1 binds JS numbers as REAL, so cast: integer division is what makes buckets.
+      const bucketOf = sql<number>`cast((${linkClick.occurredAt} + ${window.offset}) / ${window.bucketSize} as integer)`
 
       const query = <T>(name: string, run: () => Promise<T>) => operation(`analytics.${name}`, run)
 
@@ -299,7 +300,7 @@ export class AnalyticsReports {
       referrers: input.dimension.referrerHost.filter((r) => r.key).map((r) => row(r, r.key)),
       countries: countryCounts
         .filter((c) => c.key)
-        .map((c) => ({ ...row(c, countryName(c.key) || c.key), ...(coordinates.get(c.key) ?? {}) })),
+        .map((c) => ({ ...row(c, countryName(c.key) || c.key), ...coordinates.get(c.key) })),
       cities: input.cities
         .filter((c) => c.city)
         .map((c) => ({
