@@ -32,7 +32,8 @@ const serve = (request: Request, slug: string, withPassword: boolean) =>
         cookieHeader: request.headers.get('cookie'),
         clientIp: request.headers.get('cf-connecting-ip'),
       })
-      return RedirectResponses.for(outcome, new URL(request.url))
+      const url = new URL(request.url)
+      return RedirectResponses.for(outcome, url, !!appHost && url.host === appHost)
     }).pipe(Effect.catch(() => Effect.succeed(unavailable()))),
   )
 

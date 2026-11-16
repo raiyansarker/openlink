@@ -1,6 +1,22 @@
 import { HoldPages, type HoldPageId, type SocialPreview } from '@openlink/contracts'
 
+import type { ReactElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+
+import { ExpiredLinkIllustration, LockedLinkIllustration } from '#/components/not-found/LinkStateIllustrations'
+import NotFoundIllustration from '#/components/not-found/NotFoundIllustration'
 import type { ResolveOutcome } from './resolve'
+
+type BrandedPage = {
+  title: string
+  /** Small caps line above the heading, e.g. "Error 404". */
+  eyebrow?: string
+  heading: string
+  body: string
+  illustration: ReactElement
+  /** Trusted HTML under the copy (forms, buttons). */
+  content?: string
+}
 
 /** Small, dependency-free HTML pages for public short-link responses. */
 export class PublicPage {
@@ -21,10 +37,31 @@ export class PublicPage {
     })
   }
 
-  /** The app's plain layout: centred column, system font, light and dark. */
-  static simple(title: string, body: string): string {
-    return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>${PublicPage.escape(title)}</title><body style="font-family:system-ui,sans-serif;max-width:28rem;margin:20vh auto;padding:0 1rem;line-height:1.5">${body}</body></html>`
+  /**
+   * The app's look for visitor-facing pages: the same illustrations, tokens
+   * and type as the dashboard's 404, in light and dark, with no scripts.
+   */
+  static branded(page: BrandedPage): string {
+    const art = renderToStaticMarkup(page.illustration)
+    const eyebrow = page.eyebrow ? `<p class="eyebrow">${PublicPage.escape(page.eyebrow)}</p>` : ''
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>${PublicPage.escape(page.title)}</title><style>${PublicPage.STYLES}</style></head><body><main><div class="art">${art}</div>${eyebrow}<h1>${PublicPage.escape(page.heading)}</h1><p class="body">${PublicPage.escape(page.body)}</p>${page.content ?? ''}</main></body></html>`
   }
+
+  private static readonly STYLES = [
+    ':root{color-scheme:light dark;--color-text-primary:light-dark(#0a0a0a,#f4f4f5);--color-text-secondary:light-dark(#4b4b50,#c9c9ce);--color-background-surface:light-dark(#fff,#18181b);--color-background-body:light-dark(#f7f7f8,#0f0f11);--color-border:light-dark(rgba(0,0,0,.12),rgba(255,255,255,.14));--accent:light-dark(#1b1b1b,#f1f1f1);--on-accent:light-dark(#fff,#111)}',
+    '*{box-sizing:border-box}html,body{margin:0;height:100%}',
+    "body{display:flex;align-items:center;justify-content:center;padding:48px 24px;background:var(--color-background-body);color:var(--color-text-primary);font:16px/1.5 ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;text-align:center}",
+    'main{max-width:30rem;display:flex;flex-direction:column;align-items:center;gap:12px}',
+    '.art{margin-bottom:20px}.art svg{max-width:100%;height:auto}',
+    '.eyebrow{margin:0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-secondary)}',
+    'h1{margin:0;font-size:clamp(24px,5vw,32px);line-height:1.2;letter-spacing:-.02em}',
+    '.body{margin:0;color:var(--color-text-secondary)}',
+    'form{display:flex;gap:8px;width:100%;max-width:22rem;margin-top:16px}',
+    'input{flex:1;min-width:0;height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--color-border);background:var(--color-background-surface);color:inherit;font:inherit}',
+    'input:focus{outline:2px solid var(--accent);outline-offset:1px}',
+    'button,.button{height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}',
+    '.alert{margin:4px 0 0;color:light-dark(#b42318,#ff8a80);font-weight:500}',
+  ].join('')
 }
 
 /** The placeholder pages a link on hold serves, matching the editor's preview. */
@@ -83,21 +120,59 @@ export class CloakPageView {
 
 export class PasswordPageView {
   static render(message?: string, status = 401): Response {
-    const alert = message ? `<p role="alert">${PublicPage.escape(message)}</p>` : ''
+    const alert = message ? `<p class="alert" role="alert">${PublicPage.escape(message)}</p>` : ''
+    const locked = status === 429
     return PublicPage.html(
       status,
-      PublicPage.simple(
-        'Password required',
-        `<h1>Password required</h1>${alert}<form method="post"><input type="password" name="password" autocomplete="off" autofocus required> <button type="submit">Continue</button></form>`,
-      ),
+      PublicPage.branded({
+        title: 'Password required',
+        heading: 'This link is password protected',
+        body: 'Enter the password you were given to continue.',
+        illustration: <LockedLinkIllustration width={240} />,
+        content: `${alert}<form method="post"><input type="password" name="password" aria-label="Password" placeholder="Password" autocomplete="off" ${locked ? 'disabled' : 'autofocus'} required><button type="submit"${locked ? ' disabled' : ''}>Continue</button></form>`,
+      }),
+    )
+  }
+}
+
+/** Visitor pages for links that do not exist or no longer work. */
+export class LinkMissingView {
+  static notFound(appOrigin: string | null): Response {
+    return PublicPage.html(
+      404,
+      PublicPage.branded({
+        title: 'Link not found',
+        eyebrow: 'Error 404',
+        heading: 'This link went nowhere',
+        body: 'The short link doesn’t exist, was removed, or the address has a typo.',
+        illustration: <NotFoundIllustration width={260} />,
+        // Only the app's own host offers a way in; custom domains belong to their owners.
+        content: appOrigin ? `<a class="button" href="${PublicPage.escape(appOrigin)}/w">Go to OpenLink</a>` : '',
+      }),
+    )
+  }
+
+  static expired(): Response {
+    return PublicPage.html(
+      410,
+      PublicPage.branded({
+        title: 'Link expired',
+        eyebrow: 'Link expired',
+        heading: 'This link has run its course',
+        body: 'It reached its end date or its click limit. Ask whoever shared it for a new one.',
+        illustration: <ExpiredLinkIllustration width={240} />,
+      }),
     )
   }
 }
 
 /** Turns a resolved short-link request into its HTTP response. */
 export class RedirectResponses {
-  /** `shortUrl` is the URL that was requested, used for share cards. */
-  static for(outcome: ResolveOutcome, shortUrl: URL = new URL('https://localhost/')): Response {
+  /**
+   * `shortUrl` is the URL that was requested (used for share cards and to come
+   * back after a password); `onAppHost` adds a way into the app on 404s.
+   */
+  static for(outcome: ResolveOutcome, shortUrl: URL = new URL('https://localhost/'), onAppHost = false): Response {
     switch (outcome.type) {
       case 'cloak':
         return CloakPageView.render(outcome.url, outcome.title)
@@ -122,9 +197,9 @@ export class RedirectResponses {
       case 'password_rate_limited':
         return PasswordPageView.render('Too many attempts. Wait a minute, then try again.', 429)
       case 'gone':
-        return PublicPage.html(410, PublicPage.simple('Link expired', '<h1>This link has expired</h1>'))
+        return LinkMissingView.expired()
       case 'not_found':
-        return PublicPage.html(404, PublicPage.simple('Link not found', '<h1>Link not found</h1>'))
+        return LinkMissingView.notFound(onAppHost ? shortUrl.origin : null)
     }
   }
 }
