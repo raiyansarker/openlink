@@ -6,7 +6,8 @@ import type { LinkRow } from '#/lib/analytics/report'
 type TopLinksCardProps = {
   rows: LinkRow[]
   isComparing: boolean
-  onSelect: (linkId: string) => void
+  /** Drills into a link; without it the bars are not selectable. */
+  onSelect?: (linkId: string) => void
 }
 
 function destinationLabel(url: string): string {
@@ -23,7 +24,7 @@ export default function TopLinksCard({ rows, isComparing, onSelect }: TopLinksCa
   return (
     <AnalyticsCard
       title="Top short links"
-      description={`Ranked by clicks · ${rows.length} links · select one to drill in`}
+      description={`Ranked by clicks · ${rows.length} ${rows.length === 1 ? 'link' : 'links'}${onSelect ? ' · select one to drill in' : ''}`}
     >
       <RankedBars
         rows={rows.map((row) => ({
@@ -35,7 +36,7 @@ export default function TopLinksCard({ rows, isComparing, onSelect }: TopLinksCa
         label="Clicks by short link"
         isComparing={isComparing}
         limit={9}
-        onSelect={onSelect}
+        {...(onSelect ? { onSelect } : {})}
       />
     </AnalyticsCard>
   )
