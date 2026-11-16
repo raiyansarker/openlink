@@ -12,15 +12,12 @@ import { use$ } from '@legendapp/state/react'
 import { getStatsForOrg } from '#/data/demo/queries'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
 import type {
-  LinkComment,
   LinkFolder,
   LinkHold,
   Organization,
   OrgDashboardStats,
   ShortLink,
 } from '#/data/demo/types'
-import { demoCurrentUser } from '#/data/demo/current-user'
-import { DEMO_USER_AVATAR_URL } from '#/components/dashboard/layout/dashboard-shell-colors'
 import { DomainsApi } from '#/lib/api/domains'
 import { LinkMapper, LinksApi } from '#/lib/api/links'
 import { QueryKeys } from '#/lib/api/query'
@@ -38,13 +35,7 @@ import {
   validateDraft,
   type CreateLinkDraft,
 } from '#/lib/links/create-link'
-import { HEALTH_LABEL, demoCheckHealth } from '#/lib/links/demo-health'
-import {
-  COMMENT_MAX_LENGTH,
-  commentExcerpt,
-  historyEvent,
-  withEvent,
-} from '#/lib/links/link-history'
+import { demoCheckHealth } from '#/lib/links/demo-health'
 import { ShortUrl } from '#/lib/links/short-url'
 import { linksWorkspace$, type LinkLocalExtras } from '#/state/links-workspace.state'
 import NotFoundPage from '#/components/not-found/NotFoundPage'
@@ -91,14 +82,6 @@ type OrganizationContextValue = {
   /** Runs (demo) destination health checks; resolves when results are in. */
   checkLinksHealth: (linkIds: string[]) => Promise<void>
   deleteLink: (linkId: string) => Promise<void>
-  /**
-   * Comments on a link (kept for this session only until the comments API is
-   * wired). Adding throws on empty or overlong text; only the author can edit or delete.
-   */
-  addLinkComment: (linkId: string, body: string) => LinkComment
-  editLinkComment: (linkId: string, commentId: string, body: string) => void
-  deleteLinkComment: (linkId: string, commentId: string) => void
-  toggleCommentReaction: (linkId: string, commentId: string, emoji: string) => void
 }
 
 const OrganizationContext = createContext<OrganizationContextValue | null>(null)
@@ -189,7 +172,7 @@ function OrganizationScope({
   // Domains never block the workspace; without them links fall back to the app host.
   const domainsQuery = useQuery({ queryKey: QueryKeys.domains(orgId), queryFn: () => domainsApi.list(orgId) })
 
-  // Comments and health checks have no API wiring yet; they live for the session.
+  // Health checks have no API yet; their results live for the session.
   const localExtras = use$(linksWorkspace$.extrasByLink)
 
   const domains = useMemo(() => domainsQuery.data ?? [], [domainsQuery.data])
@@ -420,7 +403,7 @@ function OrganizationScope({
     [orgId, queryClient],
   )
 
-  /** Applies a session-only change (comments, health, their history) to links. */
+  /** Applies a session-only change (health checks) to links. */
   const updateLocal = useCallback(
     (linkIds: string[], change: (link: ShortLink) => ShortLink | null) => {
       for (const id of linkIds) {
@@ -428,7 +411,7 @@ function OrganizationScope({
         if (!current) continue
         const next = change(current)
         if (!next) continue
-        const extras: LinkLocalExtras = { comments: next.comments, health: next.health, history: next.history }
+        const extras: LinkLocalExtras = { health: next.health }
         linksWorkspace$.extrasByLink[id].set(extras)
       }
     },
@@ -439,111 +422,7 @@ function OrganizationScope({
     async (linkIds: string[]) => {
       // Demo: the backend runs real checks; simulate its latency.
       await new Promise((resolve) => setTimeout(resolve, 900))
-      updateLocal(linkIds, (l) => {
-        const health = demoCheckHealth(l)
-        const before = l.health
-        const changes =
-          before && before.status !== health.status
-            ? [{ label: 'Status', from: HEALTH_LABEL[before.status], to: HEALTH_LABEL[health.status] }]
-            : []
-        return withEvent(
-          { ...l, health },
-          historyEvent(
-            'checked',
-            `Checked destination: ${HEALTH_LABEL[health.status].toLowerCase()} (HTTP ${health.statusCode}, ${health.responseMs.toLocaleString()} ms)`,
-            changes,
-          ),
-          { touch: false },
-        )
-      })
-    },
-    [updateLocal],
-  )
-
-  const addLinkComment = useCallback(
-    (linkId: string, body: string) => {
-      const text = body.trim()
-      if (!text) throw new Error('Write something first.')
-      if (text.length > COMMENT_MAX_LENGTH) throw new Error(`Comments can be up to ${COMMENT_MAX_LENGTH} characters.`)
-      if (!links.some((l) => l.id === linkId)) throw new Error('That link no longer exists.')
-      const now = new Date()
-      const comment: LinkComment = {
-        id: `cmt_${now.getTime()}_${Math.random().toString(36).slice(2, 7)}`,
-        at: now.toISOString(),
-        authorId: demoCurrentUser.id,
-        authorName: demoCurrentUser.name,
-        authorAvatarUrl: DEMO_USER_AVATAR_URL,
-        body: text,
-      }
-      updateLocal([linkId], (l) =>
-        withEvent(
-          { ...l, comments: [...(l.comments ?? []), comment] },
-          { ...historyEvent('commented', 'Left a comment', undefined, now, commentExcerpt(text)), commentId: comment.id },
-          { touch: false },
-        ),
-      )
-      return comment
-    },
-    [links, updateLocal],
-  )
-
-  const editLinkComment = useCallback(
-    (linkId: string, commentId: string, body: string) => {
-      const text = body.trim()
-      if (!text) throw new Error('A comment cannot be empty. Delete it instead.')
-      if (text.length > COMMENT_MAX_LENGTH) throw new Error(`Comments can be up to ${COMMENT_MAX_LENGTH} characters.`)
-      updateLocal([linkId], (l) => {
-        const target = l.comments?.find((c) => c.id === commentId)
-        // Only the author can edit, and an unchanged body is not an edit.
-        if (!target || target.authorId !== demoCurrentUser.id || target.body === text) return null
-        return {
-          ...l,
-          comments: l.comments!.map((c) => (c.id === commentId ? { ...c, body: text, editedAt: new Date().toISOString() } : c)),
-          // The timeline quotes the comment as it reads now.
-          history: l.history?.map((e) => (e.commentId === commentId ? { ...e, excerpt: commentExcerpt(text) } : e)),
-        }
-      })
-    },
-    [updateLocal],
-  )
-
-  const deleteLinkComment = useCallback(
-    (linkId: string, commentId: string) => {
-      updateLocal([linkId], (l) => {
-        const target = l.comments?.find((c) => c.id === commentId)
-        if (!target || target.authorId !== demoCurrentUser.id) return null
-        return {
-          ...l,
-          comments: l.comments!.filter((c) => c.id !== commentId),
-          // Keep the fact that a comment happened, but not its words.
-          history: l.history?.map((e) => {
-            if (e.commentId !== commentId) return e
-            const { excerpt: _dropped, ...rest } = e
-            return { ...rest, summary: 'Left a comment (since deleted)' }
-          }),
-        }
-      })
-    },
-    [updateLocal],
-  )
-
-  const toggleCommentReaction = useCallback(
-    (linkId: string, commentId: string, emoji: string) => {
-      updateLocal([linkId], (l) => {
-        if (!l.comments?.some((c) => c.id === commentId)) return null
-        return {
-          ...l,
-          comments: l.comments.map((c) => {
-            if (c.id !== commentId) return c
-            const people = c.reactions?.[emoji] ?? []
-            const nextPeople = people.includes(demoCurrentUser.id)
-              ? people.filter((id) => id !== demoCurrentUser.id)
-              : [...people, demoCurrentUser.id]
-            const { [emoji]: _removed, ...rest } = c.reactions ?? {}
-            return { ...c, reactions: nextPeople.length > 0 ? { ...rest, [emoji]: nextPeople } : rest }
-          }),
-        }
-      })
+      updateLocal(linkIds, (l) => ({ ...l, health: demoCheckHealth(l) }))
     },
     [updateLocal],
   )
@@ -574,10 +453,6 @@ function OrganizationScope({
       deleteLinks: (ids) => friendly(() => deleteLinks(ids), 'Could not delete the links.'),
       checkLinksHealth,
       deleteLink: (id) => friendly(() => deleteLink(id), 'Could not delete the link.'),
-      addLinkComment,
-      editLinkComment,
-      deleteLinkComment,
-      toggleCommentReaction,
     }),
     [
       organizations,
@@ -603,10 +478,6 @@ function OrganizationScope({
       deleteLinks,
       checkLinksHealth,
       deleteLink,
-      addLinkComment,
-      editLinkComment,
-      deleteLinkComment,
-      toggleCommentReaction,
     ],
   )
 

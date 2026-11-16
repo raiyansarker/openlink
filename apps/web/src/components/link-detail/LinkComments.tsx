@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
+import { Banner } from '@astryxdesign/core/Banner'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { Button } from '@astryxdesign/core/Button'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
@@ -10,19 +11,24 @@ import { TextArea } from '@astryxdesign/core/TextArea'
 import { ToggleButton } from '@astryxdesign/core/ToggleButton'
 import { VStack } from '@astryxdesign/core/VStack'
 import { InlineShortcut } from '#/components/create-link/LinkPreviewPanel'
-import { DEMO_USER_AVATAR_URL } from '#/components/dashboard/layout/dashboard-shell-colors'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
-import { demoCurrentUser } from '#/data/demo/current-user'
 import type { LinkComment } from '#/data/demo/types'
-import { COMMENT_MAX_LENGTH } from '#/lib/links/link-history'
+import { MAX_COMMENT_LENGTH as COMMENT_MAX_LENGTH } from '@openlink/contracts'
+
+/** The signed-in person reading the thread. */
+export type CommentViewer = { id: string; name: string; avatarUrl?: string }
+
+const ViewerContext = createContext<CommentViewer>({ id: '', name: '' })
 
 type LinkCommentsProps = {
+  viewer: CommentViewer
   comments: LinkComment[]
   /** Throws with a user-facing message when the text is rejected. */
-  onAdd: (body: string) => void
-  onEdit: (commentId: string, body: string) => void
-  onDelete: (commentId: string) => void
-  onToggleReaction: (commentId: string, emoji: string) => void
+  /** Each rejects with an Error carrying a message to show. */
+  onAdd: (body: string) => Promise<unknown>
+  onEdit: (commentId: string, body: string) => Promise<unknown>
+  onDelete: (commentId: string) => Promise<unknown>
+  onToggleReaction: (commentId: string, emoji: string) => Promise<unknown>
 }
 
 const REACTIONS: { emoji: string; name: string }[] = [
@@ -129,13 +135,14 @@ function ReactionChips({
   reactions: Record<string, string[]>
   onToggle: (emoji: string) => void
 }) {
+  const viewer = useContext(ViewerContext)
   const used = REACTIONS.filter((r) => (reactions[r.emoji]?.length ?? 0) > 0)
   if (used.length === 0) return null
   return (
     <HStack gap={1} vAlign="center" wrap="wrap">
       {used.map((r) => {
         const people = reactions[r.emoji] ?? []
-        const mine = people.includes(demoCurrentUser.id)
+        const mine = people.includes(viewer.id)
         return (
           <ToggleButton
             key={r.emoji}
@@ -162,6 +169,7 @@ function AddReactionMenu({
   onToggle: (emoji: string) => void
   onOpenChange: (isOpen: boolean) => void
 }) {
+  const viewer = useContext(ViewerContext)
   return (
     <DropdownMenu
       hasChevron={false}
@@ -183,7 +191,7 @@ function AddReactionMenu({
       items={REACTIONS.map((r) => ({
         id: r.emoji,
         label: `${r.emoji}  ${r.name}`,
-        endContent: reactions[r.emoji]?.includes(demoCurrentUser.id) ? (
+        endContent: reactions[r.emoji]?.includes(viewer.id) ? (
           <Text type="supporting" color="secondary">
             Added
           </Text>
@@ -227,7 +235,8 @@ function CommentItem({
   const canHover = useCanHover()
   const trackMenu = (isOpen: boolean) => setOpenMenus((n) => Math.max(0, n + (isOpen ? 1 : -1)))
   const showActions = !canHover || isHovered || hasFocusWithin || openMenus > 0
-  const isMine = comment.authorId === demoCurrentUser.id
+  const viewer = useContext(ViewerContext)
+  const isMine = comment.authorId === viewer.id
   const tooLong = draft.trim().length > COMMENT_MAX_LENGTH
 
   const cancel = () => {
@@ -237,8 +246,9 @@ function CommentItem({
   const save = (event: FormEvent) => {
     event.preventDefault()
     if (!draft.trim() || tooLong) return
-    onEdit(draft)
+    // Close at once; a failure shows above the thread and the comment keeps its old text.
     setIsEditing(false)
+    onEdit(draft)
   }
 
   return (
@@ -397,6 +407,7 @@ function CommentItem({
  * A conversation thread (oldest first) with the composer at the end.
  */
 export default function LinkComments({
+  viewer,
   comments,
   onAdd,
   onEdit,
@@ -405,19 +416,29 @@ export default function LinkComments({
 }: LinkCommentsProps) {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [threadError, setThreadError] = useState<string | null>(null)
+  const [isPosting, setIsPosting] = useState(false)
   const [deleting, setDeleting] = useState<LinkComment | null>(null)
+  /** Runs a thread action, showing its failure above the thread. */
+  const run = (action: Promise<unknown>) => {
+    setThreadError(null)
+    action.catch((e: unknown) => setThreadError(e instanceof Error ? e.message : 'Something went wrong.'))
+  }
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const tooLong = draft.trim().length > COMMENT_MAX_LENGTH
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!draft.trim() || tooLong) return
+    if (!draft.trim() || tooLong || isPosting) return
+    setIsPosting(true)
     try {
-      onAdd(draft)
+      await onAdd(draft.trim())
       setDraft('')
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not post the comment.')
+    } finally {
+      setIsPosting(false)
     }
   }
 
@@ -433,7 +454,9 @@ export default function LinkComments({
   }
 
   return (
+    <ViewerContext.Provider value={viewer}>
     <VStack gap={8} hAlign="stretch" width="100%" style={{ maxWidth: 760 }}>
+      {threadError ? <Banner status="error" title={threadError} /> : null}
       {comments.length === 0 ? (
         <VStack gap={3} hAlign="start" width="100%" paddingBlock={4}>
           <ConversationMark />
@@ -462,9 +485,9 @@ export default function LinkComments({
                 key={comment.id}
                 comment={comment}
                 hasThreadLine={index < comments.length - 1}
-                onEdit={(body) => onEdit(comment.id, body)}
+                onEdit={(body) => run(onEdit(comment.id, body.trim()))}
                 onDelete={() => setDeleting(comment)}
-                onToggleReaction={(emoji) => onToggleReaction(comment.id, emoji)}
+                onToggleReaction={(emoji) => run(onToggleReaction(comment.id, emoji))}
               />
             ))}
           </VStack>
@@ -473,13 +496,13 @@ export default function LinkComments({
 
       {/* Composer */}
       <HStack gap={3} vAlign="start" width="100%">
-        <Avatar src={DEMO_USER_AVATAR_URL} name={demoCurrentUser.name} size={AVATAR_PX} tooltip={false} />
+        <Avatar src={viewer.avatarUrl} name={viewer.name} size={AVATAR_PX} tooltip={false} />
         <VStack
           as="form"
           gap={3}
           hAlign="stretch"
           style={{ flex: 1, minWidth: 0 }}
-          onSubmit={submit}
+          onSubmit={(event) => void submit(event)}
           onKeyDown={submitShortcuts()}
         >
           <TextArea
@@ -531,6 +554,7 @@ export default function LinkComments({
               aria-keyshortcuts="Meta+Enter Control+Enter"
               endContent={<InlineShortcut />}
               isDisabled={!draft.trim() || tooLong}
+              isLoading={isPosting}
             />
           </HStack>
         </VStack>
@@ -546,10 +570,11 @@ export default function LinkComments({
         actionLabel="Delete"
         actionVariant="destructive"
         onAction={() => {
-          if (deleting) onDelete(deleting.id)
+          if (deleting) run(onDelete(deleting.id))
           setDeleting(null)
         }}
       />
     </VStack>
+    </ViewerContext.Provider>
   )
 }

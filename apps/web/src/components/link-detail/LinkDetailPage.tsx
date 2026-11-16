@@ -20,6 +20,8 @@ import { useClipboard } from '@astryxdesign/core/hooks'
 import { QrBlock } from '#/components/create-link/LinkPreviewPanel'
 import LinkAnalyticsSection from '#/components/analytics/LinkAnalyticsSection'
 import LinkComments from '#/components/link-detail/LinkComments'
+import { useCurrentUser } from '#/hooks/use-current-user'
+import { useLinkThread } from '#/hooks/use-link-thread'
 import LinkHistoryTimeline from '#/components/link-detail/LinkHistoryTimeline'
 import LinkSettingsPanel from '#/components/link-detail/LinkSettingsPanel'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
@@ -199,10 +201,6 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
     setLinkHold,
     deleteLink,
     checkLinksHealth,
-    addLinkComment,
-    editLinkComment,
-    deleteLinkComment,
-    toggleCommentReaction,
     shortHostFor,
     shortUrlFor,
   } = useOrganization()
@@ -210,6 +208,9 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isQrOpen, setIsQrOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const thread = useLinkThread(activeOrg.id, linkId)
+  const { user } = useCurrentUser()
+  const viewer = { id: user?.id ?? '', name: user?.name || user?.email || 'You', ...(user?.image ? { avatarUrl: user.image } : {}) }
   const run = (action: () => Promise<unknown>) => {
     setActionError(null)
     action().catch((err: unknown) =>
@@ -241,8 +242,8 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
   const host = shortHostFor(link.domainId)
   const path = getFolderPath(folders, link.folderId ?? null)
   const held = isOnHold(link)
-  const historyCount = link.history?.length ?? 0
-  const comments = link.comments ?? []
+  const historyCount = thread.history.length
+  const comments = thread.comments
   const goToFolder = (folderId: string | null) =>
     void navigate({ to: linksPath, search: { folder: folderId ?? undefined } })
   const openEdit = (id = link.id) =>
@@ -364,13 +365,12 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
 
           {tab === 'comments' ? (
             <LinkComments
+              viewer={viewer}
               comments={comments}
-              onAdd={(body) => addLinkComment(link.id, body)}
-              onEdit={(commentId, body) => editLinkComment(link.id, commentId, body)}
-              onDelete={(commentId) => deleteLinkComment(link.id, commentId)}
-              onToggleReaction={(commentId, emoji) =>
-                toggleCommentReaction(link.id, commentId, emoji)
-              }
+              onAdd={thread.addComment}
+              onEdit={thread.editComment}
+              onDelete={thread.deleteComment}
+              onToggleReaction={thread.toggleReaction}
             />
           ) : null}
 
@@ -384,7 +384,7 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
             />
           ) : null}
 
-          {tab === 'history' ? <LinkHistoryTimeline events={link.history ?? []} /> : null}
+          {tab === 'history' ? <LinkHistoryTimeline events={thread.history} /> : null}
         </VStack>
       </VStack>
 
