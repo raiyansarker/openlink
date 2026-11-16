@@ -15,6 +15,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import ApiKeyRowMenu from '#/components/settings/ApiKeyRowMenu'
+import ApiKeysIllustration from '#/components/settings/ApiKeysIllustration'
 import ApiKeySecretRevealDialog from '#/components/settings/ApiKeySecretRevealDialog'
 import CreateApiKeyDrawer from '#/components/settings/CreateApiKeyDrawer'
 import type { WorkspaceMemberRole } from '#/data/demo/types'
@@ -191,11 +192,14 @@ export default function ApiKeysSettingsFields() {
           />
         </VStack>
         ) : (
-          <VStack gap={1} hAlign="start" width="100%" paddingBlock={6}>
-            <Text weight="semibold">No API keys yet</Text>
-            <Text type="supporting" color="secondary">
-              Create a key to call the OpenLink API from scripts or integrations.
-            </Text>
+          <VStack gap={3} hAlign="center" width="100%" paddingBlock={8}>
+            <ApiKeysIllustration width={180} />
+            <VStack gap={1} hAlign="center">
+              <Text weight="semibold">No API keys yet</Text>
+              <Text type="supporting" color="secondary" justify="center">
+                Create a key to call the OpenLink API from scripts or integrations.
+              </Text>
+            </VStack>
           </VStack>
         )}
       </VStack>
