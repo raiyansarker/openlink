@@ -78,8 +78,17 @@ export class LinkMapper {
 
   /** A full replacement for an edit: settings the link no longer has are cleared. */
   static toUpdateBody(link: ShortLink, password?: string): UpdateBody {
+    // Every optional setting is sent, as null when off, so turning one off clears it.
     return {
       ...LinkMapper.toBody(link, password),
+      description: link.description ?? null,
+      activateAt: link.activateAt ?? null,
+      expiresAt: link.expiresAt ?? null,
+      maxClicks: link.maxClicks ?? null,
+      expiredDestinationUrl: link.expiredDestinationUrl ?? null,
+      fallbackDestinationUrl: link.fallbackDestinationUrl ?? null,
+      utm: link.utm ?? null,
+      metadata: link.metadata ?? null,
       hold: link.hold ?? null,
       targeting: link.targeting ?? null,
       socialPreview: link.socialPreview ?? null,
