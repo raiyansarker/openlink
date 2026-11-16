@@ -268,3 +268,17 @@ elements-api {
     stroke-dashoffset: 0;
   }
 }
+
+/*
+ * Charts are focusable so keyboard users can step through points. A mouse
+ * click shouldn't draw the browser's focus box around the whole chart; the
+ * keyboard still gets a ring.
+ */
+.ts-chart:focus:not(:focus-visible) {
+  outline: none;
+}
+.ts-chart:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-inner);
+}
