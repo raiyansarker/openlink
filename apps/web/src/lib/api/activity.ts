@@ -24,7 +24,7 @@ export class ActivityMapper {
   static toUi(row: ActivityDto): WorkspaceActivityEvent {
     const actor: WorkspaceActivityEvent['actor'] =
       row.actor.type === 'member'
-        ? { kind: 'member', name: row.actor.label }
+        ? { kind: 'member', name: row.actor.label, ...(row.actor.imageUrl ? { avatarUrl: row.actor.imageUrl } : {}) }
         : row.actor.type === 'api_key'
           ? { kind: 'api-key', name: row.actor.label }
           : { kind: 'system', name: row.actor.label }

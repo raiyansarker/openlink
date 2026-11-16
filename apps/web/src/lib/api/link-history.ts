@@ -22,6 +22,7 @@ export class HistoryMapper {
       id: row.id,
       at: row.occurredAt,
       actor: row.actor.label,
+      ...(row.actor.imageUrl ? { actorImageUrl: row.actor.imageUrl } : {}),
       type,
       summary: HistoryMapper.summary(type, changes),
       ...(changes.length > 0 ? { changes } : {}),

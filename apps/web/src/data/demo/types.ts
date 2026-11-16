@@ -96,6 +96,8 @@ export type LinkHistoryEvent = {
   id: string
   at: string
   actor: string
+  /** The actor's profile picture, when they have one. */
+  actorImageUrl?: string
   type:
     | 'created'
     | 'updated'

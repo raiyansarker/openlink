@@ -12,7 +12,7 @@ import { InlineShortcut } from '#/components/create-link/LinkPreviewPanel'
 import type { LinkHistoryEvent } from '#/data/demo/types'
 
 /** Who last changed the notes, and when (from the link's history). */
-export type NotesEdit = { actor: string; at: string }
+export type NotesEdit = { actor: string; at: string; imageUrl?: string }
 
 type LinkNotesProps = {
   /** The saved notes; empty when there are none. */
@@ -27,7 +27,7 @@ const AVATAR_PX = 32
 /** The newest history entry that changed the notes, if any. */
 export function lastNotesEdit(events: LinkHistoryEvent[]): NotesEdit | undefined {
   const event = events.find((e) => e.changes?.some((c) => c.label === 'Notes'))
-  return event ? { actor: event.actor, at: event.at } : undefined
+  return event ? { actor: event.actor, at: event.at, ...(event.actorImageUrl ? { imageUrl: event.actorImageUrl } : {}) } : undefined
 }
 
 function timeAgo(iso: string, now = Date.now()): string {
@@ -65,7 +65,7 @@ function NotesView({ notes, lastEdit, onEdit }: { notes: string; lastEdit?: Note
   return (
     <ClickableCard label="Edit notes" variant="transparent" padding={3} width="100%" onClick={onEdit}>
       <HStack gap={3} vAlign="start" width="100%">
-        {lastEdit ? <Avatar name={lastEdit.actor} size={AVATAR_PX} tooltip={false} /> : null}
+        {lastEdit ? <Avatar src={lastEdit.imageUrl} name={lastEdit.actor} size={AVATAR_PX} tooltip={false} /> : null}
         <VStack gap={1} hAlign="stretch" style={{ flex: 1, minWidth: 0 }}>
           <HStack gap={2} hAlign="between" vAlign="center" width="100%" style={{ minHeight: AVATAR_PX }}>
             <HStack gap={2} vAlign="center" wrap="wrap" style={{ minWidth: 0 }}>
