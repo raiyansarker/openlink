@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 
 import { ExpiredLinkIllustration, LockedLinkIllustration } from '#/components/not-found/LinkStateIllustrations'
 import NotFoundIllustration from '#/components/not-found/NotFoundIllustration'
+import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
 import type { ResolveOutcome } from './resolve'
 
 type BrandedPage = {
@@ -61,6 +62,9 @@ export class PublicPage {
     'input:focus{outline:2px solid var(--accent);outline-offset:1px}',
     'button,.button{height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}',
     '.alert{margin:4px 0 0;color:light-dark(#b42318,#ff8a80);font-weight:500}',
+    ".example{margin:8px 0 0;padding:8px 14px;border-radius:10px;border:1px solid var(--color-border);background:var(--color-background-surface);font:500 15px/1.4 ui-monospace,'SF Mono',Menlo,monospace}",
+    '.example span{color:var(--color-text-secondary)}',
+    '.powered{margin-top:20px;font-size:13px}.powered a{color:inherit;font-weight:600}',
   ].join('')
 }
 
@@ -162,6 +166,33 @@ export class LinkMissingView {
         body: 'It reached its end date or its click limit. Ask whoever shared it for a new one.',
         illustration: <ExpiredLinkIllustration width={240} />,
       }),
+    )
+  }
+}
+
+/**
+ * What a custom domain shows at its root (`go.brand.com/`, no back-half): it
+ * explains the address is a short-link domain, with a quiet "powered by" link.
+ * The workspace behind it stays private.
+ */
+export class VanityDomainView {
+  static render(hostname: string, appOrigin: string | null): Response {
+    const host = PublicPage.escape(hostname)
+    const poweredBy = appOrigin
+      ? `<p class="body powered">Short links by <a href="${PublicPage.escape(appOrigin)}" rel="noopener">OpenLink</a></p>`
+      : ''
+    return PublicPage.html(
+      200,
+      PublicPage.branded({
+        title: hostname,
+        eyebrow: 'Short-link domain',
+        heading: hostname,
+        body: `This domain is used for short links. Each one looks like ${hostname}/something and takes you straight to its page.`,
+        illustration: <EmptyLinksIllustration width={220} />,
+        content: `<p class="example"><span>${host}/</span>launch</p>${poweredBy}`,
+      }),
+      // A real page, unlike the 404s: fine to cache briefly at the edge.
+      { 'cache-control': 'public, max-age=300' },
     )
   }
 }
