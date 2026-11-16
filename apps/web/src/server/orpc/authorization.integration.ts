@@ -22,7 +22,7 @@ const linkRow: typeof link.$inferSelect = {
   redirectStatus: 302, status: 'active', enabled: true, activateAt: null,
   expiresAt: null, maxClicks: null, clickCount: 0, passwordHash: null,
   expiredDestinationUrl: null, fallbackDestinationUrl: null, tagsJson: '[]',
-  utmJson: null, metadataJson: null, createdByUserId: 'user-1', createdAt: now, updatedAt: now,
+  utmJson: null, metadataJson: null, deliveryJson: null, createdByUserId: 'user-1', createdAt: now, updatedAt: now,
 }
 let role: OrganizationRole | null = 'viewer'
 

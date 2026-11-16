@@ -1,4 +1,5 @@
 import type { link } from '@openlink/db/schema'
+import { LinkDelivery } from '#/server/links/delivery'
 
 export type ActivityCategory = 'links' | 'domains' | 'members' | 'security' | 'developers'
 
@@ -55,7 +56,15 @@ const TRACKED: { label: string; read: (row: LinkRow) => string }[] = [
   { label: 'Folder', read: (r) => show(r.folderId) },
   { label: 'Tags', read: (r) => safeList(r.tagsJson) },
   { label: 'UTM', read: (r) => show(r.utmJson) },
+  { label: 'Hold', read: (r) => showJson(LinkDelivery.fromJson(r.deliveryJson).hold) },
+  { label: 'Targeting', read: (r) => showJson(LinkDelivery.fromJson(r.deliveryJson).targeting) },
+  { label: 'Cloaking', read: (r) => (LinkDelivery.fromJson(r.deliveryJson).cloaked ? 'on' : 'off') },
+  { label: 'Social preview', read: (r) => showJson(LinkDelivery.fromJson(r.deliveryJson).socialPreview) },
 ]
+
+function showJson(value: unknown) {
+  return value === undefined ? '—' : JSON.stringify(value)
+}
 
 function safeList(json: string) {
   try {

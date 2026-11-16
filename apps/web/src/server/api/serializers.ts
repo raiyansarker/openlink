@@ -1,3 +1,4 @@
+import { LinkDelivery } from '#/server/links/delivery'
 import type {
   activityEvent,
   apiKey,
@@ -116,6 +117,7 @@ export function toLinkDto(row: typeof link.$inferSelect) {
     tags: JSON.parse(row.tagsJson) as string[],
     ...(row.utmJson ? { utm: JSON.parse(row.utmJson) } : {}),
     ...(row.metadataJson ? { metadata: JSON.parse(row.metadataJson) } : {}),
+    ...LinkDelivery.fromJson(row.deliveryJson).toDto(),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }

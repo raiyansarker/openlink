@@ -5,6 +5,7 @@ import { Data, Effect } from 'effect'
 
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
+import { LinkDelivery, type LinkDeliverySettings } from './delivery'
 import { hashLinkPassword } from './password'
 import { generateSlug } from './rules'
 
@@ -50,7 +51,7 @@ export function createLinkRecord(input: {
   tags?: string[]
   utm?: Record<string, string>
   metadata?: Record<string, unknown>
-}) {
+} & LinkDeliverySettings) {
   return Effect.gen(function* () {
     const db = yield* Db
     const now = new Date()
@@ -82,6 +83,12 @@ export function createLinkRecord(input: {
           tagsJson: JSON.stringify(input.tags ?? []),
           utmJson: input.utm ? JSON.stringify(input.utm) : null,
           metadataJson: input.metadata ? JSON.stringify(input.metadata) : null,
+          deliveryJson: LinkDelivery.from({
+            hold: input.hold,
+            targeting: input.targeting,
+            cloaked: input.cloaked,
+            socialPreview: input.socialPreview,
+          }).toJson(),
           createdByUserId: input.userId,
           createdAt: now,
           updatedAt: now,
@@ -165,6 +172,7 @@ export function updateLinkRecord(
           tagsJson: input.tags ? JSON.stringify(input.tags) : existing.tagsJson,
           utmJson: input.utm ? JSON.stringify(input.utm) : existing.utmJson,
           metadataJson: input.metadata ? JSON.stringify(input.metadata) : existing.metadataJson,
+          deliveryJson: LinkDelivery.fromJson(existing.deliveryJson).apply(input).toJson(),
           updatedAt: now,
         })
         .where(eq(link.id, existing.id))
