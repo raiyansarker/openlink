@@ -38,6 +38,7 @@ describe('DomainHome', () => {
     expect(html).toContain('<h1>go.brand.com</h1>')
     expect(html).toContain('href="https://openlink.app"')
     expect(html).toContain('Powered by')
+    expect(html).toContain('Built by <a href="https://github.com/raiyansarker"')
     // No made-up example address.
     expect(html).not.toContain('class="example"')
     expect(response.headers.get('x-robots-tag')).toBe('noindex')

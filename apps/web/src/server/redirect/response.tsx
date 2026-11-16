@@ -62,7 +62,7 @@ export class PublicPage {
     'input:focus{outline:2px solid var(--accent);outline-offset:1px}',
     'button,.button{height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}',
     '.alert{margin:4px 0 0;color:light-dark(#b42318,#ff8a80);font-weight:500}',
-    '.powered{margin:24px 0 0;padding-top:16px;border-top:1px solid var(--color-border);font-size:13px;color:var(--color-text-secondary)}.powered a{color:var(--color-text-primary);font-weight:600;text-decoration:none}.powered a:hover{text-decoration:underline}',
+    '.powered{margin:24px 0 0;padding-top:16px;border-top:1px solid var(--color-border);font-size:13px;color:var(--color-text-secondary)}.powered a{color:var(--color-text-primary);font-weight:600;text-decoration:none}.powered a:hover{text-decoration:underline}.powered .dot{margin:0 8px}',
   ].join('')
 }
 
@@ -174,10 +174,12 @@ export class LinkMissingView {
  * The workspace behind it stays private.
  */
 export class VanityDomainView {
+  static readonly MAKER = { name: 'Raiyan Sarker', url: 'https://github.com/raiyansarker' }
+
   static render(hostname: string, appOrigin: string | null): Response {
-    const credit = appOrigin
-      ? `<p class="powered">Powered by <a href="${PublicPage.escape(appOrigin)}" rel="noopener">OpenLink</a></p>`
-      : ''
+    const maker = `Built by <a href="${PublicPage.escape(VanityDomainView.MAKER.url)}" rel="noopener">${PublicPage.escape(VanityDomainView.MAKER.name)}</a>`
+    const poweredBy = appOrigin ? `Powered by <a href="${PublicPage.escape(appOrigin)}" rel="noopener">OpenLink</a><span class="dot">·</span>` : ''
+    const credit = `<p class="powered">${poweredBy}${maker}</p>`
     return PublicPage.html(
       200,
       PublicPage.branded({
