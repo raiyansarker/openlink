@@ -7,7 +7,7 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   ANALYTICS: AnalyticsEngineDataset
   /** Profile pictures and workspace logos (the runtime's own R2 type, as in the generated `Env`). */
   MEDIA: R2Bucket
-  /** Caps password guesses on protected links (10 per minute per link and IP). */
+  /** Caps password attempts on protected links (3 per minute per link and IP). */
   LINK_PASSWORD_LIMITER: RateLimit
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_URL: string
