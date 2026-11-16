@@ -34,7 +34,6 @@ export default function DashboardRecentLinksTable() {
   return (
     <LinksListView
       links={rows}
-      org={activeOrg}
       onOpenLink={openLink}
       linkMenu={(link) => [
         { id: 'open', label: 'Open details', onClick: () => openLink(link) },

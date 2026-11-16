@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { BottomSheet } from '@astryxdesign/core/BottomSheet'
 import { BreadcrumbItem, Breadcrumbs } from '@astryxdesign/core/Breadcrumbs'
+import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
@@ -26,7 +27,6 @@ import MoveToFolderDialog, { type MoveSubject } from '#/components/links/MoveToF
 import { FolderIcon, MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import type { ShortLink } from '#/data/demo/types'
-import { shortHostFor, shortUrlFor } from '#/data/demo/short-url'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatNumber } from '#/lib/analytics/format'
 import { isOnHold } from '#/lib/links/create-link'
@@ -203,10 +203,19 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
     editLinkComment,
     deleteLinkComment,
     toggleCommentReaction,
+    shortHostFor,
+    shortUrlFor,
   } = useOrganization()
   const [moving, setMoving] = useState<MoveSubject | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isQrOpen, setIsQrOpen] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const run = (action: () => Promise<unknown>) => {
+    setActionError(null)
+    action().catch((err: unknown) =>
+      setActionError(err instanceof Error ? err.message : 'Something went wrong.'),
+    )
+  }
 
   const link = links.find((l) => l.id === linkId)
   const linksPath = WorkspaceUrl.build(activeOrg.slug, 'links')
@@ -228,8 +237,8 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
     )
   }
 
-  const shortUrl = shortUrlFor(link.slug, activeOrg, link.domainId)
-  const host = shortHostFor(activeOrg, link.domainId)
+  const shortUrl = shortUrlFor(link.slug, link.domainId)
+  const host = shortHostFor(link.domainId)
   const path = getFolderPath(folders, link.folderId ?? null)
   const held = isOnHold(link)
   const historyCount = link.history?.length ?? 0
@@ -251,13 +260,13 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
     {
       id: 'hold',
       label: held ? 'Release hold' : 'Put on hold',
-      onClick: () => setLinkHold(link.id, held ? null : { page: link.hold?.page ?? 'bad-gateway' }),
+      onClick: () => run(() => setLinkHold(link.id, held ? null : { page: link.hold?.page ?? 'bad-gateway' })),
     },
     { type: 'divider' as const },
     {
       id: 'duplicate',
       label: 'Duplicate',
-      onClick: () => openEdit(duplicateLink(link.id).id),
+      onClick: () => run(async () => openEdit((await duplicateLink(link.id)).id)),
     },
     {
       id: 'move',
@@ -281,6 +290,7 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
 
   return (
     <VStack gap={6} hAlign="stretch" width="100%">
+      {actionError ? <Banner status="error" title={actionError} /> : null}
       <VStack gap={4} hAlign="stretch" width="100%">
         {/* Where this link lives */}
         <Breadcrumbs label="Link location">
@@ -391,7 +401,7 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
           if (!open) setMoving(null)
         }}
         onMove={(subject, destinationId) => {
-          if (subject.kind === 'link') moveLink(subject.id, destinationId)
+          if (subject.kind === 'link') return moveLink(subject.id, destinationId)
         }}
       />
       <AlertDialog
@@ -403,9 +413,11 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
         actionVariant="destructive"
         onAction={() => {
           const folderId = link.folderId ?? null
-          deleteLink(link.id)
           setIsDeleteOpen(false)
-          goToFolder(folderId)
+          run(async () => {
+            await deleteLink(link.id)
+            goToFolder(folderId)
+          })
         }}
       />
     </VStack>

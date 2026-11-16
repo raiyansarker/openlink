@@ -10,8 +10,8 @@ import {
   DRAG_MIME,
   type ItemMenus,
 } from '#/components/links/links-browser-types'
-import { shortUrlFor } from '#/data/demo/short-url'
-import type { Organization, ShortLink } from '#/data/demo/types'
+import { useOrganization } from '#/contexts/OrganizationContext'
+import type { ShortLink } from '#/data/demo/types'
 import { formatCompactNumber } from '#/lib/format/compact-number'
 import { formatShortDate } from '#/lib/format/short-date'
 import { healthNeedsAttention } from '#/lib/links/demo-health'
@@ -20,7 +20,6 @@ import { stripUrlScheme } from '#/lib/links/strip-url-scheme'
 
 type LinksListViewProps = Pick<ItemMenus, 'linkMenu'> & {
   links: ShortLink[]
-  org: Organization
   /** Row click (outside menus and buttons). */
   onOpenLink: (link: ShortLink) => void
 }
@@ -29,11 +28,11 @@ type Row = ShortLink & Record<string, unknown>
 
 export default function LinksListView({
   links,
-  org,
   linkMenu,
   onOpenLink,
 }: LinksListViewProps) {
   const rows = links as Row[]
+  const { shortUrlFor } = useOrganization()
 
   return (
     <VStack gap={3} hAlign="stretch" width="100%">
@@ -97,7 +96,7 @@ export default function LinksListView({
               renderCell: (row) => (
                 <span style={{ display: 'block', minWidth: 0, overflow: 'hidden' }}>
                   <Text type="supporting" color="secondary" maxLines={1}>
-                    {shortUrlFor(row.slug, org, row.domainId).replace(/^https?:\/\//, '')}
+                    {shortUrlFor(row.slug, row.domainId).replace(/^https?:\/\//, '')}
                   </Text>
                 </span>
               ),
