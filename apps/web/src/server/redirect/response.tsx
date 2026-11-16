@@ -174,7 +174,7 @@ export class LinkMissingView {
  * The workspace behind it stays private.
  */
 export class VanityDomainView {
-  static readonly MAKER = { name: 'Raiyan Sarker', url: 'https://github.com/raiyansarker' }
+  static readonly MAKER = { name: 'Raiyan Sarker', url: 'https://raiyansarker.com' }
 
   static render(hostname: string, appOrigin: string | null): Response {
     const maker = `Built by <a href="${PublicPage.escape(VanityDomainView.MAKER.url)}" rel="noopener">${PublicPage.escape(VanityDomainView.MAKER.name)}</a>`
