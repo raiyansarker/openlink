@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import type { Database } from 'bun:sqlite'
-import { customDomain, link } from '@openlink/db/schema'
+import { customDomain, link, linkClick } from '@openlink/db/schema'
 import { eq } from 'drizzle-orm'
 import { Effect } from 'effect'
 
@@ -56,7 +56,8 @@ function setup(options: { analyticsFails?: boolean; attemptsLeft?: number } = {}
   const rehash = (id: string, passwordHash: string) => adapter.update(link).set({ passwordHash }).where(eq(link.id, id)).run()
   const clicks = (id: string) =>
     adapter.select().from(link).where(eq(link.id, id)).get()!.clickCount
-  return { seed, resolve, clicks, rehash, writeDataPoint, limiter }
+  const storedClicks = () => adapter.select().from(linkClick).all()
+  return { seed, resolve, clicks, rehash, writeDataPoint, limiter, storedClicks }
 }
 
 describe('normalizeHost', () => {
@@ -156,6 +157,47 @@ describe('resolveRedirect', () => {
     expect((await guess('b')).type).toBe('password_invalid')
     expect((await guess('s3cret')).type).toBe('password_rate_limited')
     expect(t.limiter.limit).toHaveBeenLastCalledWith({ key: expect.stringMatching(/:203\.0\.113\.9$/) })
+  })
+})
+
+describe('resolveRedirect click store', () => {
+  test('stores each counted click for analytics, with a visitor hash and no IP', async () => {
+    const t = setup()
+    const row = t.seed()
+    const visitor = new Visitor(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) Version/19.0 Mobile/15E148 Safari/604.1',
+      'BD',
+      'https://t.co/x',
+      { city: 'Dhaka', latitude: 23.8, longitude: 90.4 },
+      '203.0.113.9',
+      false,
+    )
+    await t.resolve({ host: 'go.example.com', slug: 'abc', visitor })
+    await t.resolve({ host: 'go.example.com', slug: 'abc', visitor })
+    const clicks = t.storedClicks()
+    expect(clicks).toHaveLength(2)
+    expect(clicks[0]).toMatchObject({
+      linkId: row.id,
+      organizationId: 'o1',
+      channel: 'social',
+      referrerHost: 't.co',
+      country: 'BD',
+      city: 'Dhaka',
+      device: 'mobile',
+      browser: 'Safari',
+      os: 'iOS',
+      delivery: 'redirect',
+      destinationHost: 'example.com',
+    })
+    expect(clicks[0]!.visitorHash).toBe(clicks[1]!.visitorHash)
+    expect(JSON.stringify(clicks)).not.toContain('203.0.113.9')
+  })
+
+  test('crawlers and password forms store nothing', async () => {
+    const t = setup()
+    t.seed({ deliveryJson: JSON.stringify({ socialPreview: { title: 'Card' } }) })
+    await t.resolve({ host: 'go.example.com', slug: 'abc', visitor: new Visitor('Twitterbot/1.0', null, null) })
+    expect(t.storedClicks()).toHaveLength(0)
   })
 })
 

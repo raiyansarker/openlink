@@ -1,7 +1,11 @@
 import { Effect } from 'effect'
 
 import { UserAgent } from '#/lib/devices/user-agent'
+import { linkClick } from '@openlink/db/schema'
+
 import { operation } from '#/server/effect/operations'
+import { Db } from '#/server/effect/services/db'
+import { ChannelClassifier } from './channel'
 import { Bindings } from '#/server/effect/services/bindings'
 import type { Visitor } from '#/server/redirect/visitor'
 
@@ -76,10 +80,59 @@ export class ClickEvent {
   }
 }
 
+/** Write a click to Analytics Engine (long-term, high volume). */
 export function recordClickEvent(input: ClickInput) {
   return Effect.gen(function* () {
     const { ANALYTICS } = yield* Bindings
     const point = new ClickEvent(input).toDataPoint()
     yield* operation('analytics.recordClickEvent', () => ANALYTICS.writeDataPoint(point))
   })
+}
+
+/** The D1 copy of clicks that workspace analytics are queried from. */
+export class ClickStore {
+  /**
+   * A stable pseudonym for a visitor within one workspace: a salted hash of IP
+   * and user agent. The same person in two workspaces gets unrelated values,
+   * and neither input is stored.
+   */
+  static visitorHash(secret: string, organizationId: string, visitor: Visitor | undefined) {
+    return operation('analytics.visitorHash', async () => {
+      const data = new TextEncoder().encode(`visitor|${secret}|${organizationId}|${visitor?.ip ?? ''}|${visitor?.userAgent ?? ''}`)
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', data))
+      return Buffer.from(digest.subarray(0, 12)).toString('base64url')
+    })
+  }
+
+  static record(input: ClickInput, now = new Date()) {
+    return Effect.gen(function* () {
+      const db = yield* Db
+      const { BETTER_AUTH_SECRET } = yield* Bindings
+      const visitor = input.visitor
+      const ua = visitor?.userAgent ?? ''
+      const referrerHost = ClickEvent.host(visitor?.referrer) || null
+      const visitorHash = yield* ClickStore.visitorHash(BETTER_AUTH_SECRET, input.organizationId, visitor)
+      yield* operation('analytics.storeClick', () =>
+        db.insert(linkClick).values({
+          id: crypto.randomUUID(),
+          organizationId: input.organizationId,
+          linkId: input.linkId,
+          domainId: input.domainId,
+          occurredAt: now,
+          visitorHash,
+          channel: ChannelClassifier.classify(referrerHost, visitor?.fromQr ?? false),
+          referrerHost,
+          country: visitor?.country ?? null,
+          city: visitor?.place.city ?? null,
+          latitude: visitor?.place.latitude ?? null,
+          longitude: visitor?.place.longitude ?? null,
+          device: ClickEvent.device(ua),
+          browser: UserAgent.browser(ua),
+          os: UserAgent.describe(ua).os,
+          delivery: input.delivery ?? 'redirect',
+          destinationHost: ClickEvent.host(input.destination) || null,
+        }),
+      )
+    })
+  }
 }

@@ -2,7 +2,7 @@ import { customDomain, link } from '@openlink/db/schema'
 import { and, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import { Effect } from 'effect'
 
-import { recordClickEvent } from '#/server/analytics/clicks'
+import { ClickStore, recordClickEvent } from '#/server/analytics/clicks'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { verifyLinkPassword } from '#/server/links/password'
@@ -129,14 +129,17 @@ export function resolveRedirect(input: {
       return RedirectRules.decide({ ...row, clickCount: row.maxClicks ?? row.clickCount }) as ResolveOutcome
     }
 
-    yield* recordClickEvent({
+    const click = {
       linkId: row.id,
       domainId: row.domainId,
       organizationId: row.organizationId,
       visitor,
-      delivery: decision.type === 'cloak' ? 'cloak' : 'redirect',
+      delivery: decision.type === 'cloak' ? ('cloak' as const) : ('redirect' as const),
       destination: decision.url,
-    }).pipe(Effect.ignore)
+    }
+    // Analytics never block or fail the redirect.
+    yield* recordClickEvent(click).pipe(Effect.ignore)
+    yield* ClickStore.record(click).pipe(Effect.ignore)
 
     const subject = LinkSubject.of(row)
     yield* EventBus.publish(
