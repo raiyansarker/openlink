@@ -1,5 +1,6 @@
 import { contract as account } from './account'
 import { contract as activity } from './activity'
+import { contract as analytics } from './analytics'
 import { contract as apiKeys } from './api-keys'
 import { contract as auth } from './auth'
 import { contract as comments } from './comments'
@@ -16,6 +17,7 @@ const router = {
   auth,
   account,
   activity,
+  analytics,
   apiKeys,
   organizations,
   domains,
