@@ -9,6 +9,8 @@ import {
   LinkIdPath,
   ListLinkCommentsResponse,
   ToggleReactionRequest,
+  WorkspaceCommentIdPath,
+  WorkspaceLinkIdPath,
 } from './schema'
 
 const COMMENTS = '/organizations/{organizationId}/domains/{domainId}/links/{linkId}/comments'
@@ -48,7 +50,48 @@ export const toggleCommentReaction = commentOp('POST', 'toggleCommentReaction', 
   .input(type({ params: CommentIdPath, body: ToggleReactionRequest }))
   .output(LinkComment)
 
+/**
+ * The same thread addressed without a domain, so links on the app's own host
+ * (no domain) have comments too. The editor uses these.
+ */
+const WORKSPACE_COMMENTS = '/organizations/{organizationId}/links/{linkId}/comments'
+
+export const listWorkspaceLinkComments = commentOp('GET', 'listWorkspaceLinkComments', WORKSPACE_COMMENTS)
+  .input(type({ params: WorkspaceLinkIdPath }))
+  .output(ListLinkCommentsResponse)
+
+export const createWorkspaceLinkComment = commentOp('POST', 'createWorkspaceLinkComment', WORKSPACE_COMMENTS, { successStatus: 201 })
+  .input(type({ params: WorkspaceLinkIdPath, body: CommentBody }))
+  .output(LinkComment)
+
+export const updateWorkspaceLinkComment = commentOp('PATCH', 'updateWorkspaceLinkComment', `${WORKSPACE_COMMENTS}/{commentId}`, {
+  summary: 'Edit your own comment',
+})
+  .input(type({ params: WorkspaceCommentIdPath, body: CommentBody }))
+  .output(LinkComment)
+
+export const deleteWorkspaceLinkComment = commentOp('DELETE', 'deleteWorkspaceLinkComment', `${WORKSPACE_COMMENTS}/{commentId}`, {
+  successStatus: 204,
+  summary: 'Delete your own comment (administrators may delete any)',
+})
+  .input(type({ params: WorkspaceCommentIdPath }))
+  .output(EmptyResponse)
+
+export const toggleWorkspaceCommentReaction = commentOp(
+  'POST',
+  'toggleWorkspaceCommentReaction',
+  `${WORKSPACE_COMMENTS}/{commentId}/reactions`,
+  { summary: 'Add your reaction, or remove it if already present' },
+)
+  .input(type({ params: WorkspaceCommentIdPath, body: ToggleReactionRequest }))
+  .output(LinkComment)
+
 export const contract = {
+  listWorkspaceLinkComments,
+  createWorkspaceLinkComment,
+  updateWorkspaceLinkComment,
+  deleteWorkspaceLinkComment,
+  toggleWorkspaceCommentReaction,
   listLinkComments,
   createLinkComment,
   updateLinkComment,

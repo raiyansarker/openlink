@@ -150,8 +150,15 @@ export const updateWorkspaceLink = workspaceLinkOp('PATCH', 'updateWorkspaceLink
   .input(type({ body: UpdateLinkRequest, params: WorkspaceLinkIdPath }))
   .output(Link)
 
+export const getWorkspaceLinkHistory = workspaceLinkOp('GET', 'getWorkspaceLinkHistory', '/organizations/{organizationId}/links/{linkId}/history', {
+  summary: 'Audit events for one link, newest first',
+})
+  .input(type({ params: WorkspaceLinkIdPath }))
+  .output(ListActivityResponse)
+
 export const contract = {
   createWorkspaceLink,
+  getWorkspaceLinkHistory,
   getWorkspaceLink,
   updateWorkspaceLink,
   getLinkHistory,

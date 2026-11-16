@@ -32,4 +32,12 @@ export const CommentIdPath = type({
   commentId: 'string',
 })
 
+/** A comment on a link addressed by workspace and link id alone (works for app-host links). */
+export const WorkspaceCommentIdPath = type({
+  organizationId: 'string',
+  linkId: 'string',
+  commentId: 'string',
+})
+
 export { LinkIdPath }
+export { WorkspaceLinkIdPath } from '../links/schema'
