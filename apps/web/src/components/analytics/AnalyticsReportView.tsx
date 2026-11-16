@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 import { Card } from '@astryxdesign/core/Card'
 import { EmptyState } from '@astryxdesign/core/EmptyState'
 import { Grid } from '@astryxdesign/core/Grid'
+import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl'
 import { Skeleton } from '@astryxdesign/core/Skeleton'
 import { VStack } from '@astryxdesign/core/VStack'
 import AnalyticsCard from '#/components/analytics/AnalyticsCard'
@@ -13,7 +15,7 @@ import MetricTiles from '#/components/analytics/MetricTiles'
 import SourcesCard from '#/components/analytics/SourcesCard'
 import TechnologyCard from '#/components/analytics/TechnologyCard'
 import TopLinksCard from '#/components/analytics/TopLinksCard'
-import TrafficChart from '#/components/analytics/TrafficChart'
+import TrafficChart, { trafficSummary, type TrafficView } from '#/components/analytics/TrafficChart'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
 import { AnalyticsReportMapper, type AnalyticsReport } from '#/lib/analytics/report'
 import { ApiError } from '#/lib/api/error'
@@ -42,6 +44,7 @@ export default function AnalyticsReportView({
   onSelectLink,
   chartHeight,
 }: AnalyticsReportViewProps) {
+  const [trafficView, setTrafficView] = useState<TrafficView>('total')
   if (error && !report) {
     return (
       <Banner
@@ -74,9 +77,20 @@ export default function AnalyticsReportView({
 
       <AnalyticsCard
         title="Clicks over time"
-        description={`Per ${report.bucket}, stacked by channel${isComparing ? ' · dashed line is the previous period' : ''}`}
+        description={trafficSummary(report)}
+        actions={
+          <SegmentedControl
+            label="Chart view"
+            size="sm"
+            value={trafficView}
+            onChange={(value) => setTrafficView(value as TrafficView)}
+          >
+            <SegmentedControlItem value="total" label="Total" />
+            <SegmentedControlItem value="channels" label="By channel" />
+          </SegmentedControl>
+        }
       >
-        <TrafficChart report={report} isComparing={isComparing} {...(chartHeight ? { height: chartHeight } : {})} />
+        <TrafficChart report={report} isComparing={isComparing} view={trafficView} {...(chartHeight ? { height: chartHeight } : {})} />
       </AnalyticsCard>
 
       <Grid columns={{ minWidth: 360, max: 2 }} gap={5} width="100%">
