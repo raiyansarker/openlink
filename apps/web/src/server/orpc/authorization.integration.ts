@@ -64,12 +64,6 @@ const deleteLinks = mock((_input: unknown) => Effect.succeed(2))
 const activityRow = { id: 'evt-1', organizationId: org.id, actorType: 'member' as const, actorUserId: 'user-1', actorLabel: 'Ada', action: 'link.created', category: 'links' as const, targetType: 'link', targetId: 'link-1', targetLabel: 'hello', source: 'dashboard' as const, detailsJson: JSON.stringify({ changes: [{ label: 'Title', from: '—', to: 'Hi' }] }), ipAddress: '203.0.113.9', createdAt: now }
 const listActivity = mock((_input: unknown) => Effect.succeed({ items: [activityRow], nextCursor: undefined as string | undefined }))
 const audit = mock((_session: unknown, _event: unknown) => Effect.void)
-const commentRow = { id: 'c1', organizationId: org.id, linkId: linkRow.id, authorUserId: 'user-1', authorLabel: 'Ada', authorImage: null, body: 'Looks good to me', reactionsJson: '{"👍":["user-2"]}', createdAt: now, editedAt: null }
-const listComments = mock((_organizationId: string, _linkId: string) => Effect.succeed([commentRow]))
-const createComment = mock((_input: unknown) => Effect.succeed(commentRow))
-const updateComment = mock((_input: unknown) => Effect.succeed({ ...commentRow, editedAt: now }))
-const deleteComment = mock((_input: unknown) => Effect.succeed(commentRow))
-const toggleCommentReaction = mock((_input: unknown) => Effect.succeed(commentRow))
 const keyRow = { id: 'key-1', organizationId: org.id, name: 'CI deploy', prefix: 'ol_live_8f3a', keyHash: 'h', role: 'member' as const, createdByUserId: 'user-1', createdAt: now, lastUsedAt: null }
 let keyPrincipal: { id: string; organizationId: string; role: 'admin' | 'member' | 'viewer'; name: string } | null = null
 const authenticateApiKey = mock((_secret: string) => Effect.succeed(keyPrincipal))
@@ -125,9 +119,6 @@ mock.module('#/server/links/queries', () => ({ queryOrganizationLinks }))
 mock.module('#/server/links/bulk', () => ({ moveLinks, addTagsToLinks, deleteLinks }))
 mock.module('#/server/activity/service', () => ({ listActivity }))
 mock.module('#/server/activity/audit', () => ({ audit }))
-mock.module('#/server/comments/service', () => ({
-  listComments, createComment, updateComment, deleteComment, toggleCommentReaction,
-}))
 mock.module('#/server/apikeys/service', () => ({
   authenticateApiKey, listApiKeys, createApiKey, updateApiKeyRole, revokeApiKey,
 }))
@@ -163,14 +154,14 @@ const sideEffects = [
   acceptMemberInvite, createOrganizationWithBootstrapInvite, signIn, signUp, signOut, runHealthChecks,
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
-  moveLinks, addTagsToLinks, deleteLinks, createComment, updateComment, deleteComment, toggleCommentReaction,
+  moveLinks, addTagsToLinks, deleteLinks,
   createApiKey, updateApiKeyRole, revokeApiKey, revokeDeviceSession, revokeOtherDeviceSessions,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
-  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
+  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
   buildReport, buildSummary, frameable, listRecent,
 ]
 beforeEach(() => {
@@ -639,121 +630,21 @@ test('link history is scoped to the link and verifies it belongs to the domain',
   expect((await request('GET', `${linkPath}/history`)).status).toBe(404)
 })
 
-const commentsPath = `${linkPath}/comments`
-
-describe('workspace link thread (no domain in the path)', () => {
+describe('workspace link history (no domain in the path)', () => {
   const workspaceLinkPath = `${orgPath}/links/${linkRow.id}`
 
-  test('history and comments work for links found by workspace and id', async () => {
+  test('history works for links found by workspace and id', async () => {
     role = 'viewer'
     expect((await request('GET', `${workspaceLinkPath}/history`)).status).toBe(200)
     expect(listActivity).toHaveBeenCalledWith({ organizationId: org.id, target: { type: 'link', id: linkRow.id }, limit: 100 })
-    expect((await request('GET', `${workspaceLinkPath}/comments`)).status).toBe(200)
     expect(getLinkInOrganization).toHaveBeenCalledWith(org.id, linkRow.id)
     expect(getLinkInDomain).not.toHaveBeenCalled()
   })
 
-  test('the same rules apply: viewers cannot comment, unknown links are 404', async () => {
+  test('unknown links are 404', async () => {
     role = 'viewer'
-    expect((await request('POST', `${workspaceLinkPath}/comments`, { body: 'Hi' })).status).toBe(403)
-    role = 'member'
-    expect((await request('POST', `${workspaceLinkPath}/comments`, { body: 'Hi' })).status).toBe(201)
-    expect((await request('POST', `${workspaceLinkPath}/comments/c1/reactions`, { emoji: '🎉' })).status).toBe(200)
     getLinkInOrganization.mockImplementationOnce(() => Effect.succeed(null))
-    expect((await request('GET', `${workspaceLinkPath}/comments`)).status).toBe(404)
-  })
-})
-
-describe('link comments', () => {
-  test('every member can read the thread, with reactions and author data', async () => {
-    role = 'viewer'
-    const response = await request('GET', commentsPath)
-    expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({
-      items: [{ id: 'c1', authorId: 'user-1', authorName: 'Ada', body: 'Looks good to me', reactions: { '👍': ['user-2'] } }],
-    })
-    expect(listComments).toHaveBeenCalledWith(org.id, linkRow.id)
-  })
-
-  test('unknown links do not leak a thread', async () => {
-    role = 'viewer'
-    getLinkInDomain.mockImplementationOnce(() => Effect.succeed(null as never))
-    expect((await request('GET', commentsPath)).status).toBe(404)
-    expect(listComments).not.toHaveBeenCalled()
-  })
-
-  for (const actor of ['owner', 'admin', 'member', 'viewer', null] as const) {
-    const permitted = actor !== 'viewer' && actor !== null
-    test(`${actor ?? 'non-member'} ${permitted ? 'can' : 'cannot'} comment`, async () => {
-      role = actor
-      const response = await request('POST', commentsPath, { body: 'Ship it' })
-      expect(response.status).toBe(permitted ? 201 : 403)
-      expect(createComment).toHaveBeenCalledTimes(permitted ? 1 : 0)
-      if (permitted) {
-        expect(createComment).toHaveBeenCalledWith({
-          organizationId: org.id, linkId: linkRow.id, body: 'Ship it', author: { id: 'user-1', label: 'user@example.com' },
-        })
-        expect(audit).toHaveBeenCalledWith(cookieActor, expect.objectContaining({
-          action: 'link.commented', changes: [{ label: 'Comment', from: '—', to: 'Looks good to me' }],
-        }))
-      } else {
-        expect(audit).not.toHaveBeenCalled()
-      }
-    })
-  }
-
-  test('empty and oversized bodies are rejected before the service runs', async () => {
-    role = 'member'
-    expect((await request('POST', commentsPath, { body: '' })).status).toBe(400)
-    expect((await request('POST', commentsPath, { body: 'x'.repeat(4001) })).status).toBe(400)
-    expect(createComment).not.toHaveBeenCalled()
-  })
-
-  test('editing passes the actor so only the author succeeds', async () => {
-    role = 'member'
-    expect((await request('PATCH', `${commentsPath}/c1`, { body: 'Edited' })).status).toBe(200)
-    expect(updateComment).toHaveBeenCalledWith({
-      organizationId: org.id, linkId: linkRow.id, commentId: 'c1', actorUserId: 'user-1', body: 'Edited',
-    })
-    updateComment.mockImplementationOnce(() => Effect.fail({ _tag: 'CommentForbidden', message: 'You can only edit your own comments' }) as never)
-    const forbidden = await request('PATCH', `${commentsPath}/c1`, { body: 'Edited' })
-    expect(forbidden.status).toBe(403)
-    expect(await forbidden.json()).toMatchObject({ message: 'You can only edit your own comments' })
-  })
-
-  test('deleting tells the service whether the actor is an administrator', async () => {
-    for (const [actor, isAdminActor] of [['viewer', false], ['member', false], ['admin', true], ['owner', true]] as const) {
-      deleteComment.mockClear()
-      role = actor
-      expect((await request('DELETE', `${commentsPath}/c1`)).status).toBe(204)
-      expect(deleteComment).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: 'user-1', actorIsAdmin: isAdminActor }))
-    }
-    role = null
-    expect((await request('DELETE', `${commentsPath}/c1`)).status).toBe(403)
-  })
-
-  test('service failures map to typed HTTP errors', async () => {
-    role = 'member'
-    deleteComment.mockImplementationOnce(() => Effect.fail({ _tag: 'CommentNotFound' }) as never)
-    expect((await request('DELETE', `${commentsPath}/missing`)).status).toBe(404)
-    deleteComment.mockImplementationOnce(() => Effect.fail({ _tag: 'CommentForbidden', message: 'nope' }) as never)
-    expect((await request('DELETE', `${commentsPath}/c1`)).status).toBe(403)
-    toggleCommentReaction.mockImplementationOnce(() => Effect.fail({ _tag: 'CommentInvalid', message: 'Too many reactions' }) as never)
-    const invalid = await request('POST', `${commentsPath}/c1/reactions`, { emoji: '🎉' })
-    expect(invalid.status).toBe(400)
-    expect(await invalid.json()).toMatchObject({ message: 'Too many reactions' })
-  })
-
-  test('reactions need writer access and a valid emoji', async () => {
-    role = 'viewer'
-    expect((await request('POST', `${commentsPath}/c1/reactions`, { emoji: '👍' })).status).toBe(403)
-    role = 'member'
-    expect((await request('POST', `${commentsPath}/c1/reactions`, { emoji: '' })).status).toBe(400)
-    expect((await request('POST', `${commentsPath}/c1/reactions`, { emoji: '👍' })).status).toBe(200)
-    expect(toggleCommentReaction).toHaveBeenCalledTimes(1)
-    expect(toggleCommentReaction).toHaveBeenCalledWith({
-      organizationId: org.id, linkId: linkRow.id, commentId: 'c1', userId: 'user-1', emoji: '👍',
-    })
+    expect((await request('GET', `${workspaceLinkPath}/history`)).status).toBe(404)
   })
 })
 
@@ -878,20 +769,17 @@ describe('requests authenticated with an API key', () => {
     expect(createMemberInvite).toHaveBeenCalledWith(expect.objectContaining({ createdByUserId: null }))
   })
 
-  test('a key cannot manage keys, delete or transfer the workspace, or comment', async () => {
+  test('a key cannot manage keys, delete or transfer the workspace', async () => {
     asKey('admin')
     expect((await request('GET', keysPath, undefined, bearer)).status).toBe(403)
     expect((await request('POST', keysPath, { name: 'escalate', role: 'admin' }, bearer)).status).toBe(403)
     expect((await request('DELETE', `${keysPath}/key-1`, undefined, bearer)).status).toBe(403)
     expect((await request('DELETE', orgPath, undefined, bearer)).status).toBe(403)
     expect((await request('POST', `${orgPath}/transfer-ownership`, { userId: 'user-2' }, bearer)).status).toBe(403)
-    expect((await request('POST', commentsPath, { body: 'hi' }, bearer)).status).toBe(403)
-    expect((await request('POST', `${commentsPath}/c1/reactions`, { emoji: '👍' }, bearer)).status).toBe(403)
     expect(createApiKey).not.toHaveBeenCalled()
     expect(revokeApiKey).not.toHaveBeenCalled()
     expect(deleteOrganization).not.toHaveBeenCalled()
     expect(transferOwnership).not.toHaveBeenCalled()
-    expect(createComment).not.toHaveBeenCalled()
   })
 
   test('personal endpoints are closed to keys (a key-only request carries no session cookie)', async () => {

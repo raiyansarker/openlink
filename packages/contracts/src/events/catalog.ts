@@ -22,7 +22,6 @@ const DEFINITIONS = {
   'link.tagged': { group: 'links', label: 'Link tagged', description: 'Tags are added to a link' },
   'link.held': { group: 'links', label: 'Link put on hold', description: 'A link starts showing its hold page' },
   'link.released': { group: 'links', label: 'Link released', description: 'A hold is lifted and the link redirects again' },
-  'link.commented': { group: 'links', label: 'Link commented on', description: 'Someone comments on a link' },
   'link.deleted': { group: 'links', label: 'Link deleted', description: 'A short link is removed' },
   'link.password_locked': {
     group: 'links',

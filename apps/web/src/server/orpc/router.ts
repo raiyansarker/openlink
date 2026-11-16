@@ -12,7 +12,6 @@ import {
   toActivityDto,
   toApiKeyDto,
   toDeviceSessionDto,
-  toCommentDto,
   toDomainDto,
   toFolderDto,
   toLinkDto,
@@ -52,15 +51,6 @@ import { createApiKey, listApiKeys, revokeApiKey, updateApiKeyRole } from '#/ser
 import { audit } from '#/server/activity/audit'
 import { diffLink, linkUpdateAction } from '#/server/activity/actions'
 import { listActivity } from '#/server/activity/service'
-import type { CommentForbidden, CommentInvalid } from '#/server/comments/errors'
-import { excerpt } from '#/server/comments/rules'
-import {
-  createComment,
-  deleteComment,
-  listComments,
-  toggleCommentReaction,
-  updateComment,
-} from '#/server/comments/service'
 import { DeviceSessions } from '#/server/devices/sessions'
 import { MediaStore } from '#/server/media/media-store'
 import { ReservedSlugs } from '@openlink/contracts'
@@ -140,23 +130,11 @@ const memberErrors = (errors: ErrorFactories) => ({
   ...onMemberDenied(errors),
 })
 
-const onCommentNotFound = (errors: ErrorFactories) => ({
-  CommentNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'Comment not found' })),
-})
-const onCommentForbidden = (errors: ErrorFactories) => ({
-  CommentForbidden: (error: CommentForbidden) => Effect.fail(errors.FORBIDDEN({ message: error.message })),
-})
-const onCommentInvalid = (errors: { BAD_REQUEST: MessageError }) => ({
-  CommentInvalid: (error: CommentInvalid) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
-})
-
 /** A link addressed by workspace and link id, optionally pinned to a domain. */
 type LinkAddress = { organizationId: string; linkId: string; domainId?: string }
-type CommentAddress = LinkAddress & { commentId: string }
-type CommentErrors = ErrorFactories & { BAD_REQUEST: MessageError }
 
 /**
- * A link's comment thread and history. Served at both the per-domain paths and
+ * A link's history. Served at both the per-domain paths and
  * the workspace paths (which also reach links on the app's own host).
  */
 class LinkThread {
@@ -166,84 +144,6 @@ class LinkThread {
       const row = yield* getLinkInOrganization(address.organizationId, address.linkId)
       if (!row) return yield* Effect.fail(notFound('Link not found'))
       return row
-    })
-  }
-
-  static list(address: LinkAddress) {
-    return Effect.gen(function* () {
-      yield* requireOrgMemberEffect(address.organizationId)
-      yield* LinkThread.locate(address)
-      const rows = yield* listComments(address.organizationId, address.linkId)
-      return { items: rows.map(toCommentDto) }
-    })
-  }
-
-  static create(address: LinkAddress, body: string, errors: CommentErrors) {
-    return Effect.gen(function* () {
-      const { session } = yield* requireLinkWriterEffect(address.organizationId)
-      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
-      const existing = yield* LinkThread.locate(address)
-      const user = session.session.user
-      const row = yield* createComment({
-        organizationId: address.organizationId,
-        linkId: address.linkId,
-        author: { id: user.id, label: user.name || user.email },
-        body,
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
-      yield* audit(session, {
-        organizationId: address.organizationId,
-        action: 'link.commented',
-        target: { type: 'link', id: existing.id, label: existing.title || existing.slug },
-        changes: [{ label: 'Comment', from: '—', to: excerpt(row.body) }],
-      })
-      return toCommentDto(row)
-    })
-  }
-
-  static update(address: CommentAddress, body: string, errors: CommentErrors) {
-    return Effect.gen(function* () {
-      const { session } = yield* requireLinkWriterEffect(address.organizationId)
-      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
-      yield* LinkThread.locate(address)
-      const row = yield* updateComment({
-        organizationId: address.organizationId,
-        linkId: address.linkId,
-        commentId: address.commentId,
-        actorUserId: session.session.user.id,
-        body,
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors), ...onCommentInvalid(errors) }))
-      return toCommentDto(row)
-    })
-  }
-
-  static remove(address: CommentAddress, errors: ErrorFactories) {
-    return Effect.gen(function* () {
-      const { session, membership } = yield* requireOrgMemberEffect(address.organizationId)
-      yield* LinkThread.locate(address)
-      yield* deleteComment({
-        organizationId: address.organizationId,
-        linkId: address.linkId,
-        commentId: address.commentId,
-        actorUserId: session.session.user.id,
-        actorIsAdmin: isAdmin(membership.role),
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors) }))
-      return {}
-    })
-  }
-
-  static react(address: CommentAddress, emoji: string, errors: CommentErrors) {
-    return Effect.gen(function* () {
-      const { session } = yield* requireLinkWriterEffect(address.organizationId)
-      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Reactions require a signed-in member' }))
-      yield* LinkThread.locate(address)
-      const row = yield* toggleCommentReaction({
-        organizationId: address.organizationId,
-        linkId: address.linkId,
-        commentId: address.commentId,
-        userId: session.session.user.id,
-        emoji,
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
-      return toCommentDto(row)
     })
   }
 
@@ -772,39 +672,6 @@ export const router = os.router({
         ...(input.query.mode === 'cascade' ? { changes: [{ label: 'Contents', from: 'kept', to: 'deleted' }] } : {}),
       })
       return {}
-    }),
-  },
-
-  comments: {
-    listLinkComments: os.comments.listLinkComments.effect(function* ({ input }) {
-      return yield* LinkThread.list(input.params)
-    }),
-    createLinkComment: os.comments.createLinkComment.effect(function* ({ input, errors }) {
-      return yield* LinkThread.create(input.params, input.body.body, errors)
-    }),
-    updateLinkComment: os.comments.updateLinkComment.effect(function* ({ input, errors }) {
-      return yield* LinkThread.update(input.params, input.body.body, errors)
-    }),
-    deleteLinkComment: os.comments.deleteLinkComment.effect(function* ({ input, errors }) {
-      return yield* LinkThread.remove(input.params, errors)
-    }),
-    toggleCommentReaction: os.comments.toggleCommentReaction.effect(function* ({ input, errors }) {
-      return yield* LinkThread.react(input.params, input.body.emoji, errors)
-    }),
-    listWorkspaceLinkComments: os.comments.listWorkspaceLinkComments.effect(function* ({ input }) {
-      return yield* LinkThread.list(input.params)
-    }),
-    createWorkspaceLinkComment: os.comments.createWorkspaceLinkComment.effect(function* ({ input, errors }) {
-      return yield* LinkThread.create(input.params, input.body.body, errors)
-    }),
-    updateWorkspaceLinkComment: os.comments.updateWorkspaceLinkComment.effect(function* ({ input, errors }) {
-      return yield* LinkThread.update(input.params, input.body.body, errors)
-    }),
-    deleteWorkspaceLinkComment: os.comments.deleteWorkspaceLinkComment.effect(function* ({ input, errors }) {
-      return yield* LinkThread.remove(input.params, errors)
-    }),
-    toggleWorkspaceCommentReaction: os.comments.toggleWorkspaceCommentReaction.effect(function* ({ input, errors }) {
-      return yield* LinkThread.react(input.params, input.body.emoji, errors)
     }),
   },
 

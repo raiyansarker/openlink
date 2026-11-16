@@ -43,16 +43,6 @@ describe('activity contract', () => {
   })
 })
 
-describe('comments contract', () => {
-  test('covers the comment thread and reactions', () => {
-    expect(contract.comments.listLinkComments).toBeDefined()
-    expect(contract.comments.createLinkComment).toBeDefined()
-    expect(contract.comments.updateLinkComment).toBeDefined()
-    expect(contract.comments.deleteLinkComment).toBeDefined()
-    expect(contract.comments.toggleCommentReaction).toBeDefined()
-  })
-})
-
 describe('api keys contract', () => {
   test('covers key management', () => {
     expect(contract.apiKeys.listApiKeys).toBeDefined()
