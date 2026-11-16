@@ -9,6 +9,9 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  server: {
+    host: '0.0.0.0'
+  },
   plugins: [
     devtools({
       // react-maplibre hands every prop to MapLibre, which rejects the injected

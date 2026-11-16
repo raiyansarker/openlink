@@ -5,6 +5,7 @@ import { operation } from '#/server/effect/operations'
 import { effectRuntime } from '#/server/effect/runtime'
 import { Bindings } from '#/server/effect/services/bindings'
 import { resolveRedirect } from '#/server/redirect/resolve'
+import { PublicUrl } from '#/server/redirect/public-url'
 import { RedirectResponses } from '#/server/redirect/response'
 import { Visitor } from '#/server/redirect/visitor'
 
@@ -17,29 +18,30 @@ const readPassword = (request: Request) =>
     return typeof value === 'string' ? value : ''
   }).pipe(Effect.orElseSucceed(() => ''))
 
-const serve = (request: Request, slug: string, withPassword: boolean) =>
-  effectRuntime.runPromise(
+const serve = (request: Request, slug: string, withPassword: boolean) => {
+  const url = PublicUrl.of(request)
+  return effectRuntime.runPromise(
     Effect.gen(function* () {
       const password = withPassword ? yield* readPassword(request) : undefined
       const { BETTER_AUTH_URL } = yield* Bindings
       const appHost = URL.canParse(BETTER_AUTH_URL) ? new URL(BETTER_AUTH_URL).host : null
       const outcome = yield* resolveRedirect({
-        host: new URL(request.url).host,
+        host: url.host,
         slug,
         password,
         appHost,
         visitor: Visitor.fromRequest(request),
         clientIp: request.headers.get('cf-connecting-ip'),
       })
-      const url = new URL(request.url)
       return RedirectResponses.for(outcome, url, !!appHost && url.host === appHost)
     }).pipe(
       Effect.catchCause((cause) => Effect.logError('redirect.failed', cause).pipe(Effect.as(unavailable()))),
       // Never the submitted password: only where the visitor was going.
-      Effect.annotateLogs({ host: new URL(request.url).host, slug, method: request.method }),
+      Effect.annotateLogs({ host: url.host, slug, method: request.method }),
       Effect.withSpan('redirect'),
     ),
   )
+}
 
 export const Route = createFileRoute('/$slug')({
   server: {
