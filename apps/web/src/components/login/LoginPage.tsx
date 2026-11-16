@@ -262,6 +262,9 @@ export default function LoginPage() {
   }
 
   const enabledProviders = (['google', 'github'] as const).filter((name) => providers[name])
+  // Passkeys sit in the same row as Google and GitHub; they only sign in, never sign up.
+  const showPasskey = hasPasskeys && !isSignUp
+  const quickOptionCount = enabledProviders.length + (showPasskey ? 1 : 0)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -380,20 +383,21 @@ export default function LoginPage() {
               </VStack>
 
               <VStack gap={5}>
-                {hasPasskeys && !isSignUp ? (
-                  <Button
-                    label="Sign in with a passkey"
-                    size="md"
-                    width="100%"
-                    icon={<PasskeyIcon />}
-                    isLoading={pending === 'passkey'}
-                    isDisabled={pending !== null}
-                    onClick={() => void handlePasskey()}
-                  />
-                ) : null}
-                {enabledProviders.length > 0 && (
+                {quickOptionCount > 0 && (
                   <>
-                    <Grid columns={enabledProviders.length === 1 ? 1 : 2} gap={3}>
+                    <Grid columns={quickOptionCount} gap={3}>
+                      {showPasskey ? (
+                        <Button
+                          label="Passkey"
+                          tooltip="Sign in with a passkey"
+                          size="md"
+                          width="100%"
+                          icon={<PasskeyIcon />}
+                          isLoading={pending === 'passkey'}
+                          isDisabled={pending !== null}
+                          onClick={() => void handlePasskey()}
+                        />
+                      ) : null}
                       {enabledProviders.map((name) => (
                         <Button
                           key={name}
