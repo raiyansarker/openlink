@@ -22,7 +22,8 @@ export class LoginRedirect {
       return fallback
     }
     if (url.origin !== LoginRedirect.ORIGIN) return fallback
-    if (url.pathname === '/login' || url.pathname.startsWith('/api/')) return fallback
+    // Never back to a sign-in page, and never to an API endpoint.
+    if (url.pathname === '/login' || url.pathname === '/signup' || url.pathname.startsWith('/api/')) return fallback
     return value
   }
 }
