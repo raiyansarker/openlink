@@ -59,7 +59,10 @@ export class AppQueryClient {
       defaultOptions: {
         queries: {
           staleTime: 30_000,
-          refetchOnWindowFocus: false,
+          // Coming back to the tab refreshes what's on screen if it's older than
+          // `staleTime`, so teammates' changes show without a reload. Forms keep
+          // their own drafts, so a refresh never overwrites what you're typing.
+          refetchOnWindowFocus: true,
           retry: AppQueryClient.shouldRetry,
         },
       },
