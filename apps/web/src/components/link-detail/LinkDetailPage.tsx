@@ -20,7 +20,7 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { useClipboard } from '@astryxdesign/core/hooks'
 import { QrBlock } from '#/components/create-link/LinkPreviewPanel'
 import LinkAnalyticsSection from '#/components/analytics/LinkAnalyticsSection'
-import LinkNotes from '#/components/link-detail/LinkNotes'
+import LinkNotes, { lastNotesEdit } from '#/components/link-detail/LinkNotes'
 import { useLinkHistory } from '#/hooks/use-link-history'
 import { QueryKeys } from '#/lib/api/query'
 import LinkHistoryTimeline from '#/components/link-detail/LinkHistoryTimeline'
@@ -365,6 +365,7 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
           {tab === 'notes' ? (
             <LinkNotes
               notes={link.description ?? ''}
+              lastEdit={lastNotesEdit(history.events)}
               onSave={async (notes) => {
                 await saveLinkNotes(link.id, notes)
                 void queryClient.invalidateQueries({ queryKey: QueryKeys.linkHistory(activeOrg.id, link.id) })
