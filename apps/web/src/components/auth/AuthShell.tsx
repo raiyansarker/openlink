@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@astryxdesign/core/Button'
-import { Card } from '@astryxdesign/core/Card'
 import { Center } from '@astryxdesign/core/Center'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -20,8 +19,8 @@ type AuthShellProps = {
 
 /**
  * The frame for both auth pages: a top bar with the wordmark and a visible
- * switch to the other page, then one centered card. Follows the Astryx
- * `login-card` template.
+ * switch to the other page, then the form centered on the page with nothing
+ * around it (the Astryx `login` template).
  */
 export default function AuthShell({ heading, subheading, switchTo, children, status }: AuthShellProps) {
   const navigate = useNavigate()
@@ -60,19 +59,18 @@ export default function AuthShell({ heading, subheading, switchTo, children, sta
 
       <Center axis="both" padding={6} style={{ flex: 1 }}>
         <VStack gap={4} hAlign="stretch" style={{ width: '100%', maxWidth: 400 }}>
-          <Card padding={8} width="100%">
-            <VStack gap={6} hAlign="stretch">
-              <VStack gap={1} hAlign="center">
-                <Heading level={1} style={{ fontSize: 'var(--font-size-2xl)', letterSpacing: '-0.035em' }}>
-                  {heading}
-                </Heading>
-                <Text color="secondary" size="sm" justify="center">
-                  {subheading}
-                </Text>
-              </VStack>
-              {children}
+          {/* Straight on the page, no card around it. */}
+          <VStack gap={6} hAlign="stretch">
+            <VStack gap={1} hAlign="center">
+              <Heading level={1} style={{ fontSize: 'var(--font-size-2xl)', letterSpacing: '-0.035em' }}>
+                {heading}
+              </Heading>
+              <Text color="secondary" size="sm" justify="center">
+                {subheading}
+              </Text>
             </VStack>
-          </Card>
+            {children}
+          </VStack>
           {status}
         </VStack>
       </Center>
