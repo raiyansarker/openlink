@@ -13,7 +13,8 @@ const OPENLINK_BG_SURFACE = ['#ffffff', '#18181b'] as const
 const OPENLINK_BG_MUTED = ['#ececec', '#121214'] as const
 const OPENLINK_BG_POPOVER = ['#ffffff', '#1f1f24'] as const
 
-const INPUT_FIELD_RADIUS = '5px'
+/** Same corner as buttons (`--radius-element`), so fields and the buttons beside them match. */
+const INPUT_FIELD_RADIUS = 'var(--radius-element)'
 
 /** Border-only focus — semantic accent (blue), no inset shadow rings on fields. */
 const INPUT_QUIET_FOCUS = {
@@ -124,6 +125,10 @@ export const openlinkTheme = defineTheme({
         backgroundColor:
           'light-dark(var(--color-background-surface), var(--color-background-muted))',
       },
+    },
+    // Grouped inputs (prefix + field, e.g. "https://" + hostname) round as one control.
+    'input-group': {
+      base: { borderRadius: INPUT_FIELD_RADIUS },
     },
     'field-label': {
       base: {
