@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type SVGProps } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { getRouteApi, useRouter } from '@tanstack/react-router'
 import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
@@ -6,12 +6,12 @@ import { Grid } from '@astryxdesign/core/Grid'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Icon } from '@astryxdesign/core/Icon'
-import { IconButton } from '@astryxdesign/core/IconButton'
 import { Link } from '@astryxdesign/core/Link'
 import { Section } from '@astryxdesign/core/Section'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
+import PasswordField from '#/components/common/PasswordField'
 import { DASHBOARD_SURFACE_BG } from '#/components/dashboard/layout/dashboard-shell-colors'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
@@ -93,15 +93,6 @@ const LOGIN_STYLES = `
 .openlink-login-heading {
   font-size: var(--font-size-2xl);
   letter-spacing: -0.035em;
-}
-.openlink-login-password {
-  position: relative;
-}
-.openlink-login-password-toggle {
-  position: absolute;
-  inset-inline-end: var(--spacing-1);
-  bottom: var(--spacing-1);
-  color: var(--color-text-secondary);
 }
 @keyframes openlink-draw-shortcut {
   from { stroke-dashoffset: 1; }
@@ -192,15 +183,6 @@ class PasskeySupport {
 
 type Mode = 'signIn' | 'signUp'
 
-function EyeIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  )
-}
-
 export default function LoginPage() {
   const router = useRouter()
   const host = useHostLabel()
@@ -212,7 +194,6 @@ export default function LoginPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState(AuthErrorMessages.oauth(search.error) ?? '')
   const [pending, setPending] = useState<'email' | 'google' | 'github' | 'passkey' | null>(null)
@@ -453,31 +434,15 @@ export default function LoginPage() {
                     isRequired
                   />
                   <VStack gap={2}>
-                    <VStack gap={0} className="openlink-login-password">
-                      <TextInput
-                        label="Password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder={isSignUp ? 'At least 8 characters' : 'Enter your password'}
-                        value={password}
-                        onChange={setPassword}
-                        autoComplete={isSignUp ? 'new-password' : 'current-password webauthn'}
-                        htmlName="password"
-                        width="100%"
-                        controlStyle={{ paddingInlineEnd: 'var(--spacing-10)' }}
-                        isRequired
-                      />
-                      <IconButton
-                        label={showPassword ? 'Hide password' : 'Show password'}
-                        tooltip={showPassword ? 'Hide password' : 'Show password'}
-                        variant="ghost"
-                        size="sm"
-                        type="button"
-                        icon={<Icon icon={showPassword ? 'eyeSlash' : EyeIcon} size="sm" />}
-                        className="openlink-login-password-toggle"
-                        aria-pressed={showPassword}
-                        onClick={() => setShowPassword((visible) => !visible)}
-                      />
-                    </VStack>
+                    <PasswordField
+                      label="Password"
+                      placeholder={isSignUp ? 'At least 8 characters' : 'Enter your password'}
+                      value={password}
+                      onChange={setPassword}
+                      autoComplete={isSignUp ? 'new-password' : 'current-password webauthn'}
+                      htmlName="password"
+                      isRequired
+                    />
                     {isSignUp ? null : (
                     <HStack hAlign="end">
                       <Link
