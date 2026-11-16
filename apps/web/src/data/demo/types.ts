@@ -1,3 +1,4 @@
+import type { HoldPageId, LinkHold, LinkTargeting, SocialPreview } from '@openlink/contracts'
 export type OrganizationPlan = 'free' | 'pro' | 'enterprise'
 
 export type Organization = {
@@ -131,37 +132,10 @@ export type LinkComment = {
   reactions?: Record<string, string[]>
 }
 
-/** Placeholder pages Hold mode can show. */
-export type HoldPage =
-  | 'bad-gateway'
-  | 'service-unavailable'
-  | 'gateway-timeout'
-  | 'maintenance'
-
-export type LinkHold = {
-  page: HoldPage
-  /** ISO time the hold lifts automatically; absent = until released by hand. */
-  releaseAt?: string
-}
-
-export type GeoTargetRule = {
-  /** ISO 3166-1 alpha-2 code, e.g. "US". */
-  country: string
-  url: string
-}
-
-/** Device rules are checked before country rules. */
-export type LinkTargeting = {
-  ios?: string
-  android?: string
-  geo?: GeoTargetRule[]
-}
-
-export type SocialPreview = {
-  title?: string
-  description?: string
-  imageUrl?: string
-}
+/** Delivery settings share the API's types so the editor cannot drift from what the server accepts. */
+export type { LinkHold, LinkTargeting, SocialPreview }
+export type HoldPage = HoldPageId
+export type GeoTargetRule = NonNullable<LinkTargeting['geo']>[number]
 
 /** Org-scoped folder. Folders nest recursively via `parentId` (null = root). */
 export type LinkFolder = {

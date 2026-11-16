@@ -281,7 +281,7 @@ function OrganizationScope({
       )
       const password = draft.passwordEnabled && draft.password ? draft.password : undefined
       const body = {
-        ...LinkMapper.toBody(rebuilt, password),
+        ...LinkMapper.toUpdateBody(rebuilt, password),
         ...(!draft.passwordEnabled && before.passwordProtected ? { clearPassword: true } : {}),
       }
       const saved = await linksApi.updateLink(orgId, linkId, body)
@@ -331,7 +331,7 @@ function OrganizationScope({
       const targets = links.filter((l) => linkIds.includes(l.id) && (hold || l.hold))
       // Hold travels in the link's metadata, so each link is saved on its own.
       const saved = await Promise.all(
-        targets.map((l) => linksApi.updateLink(orgId, l.id, LinkMapper.toBody({ ...l, hold: hold ?? undefined }))),
+        targets.map((l) => linksApi.updateLink(orgId, l.id, LinkMapper.toUpdateBody({ ...l, hold: hold ?? undefined }))),
       )
       saved.forEach(putLink)
     },
