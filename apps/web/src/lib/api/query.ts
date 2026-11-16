@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 
 import { ApiError } from './error'
 
@@ -36,8 +36,26 @@ export class AppQueryClient {
     return failureCount < AppQueryClient.MAX_RETRIES && ApiError.from(error).isRetryable
   }
 
+  /** At most one membership re-check per this many ms, however many calls fail at once. */
+  static readonly ACCESS_RECHECK_MS = 5_000
+
   static create() {
-    return new QueryClient({
+    let lastRecheck = 0
+    /**
+     * A 403 from any call can mean you were just removed from the workspace (or
+     * your role changed). Re-read your workspaces, so the shell can move you out
+     * of one you no longer belong to.
+     */
+    const onError = (error: unknown) => {
+      if (ApiError.from(error).status !== 403) return
+      const now = Date.now()
+      if (now - lastRecheck < AppQueryClient.ACCESS_RECHECK_MS) return
+      lastRecheck = now
+      void client.invalidateQueries({ queryKey: QueryKeys.organizations })
+    }
+    const client: QueryClient = new QueryClient({
+      queryCache: new QueryCache({ onError }),
+      mutationCache: new MutationCache({ onError }),
       defaultOptions: {
         queries: {
           staleTime: 30_000,
@@ -46,5 +64,6 @@ export class AppQueryClient {
         },
       },
     })
+    return client
   }
 }

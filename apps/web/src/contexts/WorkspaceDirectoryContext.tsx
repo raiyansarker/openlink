@@ -39,11 +39,18 @@ const WorkspaceDirectoryContext = stableContext<WorkspaceDirectoryContextValue |
 
 const NO_ORGANIZATIONS: Organization[] = []
 
+/** How often the workspace list is re-read while a tab is open. */
+const DIRECTORY_REFRESH_MS = 60_000
+
 export function WorkspaceDirectoryProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const query = useQuery({
     queryKey: QueryKeys.organizations,
     queryFn: () => WorkspaceApi.shared.listOrganizations(),
+    // Someone else can remove you, rename a workspace or invite you to one: keep the list current.
+    refetchInterval: DIRECTORY_REFRESH_MS,
+    // Coming back to the tab always re-checks, even if the list was read seconds ago.
+    refetchOnWindowFocus: 'always',
   })
 
   const create = useMutation({
