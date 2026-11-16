@@ -22,6 +22,7 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { Tokenizer } from '@astryxdesign/core/Tokenizer'
 import { createStaticSource } from '@astryxdesign/core/Typeahead'
 import { VStack } from '@astryxdesign/core/VStack'
+import { useFrameCheck } from '#/hooks/use-frame-check'
 import { useKeyPress } from '#/hooks/use-key-press'
 import CreateLinkSuccess from '#/components/create-link/CreateLinkSuccess'
 import Favicon from '#/components/create-link/Favicon'
@@ -316,6 +317,7 @@ export default function CreateLinkForm({
   const shortHost = shortHostFor(draft.domainId)
   const shortUrl = shortUrlFor(draft.slug.trim() || '…', draft.domainId)
   const status = initialStatus(draft)
+  const frameCheck = useFrameCheck(activeOrg.id, destinationIsValid ? destination : '', draft.cloakEnabled && destinationIsValid)
   const host = hostOf(destination)
   const displayTitle = draft.title.trim() || host || 'Untitled link'
 
@@ -963,11 +965,21 @@ export default function CreateLinkForm({
                     'Clicks on links inside the page stay in the frame; links that open new tabs show the real site.',
                   ]}
                 />
-                <Banner
-                  status="warning"
-                  title="Not every site can be cloaked"
-                  description="Sites that block being framed (most banks, Google, and social networks) show a blank page. Check the destination after creating the link."
-                />
+                {frameCheck.frameable === false ? (
+                  <Banner
+                    status="warning"
+                    title={`${host || 'This site'} doesn’t allow being shown in a frame`}
+                    description="Visitors will be redirected to it normally, so the address bar shows the real URL."
+                  />
+                ) : frameCheck.frameable === true ? (
+                  <Banner status="success" title={`${host} can be cloaked`} description="It allows being shown in a frame." />
+                ) : (
+                  <Text type="supporting" color="secondary">
+                    {frameCheck.isChecking
+                      ? 'Checking whether the destination allows being framed…'
+                      : 'Sites that refuse to be framed (most banks, Google, social networks) are redirected normally instead.'}
+                  </Text>
+                )}
               </OptionRow>
             </FormSection>
 
