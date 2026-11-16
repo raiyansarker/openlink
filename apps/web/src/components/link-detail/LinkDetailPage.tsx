@@ -32,6 +32,7 @@ import { useOrganization } from '#/contexts/OrganizationContext'
 import type { ShortLink } from '#/data/demo/types'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatNumber } from '#/lib/analytics/format'
+import type { AnalyticsView } from '#/lib/analytics/search'
 import { isOnHold } from '#/lib/links/create-link'
 import { getFolderPath } from '#/lib/links/folder-tree'
 import { linkStatusLabel, linkStatusLine } from '#/lib/links/link-summary'
@@ -43,6 +44,8 @@ type LinkDetailPageProps = {
   linkId: string
   tab: LinkDetailTab
   onTabChange: (tab: LinkDetailTab) => void
+  analyticsView: AnalyticsView
+  onAnalyticsViewChange: (change: Partial<AnalyticsView>) => void
 }
 
 const stripScheme = (url: string) => url.replace(/^https?:\/\//, '')
@@ -191,7 +194,7 @@ function QrSheet({
  * One short link: a header with its identity and actions, then tabs for its
  * analytics (the Insights panels scoped to this link), team notes, settings, and history.
  */
-export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailPageProps) {
+export default function LinkDetailPage({ linkId, tab, onTabChange, analyticsView, onAnalyticsViewChange }: LinkDetailPageProps) {
   const navigate = useNavigate()
   const {
     activeOrg,
@@ -360,7 +363,7 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
           // crowd the header.
           paddingBlockStart={tab === 'analytics' ? 6 : 2}
         >
-          {tab === 'analytics' ? <LinkAnalyticsSection linkId={link.id} /> : null}
+          {tab === 'analytics' ? <LinkAnalyticsSection linkId={link.id} view={analyticsView} onViewChange={onAnalyticsViewChange} /> : null}
 
           {tab === 'notes' ? (
             <LinkNotes

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 import { Card } from '@astryxdesign/core/Card'
@@ -36,6 +35,8 @@ type AnalyticsReportViewProps = {
   /** Workspace view: picking a top link drills into it. */
   onSelectLink?: (linkId: string) => void
   chartHeight?: number
+  trafficView: TrafficView
+  onTrafficViewChange: (view: TrafficView) => void
 }
 
 /** Every analytics panel for one report, with loading, error and no-clicks states. */
@@ -50,8 +51,9 @@ export default function AnalyticsReportView({
   isSingleLink = false,
   onSelectLink,
   chartHeight,
+  trafficView,
+  onTrafficViewChange,
 }: AnalyticsReportViewProps) {
-  const [trafficView, setTrafficView] = useState<TrafficView>('total')
   if (error && !report) {
     return (
       <Banner
@@ -90,7 +92,7 @@ export default function AnalyticsReportView({
             label="Chart view"
             size="sm"
             value={trafficView}
-            onChange={(value) => setTrafficView(value as TrafficView)}
+            onChange={(value) => onTrafficViewChange(value as TrafficView)}
           >
             <SegmentedControlItem value="total" label="Total" />
             <SegmentedControlItem value="channels" label="By channel" />

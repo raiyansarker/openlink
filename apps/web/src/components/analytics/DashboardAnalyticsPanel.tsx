@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Link } from '@astryxdesign/core/Link'
@@ -8,19 +7,22 @@ import AnalyticsReportView from '#/components/analytics/AnalyticsReportView'
 import AnalyticsToolbar from '#/components/analytics/AnalyticsToolbar'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { useAnalyticsReport } from '#/hooks/use-analytics'
-import type { AnalyticsRange } from '#/lib/analytics/report'
+import type { AnalyticsView } from '#/lib/analytics/search'
 import { formatReportWindow as windowLabel } from '#/lib/analytics/format'
 
 /** Workspace analytics from recorded clicks; selecting a top link drills into it. */
-export default function DashboardAnalyticsPanel() {
+type DashboardAnalyticsPanelProps = {
+  /** Period, comparison, chart view and drilled-in link, kept in the URL by the route. */
+  view: AnalyticsView
+  onViewChange: (change: Partial<AnalyticsView>, options?: { push?: boolean }) => void
+}
+
+export default function DashboardAnalyticsPanel({ view, onViewChange }: DashboardAnalyticsPanelProps) {
   const { activeOrg, links } = useOrganization()
-  const [range, setRange] = useState<AnalyticsRange>('30d')
-  const [linkId, setLinkId] = useState<string | null>(null)
-  const [isComparing, setIsComparing] = useState(true)
+  const { range, linkId, isComparing } = view
   const query = useAnalyticsReport(activeOrg.id, range, linkId)
   const report = query.data
-
-  useEffect(() => setLinkId(null), [activeOrg.id])
+  const setLinkId = (id: string | null) => onViewChange({ linkId: id }, { push: true })
 
   const selected = linkId ? links.find((link) => link.id === linkId) ?? null : null
   const selectedLink = selected ? { slug: selected.slug, destination: selected.targetUrl } : null
@@ -62,9 +64,9 @@ export default function DashboardAnalyticsPanel() {
 
       <AnalyticsToolbar
         range={range}
-        onRangeChange={setRange}
+        onRangeChange={(next) => onViewChange({ range: next })}
         isComparing={isComparing}
-        onCompareChange={setIsComparing}
+        onCompareChange={(next) => onViewChange({ isComparing: next })}
       />
 
       <AnalyticsReportView
@@ -77,6 +79,8 @@ export default function DashboardAnalyticsPanel() {
         isComparing={isComparing}
         isSingleLink={linkId != null}
         onSelectLink={drillInto}
+        trafficView={view.trafficView}
+        onTrafficViewChange={(next) => onViewChange({ trafficView: next })}
       />
     </VStack>
   )

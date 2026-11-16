@@ -21,7 +21,9 @@ import { CHANNEL_COLORS, NEUTRAL_SERIES, SERIES_COLORS, chartHostStyle } from '#
 import type { AnalyticsReport } from '#/lib/analytics/report'
 import { formatCompact, formatNumber } from '#/lib/analytics/format'
 
-export type TrafficView = 'total' | 'channels'
+import type { TrafficView } from '#/lib/analytics/search'
+
+export type { TrafficView }
 
 type TrafficChartProps = {
   report: AnalyticsReport
