@@ -181,6 +181,8 @@ export default function CreateLinkForm({
   editLink,
 }: CreateLinkFormProps) {
   const isEditing = editLink != null
+  /** Editing a link that already has a password (its value is never sent to the browser). */
+  const hasSavedPassword = isEditing && !!editLink.passwordProtected
   const navigate = useNavigate()
   const {
     activeOrg,
@@ -671,10 +673,12 @@ export default function CreateLinkForm({
                     type={isPasswordVisible ? 'text' : 'password'}
                     label="Password"
                     description={
-                      isEditing && editLink?.passwordProtected
-                        ? 'Leave blank to keep the current password, or type a new one.'
+                      hasSavedPassword
+                        ? 'A password is set. Leave this blank to keep it, or type a new one.'
                         : `At least ${MIN_PASSWORD_LENGTH} characters. Share it separately from the link.`
                     }
+                    // The real password is never readable; dots show one is set.
+                    placeholder={hasSavedPassword ? '••••••••••••' : undefined}
                     value={draft.password}
                     onChange={(value) => update('password', value)}
                     status={statusFor('password')}
@@ -684,6 +688,7 @@ export default function CreateLinkForm({
                 <Button
                   variant="secondary"
                   label={isPasswordVisible ? 'Hide' : 'Show'}
+                  isDisabled={!draft.password}
                   onClick={() => setIsPasswordVisible((v) => !v)}
                 />
               </HStack>
