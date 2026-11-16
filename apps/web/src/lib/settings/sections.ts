@@ -1,77 +1,19 @@
+/** Settings pages listed in the settings nav. Each is its own file route under `routes/settings`. */
 export type SettingsUserSection = 'profile' | 'appearance' | 'devices'
-export type SettingsWorkspaceSection =
-  | 'general'
-  | 'members'
-  | 'integrations'
-  | 'api-keys'
-
+export type SettingsWorkspaceSection = 'general' | 'members' | 'integrations' | 'api-keys'
 export type SettingsSection = SettingsUserSection | SettingsWorkspaceSection
 
-export const SETTINGS_USER_SECTIONS: {
-  id: SettingsUserSection
-  label: string
-  description: string
-}[] = [
-  {
-    id: 'profile',
-    label: 'Profile',
-    description: 'Picture, name, email, password, and account deletion',
-  },
-  {
-    id: 'appearance',
-    label: 'Appearance',
-    description: 'Choose how Openlink looks on this device.',
-  },
-  {
-    id: 'devices',
-    label: 'Devices',
-    description: 'Browsers and devices where you are signed in',
-  },
+type NavEntry<Id extends SettingsSection> = { id: Id; label: string; to: `/settings/${Id}` }
+
+export const SETTINGS_USER_SECTIONS: NavEntry<SettingsUserSection>[] = [
+  { id: 'profile', label: 'Profile', to: '/settings/profile' },
+  { id: 'appearance', label: 'Appearance', to: '/settings/appearance' },
+  { id: 'devices', label: 'Devices', to: '/settings/devices' },
 ]
 
-export const SETTINGS_WORKSPACE_SECTIONS: {
-  id: SettingsWorkspaceSection
-  label: string
-  description: string
-}[] = [
-  { id: 'general', label: 'General', description: 'Name, URL, and workspace controls' },
-  { id: 'members', label: 'Members', description: 'People and roles' },
-  {
-    id: 'integrations',
-    label: 'Webhooks',
-    description: 'HTTPS endpoints for signed workspace events.',
-  },
-  {
-    id: 'api-keys',
-    label: 'API keys',
-    description: 'Create and manage keys for scripts and integrations.',
-  },
+export const SETTINGS_WORKSPACE_SECTIONS: NavEntry<SettingsWorkspaceSection>[] = [
+  { id: 'general', label: 'General', to: '/settings/general' },
+  { id: 'members', label: 'Members', to: '/settings/members' },
+  { id: 'integrations', label: 'Webhooks', to: '/settings/integrations' },
+  { id: 'api-keys', label: 'API keys', to: '/settings/api-keys' },
 ]
-
-const ALL_SECTIONS = new Set<string>([
-  ...SETTINGS_USER_SECTIONS.map((s) => s.id),
-  ...SETTINGS_WORKSPACE_SECTIONS.map((s) => s.id),
-])
-
-const WORKSPACE_SECTION_IDS = new Set<string>(SETTINGS_WORKSPACE_SECTIONS.map((s) => s.id))
-
-/** Workspace sections need an active workspace; personal ones do not. */
-export function isWorkspaceSection(id: SettingsSection): id is SettingsWorkspaceSection {
-  return WORKSPACE_SECTION_IDS.has(id)
-}
-
-export function isSettingsSection(id: string): id is SettingsSection {
-  return ALL_SECTIONS.has(id)
-}
-
-export function getSettingsSectionMeta(id: SettingsSection) {
-  return (
-    [...SETTINGS_USER_SECTIONS, ...SETTINGS_WORKSPACE_SECTIONS].find(
-      (s) => s.id === id,
-    ) ?? SETTINGS_USER_SECTIONS[0]
-  )
-}
-
-export function buildSettingsPath(section: SettingsSection = 'profile'): string {
-  return `/settings/${section}`
-}

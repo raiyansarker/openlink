@@ -1,11 +1,10 @@
 import { AuthSession } from '#/lib/auth/client'
 import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { useState, type CSSProperties } from 'react'
-import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import {
   SETTINGS_USER_SECTIONS,
   SETTINGS_WORKSPACE_SECTIONS,
-  buildSettingsPath,
   type SettingsSection,
 } from '#/lib/settings/sections'
 import { SETTINGS_SECTION_ICONS } from './settings-nav-icons'
@@ -66,38 +65,39 @@ function ChevronBackIcon() {
 function SettingsNavLink({
   section,
   label,
-  activeSection,
+  to,
 }: {
   section: SettingsSection
   label: string
-  activeSection: string
+  to: `/settings/${SettingsSection}`
 }) {
   const [hovered, setHovered] = useState(false)
-  const selected = activeSection === section
   return (
     <Link
-      to={buildSettingsPath(section)}
-      style={{
-        ...navLinkBaseStyle,
-        fontWeight: selected ? 600 : 400,
-        color: selected ? SHELL_NAV_TEXT_PRIMARY : SHELL_NAV_TEXT_SECONDARY,
-        backgroundColor: navItemBackground(selected, hovered),
+      to={to}
+      style={{ ...navLinkBaseStyle, fontWeight: 400, color: SHELL_NAV_TEXT_SECONDARY, backgroundColor: navItemBackground(false, hovered) }}
+      activeProps={{
+        style: { ...navLinkBaseStyle, fontWeight: 600, color: SHELL_NAV_TEXT_PRIMARY, backgroundColor: navItemBackground(true, hovered) },
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
     >
-      <span
-        style={{
-          display: 'flex',
-          color: selected ? SHELL_NAV_TEXT_PRIMARY : SHELL_NAV_ICON_COLOR,
-          flexShrink: 0,
-        }}
-      >
-        {SETTINGS_SECTION_ICONS[section]}
-      </span>
-      {label}
+      {({ isActive }) => (
+        <>
+          <span
+            style={{
+              display: 'flex',
+              color: isActive ? SHELL_NAV_TEXT_PRIMARY : SHELL_NAV_ICON_COLOR,
+              flexShrink: 0,
+            }}
+          >
+            {SETTINGS_SECTION_ICONS[section]}
+          </span>
+          {label}
+        </>
+      )}
     </Link>
   )
 }
@@ -142,8 +142,6 @@ function NavGroup({
 
 export default function SettingsNavColumn() {
   const navigate = useNavigate()
-  const { section } = useParams({ strict: false }) as { section?: string }
-  const activeSection = section ?? 'profile'
   const [logoutHovered, setLogoutHovered] = useState(false)
   const { organizations, status } = useWorkspaceDirectory()
   // Hide workspace sections only once we know there are none (not while loading).
@@ -212,7 +210,7 @@ export default function SettingsNavColumn() {
               key={item.id}
               section={item.id}
               label={item.label}
-              activeSection={activeSection}
+              to={item.to}
             />
           ))}
         </NavGroup>
@@ -224,7 +222,7 @@ export default function SettingsNavColumn() {
                 key={item.id}
                 section={item.id}
                 label={item.label}
-                activeSection={activeSection}
+                to={item.to}
               />
             ))}
           </NavGroup>

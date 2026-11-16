@@ -23,13 +23,22 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardSplatRouteImport } from './routes/dashboard/$'
 import { Route as EditLinkRouteImport } from './routes/edit/link'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
-import { Route as SettingsSectionRouteImport } from './routes/settings/$section'
+import { Route as SettingsWorkspaceRouteRouteImport } from './routes/settings/_workspace/route'
+import { Route as SettingsAccountsRouteImport } from './routes/settings/accounts'
+import { Route as SettingsAppearanceRouteImport } from './routes/settings/appearance'
+import { Route as SettingsDevelopersRouteImport } from './routes/settings/developers'
+import { Route as SettingsDevicesRouteImport } from './routes/settings/devices'
+import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as WIndexRouteImport } from './routes/w/index'
 import { Route as WOrgSlugRouteRouteImport } from './routes/w/$orgSlug/route'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
 import { Route as ApiUploadsAvatarRouteImport } from './routes/api/uploads/avatar'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
+import { Route as SettingsWorkspaceApiKeysRouteImport } from './routes/settings/_workspace/api-keys'
+import { Route as SettingsWorkspaceGeneralRouteImport } from './routes/settings/_workspace/general'
+import { Route as SettingsWorkspaceIntegrationsRouteImport } from './routes/settings/_workspace/integrations'
+import { Route as SettingsWorkspaceMembersRouteImport } from './routes/settings/_workspace/members'
 import { Route as WOrgSlugIndexRouteImport } from './routes/w/$orgSlug/index'
 import { Route as WOrgSlugActivityRouteImport } from './routes/w/$orgSlug/activity'
 import { Route as WOrgSlugAnalyticsRouteImport } from './routes/w/$orgSlug/analytics'
@@ -42,7 +51,7 @@ import { Route as WOrgSlugDomainsNewRouteImport } from './routes/w/$orgSlug/doma
 import { Route as WOrgSlugLinksIndexRouteImport } from './routes/w/$orgSlug/links/index'
 import { Route as WOrgSlugLinksLinkIdRouteImport } from './routes/w/$orgSlug/links/$linkId'
 import { Route as WOrgSlugSettingsIndexRouteImport } from './routes/w/$orgSlug/settings/index'
-import { Route as WOrgSlugSettingsSectionRouteImport } from './routes/w/$orgSlug/settings/$section'
+import { Route as WOrgSlugSettingsSplatRouteImport } from './routes/w/$orgSlug/settings/$'
 import { Route as ApiUploadsOrganizationsOrganizationIdLogoRouteImport } from './routes/api/uploads/organizations/$organizationId/logo'
 
 const IndexRoute = IndexRouteImport.update({
@@ -115,9 +124,33 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SettingsRouteRoute,
 } as any)
-const SettingsSectionRoute = SettingsSectionRouteImport.update({
-  id: '/$section',
-  path: '/$section',
+const SettingsWorkspaceRouteRoute = SettingsWorkspaceRouteRouteImport.update({
+  id: '/_workspace',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsAccountsRoute = SettingsAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
+  id: '/appearance',
+  path: '/appearance',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsDevelopersRoute = SettingsDevelopersRouteImport.update({
+  id: '/developers',
+  path: '/developers',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsDevicesRoute = SettingsDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => SettingsRouteRoute,
 } as any)
 const WIndexRoute = WIndexRouteImport.update({
@@ -150,6 +183,30 @@ const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
   path: '/api/v1/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsWorkspaceApiKeysRoute =
+  SettingsWorkspaceApiKeysRouteImport.update({
+    id: '/api-keys',
+    path: '/api-keys',
+    getParentRoute: () => SettingsWorkspaceRouteRoute,
+  } as any)
+const SettingsWorkspaceGeneralRoute =
+  SettingsWorkspaceGeneralRouteImport.update({
+    id: '/general',
+    path: '/general',
+    getParentRoute: () => SettingsWorkspaceRouteRoute,
+  } as any)
+const SettingsWorkspaceIntegrationsRoute =
+  SettingsWorkspaceIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => SettingsWorkspaceRouteRoute,
+  } as any)
+const SettingsWorkspaceMembersRoute =
+  SettingsWorkspaceMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => SettingsWorkspaceRouteRoute,
+  } as any)
 const WOrgSlugIndexRoute = WOrgSlugIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -210,9 +267,9 @@ const WOrgSlugSettingsIndexRoute = WOrgSlugSettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => WOrgSlugSettingsRouteRoute,
 } as any)
-const WOrgSlugSettingsSectionRoute = WOrgSlugSettingsSectionRouteImport.update({
-  id: '/$section',
-  path: '/$section',
+const WOrgSlugSettingsSplatRoute = WOrgSlugSettingsSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => WOrgSlugSettingsRouteRoute,
 } as any)
 const ApiUploadsOrganizationsOrganizationIdLogoRoute =
@@ -236,7 +293,11 @@ export interface FileRoutesByFullPath {
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
-  '/settings/$section': typeof SettingsSectionRoute
+  '/settings/accounts': typeof SettingsAccountsRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/developers': typeof SettingsDevelopersRoute
+  '/settings/devices': typeof SettingsDevicesRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/w/': typeof WIndexRoute
@@ -246,6 +307,10 @@ export interface FileRoutesByFullPath {
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/settings/api-keys': typeof SettingsWorkspaceApiKeysRoute
+  '/settings/general': typeof SettingsWorkspaceGeneralRoute
+  '/settings/integrations': typeof SettingsWorkspaceIntegrationsRoute
+  '/settings/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
@@ -253,7 +318,7 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
-  '/w/$orgSlug/settings/$section': typeof WOrgSlugSettingsSectionRoute
+  '/w/$orgSlug/settings/$': typeof WOrgSlugSettingsSplatRoute
   '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
@@ -265,19 +330,27 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/settings': typeof SettingsIndexRoute
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
-  '/settings/$section': typeof SettingsSectionRoute
+  '/settings/accounts': typeof SettingsAccountsRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/developers': typeof SettingsDevelopersRoute
+  '/settings/devices': typeof SettingsDevicesRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/dashboard': typeof DashboardIndexRoute
-  '/settings': typeof SettingsIndexRoute
   '/w': typeof WIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/settings/api-keys': typeof SettingsWorkspaceApiKeysRoute
+  '/settings/general': typeof SettingsWorkspaceGeneralRoute
+  '/settings/integrations': typeof SettingsWorkspaceIntegrationsRoute
+  '/settings/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
@@ -285,7 +358,7 @@ export interface FileRoutesByTo {
   '/w/$orgSlug': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
-  '/w/$orgSlug/settings/$section': typeof WOrgSlugSettingsSectionRoute
+  '/w/$orgSlug/settings/$': typeof WOrgSlugSettingsSplatRoute
   '/w/$orgSlug/domains': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsIndexRoute
@@ -300,13 +373,18 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/settings/_workspace': typeof SettingsWorkspaceRouteRouteWithChildren
   '/w/$orgSlug': typeof WOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
-  '/settings/$section': typeof SettingsSectionRoute
+  '/settings/accounts': typeof SettingsAccountsRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/developers': typeof SettingsDevelopersRoute
+  '/settings/devices': typeof SettingsDevicesRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/w/': typeof WIndexRoute
@@ -316,6 +394,10 @@ export interface FileRoutesById {
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/settings/_workspace/api-keys': typeof SettingsWorkspaceApiKeysRoute
+  '/settings/_workspace/general': typeof SettingsWorkspaceGeneralRoute
+  '/settings/_workspace/integrations': typeof SettingsWorkspaceIntegrationsRoute
+  '/settings/_workspace/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
@@ -323,7 +405,7 @@ export interface FileRoutesById {
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
-  '/w/$orgSlug/settings/$section': typeof WOrgSlugSettingsSectionRoute
+  '/w/$orgSlug/settings/$': typeof WOrgSlugSettingsSplatRoute
   '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
@@ -345,7 +427,11 @@ export interface FileRouteTypes {
     | '/create/organization'
     | '/dashboard/$'
     | '/edit/link'
-    | '/settings/$section'
+    | '/settings/accounts'
+    | '/settings/appearance'
+    | '/settings/developers'
+    | '/settings/devices'
+    | '/settings/profile'
     | '/dashboard/'
     | '/settings/'
     | '/w/'
@@ -355,6 +441,10 @@ export interface FileRouteTypes {
     | '/api/media/$'
     | '/api/uploads/avatar'
     | '/api/v1/$'
+    | '/settings/api-keys'
+    | '/settings/general'
+    | '/settings/integrations'
+    | '/settings/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
     | '/w/$orgSlug/notifications'
@@ -362,7 +452,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
-    | '/w/$orgSlug/settings/$section'
+    | '/w/$orgSlug/settings/$'
     | '/w/$orgSlug/domains/'
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
@@ -374,19 +464,27 @@ export interface FileRouteTypes {
     | '/about'
     | '/login'
     | '/onboarding'
+    | '/settings'
     | '/api/docs'
     | '/create/link'
     | '/create/organization'
     | '/dashboard/$'
     | '/edit/link'
-    | '/settings/$section'
+    | '/settings/accounts'
+    | '/settings/appearance'
+    | '/settings/developers'
+    | '/settings/devices'
+    | '/settings/profile'
     | '/dashboard'
-    | '/settings'
     | '/w'
     | '/api/auth/$'
     | '/api/media/$'
     | '/api/uploads/avatar'
     | '/api/v1/$'
+    | '/settings/api-keys'
+    | '/settings/general'
+    | '/settings/integrations'
+    | '/settings/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
     | '/w/$orgSlug/notifications'
@@ -394,7 +492,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
-    | '/w/$orgSlug/settings/$section'
+    | '/w/$orgSlug/settings/$'
     | '/w/$orgSlug/domains'
     | '/w/$orgSlug/links'
     | '/w/$orgSlug/settings'
@@ -408,13 +506,18 @@ export interface FileRouteTypes {
     | '/about'
     | '/login'
     | '/onboarding'
+    | '/settings/_workspace'
     | '/w/$orgSlug'
     | '/api/docs'
     | '/create/link'
     | '/create/organization'
     | '/dashboard/$'
     | '/edit/link'
-    | '/settings/$section'
+    | '/settings/accounts'
+    | '/settings/appearance'
+    | '/settings/developers'
+    | '/settings/devices'
+    | '/settings/profile'
     | '/dashboard/'
     | '/settings/'
     | '/w/'
@@ -424,6 +527,10 @@ export interface FileRouteTypes {
     | '/api/media/$'
     | '/api/uploads/avatar'
     | '/api/v1/$'
+    | '/settings/_workspace/api-keys'
+    | '/settings/_workspace/general'
+    | '/settings/_workspace/integrations'
+    | '/settings/_workspace/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
     | '/w/$orgSlug/notifications'
@@ -431,7 +538,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
-    | '/w/$orgSlug/settings/$section'
+    | '/w/$orgSlug/settings/$'
     | '/w/$orgSlug/domains/'
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
@@ -559,11 +666,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof SettingsRouteRoute
     }
-    '/settings/$section': {
-      id: '/settings/$section'
-      path: '/$section'
-      fullPath: '/settings/$section'
-      preLoaderRoute: typeof SettingsSectionRouteImport
+    '/settings/_workspace': {
+      id: '/settings/_workspace'
+      path: ''
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsWorkspaceRouteRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/accounts': {
+      id: '/settings/accounts'
+      path: '/accounts'
+      fullPath: '/settings/accounts'
+      preLoaderRoute: typeof SettingsAccountsRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/appearance': {
+      id: '/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof SettingsAppearanceRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/developers': {
+      id: '/settings/developers'
+      path: '/developers'
+      fullPath: '/settings/developers'
+      preLoaderRoute: typeof SettingsDevelopersRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/devices': {
+      id: '/settings/devices'
+      path: '/devices'
+      fullPath: '/settings/devices'
+      preLoaderRoute: typeof SettingsDevicesRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
       parentRoute: typeof SettingsRouteRoute
     }
     '/w/': {
@@ -607,6 +749,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/$'
       preLoaderRoute: typeof ApiV1SplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/settings/_workspace/api-keys': {
+      id: '/settings/_workspace/api-keys'
+      path: '/api-keys'
+      fullPath: '/settings/api-keys'
+      preLoaderRoute: typeof SettingsWorkspaceApiKeysRouteImport
+      parentRoute: typeof SettingsWorkspaceRouteRoute
+    }
+    '/settings/_workspace/general': {
+      id: '/settings/_workspace/general'
+      path: '/general'
+      fullPath: '/settings/general'
+      preLoaderRoute: typeof SettingsWorkspaceGeneralRouteImport
+      parentRoute: typeof SettingsWorkspaceRouteRoute
+    }
+    '/settings/_workspace/integrations': {
+      id: '/settings/_workspace/integrations'
+      path: '/integrations'
+      fullPath: '/settings/integrations'
+      preLoaderRoute: typeof SettingsWorkspaceIntegrationsRouteImport
+      parentRoute: typeof SettingsWorkspaceRouteRoute
+    }
+    '/settings/_workspace/members': {
+      id: '/settings/_workspace/members'
+      path: '/members'
+      fullPath: '/settings/members'
+      preLoaderRoute: typeof SettingsWorkspaceMembersRouteImport
+      parentRoute: typeof SettingsWorkspaceRouteRoute
     }
     '/w/$orgSlug/': {
       id: '/w/$orgSlug/'
@@ -692,11 +862,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WOrgSlugSettingsIndexRouteImport
       parentRoute: typeof WOrgSlugSettingsRouteRoute
     }
-    '/w/$orgSlug/settings/$section': {
-      id: '/w/$orgSlug/settings/$section'
-      path: '/$section'
-      fullPath: '/w/$orgSlug/settings/$section'
-      preLoaderRoute: typeof WOrgSlugSettingsSectionRouteImport
+    '/w/$orgSlug/settings/$': {
+      id: '/w/$orgSlug/settings/$'
+      path: '/$'
+      fullPath: '/w/$orgSlug/settings/$'
+      preLoaderRoute: typeof WOrgSlugSettingsSplatRouteImport
       parentRoute: typeof WOrgSlugSettingsRouteRoute
     }
     '/api/uploads/organizations/$organizationId/logo': {
@@ -709,13 +879,43 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface SettingsWorkspaceRouteRouteChildren {
+  SettingsWorkspaceApiKeysRoute: typeof SettingsWorkspaceApiKeysRoute
+  SettingsWorkspaceGeneralRoute: typeof SettingsWorkspaceGeneralRoute
+  SettingsWorkspaceIntegrationsRoute: typeof SettingsWorkspaceIntegrationsRoute
+  SettingsWorkspaceMembersRoute: typeof SettingsWorkspaceMembersRoute
+}
+
+const SettingsWorkspaceRouteRouteChildren: SettingsWorkspaceRouteRouteChildren =
+  {
+    SettingsWorkspaceApiKeysRoute: SettingsWorkspaceApiKeysRoute,
+    SettingsWorkspaceGeneralRoute: SettingsWorkspaceGeneralRoute,
+    SettingsWorkspaceIntegrationsRoute: SettingsWorkspaceIntegrationsRoute,
+    SettingsWorkspaceMembersRoute: SettingsWorkspaceMembersRoute,
+  }
+
+const SettingsWorkspaceRouteRouteWithChildren =
+  SettingsWorkspaceRouteRoute._addFileChildren(
+    SettingsWorkspaceRouteRouteChildren,
+  )
+
 interface SettingsRouteRouteChildren {
-  SettingsSectionRoute: typeof SettingsSectionRoute
+  SettingsWorkspaceRouteRoute: typeof SettingsWorkspaceRouteRouteWithChildren
+  SettingsAccountsRoute: typeof SettingsAccountsRoute
+  SettingsAppearanceRoute: typeof SettingsAppearanceRoute
+  SettingsDevelopersRoute: typeof SettingsDevelopersRoute
+  SettingsDevicesRoute: typeof SettingsDevicesRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
-  SettingsSectionRoute: SettingsSectionRoute,
+  SettingsWorkspaceRouteRoute: SettingsWorkspaceRouteRouteWithChildren,
+  SettingsAccountsRoute: SettingsAccountsRoute,
+  SettingsAppearanceRoute: SettingsAppearanceRoute,
+  SettingsDevelopersRoute: SettingsDevelopersRoute,
+  SettingsDevicesRoute: SettingsDevicesRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
 
@@ -737,12 +937,12 @@ const WOrgSlugDomainsRouteRouteWithChildren =
   WOrgSlugDomainsRouteRoute._addFileChildren(WOrgSlugDomainsRouteRouteChildren)
 
 interface WOrgSlugSettingsRouteRouteChildren {
-  WOrgSlugSettingsSectionRoute: typeof WOrgSlugSettingsSectionRoute
+  WOrgSlugSettingsSplatRoute: typeof WOrgSlugSettingsSplatRoute
   WOrgSlugSettingsIndexRoute: typeof WOrgSlugSettingsIndexRoute
 }
 
 const WOrgSlugSettingsRouteRouteChildren: WOrgSlugSettingsRouteRouteChildren = {
-  WOrgSlugSettingsSectionRoute: WOrgSlugSettingsSectionRoute,
+  WOrgSlugSettingsSplatRoute: WOrgSlugSettingsSplatRoute,
   WOrgSlugSettingsIndexRoute: WOrgSlugSettingsIndexRoute,
 }
 
