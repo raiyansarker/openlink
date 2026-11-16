@@ -7,7 +7,6 @@ import { contract as domains } from './domains'
 import { contract as folders } from './folders'
 import { contract as links } from './links'
 import { contract as organizations } from './organizations'
-import { contract as reports } from './reports'
 import { contract as system } from './system'
 import { apiErrorMap } from './api-errors'
 import { oc } from './oc'
@@ -18,7 +17,6 @@ const router = {
   account,
   activity,
   analytics,
-  reports,
   apiKeys,
   organizations,
   domains,

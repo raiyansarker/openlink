@@ -31,7 +31,7 @@ export type HeatCell = { day: string; hour: string; clicks: number }
 
 /** What the analytics screens render. Built from the API report by `AnalyticsReportMapper`. */
 export type AnalyticsReport = {
-  range: AnalyticsRange | 'month'
+  range: AnalyticsRange
   bucket: 'hour' | 'day'
   windowStart: Date
   windowEnd: Date

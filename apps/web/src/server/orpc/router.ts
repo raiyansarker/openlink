@@ -53,7 +53,6 @@ import { audit } from '#/server/activity/audit'
 import { diffLink, linkUpdateAction } from '#/server/activity/actions'
 import { listActivity } from '#/server/activity/service'
 import { LinkHistory, type LinkHistoryKind } from '#/server/activity/link-history'
-import { Reports } from '#/server/reports/service'
 import { DeviceSessions } from '#/server/devices/sessions'
 import { MediaStore } from '#/server/media/media-store'
 import { ReservedSlugs } from '@openlink/contracts'
@@ -297,20 +296,6 @@ export const router = os.router({
     getAnalyticsSummary: os.analytics.getAnalyticsSummary.effect(function* ({ input }) {
       yield* requireOrgMemberEffect(input.params.organizationId)
       return yield* AnalyticsSummaries.build(input.params.organizationId, input.query.tzOffset ?? 0)
-    }),
-  },
-
-  reports: {
-    getMonthlyReport: os.reports.getMonthlyReport.effect(function* ({ input }) {
-      const organizationId = input.params.organizationId
-      yield* requireOrgMemberEffect(organizationId)
-      const { month, campaign, tzOffset = 0 } = input.query
-      return yield* Reports.monthly({ organizationId, month, tzOffsetMinutes: tzOffset, ...(campaign ? { campaign } : {}) })
-    }),
-
-    listCampaigns: os.reports.listCampaigns.effect(function* ({ input }) {
-      yield* requireOrgMemberEffect(input.params.organizationId)
-      return { items: yield* Reports.campaigns(input.params.organizationId) }
     }),
   },
 
