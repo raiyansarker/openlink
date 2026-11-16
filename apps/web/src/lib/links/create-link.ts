@@ -316,8 +316,8 @@ export function validateDraft(
     if (description.length > MAX_PREVIEW_DESCRIPTION) {
       errors.previewDescription = `Use ${MAX_PREVIEW_DESCRIPTION} characters or fewer.`
     }
-    // Uploaded images are stored as data: URLs; http(s) URLs are accepted too.
-    if (image && !image.startsWith('data:image/') && !isHttpUrl(image)) {
+    // Uploads come back as our own media paths; public http(s) images are accepted too.
+    if (image && !image.startsWith('/api/media/previews/') && !isHttpUrl(image)) {
       errors.previewImage = 'Upload a PNG, JPG, WebP or GIF image.'
     }
   }

@@ -40,6 +40,7 @@ import LinkPreviewPanel, {
 import SocialPreviewCard from '#/components/create-link/SocialPreviewCard'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { ShortUrl } from '#/lib/links/short-url'
+import { MediaUploads } from '#/lib/media/uploads'
 import type { HoldPage, RedirectStatusCode, ShortLink } from '#/data/demo/types'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatCompactNumber } from '#/lib/format/compact-number'
@@ -203,7 +204,9 @@ export default function CreateLinkForm({
   const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [previewFileError, setPreviewFileError] = useState<string | null>(null)
 
-  /** Reads an uploaded social image into a data: URL (kept with the link). */
+  const [isUploadingPreview, setIsUploadingPreview] = useState(false)
+
+  /** Uploads a social image; the link keeps its URL. */
   const choosePreviewImage = (file: File | null) => {
     setPreviewFileError(null)
     setPreviewFile(file)
@@ -221,12 +224,14 @@ export default function CreateLinkForm({
       setPreviewFile(null)
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') update('previewImage', reader.result)
-    }
-    reader.onerror = () => setPreviewFileError('That image couldn’t be read.')
-    reader.readAsDataURL(file)
+    setIsUploadingPreview(true)
+    MediaUploads.setLinkPreview(activeOrg.id, file)
+      .then((url) => update('previewImage', url))
+      .catch((err: unknown) => {
+        setPreviewFile(null)
+        setPreviewFileError(err instanceof Error ? err.message : 'The upload failed. Please try again.')
+      })
+      .finally(() => setIsUploadingPreview(false))
   }
 
   const update = <K extends keyof CreateLinkDraft>(
@@ -424,6 +429,10 @@ export default function CreateLinkForm({
 
   const submit = async () => {
     if (created || isSubmitting) return
+    if (isUploadingPreview) {
+      setSubmitError('Wait for the preview image to finish uploading.')
+      return
+    }
     setShowErrors(true)
     if (Object.keys(errors).length > 0) {
       setSubmitError('Fix the highlighted fields to create the link.')
@@ -925,7 +934,11 @@ export default function CreateLinkForm({
                 mode="dropzone"
                 accept={PREVIEW_IMAGE_ACCEPT}
                 maxSize={MAX_PREVIEW_IMAGE_BYTES}
-                description="PNG, JPG, WebP or GIF up to 5 MB. 1200 × 630 px looks best everywhere."
+                description={
+                  isUploadingPreview
+                    ? 'Uploading…'
+                    : 'PNG, JPG, WebP or GIF up to 5 MB. 1200 × 630 px looks best everywhere.'
+                }
                 placeholder="Drop an image here, or click to browse"
                 value={previewFile}
                 onChange={(files) =>
