@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { Database } from 'bun:sqlite'
 import { link, linkClick } from '@openlink/db/schema'
+import { MonthlyReport } from '@openlink/contracts'
+import { type } from 'arktype'
 import { Effect } from 'effect'
 
 import { AnalyticsWindow } from '#/server/analytics/report'
@@ -79,6 +81,9 @@ describe('Reports', () => {
     expect(monthly.report.totals.clicks).toBe(2)
     expect(monthly.report.previousTotals.clicks).toBe(1)
     expect(monthly.newLinks).toBe(1)
+    // What the API returns must pass its own output schema.
+    expect(MonthlyReport(monthly) instanceof type.errors).toBe(false)
+    expect(monthly).not.toHaveProperty('linkCount')
     // October's click sits on November's axis, on the same day of the month.
     expect(monthly.report.previousSeries.find((p) => p.clicks > 0)?.time).toBe('2026-11-15T00:00:00.000Z')
   })
@@ -93,6 +98,7 @@ describe('Reports', () => {
     t.click('l3', '2026-11-12T00:00:00Z')
     const monthly = await t.run(Reports.monthly({ organizationId: 'o1', month: '2026-11', tzOffsetMinutes: 0, campaign: 'spring' }))
     expect(monthly).toMatchObject({ campaign: 'spring', linkCount: 2, newLinks: 1 })
+    expect(MonthlyReport(monthly) instanceof type.errors).toBe(false)
     expect(monthly.report.totals.clicks).toBe(2)
     expect(await t.run(Reports.campaigns('o1'))).toEqual([
       { name: 'autumn', links: 1 },

@@ -94,7 +94,7 @@ export class Reports {
         month: query.month,
         ...(query.campaign ? { campaign: query.campaign } : {}),
         newLinks: Number(created?.count ?? 0),
-        linkCount: scope.linkIds?.length,
+        ...(scope.linkIds ? { linkCount: scope.linkIds.length } : {}),
         report,
       }
     })
