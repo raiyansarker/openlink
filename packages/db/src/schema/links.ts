@@ -61,6 +61,8 @@ export const link = sqliteTable(
     tagsJson: text('tags_json').notNull().default('[]'),
     utmJson: text('utm_json'),
     metadataJson: text('metadata_json'),
+    /** Hold, targeting, cloaking and social preview, as one JSON object (see `LinkDelivery`). */
+    deliveryJson: text('delivery_json'),
     createdByUserId: text('created_by_user_id').references(() => user.id, {
       onDelete: 'set null',
     }),
