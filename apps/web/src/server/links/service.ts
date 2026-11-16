@@ -138,6 +138,28 @@ export function getLinkInDomain(domainId: string, linkId: string) {
   })
 }
 
+/** How an update field applies: `undefined` keeps the stored value, `null` clears it. */
+export class Patch {
+  static value<T>(next: T | null | undefined, current: T | null): T | null {
+    return next === undefined ? current : next
+  }
+
+  static map<I, O>(next: I | null | undefined, current: O | null, convert: (value: I) => O | null): O | null {
+    if (next === undefined) return current
+    return next === null ? null : convert(next)
+  }
+
+  /** Dates from ISO strings; an empty string keeps the stored date, as it always has. */
+  static date(next: string | null | undefined, current: Date | null): Date | null {
+    return next === '' ? current : Patch.map(next, current, (iso) => new Date(iso))
+  }
+
+  /** An empty object stores as nothing, so "no UTM" has one representation. */
+  static jsonOrNull(value: object): string | null {
+    return Object.keys(value).length > 0 ? JSON.stringify(value) : null
+  }
+}
+
 export function updateLinkRecord(
   existing: typeof link.$inferSelect,
   input: typeof UpdateLinkRequest.infer,
@@ -156,22 +178,22 @@ export function updateLinkRecord(
       db
         .update(link)
         .set({
-          folderId: input.folderId === undefined ? existing.folderId : input.folderId,
+          folderId: Patch.value(input.folderId, existing.folderId),
           destinationUrl: input.destinationUrl ?? existing.destinationUrl,
           title: input.title ?? existing.title,
-          description: input.description ?? existing.description,
+          description: Patch.value(input.description, existing.description),
           redirectStatus: input.redirectStatus ?? existing.redirectStatus,
           status: input.status ?? existing.status,
           enabled: input.enabled ?? existing.enabled,
-          activateAt: input.activateAt ? new Date(input.activateAt) : existing.activateAt,
-          expiresAt: input.expiresAt ? new Date(input.expiresAt) : existing.expiresAt,
-          maxClicks: input.maxClicks ?? existing.maxClicks,
+          activateAt: Patch.date(input.activateAt, existing.activateAt),
+          expiresAt: Patch.date(input.expiresAt, existing.expiresAt),
+          maxClicks: Patch.value(input.maxClicks, existing.maxClicks),
           passwordHash,
-          expiredDestinationUrl: input.expiredDestinationUrl ?? existing.expiredDestinationUrl,
-          fallbackDestinationUrl: input.fallbackDestinationUrl ?? existing.fallbackDestinationUrl,
+          expiredDestinationUrl: Patch.value(input.expiredDestinationUrl, existing.expiredDestinationUrl),
+          fallbackDestinationUrl: Patch.value(input.fallbackDestinationUrl, existing.fallbackDestinationUrl),
           tagsJson: input.tags ? JSON.stringify(input.tags) : existing.tagsJson,
-          utmJson: input.utm ? JSON.stringify(input.utm) : existing.utmJson,
-          metadataJson: input.metadata ? JSON.stringify(input.metadata) : existing.metadataJson,
+          utmJson: Patch.map(input.utm, existing.utmJson, Patch.jsonOrNull),
+          metadataJson: Patch.map(input.metadata, existing.metadataJson, Patch.jsonOrNull),
           deliveryJson: LinkDelivery.fromJson(existing.deliveryJson).apply(input).toJson(),
           updatedAt: now,
         })
