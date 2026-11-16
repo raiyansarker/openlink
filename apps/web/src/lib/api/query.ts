@@ -25,6 +25,9 @@ export class QueryKeys {
   static frameCheck = (organizationId: string, url: string) => [...QueryKeys.workspace(organizationId), 'frame-check', url] as const
   static recentClicks = (organizationId: string, linkId: string | null) =>
     [...QueryKeys.workspace(organizationId), 'analytics', 'recent', linkId ?? 'all'] as const
+  static monthlyReport = (organizationId: string, month: string, campaign: string | null) =>
+    [...QueryKeys.workspace(organizationId), 'reports', 'monthly', month, campaign ?? 'all'] as const
+  static campaigns = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'reports', 'campaigns'] as const
   static apiKeys = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'api-keys'] as const
 }
 
