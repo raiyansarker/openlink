@@ -52,6 +52,7 @@ import { Route as WOrgSlugLinksIndexRouteImport } from './routes/w/$orgSlug/link
 import { Route as WOrgSlugLinksLinkIdRouteImport } from './routes/w/$orgSlug/links/$linkId'
 import { Route as WOrgSlugSettingsIndexRouteImport } from './routes/w/$orgSlug/settings/index'
 import { Route as WOrgSlugSettingsSplatRouteImport } from './routes/w/$orgSlug/settings/$'
+import { Route as ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport } from './routes/api/uploads/organizations/$organizationId/link-preview'
 import { Route as ApiUploadsOrganizationsOrganizationIdLogoRouteImport } from './routes/api/uploads/organizations/$organizationId/logo'
 
 const IndexRoute = IndexRouteImport.update({
@@ -272,6 +273,12 @@ const WOrgSlugSettingsSplatRoute = WOrgSlugSettingsSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => WOrgSlugSettingsRouteRoute,
 } as any)
+const ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute =
+  ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport.update({
+    id: '/api/uploads/organizations/$organizationId/link-preview',
+    path: '/api/uploads/organizations/$organizationId/link-preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiUploadsOrganizationsOrganizationIdLogoRoute =
   ApiUploadsOrganizationsOrganizationIdLogoRouteImport.update({
     id: '/api/uploads/organizations/$organizationId/logo',
@@ -322,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
   '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesByTo {
@@ -362,6 +370,7 @@ export interface FileRoutesByTo {
   '/w/$orgSlug/domains': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
   '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesById {
@@ -409,6 +418,7 @@ export interface FileRoutesById {
   '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
   '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRouteTypes {
@@ -456,6 +466,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains/'
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
+    | '/api/uploads/organizations/$organizationId/link-preview'
     | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains'
     | '/w/$orgSlug/links'
     | '/w/$orgSlug/settings'
+    | '/api/uploads/organizations/$organizationId/link-preview'
     | '/api/uploads/organizations/$organizationId/logo'
   id:
     | '__root__'
@@ -542,6 +554,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains/'
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
+    | '/api/uploads/organizations/$organizationId/link-preview'
     | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesById: FileRoutesById
 }
@@ -563,6 +576,7 @@ export interface RootRouteChildren {
   ApiMediaSplatRoute: typeof ApiMediaSplatRoute
   ApiUploadsAvatarRoute: typeof ApiUploadsAvatarRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
+  ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute: typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
   ApiUploadsOrganizationsOrganizationIdLogoRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 
@@ -869,6 +883,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WOrgSlugSettingsSplatRouteImport
       parentRoute: typeof WOrgSlugSettingsRouteRoute
     }
+    '/api/uploads/organizations/$organizationId/link-preview': {
+      id: '/api/uploads/organizations/$organizationId/link-preview'
+      path: '/api/uploads/organizations/$organizationId/link-preview'
+      fullPath: '/api/uploads/organizations/$organizationId/link-preview'
+      preLoaderRoute: typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/uploads/organizations/$organizationId/logo': {
       id: '/api/uploads/organizations/$organizationId/logo'
       path: '/api/uploads/organizations/$organizationId/logo'
@@ -1010,6 +1031,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaSplatRoute: ApiMediaSplatRoute,
   ApiUploadsAvatarRoute: ApiUploadsAvatarRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
+  ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute:
+    ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute,
   ApiUploadsOrganizationsOrganizationIdLogoRoute:
     ApiUploadsOrganizationsOrganizationIdLogoRoute,
 }
