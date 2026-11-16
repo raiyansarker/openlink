@@ -1,5 +1,6 @@
 import { useState, type ComponentProps } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { BottomSheet } from '@astryxdesign/core/BottomSheet'
 import { BreadcrumbItem, Breadcrumbs } from '@astryxdesign/core/Breadcrumbs'
@@ -19,9 +20,9 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { useClipboard } from '@astryxdesign/core/hooks'
 import { QrBlock } from '#/components/create-link/LinkPreviewPanel'
 import LinkAnalyticsSection from '#/components/analytics/LinkAnalyticsSection'
-import LinkComments from '#/components/link-detail/LinkComments'
-import { useCurrentUser } from '#/hooks/use-current-user'
-import { useLinkThread } from '#/hooks/use-link-thread'
+import LinkNotes from '#/components/link-detail/LinkNotes'
+import { useLinkHistory } from '#/hooks/use-link-history'
+import { QueryKeys } from '#/lib/api/query'
 import LinkHistoryTimeline from '#/components/link-detail/LinkHistoryTimeline'
 import LinkSettingsPanel from '#/components/link-detail/LinkSettingsPanel'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
@@ -35,7 +36,7 @@ import { isOnHold } from '#/lib/links/create-link'
 import { getFolderPath } from '#/lib/links/folder-tree'
 import { linkStatusLabel, linkStatusLine } from '#/lib/links/link-summary'
 
-export const LINK_DETAIL_TABS = ['analytics', 'comments', 'settings', 'history'] as const
+export const LINK_DETAIL_TABS = ['analytics', 'notes', 'settings', 'history'] as const
 export type LinkDetailTab = (typeof LINK_DETAIL_TABS)[number]
 
 type LinkDetailPageProps = {
@@ -188,7 +189,7 @@ function QrSheet({
 
 /**
  * One short link: a header with its identity and actions, then tabs for its
- * analytics (the Insights panels scoped to this link), settings, and history.
+ * analytics (the Insights panels scoped to this link), team notes, settings, and history.
  */
 export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailPageProps) {
   const navigate = useNavigate()
@@ -199,6 +200,7 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
     duplicateLink,
     moveLink,
     setLinkHold,
+    saveLinkNotes,
     deleteLink,
     checkLinksHealth,
     shortHostFor,
@@ -208,9 +210,8 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isQrOpen, setIsQrOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-  const { user } = useCurrentUser()
-  const viewer = { id: user?.id ?? '', name: user?.name || user?.email || 'You', ...(user?.image ? { avatarUrl: user.image } : {}) }
-  const thread = useLinkThread(activeOrg.id, linkId, viewer)
+  const queryClient = useQueryClient()
+  const history = useLinkHistory(activeOrg.id, linkId)
   const run = (action: () => Promise<unknown>) => {
     setActionError(null)
     action().catch((err: unknown) =>
@@ -242,8 +243,7 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
   const host = shortHostFor(link.domainId)
   const path = getFolderPath(folders, link.folderId ?? null)
   const held = isOnHold(link)
-  const historyCount = thread.history.length
-  const comments = thread.comments
+  const historyCount = history.events.length
   const goToFolder = (folderId: string | null) =>
     void navigate({ to: linksPath, search: { folder: folderId ?? undefined } })
   const openEdit = (id = link.id) =>
@@ -329,11 +329,10 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
             panelId={panelId('analytics')}
           />
           <Tab
-            value="comments"
-            label="Comments"
-            id={tabId('comments')}
-            panelId={panelId('comments')}
-            endContent={<TabCount count={comments.length} />}
+            value="notes"
+            label="Notes"
+            id={tabId('notes')}
+            panelId={panelId('notes')}
           />
           <Tab
             value="settings"
@@ -363,17 +362,13 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
         >
           {tab === 'analytics' ? <LinkAnalyticsSection linkId={link.id} /> : null}
 
-          {tab === 'comments' ? (
-            <LinkComments
-              viewer={viewer}
-              comments={comments}
-              isLoading={thread.isLoadingComments}
-              loadError={thread.commentsError}
-              onRetry={() => void thread.retry()}
-              onAdd={thread.addComment}
-              onEdit={thread.editComment}
-              onDelete={thread.deleteComment}
-              onToggleReaction={thread.toggleReaction}
+          {tab === 'notes' ? (
+            <LinkNotes
+              notes={link.description ?? ''}
+              onSave={async (notes) => {
+                await saveLinkNotes(link.id, notes)
+                void queryClient.invalidateQueries({ queryKey: QueryKeys.linkHistory(activeOrg.id, link.id) })
+              }}
             />
           ) : null}
 
@@ -389,10 +384,10 @@ export default function LinkDetailPage({ linkId, tab, onTabChange }: LinkDetailP
 
           {tab === 'history' ? (
             <LinkHistoryTimeline
-              events={thread.history}
-              isLoading={thread.isLoadingHistory}
-              loadError={thread.historyError}
-              onRetry={() => void thread.retry()}
+              events={history.events}
+              isLoading={history.isLoading}
+              loadError={history.error}
+              onRetry={() => void history.retry()}
             />
           ) : null}
         </VStack>

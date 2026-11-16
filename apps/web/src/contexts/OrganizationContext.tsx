@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { use$ } from '@legendapp/state/react'
+import { MAX_LINK_NOTES_LENGTH } from '@openlink/contracts'
 import { useAnalyticsSummary } from '#/hooks/use-analytics'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
 import type {
@@ -73,6 +74,8 @@ type OrganizationContextValue = {
   /** Copies a link with a new back-half; resolves to the copy. */
   duplicateLink: (linkId: string) => Promise<ShortLink>
   moveLink: (linkId: string, folderId: string | null) => Promise<void>
+  /** Saves only the link's team notes; an empty string clears them. */
+  saveLinkNotes: (linkId: string, notes: string) => Promise<void>
   /** Puts a link on hold (or releases it with `null`). */
   setLinkHold: (linkId: string, hold: LinkHold | null) => Promise<void>
   moveLinks: (linkIds: string[], folderId: string | null) => Promise<void>
@@ -324,6 +327,17 @@ function OrganizationScope({
 
   const setLinkHold = useCallback((linkId: string, hold: LinkHold | null) => setLinksHold([linkId], hold), [setLinksHold])
 
+  const saveLinkNotes = useCallback(
+    async (linkId: string, notes: string) => {
+      if (notes.length > MAX_LINK_NOTES_LENGTH) {
+        throw new Error(`Keep notes under ${MAX_LINK_NOTES_LENGTH.toLocaleString()} characters.`)
+      }
+      const description = notes.trim() || null
+      putLink(await linksApi.updateLink(orgId, linkId, { description }))
+    },
+    [orgId, putLink],
+  )
+
   const addTagsToLinks = useCallback(
     async (linkIds: string[], tags: string[]) => {
       const clean = [...new Set(tags.map((t) => t.trim().toLowerCase()).filter(Boolean))]
@@ -447,6 +461,7 @@ function OrganizationScope({
       updateLink: (id, draft) => friendly(() => updateLink(id, draft), 'Could not save the link.'),
       duplicateLink: (id) => friendly(() => duplicateLink(id), 'Could not duplicate the link.'),
       moveLink: (id, folderId) => friendly(() => moveLink(id, folderId), 'Could not move the link.'),
+      saveLinkNotes: (id, notes) => friendly(() => saveLinkNotes(id, notes), 'Could not save the notes.'),
       setLinkHold: (id, hold) => friendly(() => setLinkHold(id, hold), 'Could not update the hold.'),
       moveLinks: (ids, folderId) => friendly(() => moveLinks(ids, folderId), 'Could not move the links.'),
       setLinksHold: (ids, hold) => friendly(() => setLinksHold(ids, hold), 'Could not update the hold.'),
@@ -472,6 +487,7 @@ function OrganizationScope({
       updateLink,
       duplicateLink,
       moveLink,
+      saveLinkNotes,
       setLinkHold,
       moveLinks,
       setLinksHold,

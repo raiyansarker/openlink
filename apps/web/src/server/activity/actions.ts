@@ -13,7 +13,6 @@ export const ACTION_DEFINITIONS = {
   'link.tagged': { category: 'links', phrase: 'tagged link' },
   'link.held': { category: 'links', phrase: 'put on hold' },
   'link.released': { category: 'links', phrase: 'released the hold on' },
-  'link.commented': { category: 'links', phrase: 'commented on link' },
   'folder.created': { category: 'links', phrase: 'created folder' },
   'folder.updated': { category: 'links', phrase: 'updated folder' },
   'folder.deleted': { category: 'links', phrase: 'deleted folder' },
@@ -46,7 +45,7 @@ const showDate = (value: Date | null) => (value ? value.toISOString() : '—')
 const TRACKED: { label: string; read: (row: LinkRow) => string }[] = [
   { label: 'Destination', read: (r) => show(r.destinationUrl) },
   { label: 'Title', read: (r) => show(r.title) },
-  { label: 'Description', read: (r) => show(r.description) },
+  { label: 'Notes', read: (r) => show(r.description) },
   { label: 'Redirect status', read: (r) => show(r.redirectStatus) },
   { label: 'Status', read: (r) => show(r.status) },
   { label: 'Enabled', read: (r) => (r.enabled ? 'yes' : 'no') },

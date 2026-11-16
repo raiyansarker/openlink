@@ -72,8 +72,6 @@ export type ShortLink = {
   health?: LinkHealth
   /** Newest first. */
   history?: LinkHistoryEvent[]
-  /** Oldest first, like a conversation. */
-  comments?: LinkComment[]
 }
 
 export type LinkHealthStatus = 'healthy' | 'redirects' | 'slow' | 'broken'
@@ -108,28 +106,9 @@ export type LinkHistoryEvent = {
     | 'tagged'
     /** A destination health check ran. */
     | 'checked'
-    /** Someone left a comment (the comment itself lives in `comments`). */
-    | 'commented'
   /** Human summary, e.g. "Moved to Docs / Guides". */
   summary: string
   changes?: LinkHistoryChange[]
-  /** Short quote shown under the summary (e.g. a comment excerpt). */
-  excerpt?: string
-  /** For `commented` events: the comment, so edits and deletes stay in sync. */
-  commentId?: string
-}
-
-/** A note left on a link by a teammate. */
-export type LinkComment = {
-  id: string
-  at: string
-  authorId: string
-  authorName: string
-  authorAvatarUrl?: string
-  body: string
-  editedAt?: string
-  /** Emoji → ids of the people who reacted with it. */
-  reactions?: Record<string, string[]>
 }
 
 /** Delivery settings share the API's types so the editor cannot drift from what the server accepts. */

@@ -126,33 +126,18 @@ function EventNode({
             {change.to || '—'}
           </Text>
         ))}
-        {event.excerpt ? (
-          <Text
-            type="supporting"
-            maxLines={2}
-            style={{
-              paddingInlineStart: 'var(--spacing-3)',
-              borderInlineStart: `2px solid ${TRACK_COLOR}`,
-              color: 'var(--color-text-secondary)',
-              marginBlockStart: 'var(--spacing-1)',
-            }}
-          >
-            {event.excerpt}
-          </Text>
-        ) : null}
       </VStack>
     </HStack>
   )
 }
 
-type Filter = 'all' | 'edits' | 'status' | 'checks' | 'comments'
+type Filter = 'all' | 'edits' | 'status' | 'checks'
 
 const FILTERS: { value: Filter; label: string; types: LinkHistoryEvent['type'][] }[] = [
   { value: 'all', label: 'All', types: [] },
   { value: 'edits', label: 'Edits', types: ['created', 'updated', 'moved', 'tagged', 'duplicated'] },
   { value: 'status', label: 'Hold', types: ['held', 'released'] },
   { value: 'checks', label: 'Health checks', types: ['checked'] },
-  { value: 'comments', label: 'Comments', types: ['commented'] },
 ]
 
 function matches(filter: Filter, event: LinkHistoryEvent): boolean {

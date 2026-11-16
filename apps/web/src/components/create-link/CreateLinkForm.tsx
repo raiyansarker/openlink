@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { MAX_LINK_NOTES_LENGTH } from '@openlink/contracts'
 import { useNavigate } from '@tanstack/react-router'
 import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
@@ -708,6 +709,7 @@ export default function CreateLinkForm({
                 value={draft.description}
                 onChange={(value) => update('description', value)}
                 rows={3}
+                maxLength={MAX_LINK_NOTES_LENGTH}
                 isOptional
                 width="100%"
               />

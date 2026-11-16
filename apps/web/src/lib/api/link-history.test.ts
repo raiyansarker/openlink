@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { CommentMapper, HistoryMapper } from './link-thread'
+import { HistoryMapper } from './link-history'
 
 const activity = (action: string, changes?: { label: string; from: string; to: string }[]) => ({
   id: 'e1',
@@ -28,36 +28,8 @@ describe('HistoryMapper', () => {
     )
   })
 
-  test('comments quote their excerpt; unrelated actions are skipped', () => {
-    expect(HistoryMapper.toUi(activity('link.commented', [{ label: 'Comment', from: '—', to: 'Ship it' }]))).toMatchObject({
-      type: 'commented',
-      excerpt: 'Ship it',
-    })
+  test('unrelated actions are skipped', () => {
     expect(HistoryMapper.toUi(activity('domain.added'))).toBeNull()
-  })
-})
-
-describe('CommentMapper', () => {
-  test('keeps author, reactions and edits', () => {
-    expect(
-      CommentMapper.toUi({
-        id: 'c1',
-        linkId: 'l1',
-        authorId: null,
-        authorName: 'Former member',
-        body: 'Hi',
-        createdAt: '2026-11-16T00:00:00.000Z',
-        editedAt: '2026-11-16T01:00:00.000Z',
-        reactions: { '👍': ['u2'] },
-      }),
-    ).toEqual({
-      id: 'c1',
-      at: '2026-11-16T00:00:00.000Z',
-      authorId: '',
-      authorName: 'Former member',
-      body: 'Hi',
-      editedAt: '2026-11-16T01:00:00.000Z',
-      reactions: { '👍': ['u2'] },
-    })
+    expect(HistoryMapper.toUi(activity('link.commented'))).toBeNull()
   })
 })
