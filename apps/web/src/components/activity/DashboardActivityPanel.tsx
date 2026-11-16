@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Banner } from '@astryxdesign/core/Banner'
+import { Button } from '@astryxdesign/core/Button'
 import { EmptyState } from '@astryxdesign/core/EmptyState'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -6,6 +8,7 @@ import { Icon } from '@astryxdesign/core/Icon'
 import { InputGroup } from '@astryxdesign/core/InputGroup'
 import { List, ListItem } from '@astryxdesign/core/List'
 import { Selector } from '@astryxdesign/core/Selector'
+import { Skeleton } from '@astryxdesign/core/Skeleton'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
@@ -14,28 +17,28 @@ import ActivityDetailSheet from '#/components/activity/ActivityDetailSheet'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import {
   ACTIVITY_CATEGORY_LABELS,
-  getWorkspaceActivity,
   type ActivityCategory,
   type WorkspaceActivityEvent,
 } from '#/data/demo/workspace-activity'
+import { useActivityFeed, useDebouncedValue } from '#/hooks/use-activity'
 import { formatEventTime, groupByDay } from '#/lib/activity/group-by-day'
+import { ApiError } from '#/lib/api/error'
 
-type CategoryFilter = 'all' | ActivityCategory
+export type CategoryFilter = 'all' | ActivityCategory
+
+export const ACTIVITY_CATEGORIES = Object.keys(ACTIVITY_CATEGORY_LABELS) as ActivityCategory[]
 
 const CATEGORY_OPTIONS: { value: CategoryFilter; label: string }[] = [
   { value: 'all', label: 'All activity' },
-  ...(Object.keys(ACTIVITY_CATEGORY_LABELS) as ActivityCategory[]).map(
-    (value) => ({ value, label: ACTIVITY_CATEGORY_LABELS[value] }),
-  ),
+  ...ACTIVITY_CATEGORIES.map((value) => ({ value, label: ACTIVITY_CATEGORY_LABELS[value] })),
 ]
 
-function matchesSearch(event: WorkspaceActivityEvent, query: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
-  return [event.actor.name, event.action, event.target]
-    .join(' ')
-    .toLowerCase()
-    .includes(q)
+/** Filters as kept in the URL by the route. */
+export type ActivityFilterState = { category: CategoryFilter; q: string }
+
+type DashboardActivityPanelProps = {
+  filters: ActivityFilterState
+  onFiltersChange: (change: Partial<ActivityFilterState>) => void
 }
 
 /** "Camille Laurent created link launch" with the people and things in bold. */
@@ -48,34 +51,41 @@ function ActivitySentence({ event }: { event: WorkspaceActivityEvent }) {
   )
 }
 
-export default function DashboardActivityPanel() {
+export default function DashboardActivityPanel({ filters, onFiltersChange }: DashboardActivityPanelProps) {
   const { activeOrg } = useOrganization()
-  const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<CategoryFilter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-
-  // Built after mount: demo times are relative to "now" and shown in the
-  // viewer's timezone, so rendering them on the server would not hydrate.
-  const [events, setEvents] = useState<WorkspaceActivityEvent[] | null>(null)
-
+  // Typing stays instant; the URL and the server query follow once typing pauses.
+  const [draftQuery, setDraftQuery] = useState(filters.q)
+  const settledQuery = useDebouncedValue(draftQuery)
   useEffect(() => {
-    setEvents(getWorkspaceActivity(activeOrg.id))
-    setQuery('')
-    setCategory('all')
-    setSelectedId(null)
-  }, [activeOrg.id])
+    if (settledQuery !== filters.q) onFiltersChange({ q: settledQuery })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settledQuery])
 
-  const filtered = useMemo(
-    () =>
-      (events ?? []).filter(
-        (event) =>
-          (category === 'all' || event.category === category) &&
-          matchesSearch(event, query),
-      ),
-    [events, category, query],
-  )
-  const groups = useMemo(() => groupByDay(filtered), [filtered])
-  const selected = events?.find((event) => event.id === selectedId) ?? null
+  const feed = useActivityFeed(activeOrg.id, {
+    ...(filters.category !== 'all' ? { category: filters.category } : {}),
+    ...(filters.q.trim() ? { q: filters.q.trim() } : {}),
+  })
+  const events = useMemo(() => feed.data?.pages.flatMap((page) => page.items) ?? [], [feed.data])
+  const groups = useMemo(() => groupByDay(events), [events])
+  const selected = events.find((event) => event.id === selectedId) ?? null
+  const isFiltered = filters.category !== 'all' || filters.q.trim() !== ''
+
+  // Load older events when the end of the list scrolls into view.
+  const endRef = useRef<HTMLElement>(null)
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = feed
+  useEffect(() => {
+    const end = endRef.current
+    if (!end || !hasNextPage) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && !isFetchingNextPage) void fetchNextPage()
+      },
+      { rootMargin: '400px 0px' },
+    )
+    observer.observe(end)
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   return (
     <VStack
@@ -89,79 +99,104 @@ export default function DashboardActivityPanel() {
       <VStack gap={2} hAlign="start" width="fill">
         <Heading level={1}>Activity</Heading>
         <Text color="secondary" type="supporting">
-          Everything that happened in {activeOrg.name}, newest first.
+          Everything that happened in {activeOrg.name}, newest first. New events appear on their own.
         </Text>
       </VStack>
 
-      {events == null ? null : events.length === 0 ? (
-        <EmptyState
-          isCompact
-          headingLevel={4}
-          title="No activity yet"
-          description="Changes to links, domains, members, and settings will show up here."
-        />
-      ) : (
-        <VStack gap={6} hAlign="stretch" width="fill">
-          <InputGroup label="Filter activity" size="sm">
-            <TextInput
-              label="Search activity"
-              isLabelHidden
-              size="sm"
-              placeholder="Search by person, action, or item"
-              value={query}
-              onChange={setQuery}
-              controlStyle={{ flex: '4 1 0', minWidth: 0, width: '80%' }}
-            />
-            <Selector
-              label="Category"
-              isLabelHidden
-              variant="secondary"
-              size="sm"
-              width="20%"
-              controlStyle={{ flex: '1 0 0', minWidth: 0, width: '100%' }}
-              options={CATEGORY_OPTIONS}
-              value={category}
-              onChange={(value) => setCategory(value as CategoryFilter)}
-            />
-          </InputGroup>
+      <VStack gap={6} hAlign="stretch" width="fill">
+        <InputGroup label="Filter activity" size="sm">
+          <TextInput
+            label="Search activity"
+            isLabelHidden
+            size="sm"
+            placeholder="Search by person, action, or item"
+            value={draftQuery}
+            onChange={setDraftQuery}
+            controlStyle={{ flex: '4 1 0', minWidth: 0, width: '80%' }}
+          />
+          <Selector
+            label="Category"
+            isLabelHidden
+            variant="secondary"
+            size="sm"
+            width="20%"
+            controlStyle={{ flex: '1 0 0', minWidth: 0, width: '100%' }}
+            options={CATEGORY_OPTIONS}
+            value={filters.category}
+            onChange={(value) => onFiltersChange({ category: value as CategoryFilter })}
+          />
+        </InputGroup>
 
-          {groups.length === 0 ? (
+        {feed.isPending ? (
+          <FeedSkeleton />
+        ) : feed.isError && events.length === 0 ? (
+          <Banner
+            status="error"
+            title={ApiError.message(feed.error, 'Activity could not be loaded.')}
+            endContent={<Button variant="secondary" size="sm" label="Try again" onClick={() => void feed.refetch()} />}
+          />
+        ) : events.length === 0 ? (
+          isFiltered ? (
             <Text type="supporting" color="secondary">
               No activity matches your filters.
             </Text>
           ) : (
-            <VStack gap={6} hAlign="stretch" width="fill">
-              {groups.map((group) => (
-                <VStack key={group.key} gap={2} hAlign="stretch" width="fill">
-                  <Heading level={5} weight="bold" color="secondary">
-                    {group.label}
-                  </Heading>
-                  <List className="activity-list activity-timeline" density="balanced">
-                    {group.items.map((event) => (
-                      <ListItem
-                        key={event.id}
-                        itemKey={event.id}
-                        onClick={() => setSelectedId(event.id)}
-                        startContent={<ActivityActorAvatar actor={event.actor} />}
-                        label={<ActivitySentence event={event} />}
-                        description={`${ACTIVITY_CATEGORY_LABELS[event.category]} · ${event.source}`}
-                        endContent={
-                          <HStack gap={2} vAlign="center">
-                            <Text type="supporting" color="secondary">
-                              {formatEventTime(event.occurredAt)}
-                            </Text>
-                            <Icon icon="chevronRight" size="sm" color="secondary" />
-                          </HStack>
-                        }
-                      />
-                    ))}
-                  </List>
-                </VStack>
-              ))}
+            <EmptyState
+              isCompact
+              headingLevel={4}
+              title="No activity yet"
+              description="Changes to links, domains, members, and settings will show up here."
+            />
+          )
+        ) : (
+          <VStack gap={6} hAlign="stretch" width="fill">
+            {groups.map((group) => (
+              <VStack key={group.key} gap={2} hAlign="stretch" width="fill">
+                <Heading level={5} weight="bold" color="secondary">
+                  {group.label}
+                </Heading>
+                <List className="activity-list activity-timeline" density="balanced">
+                  {group.items.map((event) => (
+                    <ListItem
+                      key={event.id}
+                      itemKey={event.id}
+                      onClick={() => setSelectedId(event.id)}
+                      startContent={<ActivityActorAvatar actor={event.actor} />}
+                      label={<ActivitySentence event={event} />}
+                      description={`${ACTIVITY_CATEGORY_LABELS[event.category]} · ${event.source}`}
+                      endContent={
+                        <HStack gap={2} vAlign="center">
+                          <Text type="supporting" color="secondary">
+                            {formatEventTime(event.occurredAt)}
+                          </Text>
+                          <Icon icon="chevronRight" size="sm" color="secondary" />
+                        </HStack>
+                      }
+                    />
+                  ))}
+                </List>
+              </VStack>
+            ))}
+
+            {/* End of the list: scrolling here loads the next page; the button is the fallback. */}
+            <VStack ref={endRef as never} hAlign="center" width="fill" paddingBlock={2}>
+              {hasNextPage ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  label="Load older activity"
+                  isLoading={isFetchingNextPage}
+                  onClick={() => void fetchNextPage()}
+                />
+              ) : (
+                <Text type="supporting" color="secondary">
+                  {events.length > 20 ? 'That’s everything.' : ''}
+                </Text>
+              )}
             </VStack>
-          )}
-        </VStack>
-      )}
+          </VStack>
+        )}
+      </VStack>
 
       <ActivityDetailSheet
         event={selected}
@@ -169,6 +204,23 @@ export default function DashboardActivityPanel() {
           if (!open) setSelectedId(null)
         }}
       />
+    </VStack>
+  )
+}
+
+/** The feed's shape while the first page loads. */
+function FeedSkeleton() {
+  return (
+    <VStack gap={4} hAlign="stretch" width="fill" aria-busy="true" aria-label="Loading activity">
+      {[0, 1, 2, 3, 4].map((index) => (
+        <HStack key={index} gap={3} vAlign="center" width="fill">
+          <Skeleton index={index * 2} width={32} height={32} radius="rounded" />
+          <VStack gap={2} hAlign="stretch" style={{ flex: 1 }}>
+            <Skeleton index={index * 2 + 1} width="55%" height={14} />
+            <Skeleton index={index * 2 + 1} width="25%" height={12} />
+          </VStack>
+        </HStack>
+      ))}
     </VStack>
   )
 }
