@@ -212,7 +212,6 @@ export default function LoginPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [hasPasskeys, setHasPasskeys] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState(AuthErrorMessages.oauth(search.error) ?? '')
@@ -226,7 +225,6 @@ export default function LoginPage() {
 
   // Passkeys show up in the email field's autofill when the browser supports it.
   useEffect(() => {
-    setHasPasskeys(PasskeySupport.isAvailable())
     let cancelled = false
     void PasskeySupport.canAutofill().then(async (canAutofill) => {
       if (!canAutofill || cancelled) return
@@ -244,6 +242,10 @@ export default function LoginPage() {
     if (pending) return
     setError('')
     setNotice('')
+    if (!PasskeySupport.isAvailable()) {
+      setError('This browser does not support passkeys. Try another way to sign in.')
+      return
+    }
     setPending('passkey')
     try {
       const { data, error: passkeyError } = await AuthSession.client.signIn.passkey()
@@ -262,8 +264,10 @@ export default function LoginPage() {
   }
 
   const enabledProviders = (['google', 'github'] as const).filter((name) => providers[name])
-  // Passkeys sit in the same row as Google and GitHub; they only sign in, never sign up.
-  const showPasskey = hasPasskeys && !isSignUp
+  // Passkeys sit after Google and GitHub; they only sign in, never sign up. The
+  // button renders on the server too (support is checked on click) so the row
+  // never shifts when the page hydrates.
+  const showPasskey = !isSignUp
   const quickOptionCount = enabledProviders.length + (showPasskey ? 1 : 0)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -386,18 +390,6 @@ export default function LoginPage() {
                 {quickOptionCount > 0 && (
                   <>
                     <Grid columns={quickOptionCount} gap={3}>
-                      {showPasskey ? (
-                        <Button
-                          label="Passkey"
-                          tooltip="Sign in with a passkey"
-                          size="md"
-                          width="100%"
-                          icon={<PasskeyIcon />}
-                          isLoading={pending === 'passkey'}
-                          isDisabled={pending !== null}
-                          onClick={() => void handlePasskey()}
-                        />
-                      ) : null}
                       {enabledProviders.map((name) => (
                         <Button
                           key={name}
@@ -410,6 +402,18 @@ export default function LoginPage() {
                           onClick={() => void handleSocial(name)}
                         />
                       ))}
+                      {showPasskey ? (
+                        <Button
+                          label="Passkey"
+                          tooltip="Sign in with a passkey"
+                          size="md"
+                          width="100%"
+                          icon={<PasskeyIcon />}
+                          isLoading={pending === 'passkey'}
+                          isDisabled={pending !== null}
+                          onClick={() => void handlePasskey()}
+                        />
+                      ) : null}
                     </Grid>
                     {emailPassword ? (
                       <Divider label={<Text size="xsm" color="secondary">{isSignUp ? 'or sign up with email' : 'or sign in with email'}</Text>} />
