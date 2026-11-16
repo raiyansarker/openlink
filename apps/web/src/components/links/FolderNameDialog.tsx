@@ -15,7 +15,7 @@ type FolderNameDialogProps = {
   submitLabel: string
   initialName?: string
   /** Throws an Error with a user-facing message when the name is rejected. */
-  onSubmit: (name: string) => void
+  onSubmit: (name: string) => void | Promise<void>
 }
 
 /** Shared by "New folder" and "Rename". */
@@ -30,6 +30,7 @@ export default function FolderNameDialog({
 }: FolderNameDialogProps) {
   const [name, setName] = useState(initialName)
   const [error, setError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -38,12 +39,16 @@ export default function FolderNameDialog({
     }
   }, [isOpen, initialName])
 
-  const submit = () => {
+  const submit = async () => {
+    if (isSaving) return
+    setIsSaving(true)
     try {
-      onSubmit(name)
+      await onSubmit(name)
       onOpenChange(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -68,7 +73,7 @@ export default function FolderNameDialog({
             <form
               onSubmit={(event) => {
                 event.preventDefault()
-                submit()
+                void submit()
               }}
             >
               <TextInput
@@ -99,7 +104,8 @@ export default function FolderNameDialog({
                 variant="primary"
                 label={submitLabel}
                 isDisabled={!name.trim()}
-                onClick={submit}
+                isLoading={isSaving}
+                onClick={() => void submit()}
               />
             </HStack>
           </LayoutFooter>
