@@ -1,6 +1,6 @@
 import { EventBus } from '#/server/events/bus'
 import { activityEvent, user } from '@openlink/db/schema'
-import { and, desc, eq, getTableColumns, inArray, lt, or, type SQL } from 'drizzle-orm'
+import { and, count, countDistinct, desc, eq, getTableColumns, inArray, lt, min, or, sql, type SQL } from 'drizzle-orm'
 import { Effect } from 'effect'
 
 import { operation } from '#/server/effect/operations'
@@ -99,6 +99,8 @@ type ListInput = {
   actor?: string
   /** Free text: actor, action phrase or target. */
   q?: string
+  /** Only these actions. */
+  actions?: readonly string[]
 }
 
 /** Text search over who, what and which item. Phrases aren't stored, so they match through the catalog. */
@@ -136,6 +138,7 @@ export function listActivity(input: ListInput) {
               : undefined,
             input.actor ? eq(activityEvent.actorUserId, input.actor) : undefined,
             input.q ? searchCondition(input.q) : undefined,
+            input.actions ? inArray(activityEvent.action, [...input.actions]) : undefined,
             cursor ? beforeCursor(cursor) : undefined,
           ),
         )
@@ -144,5 +147,50 @@ export function listActivity(input: ListInput) {
     )
     const items = rows.slice(0, limit)
     return { items, nextCursor: rows.length > limit ? encodeCursor(items[items.length - 1]!) : undefined }
+  })
+}
+
+/**
+ * Totals for one target's events (e.g. a link's history): all events, events
+ * per named group of actions, distinct people, and the oldest event.
+ */
+export function summarizeTarget<K extends string>(input: {
+  organizationId: string
+  target: { type: string; id: string }
+  kinds: Record<K, readonly string[]>
+}) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const kindColumns = Object.fromEntries(
+      Object.entries<readonly string[]>(input.kinds).map(([kind, actions]) => [
+        kind,
+        sql<number>`coalesce(sum(case when ${inArray(activityEvent.action, [...actions])} then 1 else 0 end), 0)`,
+      ]),
+    )
+    const [row] = yield* operation('activity.summarizeTarget', () =>
+      db
+        .select({
+          total: count(),
+          people: countDistinct(activityEvent.actorLabel),
+          since: min(activityEvent.createdAt),
+          ...kindColumns,
+        })
+        .from(activityEvent)
+        .where(
+          and(
+            eq(activityEvent.organizationId, input.organizationId),
+            eq(activityEvent.targetType, input.target.type),
+            eq(activityEvent.targetId, input.target.id),
+          ),
+        ),
+    )
+    const record = (row ?? {}) as Record<string, unknown>
+    const kinds = Object.fromEntries(Object.keys(input.kinds).map((kind) => [kind, Number(record[kind] ?? 0)])) as Record<K, number>
+    return {
+      total: Number(record.total ?? 0),
+      people: Number(record.people ?? 0),
+      ...(record.since ? { since: new Date(record.since as string | number | Date).toISOString() } : {}),
+      kinds,
+    }
   })
 }

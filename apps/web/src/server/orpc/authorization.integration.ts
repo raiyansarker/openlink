@@ -117,7 +117,10 @@ mock.module('#/server/folders/service', () => ({
 }))
 mock.module('#/server/links/queries', () => ({ queryOrganizationLinks }))
 mock.module('#/server/links/bulk', () => ({ moveLinks, addTagsToLinks, deleteLinks }))
-mock.module('#/server/activity/service', () => ({ listActivity }))
+const summarizeTarget = mock((_input: unknown) =>
+  Effect.succeed({ total: 3, people: 1, since: now.toISOString(), kinds: { edits: 2, hold: 1 } }),
+)
+mock.module('#/server/activity/service', () => ({ listActivity, summarizeTarget }))
 mock.module('#/server/activity/audit', () => ({ audit }))
 mock.module('#/server/apikeys/service', () => ({
   authenticateApiKey, listApiKeys, createApiKey, updateApiKeyRole, revokeApiKey,
@@ -161,7 +164,7 @@ const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
-  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
+  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, summarizeTarget, audit, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
   buildReport, buildSummary, frameable, listRecent,
 ]
 beforeEach(() => {
@@ -625,7 +628,8 @@ test('link history is scoped to the link and verifies it belongs to the domain',
   role = 'viewer'
   const response = await request('GET', `${linkPath}/history`)
   expect(response.status).toBe(200)
-  expect(listActivity).toHaveBeenCalledWith({ organizationId: org.id, target: { type: 'link', id: linkRow.id }, limit: 100 })
+  expect(listActivity).toHaveBeenCalledWith({ organizationId: org.id, target: { type: 'link', id: linkRow.id }, limit: 30 })
+  expect(await response.json()).toMatchObject({ summary: { total: 3, edits: 2, holds: 1, people: 1 } })
   getLinkInDomain.mockImplementationOnce(() => Effect.succeed(null as never))
   expect((await request('GET', `${linkPath}/history`)).status).toBe(404)
 })
@@ -636,9 +640,21 @@ describe('workspace link history (no domain in the path)', () => {
   test('history works for links found by workspace and id', async () => {
     role = 'viewer'
     expect((await request('GET', `${workspaceLinkPath}/history`)).status).toBe(200)
-    expect(listActivity).toHaveBeenCalledWith({ organizationId: org.id, target: { type: 'link', id: linkRow.id }, limit: 100 })
+    expect(listActivity).toHaveBeenCalledWith({ organizationId: org.id, target: { type: 'link', id: linkRow.id }, limit: 30 })
     expect(getLinkInOrganization).toHaveBeenCalledWith(org.id, linkRow.id)
     expect(getLinkInDomain).not.toHaveBeenCalled()
+  })
+
+  test('pages by cursor and filters by kind; totals come only with the first page', async () => {
+    role = 'viewer'
+    const next = await request('GET', `${workspaceLinkPath}/history?kind=hold&cursor=123:e1&limit=10`)
+    expect(next.status).toBe(200)
+    expect(listActivity).toHaveBeenCalledWith({
+      organizationId: org.id, target: { type: 'link', id: linkRow.id }, limit: 10, cursor: '123:e1', actions: ['link.held', 'link.released'],
+    })
+    expect(summarizeTarget).not.toHaveBeenCalled()
+    expect(((await next.json()) as { summary?: unknown }).summary).toBeUndefined()
+    expect((await request('GET', `${workspaceLinkPath}/history?kind=checks`)).status).toBe(400)
   })
 
   test('unknown links are 404', async () => {

@@ -53,4 +53,29 @@ export const ListActivityResponse = type({
   'nextCursor?': 'string',
 })
 
+/** Kinds of link history: edits to the link, or putting it on hold and releasing it. */
+export const LinkHistoryKind = type("'edits' | 'hold'")
+
+export const LinkHistoryQuery = type({
+  'kind?': LinkHistoryKind,
+  'limit?': 'string.integer.parse',
+  'cursor?': 'string',
+})
+
+/** Totals over the link's whole history, whatever page or kind was asked for. */
+export const LinkHistorySummary = type({
+  total: 'number',
+  edits: 'number',
+  holds: 'number',
+  people: 'number',
+  'since?': 'string',
+})
+
+export const LinkHistoryResponse = type({
+  items: ActivityEvent.array(),
+  'nextCursor?': 'string',
+  /** Only on the first page (no cursor). */
+  'summary?': LinkHistorySummary,
+})
+
 export { OrganizationIdPath }

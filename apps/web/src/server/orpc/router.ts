@@ -51,6 +51,7 @@ import { createApiKey, listApiKeys, revokeApiKey, updateApiKeyRole } from '#/ser
 import { audit } from '#/server/activity/audit'
 import { diffLink, linkUpdateAction } from '#/server/activity/actions'
 import { listActivity } from '#/server/activity/service'
+import { LinkHistory, type LinkHistoryKind } from '#/server/activity/link-history'
 import { DeviceSessions } from '#/server/devices/sessions'
 import { MediaStore } from '#/server/media/media-store'
 import { ReservedSlugs } from '@openlink/contracts'
@@ -137,7 +138,7 @@ type LinkAddress = { organizationId: string; linkId: string; domainId?: string }
  * A link's history. Served at both the per-domain paths and
  * the workspace paths (which also reach links on the app's own host).
  */
-class LinkThread {
+class LinkHistoryRoutes {
   static locate(address: LinkAddress) {
     return Effect.gen(function* () {
       if (address.domainId) return yield* requireLink(address.organizationId, address.domainId, address.linkId)
@@ -147,16 +148,18 @@ class LinkThread {
     })
   }
 
-  static history(address: LinkAddress) {
+  static history(address: LinkAddress, query: { kind?: LinkHistoryKind; limit?: number; cursor?: string }) {
     return Effect.gen(function* () {
       const { membership } = yield* requireOrgMemberEffect(address.organizationId)
-      yield* LinkThread.locate(address)
-      const { items } = yield* listActivity({
-        organizationId: address.organizationId,
-        target: { type: 'link', id: address.linkId },
-        limit: 100,
-      })
-      return { items: items.map((row) => toActivityDto(row, { includeIp: isAdmin(membership.role) })) }
+      yield* LinkHistoryRoutes.locate(address)
+      const { items, nextCursor } = yield* LinkHistory.page({ organizationId: address.organizationId, linkId: address.linkId, ...query })
+      // Totals only with the first page; later pages don't change them.
+      const summary = query.cursor ? undefined : yield* LinkHistory.summary(address.organizationId, address.linkId)
+      return {
+        items: items.map((row) => toActivityDto(row, { includeIp: isAdmin(membership.role) })),
+        ...(nextCursor ? { nextCursor } : {}),
+        ...(summary ? { summary } : {}),
+      }
     })
   }
 }
@@ -852,10 +855,10 @@ export const router = os.router({
     }),
 
     getLinkHistory: os.links.getLinkHistory.effect(function* ({ input }) {
-      return yield* LinkThread.history(input.params)
+      return yield* LinkHistoryRoutes.history(input.params, input.query)
     }),
     getWorkspaceLinkHistory: os.links.getWorkspaceLinkHistory.effect(function* ({ input }) {
-      return yield* LinkThread.history(input.params)
+      return yield* LinkHistoryRoutes.history(input.params, input.query)
     }),
   },
 })
