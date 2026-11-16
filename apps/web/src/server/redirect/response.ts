@@ -82,10 +82,10 @@ export class CloakPageView {
 }
 
 export class PasswordPageView {
-  static render(message?: string): Response {
+  static render(message?: string, status = 401): Response {
     const alert = message ? `<p role="alert">${PublicPage.escape(message)}</p>` : ''
     return PublicPage.html(
-      401,
+      status,
       PublicPage.simple(
         'Password required',
         `<h1>Password required</h1>${alert}<form method="post"><input type="password" name="password" autocomplete="off" autofocus required> <button type="submit">Continue</button></form>`,
@@ -108,12 +108,19 @@ export class RedirectResponses {
           status: outcome.status,
           headers: { location: outcome.url, 'cache-control': 'private, no-store' },
         })
+      case 'password_accepted':
+        return new Response(null, {
+          status: 303,
+          headers: { location: `${shortUrl.pathname}${shortUrl.search}`, 'set-cookie': outcome.setCookie, 'cache-control': 'no-store' },
+        })
       case 'hold':
         return HoldPageView.render(outcome.page)
       case 'password_required':
         return PasswordPageView.render()
       case 'password_invalid':
         return PasswordPageView.render('Incorrect password.')
+      case 'password_rate_limited':
+        return PasswordPageView.render('Too many attempts. Wait a minute, then try again.', 429)
       case 'gone':
         return PublicPage.html(410, PublicPage.simple('Link expired', '<h1>This link has expired</h1>'))
       case 'not_found':

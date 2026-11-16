@@ -6,11 +6,18 @@ import { recordClickEvent } from '#/server/analytics/clicks'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { verifyLinkPassword } from '#/server/links/password'
+import { Bindings } from '#/server/effect/services/bindings'
+import { PasswordGate } from './password-gate'
 import { RedirectRules, type RedirectDecision } from './decide'
 import { FrameCheck } from './frame-check'
 import { Visitor } from './visitor'
 
-export type ResolveOutcome = RedirectDecision | { type: 'password_invalid' }
+export type ResolveOutcome =
+  | RedirectDecision
+  /** The right password: remember it, then reopen the link with a plain GET. */
+  | { type: 'password_accepted'; setCookie: string }
+  | { type: 'password_invalid' }
+  | { type: 'password_rate_limited' }
 
 /** Lowercase the host and drop any port or trailing dot. */
 export function normalizeHost(host: string) {
@@ -61,6 +68,10 @@ export function resolveRedirect(input: {
   password?: string
   appHost?: string | null
   visitor?: Visitor
+  /** The request's Cookie header, for remembered passwords. */
+  cookieHeader?: string | null
+  /** For capping password guesses per visitor. */
+  clientIp?: string | null
   /** Whether a destination can be framed, for cloaked links; real check by default. */
   frameable?: (url: string) => Effect.Effect<boolean>
 }) {
@@ -80,9 +91,18 @@ export function resolveRedirect(input: {
     if (!row) return { type: 'not_found' } as ResolveOutcome
 
     let passwordVerified = false
-    if (row.passwordHash && input.password !== undefined) {
-      passwordVerified = yield* verifyLinkPassword(input.password, row.passwordHash)
-      if (!passwordVerified) return { type: 'password_invalid' } as ResolveOutcome
+    if (row.passwordHash) {
+      const { BETTER_AUTH_SECRET, LINK_PASSWORD_LIMITER } = yield* Bindings
+      if (input.password !== undefined) {
+        if (!(yield* PasswordGate.allowAttempt(LINK_PASSWORD_LIMITER, row, input.clientIp ?? null))) {
+          return { type: 'password_rate_limited' } as ResolveOutcome
+        }
+        if (!(yield* verifyLinkPassword(input.password, row.passwordHash))) return { type: 'password_invalid' } as ResolveOutcome
+        // Never answer the POST with the destination: a 307/308 link would re-send the password there.
+        return { type: 'password_accepted', setCookie: yield* PasswordGate.remember(row, BETTER_AUTH_SECRET) } as ResolveOutcome
+      } else {
+        passwordVerified = yield* PasswordGate.isRemembered(row, input.cookieHeader ?? null, BETTER_AUTH_SECRET)
+      }
     }
 
     const visitor = input.visitor ?? Visitor.ANONYMOUS

@@ -29,6 +29,8 @@ const serve = (request: Request, slug: string, withPassword: boolean) =>
         password,
         appHost,
         visitor: Visitor.fromRequest(request),
+        cookieHeader: request.headers.get('cookie'),
+        clientIp: request.headers.get('cf-connecting-ip'),
       })
       return RedirectResponses.for(outcome, new URL(request.url))
     }).pipe(Effect.catch(() => Effect.succeed(unavailable()))),
