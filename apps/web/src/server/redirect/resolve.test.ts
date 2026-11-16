@@ -10,6 +10,7 @@ import { Bindings } from '#/server/effect/services/bindings'
 import { Db } from '#/server/effect/services/db'
 import { hashLinkPassword } from '#/server/links/password'
 import { normalizeHost, resolveRedirect } from './resolve'
+import { EventBus } from '#/server/events/bus'
 import { RedirectResponses } from './response'
 import { Visitor } from './visitor'
 
@@ -155,6 +156,20 @@ describe('resolveRedirect', () => {
     expect((await guess('b')).type).toBe('password_invalid')
     expect((await guess('s3cret')).type).toBe('password_rate_limited')
     expect(t.limiter.limit).toHaveBeenLastCalledWith({ key: expect.stringMatching(/:203\.0\.113\.9$/) })
+  })
+})
+
+describe('resolveRedirect events', () => {
+  test('publishes every click, and a milestone on round counts', async () => {
+    const t = setup()
+    const row = t.seed({ clickCount: 99 })
+    const types: string[] = []
+    const off = EventBus.register({ name: 'test', deliver: (event) => Effect.sync(() => void types.push(event.type)) })
+    await t.resolve({ host: 'go.example.com', slug: 'abc' })
+    await t.resolve({ host: 'go.example.com', slug: 'abc' })
+    off()
+    expect(types).toEqual(['click.recorded', 'click.milestone', 'click.recorded'])
+    expect(t.clicks(row.id)).toBe(101)
   })
 })
 

@@ -9,8 +9,17 @@ import { verifyLinkPassword } from '#/server/links/password'
 import { Bindings } from '#/server/effect/services/bindings'
 import { PasswordGate } from './password-gate'
 import { RedirectRules, type RedirectDecision } from './decide'
+import { WorkspaceEvents } from '@openlink/contracts'
+import { EventBus } from '#/server/events/bus'
 import { FrameCheck } from './frame-check'
 import { Visitor } from './visitor'
+
+/** How events name a link. */
+class LinkSubject {
+  static of(row: typeof link.$inferSelect) {
+    return { type: 'link', id: row.id, label: row.title || row.slug }
+  }
+}
 
 export type ResolveOutcome =
   | RedirectDecision
@@ -38,7 +47,7 @@ export function findActiveDomainByHost(host: string) {
   })
 }
 
-/** Count a click unless the link has reached its limit; false means the limit was hit. */
+/** Count a click unless the link has reached its limit. Resolves to the new count, or null at the limit. */
 function claimClick(row: typeof link.$inferSelect) {
   return Effect.gen(function* () {
     const db = yield* Db
@@ -47,9 +56,9 @@ function claimClick(row: typeof link.$inferSelect) {
         .update(link)
         .set({ clickCount: sql`${link.clickCount} + 1` })
         .where(and(eq(link.id, row.id), or(isNull(link.maxClicks), lt(link.clickCount, link.maxClicks))))
-        .returning({ id: link.id }),
+        .returning({ clickCount: link.clickCount }),
     )
-    return claimed.length > 0
+    return claimed[0]?.clickCount ?? null
   })
 }
 
@@ -95,6 +104,9 @@ export function resolveRedirect(input: {
       const { BETTER_AUTH_SECRET, LINK_PASSWORD_LIMITER } = yield* Bindings
       if (input.password !== undefined) {
         if (!(yield* PasswordGate.allowAttempt(LINK_PASSWORD_LIMITER, row, input.clientIp ?? null))) {
+          yield* EventBus.publish(
+            EventBus.create('link.password_locked', row.organizationId, { subject: LinkSubject.of(row) }),
+          )
           return { type: 'password_rate_limited' } as ResolveOutcome
         }
         if (!(yield* verifyLinkPassword(input.password, row.passwordHash))) return { type: 'password_invalid' } as ResolveOutcome
@@ -112,8 +124,8 @@ export function resolveRedirect(input: {
     }
     if (!('countsClick' in decision) || !decision.countsClick) return decision
 
-    const claimed = yield* claimClick(row)
-    if (!claimed) {
+    const clickCount = yield* claimClick(row)
+    if (clickCount === null) {
       return RedirectRules.decide({ ...row, clickCount: row.maxClicks ?? row.clickCount }) as ResolveOutcome
     }
 
@@ -125,6 +137,17 @@ export function resolveRedirect(input: {
       delivery: decision.type === 'cloak' ? 'cloak' : 'redirect',
       destination: decision.url,
     }).pipe(Effect.ignore)
+
+    const subject = LinkSubject.of(row)
+    yield* EventBus.publish(
+      EventBus.create('click.recorded', row.organizationId, {
+        subject,
+        data: { clickCount, country: visitor.country, platform: visitor.platform, delivery: decision.type },
+      }),
+    )
+    if (WorkspaceEvents.isClickMilestone(clickCount)) {
+      yield* EventBus.publish(EventBus.create('click.milestone', row.organizationId, { subject, data: { clickCount } }))
+    }
 
     return decision as ResolveOutcome
   })

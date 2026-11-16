@@ -1,3 +1,4 @@
+import { EventBus } from '#/server/events/bus'
 import { activityEvent } from '@openlink/db/schema'
 import { and, desc, eq, lt, or, type SQL } from 'drizzle-orm'
 import { Effect } from 'effect'
@@ -50,12 +51,26 @@ export function recordActivity(input: RecordActivityInput) {
  * Audit logging must never fail the user's action, which has already
  * succeeded. A failed write is logged and dropped.
  */
+/** Record activity and publish it as a workspace event; neither can fail the caller. */
 export const recordActivityQuietly = (input: RecordActivityInput) =>
   recordActivity(input).pipe(
     Effect.catch((error) =>
       Effect.logWarning(`activity.record failed for ${input.action}: ${String(error.cause)}`),
     ),
+    Effect.andThen(EventBus.publish(activityToEvent(input))),
   )
+
+/** The workspace event an activity entry stands for. */
+export function activityToEvent(input: RecordActivityInput) {
+  const { actor } = input
+  return EventBus.create(input.action, input.organizationId, {
+    subject: input.target,
+    ...(actor.type === 'system'
+      ? {}
+      : { actor: actor.type === 'member' ? { type: 'member' as const, id: actor.userId, label: actor.label } : { type: 'api_key' as const, label: actor.label } }),
+    ...(input.changes && input.changes.length > 0 ? { data: { changes: input.changes } } : {}),
+  })
+}
 
 export const DEFAULT_ACTIVITY_PAGE = 50
 export const MAX_ACTIVITY_PAGE = 100

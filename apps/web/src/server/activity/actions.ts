@@ -1,3 +1,4 @@
+import type { WorkspaceEventType } from '@openlink/contracts'
 import type { link } from '@openlink/db/schema'
 import { LinkDelivery } from '#/server/links/delivery'
 
@@ -28,7 +29,7 @@ export const ACTION_DEFINITIONS = {
   'apikey.revoked': { category: 'developers', phrase: 'revoked API key' },
   'workspace.updated': { category: 'members', phrase: 'updated workspace' },
   'workspace.ownership_transferred': { category: 'security', phrase: 'transferred ownership to' },
-} as const satisfies Record<string, { category: ActivityCategory; phrase: string }>
+} as const satisfies Partial<Record<WorkspaceEventType, { category: ActivityCategory; phrase: string }>>
 
 export type ActivityAction = keyof typeof ACTION_DEFINITIONS
 
