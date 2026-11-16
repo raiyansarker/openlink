@@ -1,7 +1,6 @@
 export * from './activity'
 export * from './api-keys'
 export * from './auth'
-export * from './comments'
 export * from './domains'
 export * from './links'
 export * from './orgs'
