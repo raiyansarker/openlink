@@ -20,6 +20,12 @@ export class UserAgent {
     return { client: UserAgent.client(ua), os, kind: mobile ? 'smartphone' : 'laptop' }
   }
 
+  /** The browser's name without its version, e.g. "Chrome". */
+  static browser(userAgent: string | null | undefined): string {
+    const ua = userAgent ?? ''
+    return UserAgent.BROWSERS.find(([pattern]) => pattern.test(ua))?.[1] ?? 'Unknown browser'
+  }
+
   private static client(ua: string) {
     for (const [pattern, name] of UserAgent.BROWSERS) {
       const match = pattern.exec(ua)
