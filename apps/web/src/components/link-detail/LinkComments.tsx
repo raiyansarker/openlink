@@ -3,6 +3,7 @@ import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Banner } from '@astryxdesign/core/Banner'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { Button } from '@astryxdesign/core/Button'
+import { Skeleton } from '@astryxdesign/core/Skeleton'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { HStack } from '@astryxdesign/core/HStack'
 import { IconButton } from '@astryxdesign/core/IconButton'
@@ -13,6 +14,7 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { InlineShortcut } from '#/components/create-link/LinkPreviewPanel'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import type { LinkComment } from '#/data/demo/types'
+import type { ThreadComment } from '#/hooks/use-link-thread'
 import { MAX_COMMENT_LENGTH as COMMENT_MAX_LENGTH } from '@openlink/contracts'
 
 /** The signed-in person reading the thread. */
@@ -22,8 +24,11 @@ const ViewerContext = createContext<CommentViewer>({ id: '', name: '' })
 
 type LinkCommentsProps = {
   viewer: CommentViewer
-  comments: LinkComment[]
-  /** Throws with a user-facing message when the text is rejected. */
+  comments: ThreadComment[]
+  /** First load: shows the thread's shape instead of an empty conversation. */
+  isLoading?: boolean
+  loadError?: unknown
+  onRetry?: () => void
   /** Each rejects with an Error carrying a message to show. */
   onAdd: (body: string) => Promise<unknown>
   onEdit: (commentId: string, body: string) => Promise<unknown>
@@ -214,11 +219,14 @@ function useCanHover() {
 function CommentItem({
   comment,
   hasThreadLine,
+  isNew,
   onEdit,
   onDelete,
   onToggleReaction,
 }: {
-  comment: LinkComment
+  comment: ThreadComment
+  /** Arrived after the thread first showed: eases in instead of popping. */
+  isNew: boolean
   /** Draw the line down to the next comment's avatar. */
   hasThreadLine: boolean
   onEdit: (body: string) => void
@@ -238,6 +246,8 @@ function CommentItem({
   const viewer = useContext(ViewerContext)
   const isMine = comment.authorId === viewer.id
   const tooLong = draft.trim().length > COMMENT_MAX_LENGTH
+  const isPending = comment.isPending === true
+  const articleRef = useEnterAnimation<HTMLElement>(isNew)
 
   const cancel = () => {
     setDraft(comment.body)
@@ -254,10 +264,13 @@ function CommentItem({
   return (
     <HStack
       as="article"
+      ref={articleRef as never}
       gap={3}
       vAlign="stretch"
       width="100%"
       aria-label={`Comment by ${comment.authorName}`}
+      aria-busy={isPending || undefined}
+      style={{ opacity: isPending ? 0.6 : 1, transition: 'opacity 160ms ease' }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onFocus={() => setHasFocusWithin(true)}
@@ -297,15 +310,19 @@ function CommentItem({
             <Text weight="semibold">{comment.authorName}</Text>
             <Text type="supporting" color="secondary">
               {isMine ? 'You · ' : ''}
-              <time dateTime={comment.at} title={exactTime(comment.at)}>
-                {timeAgo(comment.at)}
-              </time>
+              {isPending ? (
+                'Posting…'
+              ) : (
+                <time dateTime={comment.at} title={exactTime(comment.at)}>
+                  {timeAgo(comment.at)}
+                </time>
+              )}
               {comment.editedAt ? (
                 <span title={`Edited ${exactTime(comment.editedAt)}`}> · edited</span>
               ) : null}
             </Text>
           </HStack>
-          {!isEditing ? (
+          {!isEditing && !isPending ? (
             <HStack
               gap={0.5}
               vAlign="center"
@@ -402,6 +419,42 @@ function CommentItem({
   )
 }
 
+/** Fades and lifts an element in once, on mount, when `enabled`. Skipped for reduced motion. */
+function useEnterAnimation<T extends HTMLElement>(enabled: boolean) {
+  const ref = useRef<T>(null)
+  useEffect(() => {
+    const element = ref.current
+    if (!enabled || !element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    element.animate(
+      [
+        { opacity: 0, transform: 'translateY(6px)' },
+        { opacity: 1, transform: 'translateY(0)' },
+      ],
+      { duration: 200, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+    )
+    // Only the first render of a comment animates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return ref
+}
+
+/** The thread's shape while it loads, so it never flashes as an empty conversation. */
+function ThreadSkeleton() {
+  return (
+    <VStack gap={6} hAlign="stretch" width="100%" aria-busy="true" aria-label="Loading comments">
+      {[0, 1].map((index) => (
+        <HStack key={index} gap={3} vAlign="start" width="100%">
+          <Skeleton index={index * 3} width={AVATAR_PX} height={AVATAR_PX} radius="rounded" />
+          <VStack gap={2} hAlign="stretch" style={{ flex: 1 }}>
+            <Skeleton index={index * 3 + 1} width={160} height={14} />
+            <Skeleton index={index * 3 + 2} width="70%" height={14} />
+          </VStack>
+        </HStack>
+      ))}
+    </VStack>
+  )
+}
+
 /**
  * Team notes on a link — why it exists, where it's shared, when it can go.
  * A conversation thread (oldest first) with the composer at the end.
@@ -409,6 +462,9 @@ function CommentItem({
 export default function LinkComments({
   viewer,
   comments,
+  isLoading = false,
+  loadError,
+  onRetry,
   onAdd,
   onEdit,
   onDelete,
@@ -417,7 +473,6 @@ export default function LinkComments({
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [threadError, setThreadError] = useState<string | null>(null)
-  const [isPosting, setIsPosting] = useState(false)
   const [deleting, setDeleting] = useState<LinkComment | null>(null)
   /** Runs a thread action, showing its failure above the thread. */
   const run = (action: Promise<unknown>) => {
@@ -427,19 +482,22 @@ export default function LinkComments({
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const tooLong = draft.trim().length > COMMENT_MAX_LENGTH
 
-  const submit = async (event: FormEvent) => {
+  // Comments present when the thread first showed don't animate; later ones ease in.
+  const seenIds = useRef<Set<string> | null>(null)
+  if (seenIds.current === null && !isLoading) seenIds.current = new Set(comments.map((c) => c.id))
+  const isNew = (id: string) => seenIds.current != null && !seenIds.current.has(id)
+
+  const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (!draft.trim() || tooLong || isPosting) return
-    setIsPosting(true)
-    try {
-      await onAdd(draft.trim())
-      setDraft('')
-      setError(null)
-    } catch (e) {
+    const text = draft.trim()
+    if (!text || tooLong) return
+    // The comment shows in the thread at once; the draft comes back if posting fails.
+    setDraft('')
+    setError(null)
+    onAdd(text).catch((e: unknown) => {
+      setDraft((current) => current || text)
       setError(e instanceof Error ? e.message : 'Could not post the comment.')
-    } finally {
-      setIsPosting(false)
-    }
+    })
   }
 
   const applyPrompt = (text: string) => {
@@ -457,7 +515,15 @@ export default function LinkComments({
     <ViewerContext.Provider value={viewer}>
     <VStack gap={8} hAlign="stretch" width="100%" style={{ maxWidth: 760 }}>
       {threadError ? <Banner status="error" title={threadError} /> : null}
-      {comments.length === 0 ? (
+      {loadError && comments.length === 0 ? (
+        <Banner
+          status="error"
+          title="The discussion could not be loaded."
+          endContent={onRetry ? <Button variant="secondary" size="sm" label="Try again" onClick={onRetry} /> : undefined}
+        />
+      ) : isLoading ? (
+        <ThreadSkeleton />
+      ) : comments.length === 0 ? (
         <VStack gap={3} hAlign="start" width="100%" paddingBlock={4}>
           <ConversationMark />
           <VStack gap={1} hAlign="start">
@@ -482,8 +548,9 @@ export default function LinkComments({
           <VStack gap={0} hAlign="stretch" width="100%">
             {comments.map((comment, index) => (
               <CommentItem
-                key={comment.id}
+                key={comment.clientKey ?? comment.id}
                 comment={comment}
+                isNew={isNew(comment.clientKey ?? comment.id)}
                 hasThreadLine={index < comments.length - 1}
                 onEdit={(body) => run(onEdit(comment.id, body.trim()))}
                 onDelete={() => setDeleting(comment)}
@@ -554,7 +621,6 @@ export default function LinkComments({
               aria-keyshortcuts="Meta+Enter Control+Enter"
               endContent={<InlineShortcut />}
               isDisabled={!draft.trim() || tooLong}
-              isLoading={isPosting}
             />
           </HStack>
         </VStack>

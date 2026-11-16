@@ -1,3 +1,6 @@
+import { Banner } from '@astryxdesign/core/Banner'
+import { Button } from '@astryxdesign/core/Button'
+import { Skeleton } from '@astryxdesign/core/Skeleton'
 import { useState } from 'react'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -172,8 +175,38 @@ function summaryLine(events: LinkHistoryEvent[]): string {
 }
 
 /** Who changed what and when, grouped by day, newest first, with type filters. */
-export default function LinkHistoryTimeline({ events }: { events: LinkHistoryEvent[] }) {
+type LinkHistoryTimelineProps = {
+  events: LinkHistoryEvent[]
+  isLoading?: boolean
+  loadError?: unknown
+  onRetry?: () => void
+}
+
+export default function LinkHistoryTimeline({ events, isLoading = false, loadError, onRetry }: LinkHistoryTimelineProps) {
   const [filter, setFilter] = useState<Filter>('all')
+
+  if (loadError && events.length === 0) {
+    return (
+      <Banner
+        status="error"
+        title="The history could not be loaded."
+        endContent={onRetry ? <Button variant="secondary" size="sm" label="Try again" onClick={onRetry} /> : undefined}
+      />
+    )
+  }
+  if (isLoading) {
+    return (
+      <VStack gap={5} hAlign="stretch" width="100%" style={{ maxWidth: 760 }} aria-busy="true" aria-label="Loading history">
+        <Skeleton index={0} width={240} height={14} />
+        {[1, 2, 3].map((index) => (
+          <VStack key={index} gap={2} hAlign="stretch">
+            <Skeleton index={index * 2} width={200} height={14} />
+            <Skeleton index={index * 2 + 1} width={120} height={12} />
+          </VStack>
+        ))}
+      </VStack>
+    )
+  }
 
   if (events.length === 0) {
     return (
