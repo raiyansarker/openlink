@@ -24,3 +24,13 @@ export function useAnalyticsSummary(organizationId: string) {
     staleTime: 60_000,
   })
 }
+
+/** The latest clicks, refreshed every 15 seconds while the page is open. */
+export function useRecentClicks(organizationId: string, linkId: string | null) {
+  return useQuery({
+    queryKey: QueryKeys.recentClicks(organizationId, linkId),
+    queryFn: () => api.recent(organizationId, linkId),
+    refetchInterval: 15_000,
+    placeholderData: keepPreviousData,
+  })
+}

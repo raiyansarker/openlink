@@ -40,6 +40,8 @@ export default function LinkAnalyticsSection({ linkId }: LinkAnalyticsSectionPro
       </VStack>
 
       <AnalyticsReportView
+        organizationId={activeOrg.id}
+        linkId={linkId}
         report={report}
         isLoading={query.isPending}
         error={query.error}

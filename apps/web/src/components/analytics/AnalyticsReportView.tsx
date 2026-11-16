@@ -12,6 +12,8 @@ import DestinationsCard from '#/components/analytics/DestinationsCard'
 import HourHeatmap from '#/components/analytics/HourHeatmap'
 import LocationsCard from '#/components/analytics/LocationsCard'
 import MetricTiles from '#/components/analytics/MetricTiles'
+import RecentClicksCard from '#/components/analytics/RecentClicksCard'
+import RhythmCard from '#/components/analytics/RhythmCard'
 import SourcesCard from '#/components/analytics/SourcesCard'
 import TechnologyCard from '#/components/analytics/TechnologyCard'
 import TopLinksCard from '#/components/analytics/TopLinksCard'
@@ -21,6 +23,9 @@ import { AnalyticsReportMapper, type AnalyticsReport } from '#/lib/analytics/rep
 import { ApiError } from '#/lib/api/error'
 
 type AnalyticsReportViewProps = {
+  organizationId: string
+  /** One link, or null for the whole workspace. */
+  linkId: string | null
   report: AnalyticsReport | undefined
   isLoading: boolean
   error: unknown
@@ -35,6 +40,8 @@ type AnalyticsReportViewProps = {
 
 /** Every analytics panel for one report, with loading, error and no-clicks states. */
 export default function AnalyticsReportView({
+  organizationId,
+  linkId,
   report,
   isLoading,
   error,
@@ -102,12 +109,17 @@ export default function AnalyticsReportView({
 
       <LocationsCard report={report} isComparing={isComparing} />
 
-      <AnalyticsCard
-        title="When people click"
-        description={`${report.heatmapWindowLabel} · by weekday and hour, in your timezone`}
-      >
-        <HourHeatmap report={report} />
-      </AnalyticsCard>
+      <Grid columns={{ minWidth: 360, max: 2 }} gap={5} width="100%">
+        <RhythmCard report={report} />
+        <AnalyticsCard
+          title="When people click"
+          description={`${report.heatmapWindowLabel} · by weekday and hour, in your timezone`}
+        >
+          <HourHeatmap report={report} />
+        </AnalyticsCard>
+      </Grid>
+
+      <RecentClicksCard organizationId={organizationId} linkId={linkId} />
     </VStack>
   )
 }

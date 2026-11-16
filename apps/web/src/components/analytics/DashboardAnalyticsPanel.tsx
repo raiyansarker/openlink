@@ -68,6 +68,8 @@ export default function DashboardAnalyticsPanel() {
       />
 
       <AnalyticsReportView
+        organizationId={activeOrg.id}
+        linkId={linkId}
         report={report}
         isLoading={query.isPending}
         error={query.error}
