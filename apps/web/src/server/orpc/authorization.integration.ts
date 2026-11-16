@@ -135,6 +135,18 @@ mock.module('#/server/devices/sessions', () => ({
   DeviceSessions: { list: listDeviceSessions, revoke: revokeDeviceSession, revokeOthers: revokeOtherDeviceSessions },
 }))
 mock.module('#/server/health/checks', () => ({ runHealthChecks }))
+const emptyReport = {
+  range: '30d', bucket: 'day', windowStart: now.toISOString(), windowEnd: now.toISOString(),
+  totals: { clicks: 0, unique: 0, qr: 0 }, previousTotals: { clicks: 0, unique: 0, qr: 0 },
+  traffic: [], totalsSeries: [], previousSeries: [], heatmap: [], heatmapDays: 30,
+  links: [], destinations: [], channels: [], referrers: [], countries: [], cities: [], devices: [], browsers: [], operatingSystems: [],
+}
+const buildReport = mock((_scope: object, _range: string, _tz: number) => Effect.succeed(emptyReport))
+const buildSummary = mock((_organizationId: string, _tz: number) => Effect.succeed({ clicksToday: 0, clicksThisWeek: 0, uniqueVisitorsWeek: 0 }))
+mock.module('#/server/analytics/report', () => ({
+  AnalyticsReports: { build: buildReport },
+  AnalyticsSummaries: { build: buildSummary },
+}))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
 const { handleOpenApiRequest } = await import('./openapi-handler')
@@ -155,6 +167,7 @@ const spies = [
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
   listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
+  buildReport, buildSummary,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -1127,3 +1140,26 @@ for (const failure of typedFailures) {
     expectNoSideEffects([failure.workflow])
   })
 }
+
+describe('analytics', () => {
+  test('every member can read workspace and link analytics, in their time zone', async () => {
+    role = 'viewer'
+    expect((await request('GET', `${orgPath}/analytics?range=7d&tzOffset=360`)).status).toBe(200)
+    expect(buildReport).toHaveBeenLastCalledWith({ organizationId: org.id }, '7d', 360)
+    expect((await request('GET', `${orgPath}/analytics?linkId=${linkRow.id}`)).status).toBe(200)
+    expect(buildReport).toHaveBeenLastCalledWith({ organizationId: org.id, linkId: linkRow.id }, '30d', 0)
+    expect((await request('GET', `${orgPath}/analytics/summary?tzOffset=-300`)).status).toBe(200)
+    expect(buildSummary).toHaveBeenLastCalledWith(org.id, -300)
+  })
+
+  test('non-members, foreign links and bad ranges are refused', async () => {
+    role = null
+    expect((await request('GET', `${orgPath}/analytics`)).status).toBe(403)
+    role = 'viewer'
+    getLinkInOrganization.mockImplementationOnce(() => Effect.succeed(null))
+    expect((await request('GET', `${orgPath}/analytics?linkId=elsewhere`)).status).toBe(404)
+    expect((await request('GET', `${orgPath}/analytics?range=1y`)).status).toBe(400)
+    expect((await request('GET', `${orgPath}/analytics?tzOffset=9999`)).status).toBe(400)
+    expect(buildReport).not.toHaveBeenCalled()
+  })
+})

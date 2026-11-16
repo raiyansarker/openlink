@@ -1,3 +1,4 @@
+import { AnalyticsReports, AnalyticsSummaries } from '#/server/analytics/report'
 import { contract } from '@openlink/contracts'
 import '@orpc/effect/extensions/effect'
 import { ArkTypeToJsonSchemaConverter } from '@orpc/arktype'
@@ -363,6 +364,22 @@ export const router = os.router({
       })
       const includeIp = isAdmin(membership.role)
       return { items: items.map((row) => toActivityDto(row, { includeIp })), ...(nextCursor ? { nextCursor } : {}) }
+    }),
+  },
+
+  analytics: {
+    getAnalyticsReport: os.analytics.getAnalyticsReport.effect(function* ({ input }) {
+      const organizationId = input.params.organizationId
+      yield* requireOrgMemberEffect(organizationId)
+      const { linkId, range = '30d', tzOffset = 0 } = input.query
+      // A link outside this workspace must not reveal whether it exists.
+      if (linkId && !(yield* getLinkInOrganization(organizationId, linkId))) return yield* Effect.fail(notFound('Link not found'))
+      return yield* AnalyticsReports.build({ organizationId, ...(linkId ? { linkId } : {}) }, range, tzOffset)
+    }),
+
+    getAnalyticsSummary: os.analytics.getAnalyticsSummary.effect(function* ({ input }) {
+      yield* requireOrgMemberEffect(input.params.organizationId)
+      return yield* AnalyticsSummaries.build(input.params.organizationId, input.query.tzOffset ?? 0)
     }),
   },
 
