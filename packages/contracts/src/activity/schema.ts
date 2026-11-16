@@ -24,6 +24,8 @@ export const ActivityEvent = type({
     type: "'member' | 'api_key' | 'system'",
     label: 'string',
     'userId?': 'string',
+    /** The member's profile picture, when they have one. */
+    'imageUrl?': 'string',
   }),
   target: type({
     type: 'string',

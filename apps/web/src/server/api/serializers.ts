@@ -182,7 +182,10 @@ function parseChanges(json: string | null): Change[] | undefined {
 }
 
 /** `includeIp` is for administrators only. */
-export function toActivityDto(row: typeof activityEvent.$inferSelect, options: { includeIp: boolean }) {
+export function toActivityDto(
+  row: typeof activityEvent.$inferSelect & { actorImage?: string | null },
+  options: { includeIp: boolean },
+) {
   const changes = parseChanges(row.detailsJson)
   return {
     id: row.id,
@@ -195,6 +198,7 @@ export function toActivityDto(row: typeof activityEvent.$inferSelect, options: {
       type: row.actorType,
       label: row.actorLabel,
       ...(row.actorUserId ? { userId: row.actorUserId } : {}),
+      ...(row.actorImage ? { imageUrl: row.actorImage } : {}),
     },
     target: { type: row.targetType, ...(row.targetId ? { id: row.targetId } : {}), label: row.targetLabel },
     ...(changes ? { changes } : {}),

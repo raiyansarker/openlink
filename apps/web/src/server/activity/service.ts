@@ -1,6 +1,6 @@
 import { EventBus } from '#/server/events/bus'
-import { activityEvent } from '@openlink/db/schema'
-import { and, desc, eq, inArray, lt, or, type SQL } from 'drizzle-orm'
+import { activityEvent, user } from '@openlink/db/schema'
+import { and, desc, eq, getTableColumns, inArray, lt, or, type SQL } from 'drizzle-orm'
 import { Effect } from 'effect'
 
 import { operation } from '#/server/effect/operations'
@@ -123,8 +123,10 @@ export function listActivity(input: ListInput) {
     const cursor = decodeCursor(input.cursor)
     const rows = yield* operation('activity.list', () =>
       db
-        .select()
+        // The actor's current profile picture, so the feed shows faces, not just initials.
+        .select({ ...getTableColumns(activityEvent), actorImage: user.image })
         .from(activityEvent)
+        .leftJoin(user, eq(user.id, activityEvent.actorUserId))
         .where(
           and(
             eq(activityEvent.organizationId, input.organizationId),
