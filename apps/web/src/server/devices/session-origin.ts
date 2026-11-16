@@ -35,6 +35,7 @@ export class SessionOriginReader {
   private static method(path: string | undefined, providerId: unknown): string | null {
     if (!path) return null
     if (path.includes('/email')) return 'email'
+    if (path.includes('/passkey')) return 'passkey'
     if (path.startsWith('/callback')) {
       const id = typeof providerId === 'string' ? providerId : path.split('/')[2]
       return id && SessionOriginReader.METHODS.has(id) ? id : null

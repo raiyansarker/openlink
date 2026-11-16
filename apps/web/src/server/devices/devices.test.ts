@@ -26,6 +26,7 @@ describe('SessionOriginReader', () => {
 
   test('recognises email sign-in and the provider from a concrete callback path', () => {
     expect(SessionOriginReader.read({ path: '/sign-in/email' }).signInMethod).toBe('email')
+    expect(SessionOriginReader.read({ path: '/sign-in/passkey' }).signInMethod).toBe('passkey')
     expect(SessionOriginReader.read({ path: '/callback/google' }).signInMethod).toBe('google')
     expect(SessionOriginReader.read({ path: '/callback/unknown' }).signInMethod).toBeNull()
     expect(SessionOriginReader.read({}).signInMethod).toBeNull()
