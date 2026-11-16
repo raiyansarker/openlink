@@ -113,6 +113,12 @@ mock.module('#/server/auth/session', () => ({ requireSession }))
 mock.module('#/server/auth/service', () => ({ signIn, signUp, signOut }))
 mock.module('#/server/api/access', () => ({ requireOrgMembership, getDomainInOrganization }))
 mock.module('#/server/domain/service', () => ({ listDomainsForOrganization, registerCustomDomain, removeCustomDomain, refreshCustomDomain }))
+const domainLinkCounts = mock((_organizationId: string) => Effect.succeed(new Map<string, number>()))
+const domainLinkCount = mock((_organizationId: string, _domainId: string) => Effect.succeed(0))
+const moveDomainLinks = mock((_input: unknown) => Effect.succeed(3))
+mock.module('#/server/domain/domain-links', () => ({
+  DomainLinks: { counts: domainLinkCounts, countFor: domainLinkCount, moveAll: moveDomainLinks },
+}))
 mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, getLinkInOrganization, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
 mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
@@ -170,14 +176,14 @@ const sideEffects = [
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
   moveLinks, addTagsToLinks, deleteLinks,
   createApiKey, updateApiKeyRole, revokeApiKey, revokeDeviceSession, revokeOtherDeviceSessions,
-  acceptInviteById, declineInviteForEmail,
+  acceptInviteById, declineInviteForEmail, moveDomainLinks,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
   listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, summarizeTarget, audit, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
-  buildReport, buildSummary, frameable, listRecent, listInvitesForEmail,
+  buildReport, buildSummary, frameable, listRecent, listInvitesForEmail, domainLinkCounts, domainLinkCount,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -1135,6 +1141,57 @@ describe('analytics', () => {
     expect((await request('GET', `${orgPath}/analytics?range=1y`)).status).toBe(400)
     expect((await request('GET', `${orgPath}/analytics?tzOffset=9999`)).status).toBe(400)
     expect(buildReport).not.toHaveBeenCalled()
+  })
+})
+
+describe('removing a domain with links', () => {
+  test('lists and gets domains with their link counts', async () => {
+    role = 'viewer'
+    domainLinkCounts.mockImplementationOnce(() => Effect.succeed(new Map([[domain.id, 7]])))
+    const list = (await (await request('GET', domainsPath)).json()) as { items: { id: string; linkCount: number }[] }
+    expect(list.items.find((d) => d.id === domain.id)?.linkCount).toBe(7)
+  })
+
+  test('without moveLinksTo the links go with the domain, and the log says so', async () => {
+    role = 'admin'
+    domainLinkCount.mockImplementationOnce(() => Effect.succeed(4))
+    expect((await request('DELETE', domainPath)).status).toBe(204)
+    expect(moveDomainLinks).not.toHaveBeenCalled()
+    expect(removeCustomDomain).toHaveBeenCalledWith(domain.id, org.id)
+    expect(audit).toHaveBeenCalledWith(cookieActor, expect.objectContaining({
+      action: 'domain.removed', changes: [{ label: 'Links', from: '4', to: 'deleted' }],
+    }))
+  })
+
+  test('moveLinksTo=default moves them to the app host before removing', async () => {
+    role = 'admin'
+    domainLinkCount.mockImplementationOnce(() => Effect.succeed(3))
+    expect((await request('DELETE', `${domainPath}?moveLinksTo=default`)).status).toBe(204)
+    expect(moveDomainLinks).toHaveBeenCalledWith({ organizationId: org.id, fromDomainId: domain.id, to: null })
+    expect(removeCustomDomain).toHaveBeenCalledTimes(1)
+    expect(audit).toHaveBeenCalledWith(cookieActor, expect.objectContaining({
+      changes: [{ label: 'Links', from: '3', to: 'moved to the default domain' }],
+    }))
+  })
+
+  test('a failed move removes nothing: taken back-halves are 409, a bad target is 400', async () => {
+    role = 'admin'
+    domainLinkCount.mockImplementation(() => Effect.succeed(3))
+    moveDomainLinks.mockImplementationOnce(() => Effect.fail({ _tag: 'DomainLinksConflict', slugs: ['launch', 'docs'], total: 2 }) as never)
+    const clash = await request('DELETE', `${domainPath}?moveLinksTo=default`)
+    expect(clash.status).toBe(409)
+    expect(await clash.json()).toMatchObject({ message: '2 back-halves are already taken there: launch, docs. Rename them or pick another domain.' })
+    moveDomainLinks.mockImplementationOnce(() => Effect.fail({ _tag: 'DomainMoveTargetInvalid', message: 'Links can only move to a domain that is set up and active.' }) as never)
+    expect((await request('DELETE', `${domainPath}?moveLinksTo=other-domain`)).status).toBe(400)
+    domainLinkCount.mockImplementation(() => Effect.succeed(0))
+    expect(removeCustomDomain).not.toHaveBeenCalled()
+    expect(audit).not.toHaveBeenCalled()
+  })
+
+  test('members cannot remove domains or move their links', async () => {
+    role = 'member'
+    expect((await request('DELETE', `${domainPath}?moveLinksTo=default`)).status).toBe(403)
+    expect(moveDomainLinks).not.toHaveBeenCalled()
   })
 })
 
