@@ -113,6 +113,23 @@ describe('domain service effects', () => {
     })
   }
 
+  test('a domain the provider reports active is stored active, with its activation time', async () => {
+    const f = fixture({ status: 'active' })
+    const row = await Effect.runPromise(f.provide(registerCustomDomain(input)))
+    expect(row).toMatchObject({ readiness: 'active' })
+    expect(f.values().activeAt).toBeInstanceOf(Date)
+  })
+
+  test('local (memory) domains are confirmed on refresh without asking the provider', async () => {
+    const f = fixture({ status: 'pending_dns' })
+    Object.assign(f.row, { provider: 'memory', dnsRecordsJson: JSON.stringify([{ type: 'CNAME', host: 'links', status: 'required' }]) })
+    const result = await Effect.runPromise(f.provide(refreshCustomDomain('domain-1')))
+    expect(f.calls).toEqual(['select', 'update'])
+    expect(result).toMatchObject({ readiness: 'active' })
+    expect(f.values().activeAt).toBeInstanceOf(Date)
+    expect(JSON.parse(f.values().dnsRecordsJson as string)).toEqual([{ type: 'CNAME', host: 'links', status: 'verified' }])
+  })
+
   test('missing rows short-circuit without needing a provider', async () => {
     const f = fixture({ missing: true })
     expect(await Effect.runPromise(f.provide(refreshCustomDomain('missing')))).toBeNull()
