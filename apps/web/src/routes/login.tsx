@@ -1,28 +1,26 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import LoginPage from '#/components/login/LoginPage'
-import { AuthSession } from '#/lib/auth/client'
+import { createFileRoute } from '@tanstack/react-router'
+import SignInPage from '#/components/auth/SignInPage'
+import { AuthPages } from '#/lib/auth/auth-pages'
 import { LoginRedirect } from '#/lib/auth/redirect'
 import { createPageHead } from '#/lib/page-title'
 
-type LoginSearch = {
-  /** Where to go after signing in; sanitised before use. */
-  redirect?: string
-  /** Error code returned by the OAuth callback. */
-  error?: string
-}
-
 export const Route = createFileRoute('/login')({
   head: createPageHead('Sign In'),
-  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
-    redirect: typeof search.redirect === 'string' && search.redirect ? search.redirect : undefined,
-    error: typeof search.error === 'string' && search.error ? search.error : undefined,
-  }),
-  beforeLoad: async ({ search }) => {
-    const state = await AuthSession.state()
-    if (state.user) {
-      throw redirect({ href: LoginRedirect.sanitize(search.redirect), replace: true })
-    }
-    return { providers: state.providers, emailPassword: state.emailPassword }
-  },
-  component: LoginPage,
+  validateSearch: AuthPages.validateSearch,
+  beforeLoad: AuthPages.beforeLoad,
+  component: LoginRoute,
 })
+
+function LoginRoute() {
+  const search = Route.useSearch()
+  const { providers, emailPassword } = Route.useRouteContext()
+  return (
+    <SignInPage
+      destination={LoginRedirect.sanitize(search.redirect)}
+      {...(search.redirect ? { redirect: search.redirect } : {})}
+      {...(search.error ? { oauthError: search.error } : {})}
+      providers={providers}
+      emailPassword={emailPassword}
+    />
+  )
+}
