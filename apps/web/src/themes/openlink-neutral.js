@@ -446,7 +446,6 @@ export const openlinkNeutralTheme = {
     },
     "text-input": {
       "base": {
-        "borderRadius": "var(--radius-element)",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -460,7 +459,6 @@ export const openlinkNeutralTheme = {
     },
     "text-area": {
       "base": {
-        "borderRadius": "var(--radius-element)",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -474,7 +472,6 @@ export const openlinkNeutralTheme = {
     },
     "number-input": {
       "base": {
-        "borderRadius": "var(--radius-element)",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -488,7 +485,6 @@ export const openlinkNeutralTheme = {
     },
     "selector": {
       "variant:input": {
-        "borderRadius": "var(--radius-element)",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -502,7 +498,6 @@ export const openlinkNeutralTheme = {
     },
     "tokenizer": {
       "base": {
-        "borderRadius": "var(--radius-element)",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -516,7 +511,6 @@ export const openlinkNeutralTheme = {
     },
     "date-time-input": {
       "base": {
-        "borderRadius": "var(--radius-element)",
         "boxShadow": "none",
         ":hover": {
           "boxShadow": "none"
@@ -531,6 +525,12 @@ export const openlinkNeutralTheme = {
     "input-group": {
       "base": {
         "borderRadius": "var(--radius-element)"
+      }
+    },
+    "input-group-text": {
+      "base": {
+        "color": "var(--color-text-secondary)",
+        "backgroundColor": "var(--color-background-muted)"
       }
     },
     "field-label": {

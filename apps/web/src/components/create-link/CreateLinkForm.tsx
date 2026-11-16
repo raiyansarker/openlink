@@ -579,7 +579,6 @@ export default function CreateLinkForm({
                 <InputGroup
                   label="Short link"
                   isLabelHidden
-                  className="ol-connected-group"
                   status={statusFor('slug')}
                 >
                   <Selector

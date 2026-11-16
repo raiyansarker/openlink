@@ -147,29 +147,6 @@ elements-api {
   display: none;
 }
 
-/*
- * Connected input groups — the theme gives every input a 5px radius on all
- * corners, which breaks InputGroup's "one shape" look. Square the inner
- * edges and round only the outer ends, so the group reads as one field.
- */
-.ol-connected-group > :is(.astryx-selector, .astryx-text-input, .astryx-input-group-text, .astryx-button) {
-  border-radius: 0;
-}
-.ol-connected-group > :is(.astryx-selector, .astryx-text-input, .astryx-input-group-text):first-child {
-  border-start-start-radius: 5px;
-  border-end-start-radius: 5px;
-}
-.ol-connected-group > .astryx-button:last-of-type {
-  border: 1px solid var(--color-border-emphasized);
-  border-inline-start: 0;
-  border-start-end-radius: 5px;
-  border-end-end-radius: 5px;
-}
-.ol-connected-group > .astryx-input-group-text {
-  color: var(--color-text-secondary);
-  background: var(--color-background-muted);
-}
-
 /* Create link — split view (form | preview); stacks on narrow screens. */
 @media (max-width: 960px) {
   .ol-create-split {

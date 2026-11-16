@@ -55,8 +55,7 @@ export default function PasswordField({
         autoComplete={autoComplete}
         htmlName={htmlName}
         isRequired={isRequired}
-        // Join the attached button: the theme rounds every corner of a field.
-        controlStyle={{ flex: 1, minWidth: 0, borderStartEndRadius: 0, borderEndEndRadius: 0 }}
+        controlStyle={{ flex: 1, minWidth: 0 }}
       />
       <IconButton
         label={toggleLabel}
