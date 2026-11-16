@@ -18,6 +18,7 @@ import {
   toMembershipDto,
   toOrganizationDto,
   toPendingInviteDto,
+  toMyInviteDto,
   toUserDto,
   toWorkspaceMemberDto,
 } from '#/server/api/serializers'
@@ -80,6 +81,9 @@ import {
 } from '#/server/org/members'
 import {
   acceptMemberInvite,
+  acceptInviteById,
+  declineInviteForEmail,
+  listInvitesForEmail,
   createMemberInvite,
   createOrganizationWithBootstrapInvite,
   getOrganizationById,
@@ -326,6 +330,45 @@ export const router = os.router({
         currentSessionId: session.session.session.id,
       })
       return { revoked }
+    }),
+
+    // Invites addressed to you. Matched on your signed-in email, so only you can see or answer them.
+    listMyInvites: os.account.listMyInvites.effect(function* () {
+      const session = yield* requireAuthSession
+      const rows = yield* listInvitesForEmail(session.session.user.email)
+      return { items: rows.map(toMyInviteDto) }
+    }),
+
+    acceptMyInvite: os.account.acceptMyInvite.effect(function* ({ input, errors }) {
+      const session = yield* requireAuthSession
+      const { org, member } = yield* acceptInviteById({
+        inviteId: input.params.inviteId,
+        userId: session.session.user.id,
+        userEmail: session.session.user.email,
+      }).pipe(Effect.catchTags({
+        // Not yours, gone or expired: all look the same, so ids can't be probed.
+        InviteEmailMismatch: () => Effect.fail(errors.NOT_FOUND({ message: 'This invite is no longer available' })),
+        InvalidInvite: () => Effect.fail(errors.NOT_FOUND({ message: 'This invite is no longer available' })),
+      }))
+      yield* audit(session, {
+        organizationId: org.id,
+        action: 'member.joined',
+        target: { type: 'member', id: session.session.user.id, label: session.session.user.name || session.session.user.email },
+      })
+      return toMembershipDto(org, member)
+    }),
+
+    declineMyInvite: os.account.declineMyInvite.effect(function* ({ input, errors }) {
+      const session = yield* requireAuthSession
+      const declined = yield* declineInviteForEmail({ inviteId: input.params.inviteId, userEmail: session.session.user.email }).pipe(
+        Effect.catchTags({ InvalidInvite: () => Effect.fail(errors.NOT_FOUND({ message: 'This invite is no longer available' })) }),
+      )
+      yield* audit(session, {
+        organizationId: declined.organizationId,
+        action: 'invite.declined',
+        target: { type: 'invite', id: declined.id, label: declined.email },
+      })
+      return {}
     }),
   },
 

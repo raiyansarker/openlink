@@ -1,9 +1,10 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull } from 'drizzle-orm'
 import { Effect } from 'effect'
 import {
   organization,
   organizationInvite,
   organizationMember,
+  user,
 } from '@openlink/db/schema'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
@@ -166,21 +167,113 @@ export function acceptMemberInvite(input: {
 }) {
   return Effect.gen(function* () {
     const db = yield* Db
-    const tokenHash = hashInviteToken(input.token)
-    const now = new Date()
     const [invite] = yield* operation('org.findMemberInvite', () =>
       db
         .select()
         .from(organizationInvite)
         .where(
           and(
-            eq(organizationInvite.tokenHash, tokenHash),
+            eq(organizationInvite.tokenHash, hashInviteToken(input.token)),
             eq(organizationInvite.kind, 'member'),
             isNull(organizationInvite.acceptedAt),
           ),
         )
         .limit(1),
     )
+    return yield* joinFromInvite(invite, input)
+  })
+}
+
+/** Accepts an invite from the invitee's inbox, where they see its id and not its token. */
+export function acceptInviteById(input: { inviteId: string; userId: string; userEmail: string }) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const [invite] = yield* operation('org.findMemberInviteById', () =>
+      db
+        .select()
+        .from(organizationInvite)
+        .where(
+          and(
+            eq(organizationInvite.id, input.inviteId),
+            eq(organizationInvite.kind, 'member'),
+            isNull(organizationInvite.acceptedAt),
+          ),
+        )
+        .limit(1),
+    )
+    return yield* joinFromInvite(invite, input)
+  })
+}
+
+/** Pending, unexpired member invites sent to `email`, with who sent them and to which workspace. */
+export function listInvitesForEmail(email: string) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const now = new Date()
+    return yield* operation('org.listInvitesForEmail', () =>
+      db
+        .select({
+          id: organizationInvite.id,
+          role: organizationInvite.role,
+          expiresAt: organizationInvite.expiresAt,
+          createdAt: organizationInvite.createdAt,
+          organizationId: organization.id,
+          organizationName: organization.name,
+          organizationSlug: organization.slug,
+          organizationLogoKey: organization.logoKey,
+          invitedByName: user.name,
+          invitedByImage: user.image,
+        })
+        .from(organizationInvite)
+        .innerJoin(organization, eq(organization.id, organizationInvite.organizationId))
+        .leftJoin(user, eq(user.id, organizationInvite.createdByUserId))
+        .where(
+          and(
+            eq(organizationInvite.email, email.trim().toLowerCase()),
+            eq(organizationInvite.kind, 'member'),
+            isNull(organizationInvite.acceptedAt),
+            gt(organizationInvite.expiresAt, now),
+          ),
+        )
+        .orderBy(desc(organizationInvite.createdAt)),
+    )
+  })
+}
+
+/** The invitee turns an invite down: it is removed, as if revoked. */
+export function declineInviteForEmail(input: { inviteId: string; userEmail: string }) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const [invite] = yield* operation('org.findInviteToDecline', () =>
+      db
+        .select({ id: organizationInvite.id, email: organizationInvite.email, organizationId: organizationInvite.organizationId })
+        .from(organizationInvite)
+        .where(
+          and(
+            eq(organizationInvite.id, input.inviteId),
+            eq(organizationInvite.kind, 'member'),
+            isNull(organizationInvite.acceptedAt),
+          ),
+        )
+        .limit(1),
+    )
+    // Someone else's invite looks the same as a missing one.
+    if (!invite || !invite.organizationId || !inviteEmailMatches(invite.email, input.userEmail)) {
+      return yield* Effect.fail(new InvalidInvite())
+    }
+    yield* operation('org.declineInvite', () => db.delete(organizationInvite).where(eq(organizationInvite.id, invite.id)))
+    return { id: invite.id, email: invite.email, organizationId: invite.organizationId }
+  })
+}
+
+/** The shared part of accepting: checks the invite, then adds the member (once) and marks it used. */
+function joinFromInvite(
+  invite: typeof organizationInvite.$inferSelect | undefined,
+  input: { userId: string; userEmail: string },
+) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const now = new Date()
     if (!invite || !invite.organizationId || invite.expiresAt <= now) {
       return yield* Effect.fail(new InvalidInvite())
     }

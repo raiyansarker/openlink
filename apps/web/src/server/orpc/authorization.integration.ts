@@ -89,6 +89,16 @@ const updateLinkRecord = mock((existing: typeof linkRow, input: { title?: string
 }))
 const deleteLinkRecord = mock((_linkId: string) => Effect.void)
 const acceptMemberInvite = mock((_input: unknown) => Effect.die(new Error('Unexpected invite acceptance')))
+const myInviteRow = {
+  id: 'invite-9', role: 'admin' as const, expiresAt: now, createdAt: now,
+  organizationId: 'org-other', organizationName: 'Other Co', organizationSlug: 'other', organizationLogoKey: null,
+  invitedByName: 'Grace', invitedByImage: 'https://example.com/grace.png',
+}
+const listInvitesForEmail = mock((_email: string) => Effect.succeed([myInviteRow]))
+const acceptInviteById = mock((_input: unknown) =>
+  Effect.succeed({ org: { ...org, id: 'org-other', name: 'Other Co', slug: 'other' }, member: { id: 'm-9', organizationId: 'org-other', userId: 'user-1', role: 'admin' as const, joinedAt: now } }),
+)
+const declineInviteForEmail = mock((_input: unknown) => Effect.succeed({ id: 'invite-9', email: 'user@example.com', organizationId: 'org-other' }))
 const createOrganizationWithBootstrapInvite = mock((_input: unknown) => Effect.die(new Error('Unexpected organization creation')))
 const signIn = mock((_input: unknown) => Effect.die(new Error('Unexpected sign in')))
 const signUp = mock((_input: unknown) => Effect.die(new Error('Unexpected sign up')))
@@ -107,6 +117,7 @@ mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain
 mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
   acceptMemberInvite, createOrganizationWithBootstrapInvite,
+  listInvitesForEmail, acceptInviteById, declineInviteForEmail,
 }))
 mock.module('#/server/org/members', () => ({
   listMembers, updateMemberRole, removeMember, transferOwnership, updateOrganization,
@@ -159,13 +170,14 @@ const sideEffects = [
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
   moveLinks, addTagsToLinks, deleteLinks,
   createApiKey, updateApiKeyRole, revokeApiKey, revokeDeviceSession, revokeOtherDeviceSessions,
+  acceptInviteById, declineInviteForEmail,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
   listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, summarizeTarget, audit, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
-  buildReport, buildSummary, frameable, listRecent,
+  buildReport, buildSummary, frameable, listRecent, listInvitesForEmail,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -872,6 +884,57 @@ describe('frontend ApiClient against the real server', () => {
       body: { email: 'a@example.com', role: 'owner' as never },
     }))
     expect(error.status).toBe(400)
+  })
+})
+
+describe('your invites (notifications)', () => {
+  test('lists invites sent to your signed-in email, with workspace and sender', async () => {
+    role = null
+    const response = await request('GET', '/me/invites')
+    expect(response.status).toBe(200)
+    expect(listInvitesForEmail).toHaveBeenCalledWith('user@example.com')
+    expect(await response.json()).toEqual({
+      items: [{
+        id: 'invite-9', role: 'admin', invitedAt: now.toISOString(), expiresAt: now.toISOString(),
+        organization: { id: 'org-other', name: 'Other Co', slug: 'other' },
+        invitedBy: { name: 'Grace', imageUrl: 'https://example.com/grace.png' },
+      }],
+    })
+  })
+
+  test('accepting joins the workspace by invite id and records it there', async () => {
+    role = null
+    const response = await request('POST', '/me/invites/invite-9/accept')
+    expect(response.status).toBe(200)
+    expect(acceptInviteById).toHaveBeenCalledWith({ inviteId: 'invite-9', userId: 'user-1', userEmail: 'user@example.com' })
+    expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ organizationId: 'org-other', action: 'member.joined' }))
+  })
+
+  test("someone else's, expired or missing invites all answer 404", async () => {
+    for (const tag of ['InviteEmailMismatch', 'InvalidInvite']) {
+      acceptInviteById.mockImplementationOnce(() => Effect.fail({ _tag: tag }) as never)
+      expect((await request('POST', '/me/invites/invite-x/accept')).status).toBe(404)
+    }
+    declineInviteForEmail.mockImplementationOnce(() => Effect.fail({ _tag: 'InvalidInvite' }) as never)
+    expect((await request('DELETE', '/me/invites/invite-x')).status).toBe(404)
+    expect(audit).not.toHaveBeenCalled()
+  })
+
+  test('declining removes the invite and tells the workspace', async () => {
+    expect((await request('DELETE', '/me/invites/invite-9')).status).toBe(204)
+    expect(declineInviteForEmail).toHaveBeenCalledWith({ inviteId: 'invite-9', userEmail: 'user@example.com' })
+    expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ organizationId: 'org-other', action: 'invite.declined' }))
+  })
+
+  test('signed-out callers and API keys get nothing', async () => {
+    authenticated = false
+    for (const [method, path] of [['GET', '/me/invites'], ['POST', '/me/invites/i/accept'], ['DELETE', '/me/invites/i']] as const) {
+      expect((await request(method, path)).status).toBe(401)
+    }
+    keyPrincipal = { id: 'key-1', organizationId: org.id, role: 'admin', name: 'CI' }
+    expect((await request('GET', '/me/invites', undefined, { authorization: 'Bearer ol_live_x' })).status).toBe(401)
+    expect(listInvitesForEmail).not.toHaveBeenCalled()
+    expect(acceptInviteById).not.toHaveBeenCalled()
   })
 })
 

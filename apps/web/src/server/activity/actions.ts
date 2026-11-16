@@ -23,6 +23,7 @@ export const ACTION_DEFINITIONS = {
   'member.role_changed': { category: 'members', phrase: 'changed the role of' },
   'member.removed': { category: 'members', phrase: 'removed' },
   'invite.revoked': { category: 'members', phrase: 'revoked the invite for' },
+  'invite.declined': { category: 'members', phrase: 'declined the invite to' },
   'apikey.created': { category: 'developers', phrase: 'created API key' },
   'apikey.role_changed': { category: 'developers', phrase: 'changed the role of API key' },
   'apikey.revoked': { category: 'developers', phrase: 'revoked API key' },

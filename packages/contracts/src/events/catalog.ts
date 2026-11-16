@@ -42,6 +42,7 @@ const DEFINITIONS = {
   'member.role_changed': { group: 'members', label: 'Member role changed', description: 'A member gets a different role' },
   'member.removed': { group: 'members', label: 'Member removed', description: 'Someone leaves or is removed' },
   'invite.revoked': { group: 'members', label: 'Invite revoked', description: 'A pending invite is withdrawn' },
+  'invite.declined': { group: 'members', label: 'Invite declined', description: 'Someone turns down an invite' },
   'apikey.created': { group: 'developers', label: 'API key created', description: 'A new API key is made' },
   'apikey.role_changed': { group: 'developers', label: 'API key role changed', description: 'An API key gets a different role' },
   'apikey.revoked': { group: 'developers', label: 'API key revoked', description: 'An API key stops working' },

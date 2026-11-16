@@ -171,6 +171,36 @@ export function toPendingInviteDto(row: typeof organizationInvite.$inferSelect) 
   }
 }
 
+/** An invite as its recipient sees it in their inbox. */
+export function toMyInviteDto(row: {
+  id: string
+  role: 'admin' | 'member' | 'viewer'
+  expiresAt: Date
+  createdAt: Date
+  organizationId: string
+  organizationName: string
+  organizationSlug: string
+  organizationLogoKey: string | null
+  invitedByName: string | null
+  invitedByImage: string | null
+}) {
+  return {
+    id: row.id,
+    role: row.role,
+    invitedAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt.toISOString(),
+    organization: {
+      id: row.organizationId,
+      name: row.organizationName,
+      slug: row.organizationSlug,
+      ...(row.organizationLogoKey ? { logoUrl: MediaKey.toUrl(row.organizationLogoKey) } : {}),
+    },
+    ...(row.invitedByName
+      ? { invitedBy: { name: row.invitedByName, ...(row.invitedByImage ? { imageUrl: row.invitedByImage } : {}) } }
+      : {}),
+  }
+}
+
 function parseChanges(json: string | null): Change[] | undefined {
   if (!json) return undefined
   try {
