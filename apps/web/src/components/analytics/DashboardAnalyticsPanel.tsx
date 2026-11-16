@@ -1,71 +1,29 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Grid } from '@astryxdesign/core/Grid'
+import { useEffect, useState } from 'react'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Link } from '@astryxdesign/core/Link'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import AnalyticsCard from '#/components/analytics/AnalyticsCard'
-import AnalyticsToolbar, { ALL_LINKS } from '#/components/analytics/AnalyticsToolbar'
-import DestinationsCard from '#/components/analytics/DestinationsCard'
-import HourHeatmap from '#/components/analytics/HourHeatmap'
-import LocationsCard from '#/components/analytics/LocationsCard'
-import MetricTiles from '#/components/analytics/MetricTiles'
-import SourcesCard from '#/components/analytics/SourcesCard'
-import TopLinksCard from '#/components/analytics/TopLinksCard'
-import TechnologyCard from '#/components/analytics/TechnologyCard'
-import TrafficChart from '#/components/analytics/TrafficChart'
+import AnalyticsReportView from '#/components/analytics/AnalyticsReportView'
+import AnalyticsToolbar from '#/components/analytics/AnalyticsToolbar'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import {
-  SAMPLE_LINKS,
-  buildAnalyticsReport,
-  type AnalyticsRange,
-  type TrackedLink,
-} from '#/lib/analytics/demo-dataset'
+import { useAnalyticsReport } from '#/hooks/use-analytics'
+import type { AnalyticsRange } from '#/lib/analytics/report'
 import { formatReportWindow as windowLabel } from '#/lib/analytics/format'
 
+/** Workspace analytics from recorded clicks; selecting a top link drills into it. */
 export default function DashboardAnalyticsPanel() {
   const { activeOrg, links } = useOrganization()
   const [range, setRange] = useState<AnalyticsRange>('30d')
-  const [linkId, setLinkId] = useState<string>(ALL_LINKS)
+  const [linkId, setLinkId] = useState<string | null>(null)
   const [isComparing, setIsComparing] = useState(true)
-  // Built after mount: demo numbers depend on "now" and the viewer's
-  // timezone, so a server render would not hydrate.
-  const [now, setNow] = useState<number | null>(null)
+  const query = useAnalyticsReport(activeOrg.id, range, linkId)
+  const report = query.data
 
-  useEffect(() => {
-    setNow(Date.now())
-    setLinkId(ALL_LINKS)
-  }, [activeOrg.id])
+  useEffect(() => setLinkId(null), [activeOrg.id])
 
-  const trackedLinks = useMemo<TrackedLink[]>(
-    () =>
-      links.length > 0
-        ? links.map((link) => ({
-            id: link.id,
-            slug: link.slug,
-            title: link.title,
-            destination: link.targetUrl,
-          }))
-        : SAMPLE_LINKS,
-    [links],
-  )
-
-  const selectedLink = trackedLinks.find((link) => link.id === linkId) ?? null
-
-  const report = useMemo(
-    () =>
-      now == null
-        ? null
-        : buildAnalyticsReport({
-            orgId: activeOrg.id,
-            range,
-            linkId: selectedLink?.id ?? null,
-            links: trackedLinks,
-            now,
-          }),
-    [activeOrg.id, range, selectedLink, trackedLinks, now],
-  )
+  const selected = linkId ? links.find((link) => link.id === linkId) ?? null : null
+  const selectedLink = selected ? { slug: selected.slug, destination: selected.targetUrl } : null
 
   const drillInto = (id: string) => {
     setLinkId(id)
@@ -96,7 +54,7 @@ export default function DashboardAnalyticsPanel() {
           <Text type="supporting" color="secondary">
             Showing one link.
           </Text>
-          <Link color="accent" onClick={() => setLinkId(ALL_LINKS)}>
+          <Link color="accent" onClick={() => setLinkId(null)}>
             Show all links
           </Link>
         </HStack>
@@ -109,39 +67,15 @@ export default function DashboardAnalyticsPanel() {
         onCompareChange={setIsComparing}
       />
 
-      {report ? (
-        <VStack gap={5} hAlign="stretch" width="fill">
-          <MetricTiles report={report} isComparing={isComparing} />
-
-          <AnalyticsCard
-            title="Clicks over time"
-            description={`Per ${report.bucket}, stacked by channel${isComparing ? ' · dashed line is the previous period' : ''}`}
-          >
-            <TrafficChart report={report} isComparing={isComparing} />
-          </AnalyticsCard>
-
-          <Grid columns={{ minWidth: 360, max: 2 }} gap={5} width="100%">
-            {/* One link drills in, so its own ranking and destination would be a single row each. */}
-            {selectedLink ? null : (
-              <TopLinksCard rows={report.links} isComparing={isComparing} onSelect={drillInto} />
-            )}
-            {selectedLink ? null : (
-              <DestinationsCard rows={report.destinations} isComparing={isComparing} />
-            )}
-            <SourcesCard report={report} isComparing={isComparing} />
-            <TechnologyCard report={report} isComparing={isComparing} />
-          </Grid>
-
-          <LocationsCard report={report} isComparing={isComparing} />
-
-          <AnalyticsCard
-            title="When people click"
-            description={`${report.heatmapWindowLabel} · by weekday and hour, in your timezone`}
-          >
-            <HourHeatmap report={report} />
-          </AnalyticsCard>
-        </VStack>
-      ) : null}
+      <AnalyticsReportView
+        report={report}
+        isLoading={query.isPending}
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        isComparing={isComparing}
+        isSingleLink={linkId != null}
+        onSelectLink={drillInto}
+      />
     </VStack>
   )
 }

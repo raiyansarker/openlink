@@ -4,9 +4,7 @@ import {
 } from '@astryxdesign/core/SegmentedControl'
 import { Switch } from '@astryxdesign/core/Switch'
 import { Toolbar } from '@astryxdesign/core/Toolbar'
-import { RANGE_OPTIONS, type AnalyticsRange } from '#/lib/analytics/demo-dataset'
-
-export const ALL_LINKS = '__all__'
+import { RANGE_OPTIONS, type AnalyticsRange } from '#/lib/analytics/report'
 
 type AnalyticsToolbarProps = {
   range: AnalyticsRange

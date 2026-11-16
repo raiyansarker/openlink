@@ -5,7 +5,7 @@ import { scaleBand } from '@tanstack/charts/scales/band'
 import { scaleLinear } from '@tanstack/charts/scales/linear'
 import { tooltip } from '@tanstack/charts/tooltip'
 import { chartHostStyle } from '#/components/analytics/chart-theme'
-import type { BreakdownRow } from '#/lib/analytics/demo-dataset'
+import type { BreakdownRow } from '#/lib/analytics/report'
 import {
   formatDelta,
   formatNumber,
@@ -85,6 +85,8 @@ export default function RankedBars({
         },
         margin: 0,
         focus: 'nearest-y',
+        // The tooltip already names the row; the generated ring drew a dot on every mark of it.
+        focusRing: false,
         tooltip: {
           use: tooltip,
           format: (point) => {

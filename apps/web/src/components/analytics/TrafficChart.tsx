@@ -8,7 +8,7 @@ import { tooltip } from '@tanstack/charts/tooltip'
 import { scaleTime } from 'd3-scale'
 import { curveMonotoneX } from 'd3-shape'
 import { CHANNEL_COLORS, NEUTRAL_SERIES, chartHostStyle } from '#/components/analytics/chart-theme'
-import type { AnalyticsReport } from '#/lib/analytics/demo-dataset'
+import type { AnalyticsReport } from '#/lib/analytics/report'
 import { formatCompact, formatNumber } from '#/lib/analytics/format'
 
 type TrafficChartProps = {

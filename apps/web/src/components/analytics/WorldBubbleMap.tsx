@@ -3,7 +3,7 @@ import { Layer, Source, useMap } from '@vis.gl/react-maplibre'
 import type { GeoJSONSourceSpecification } from 'maplibre-gl'
 import StaticMap from '#/components/maps/StaticMap'
 import { useResolvedColorScheme } from '#/hooks/use-resolved-color-scheme'
-import type { CountryRow } from '#/lib/analytics/demo-dataset'
+import type { CountryRow } from '#/lib/analytics/report'
 import { formatNumber } from '#/lib/analytics/format'
 import { resolveCssColor } from '#/lib/maps/load-maplibre'
 
@@ -28,16 +28,18 @@ function toGeoJson(countries: CountryRow[]): GeoJSONSourceSpecification['data'] 
   const max = Math.max(1, ...countries.map((c) => c.clicks))
   return {
     type: 'FeatureCollection',
-    features: countries.map((country) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [country.lng, country.lat] },
+    // Countries without a known location (e.g. local development) have no bubble.
+    features: countries.flatMap((country) =>
+      country.lat == null || country.lng == null ? [] : [{
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [country.lng, country.lat] },
       properties: {
         label: country.label,
         clicks: country.clicks,
         // 0..1 by area, so a bubble twice the size means twice the clicks.
         weight: Math.sqrt(country.clicks / max),
       },
-    })),
+    }]),
   }
 }
 

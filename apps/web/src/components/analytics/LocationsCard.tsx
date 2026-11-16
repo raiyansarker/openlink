@@ -10,7 +10,7 @@ import AnalyticsCard from '#/components/analytics/AnalyticsCard'
 import RankedBars from '#/components/analytics/RankedBars'
 import WorldBubbleMap from '#/components/analytics/WorldBubbleMap'
 import { SERIES_COLORS } from '#/components/analytics/chart-theme'
-import type { AnalyticsReport, BreakdownRow } from '#/lib/analytics/demo-dataset'
+import type { AnalyticsReport, BreakdownRow } from '#/lib/analytics/report'
 import { countryFlag } from '#/lib/analytics/flag'
 
 type LocationsCardProps = {

@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { use$ } from '@legendapp/state/react'
-import { getStatsForOrg } from '#/data/demo/queries'
+import { useAnalyticsSummary } from '#/hooks/use-analytics'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
 import type {
   LinkFolder,
@@ -210,18 +210,19 @@ function OrganizationScope({
     [domains],
   )
 
-  // Link counts come from the links themselves. Demo traffic only applies
-  // once the org has links — no links means no clicks.
-  const stats = useMemo<OrgDashboardStats>(() => {
-    const counts = {
+  // Link counts come from the links; click numbers from recorded clicks.
+  const summary = useAnalyticsSummary(orgId).data
+  const stats = useMemo<OrgDashboardStats>(
+    () => ({
       totalLinks: links.length,
       activeLinks: links.filter((link) => link.status === 'active').length,
-    }
-    if (links.length === 0) {
-      return { ...counts, clicksToday: 0, clicksThisWeek: 0, uniqueVisitorsWeek: 0, topReferrer: '—' }
-    }
-    return { ...getStatsForOrg(orgId), ...counts }
-  }, [orgId, links])
+      clicksToday: summary?.clicksToday ?? 0,
+      clicksThisWeek: summary?.clicksThisWeek ?? 0,
+      uniqueVisitorsWeek: summary?.uniqueVisitorsWeek ?? 0,
+      topReferrer: summary?.topReferrer ?? '—',
+    }),
+    [links, summary],
+  )
 
   const requireFolder = useCallback(
     (folderId: string | null, message = 'That folder no longer exists.') => {
