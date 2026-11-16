@@ -78,6 +78,13 @@
       "when": 1794812148124,
       "tag": "0010_link_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1794815625646,
+      "tag": "0011_link_clicks",
+      "breakpoints": true
     }
   ]
 }
