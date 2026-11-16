@@ -7,6 +7,7 @@ import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { verifyLinkPassword } from '#/server/links/password'
 import { RedirectRules, type RedirectDecision } from './decide'
+import { Visitor } from './visitor'
 
 export type ResolveOutcome = RedirectDecision | { type: 'password_invalid' }
 
@@ -53,7 +54,13 @@ function claimClick(row: typeof link.$inferSelect) {
  * `appHost` is the app's own host: links there have no custom domain (the
  * default domain every workspace shares).
  */
-export function resolveRedirect(input: { host: string; slug: string; password?: string; appHost?: string | null }) {
+export function resolveRedirect(input: {
+  host: string
+  slug: string
+  password?: string
+  appHost?: string | null
+  visitor?: Visitor
+}) {
   return Effect.gen(function* () {
     const db = yield* Db
     const onAppHost = !!input.appHost && normalizeHost(input.host) === normalizeHost(input.appHost)
@@ -75,7 +82,8 @@ export function resolveRedirect(input: { host: string; slug: string; password?: 
       if (!passwordVerified) return { type: 'password_invalid' } as ResolveOutcome
     }
 
-    const decision = RedirectRules.decide(row, { passwordVerified })
+    const visitor = input.visitor ?? Visitor.ANONYMOUS
+    const decision = RedirectRules.decide(row, { passwordVerified, visitor })
     if (decision.type !== 'redirect' || !decision.countsClick) return decision
 
     const claimed = yield* claimClick(row)

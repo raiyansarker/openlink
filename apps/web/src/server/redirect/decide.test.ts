@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import type { link } from '@openlink/db/schema'
 import { RedirectRules, Utm } from './decide'
+import { Visitor } from './visitor'
 
 const NOW = new Date('2026-06-01T00:00:00Z')
 
@@ -145,5 +146,36 @@ describe('hold', () => {
     expect(RedirectRules.decide(withPassword, { now: NOW }).type).toBe('hold')
     const expired = row({ deliveryJson: JSON.stringify({ hold: { page: 'gateway-timeout' } }), expiresAt: new Date('2026-01-01') })
     expect(RedirectRules.decide(expired, { now: NOW }).type).toBe('gone')
+  })
+})
+
+describe('targeting', () => {
+  const targeted = row({
+    destinationUrl: 'https://example.com/main',
+    utmJson: JSON.stringify({ source: 'qr' }),
+    deliveryJson: JSON.stringify({
+      targeting: {
+        ios: 'https://apps.apple.com/app/1',
+        android: 'https://play.google.com/store/apps/details?id=x',
+        geo: [{ country: 'DE', url: 'https://example.de/' }],
+      },
+    }),
+  })
+  const urlFor = (visitor: Visitor) => {
+    const decision = RedirectRules.decide(targeted, { now: NOW, visitor })
+    return decision.type === 'redirect' ? decision.url : null
+  }
+
+  test('device rules win over country rules', () => {
+    expect(urlFor(new Visitor('Mozilla/5.0 (iPhone; CPU iPhone OS 19_0)', 'DE', null))).toBe('https://apps.apple.com/app/1?utm_source=qr')
+    expect(urlFor(new Visitor('Mozilla/5.0 (Linux; Android 15)', null, null))).toBe(
+      'https://play.google.com/store/apps/details?id=x&utm_source=qr',
+    )
+  })
+
+  test('country rules, then the main destination', () => {
+    expect(urlFor(new Visitor('Mozilla/5.0 (Macintosh)', 'DE', null))).toBe('https://example.de/?utm_source=qr')
+    expect(urlFor(new Visitor('Mozilla/5.0 (Macintosh)', 'FR', null))).toBe('https://example.com/main?utm_source=qr')
+    expect(urlFor(Visitor.ANONYMOUS)).toBe('https://example.com/main?utm_source=qr')
   })
 })
