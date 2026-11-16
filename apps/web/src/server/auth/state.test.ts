@@ -43,7 +43,7 @@ describe('AuthStateReader.read', () => {
     expect(state).toEqual({
       user: { id: 'u1', name: 'Ada', email: 'ada@example.com', image: null, onboarded: false },
       providers: { google: true, github: false },
-      emailPassword: false,
+      emailPassword: true,
     })
   })
 
@@ -68,7 +68,7 @@ describe('AuthStateReader.read', () => {
   test('auth initialization failure is treated as signed out', async () => {
     const init = new BackendError({ operation: 'auth.initialize', cause: new Error('bad secret') })
     const state = await run(async () => null, {}, Effect.fail(init))
-    expect(state).toEqual({ user: null, providers: { google: false, github: false }, emailPassword: false })
+    expect(state).toEqual({ user: null, providers: { google: false, github: false }, emailPassword: true })
   })
 
   const signedIn = async () => ({ user: { id: 'u1', name: 'Ada', email: 'a@e.test', image: null, createdAt: created } })
@@ -82,9 +82,9 @@ describe('AuthStateReader.read', () => {
     expect((await run(signedIn, {}, undefined, testDb('broken'))).user?.onboarded).toBe(false)
   })
 
-  test('email and password sign-in is off unless explicitly enabled', async () => {
-    expect((await run(async () => null)).emailPassword).toBe(false)
+  test('email and password sign-in is on unless explicitly turned off', async () => {
+    expect((await run(async () => null)).emailPassword).toBe(true)
     expect((await run(async () => null, { EMAIL_PASSWORD_SIGN_IN: 'true' })).emailPassword).toBe(true)
-    expect((await run(async () => null, { EMAIL_PASSWORD_SIGN_IN: 'yes' })).emailPassword).toBe(false)
+    expect((await run(async () => null, { EMAIL_PASSWORD_SIGN_IN: ' False ' })).emailPassword).toBe(false)
   })
 })

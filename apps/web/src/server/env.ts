@@ -14,7 +14,7 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   /** Extra origins allowed to call the auth API (comma separated), e.g. previews. */
   BETTER_AUTH_TRUSTED_ORIGINS?: string
   BOOTSTRAP_ORG_INVITE_TOKEN?: string
-  /** `"true"` re-enables email and password sign-in; off by default (Google and GitHub only). */
+  /** Email and password sign-in is on unless this is `"false"`. */
   EMAIL_PASSWORD_SIGN_IN?: string
   /** OAuth providers switch on only when both the id and secret are set. */
   GOOGLE_CLIENT_ID?: string

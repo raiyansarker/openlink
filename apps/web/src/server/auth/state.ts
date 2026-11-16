@@ -1,7 +1,7 @@
 import { Effect } from 'effect'
 
 import { Bindings } from '../effect/services/bindings'
-import { SocialProviders } from './providers'
+import { EmailPasswordSignIn, SocialProviders } from './providers'
 import { Onboarding } from './onboarding'
 import { requireSession } from './session'
 
@@ -35,7 +35,7 @@ export class AuthStateReader {
             }
           : null,
         providers: SocialProviders.enabled(bindings),
-        emailPassword: bindings.EMAIL_PASSWORD_SIGN_IN === 'true',
+        emailPassword: EmailPasswordSignIn.enabled(bindings),
       }
     })
   }
