@@ -2,6 +2,7 @@ import { type } from 'arktype'
 
 import { HttpUrl } from '../schema-utils'
 import { DomainIdPath, RedirectStatus } from '../domains/schema'
+import { LinkHold, LinkTargeting, SocialPreview } from './delivery'
 import { OrganizationIdPath } from '../organizations/schema'
 
 export const LinkStatus = type(
@@ -41,6 +42,13 @@ export const Link = type({
   'tags?': 'string[]',
   'utm?': UtmParameters,
   'metadata?': type({ '[string]': 'unknown' }),
+  /** Serves a placeholder page instead of redirecting while set (and before `releaseAt`). */
+  'hold?': LinkHold,
+  'targeting?': LinkTargeting,
+  /** Shows the destination inside a frame so the short URL stays in the address bar. */
+  'cloaked?': 'boolean',
+  /** Card shown to social and chat crawlers instead of the destination's own. */
+  'socialPreview?': SocialPreview,
   createdAt: 'string',
   updatedAt: 'string',
 })
@@ -63,6 +71,10 @@ export const CreateLinkRequest = type({
   'tags?': 'string[]',
   'utm?': UtmParameters,
   'metadata?': type({ '[string]': 'unknown' }),
+  'hold?': LinkHold,
+  'targeting?': LinkTargeting,
+  'cloaked?': 'boolean',
+  'socialPreview?': SocialPreview,
 })
 
 export const UpdateLinkRequest = type({
@@ -84,6 +96,11 @@ export const UpdateLinkRequest = type({
   'tags?': 'string[]',
   'utm?': UtmParameters,
   'metadata?': type({ '[string]': 'unknown' }),
+  /** Null removes the setting. */
+  'hold?': LinkHold.or('null'),
+  'targeting?': LinkTargeting.or('null'),
+  'cloaked?': 'boolean',
+  'socialPreview?': SocialPreview.or('null'),
 })
 
 export const LinkIdPath = type({

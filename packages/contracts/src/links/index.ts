@@ -1,4 +1,5 @@
 export * from './schema'
+export * from './delivery'
 export * from './contract'
 export { contract } from './contract'
 export { ReservedSlugs } from './reserved-slugs'
