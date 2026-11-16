@@ -8,7 +8,6 @@ import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
 import { useActivePathname } from '#/hooks/useActivePathname'
 import DashboardAccountMenu from './DashboardAccountMenu'
 import { PlusIcon, SettingsIcon } from '#/components/icons/IcnMcp'
-import { buildSettingsPath } from '#/lib/settings/sections'
 import { isDashboardSettingsPath } from '#/lib/dashboard/paths/settings'
 import type { CSSProperties, ReactNode } from 'react'
 import {
@@ -110,7 +109,7 @@ function RailSettingsButton() {
         type="button"
         aria-label="Settings"
         aria-current={isActive ? 'page' : undefined}
-        onClick={() => void navigate({ to: buildSettingsPath('profile') })}
+        onClick={() => void navigate({ to: '/settings/profile' })}
         style={{
           ...orgControlBase,
           backgroundColor,

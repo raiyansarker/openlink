@@ -84,7 +84,7 @@ export default function CreateOrganizationShell({
         {showEscape ? (
           <HStack gap={2}>
             {hasNoWorkspaces && !isOnboarding ? (
-              <Button variant="ghost" size="sm" label="Account settings" onClick={() => void navigate({ to: '/settings/$section', params: { section: 'profile' } })} />
+              <Button variant="ghost" size="sm" label="Account settings" onClick={() => void navigate({ to: '/settings/profile' })} />
             ) : null}
             <Button variant="ghost" size="sm" label="Sign out" onClick={() => void signOut()} />
           </HStack>

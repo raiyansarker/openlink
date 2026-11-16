@@ -3,7 +3,6 @@ import { Avatar } from '@astryxdesign/core/Avatar'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { useCurrentUser } from '#/hooks/use-current-user'
 import { AuthSession } from '#/lib/auth/client'
-import { buildSettingsPath } from '#/lib/settings/sections'
 import {
   DASHBOARD_RAIL_BG,
   SHELL_CHROME_BORDER,
@@ -33,7 +32,7 @@ export default function DashboardAccountMenu({
   }
 
   const goToProfile = () => {
-    void navigate({ to: buildSettingsPath('profile') })
+    void navigate({ to: '/settings/profile' })
   }
 
   return (
@@ -86,7 +85,7 @@ export default function DashboardAccountMenu({
           id: 'preferences',
           label: 'Preferences',
           onClick: () =>
-            void navigate({ to: buildSettingsPath('appearance') }),
+            void navigate({ to: '/settings/appearance' }),
         },
         { type: 'divider' },
         {
