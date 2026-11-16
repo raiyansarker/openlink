@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
+import { stableContext } from '#/lib/react/stable-context'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  createContext,
   useCallback,
   useContext,
   useEffect,
@@ -88,7 +88,7 @@ type OrganizationContextValue = {
   deleteLink: (linkId: string) => Promise<void>
 }
 
-const OrganizationContext = createContext<OrganizationContextValue | null>(null)
+const OrganizationContext = stableContext<OrganizationContextValue | null>('Organization', null)
 
 type OrganizationProviderProps = {
   /** Workspace from the URL. Without it, the remembered (or first) workspace is used. */

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
+import { stableContext } from '#/lib/react/stable-context'
+import { useCallback, useContext, useMemo, type ReactNode } from 'react'
 
 import type { Organization } from '#/data/demo/types'
 import { ApiError } from '#/lib/api/error'
@@ -34,7 +35,7 @@ type WorkspaceDirectoryContextValue = {
   invalidate: () => Promise<void>
 }
 
-const WorkspaceDirectoryContext = createContext<WorkspaceDirectoryContextValue | null>(null)
+const WorkspaceDirectoryContext = stableContext<WorkspaceDirectoryContextValue | null>('WorkspaceDirectory', null)
 
 const NO_ORGANIZATIONS: Organization[] = []
 
