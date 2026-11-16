@@ -121,6 +121,9 @@ export function resolveRedirect(input: {
       linkId: row.id,
       domainId: row.domainId,
       organizationId: row.organizationId,
+      visitor,
+      delivery: decision.type === 'cloak' ? 'cloak' : 'redirect',
+      destination: decision.url,
     }).pipe(Effect.ignore)
 
     return decision as ResolveOutcome
