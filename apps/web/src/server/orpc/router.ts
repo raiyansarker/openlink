@@ -1,3 +1,4 @@
+import { FrameCheck } from '#/server/redirect/frame-check'
 import { AnalyticsReports, AnalyticsSummaries } from '#/server/analytics/report'
 import { contract } from '@openlink/contracts'
 import '@orpc/effect/extensions/effect'
@@ -848,6 +849,12 @@ export const router = os.router({
         })
       }
       return { affected }
+    }),
+
+    checkFraming: os.links.checkFraming.effect(function* ({ input }) {
+      // Only people who can edit links can make the server fetch a URL.
+      yield* requireLinkWriterEffect(input.params.organizationId)
+      return { frameable: yield* FrameCheck.frameable(input.body.url) }
     }),
 
     createWorkspaceLink: os.links.createWorkspaceLink.effect(function* ({ input, errors }) {

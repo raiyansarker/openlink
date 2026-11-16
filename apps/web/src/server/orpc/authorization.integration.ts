@@ -143,6 +143,8 @@ const emptyReport = {
 }
 const buildReport = mock((_scope: object, _range: string, _tz: number) => Effect.succeed(emptyReport))
 const buildSummary = mock((_organizationId: string, _tz: number) => Effect.succeed({ clicksToday: 0, clicksThisWeek: 0, uniqueVisitorsWeek: 0 }))
+const frameable = mock((_url: string) => Effect.succeed(false))
+mock.module('#/server/redirect/frame-check', () => ({ FrameCheck: { frameable } }))
 mock.module('#/server/analytics/report', () => ({
   AnalyticsReports: { build: buildReport },
   AnalyticsSummaries: { build: buildSummary },
@@ -167,7 +169,7 @@ const spies = [
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
   listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
-  buildReport, buildSummary,
+  buildReport, buildSummary, frameable,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -1161,5 +1163,18 @@ describe('analytics', () => {
     expect((await request('GET', `${orgPath}/analytics?range=1y`)).status).toBe(400)
     expect((await request('GET', `${orgPath}/analytics?tzOffset=9999`)).status).toBe(400)
     expect(buildReport).not.toHaveBeenCalled()
+  })
+})
+
+describe('frame check', () => {
+  test('link editors can ask whether a destination can be framed; viewers cannot', async () => {
+    role = 'viewer'
+    expect((await request('POST', `${orgPath}/links/frame-check`, { url: 'https://github.com/' })).status).toBe(403)
+    expect(frameable).not.toHaveBeenCalled()
+    role = 'member'
+    const response = await request('POST', `${orgPath}/links/frame-check`, { url: 'https://github.com/' })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ frameable: false })
+    expect((await request('POST', `${orgPath}/links/frame-check`, { url: 'file:///etc/passwd' })).status).toBe(400)
   })
 })
