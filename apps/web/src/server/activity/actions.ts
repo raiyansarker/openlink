@@ -10,6 +10,8 @@ export const ACTION_DEFINITIONS = {
   'link.deleted': { category: 'links', phrase: 'deleted link' },
   'link.moved': { category: 'links', phrase: 'moved link' },
   'link.tagged': { category: 'links', phrase: 'tagged link' },
+  'link.held': { category: 'links', phrase: 'put on hold' },
+  'link.released': { category: 'links', phrase: 'released the hold on' },
   'link.commented': { category: 'links', phrase: 'commented on link' },
   'folder.created': { category: 'links', phrase: 'created folder' },
   'folder.updated': { category: 'links', phrase: 'updated folder' },
@@ -85,8 +87,12 @@ export function diffLink(before: LinkRow, after: LinkRow): Change[] {
 }
 
 /** Pick the most specific action for a link edit. */
-export function linkUpdateAction(changes: Change[]): 'link.updated' | 'link.moved' | 'link.tagged' {
-  if (changes.length === 1 && changes[0]!.label === 'Folder') return 'link.moved'
-  if (changes.length === 1 && changes[0]!.label === 'Tags') return 'link.tagged'
+export function linkUpdateAction(
+  changes: Change[],
+): 'link.updated' | 'link.moved' | 'link.tagged' | 'link.held' | 'link.released' {
+  const only = changes.length === 1 ? changes[0]! : null
+  if (only?.label === 'Folder') return 'link.moved'
+  if (only?.label === 'Tags') return 'link.tagged'
+  if (only?.label === 'Hold') return only.to === '—' ? 'link.released' : 'link.held'
   return 'link.updated'
 }
