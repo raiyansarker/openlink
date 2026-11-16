@@ -1,3 +1,4 @@
+import { HoldPages } from '@openlink/contracts'
 import type {
   HoldPage,
   LinkHold,
@@ -366,8 +367,8 @@ export function cleanHold(draft: CreateLinkDraft): LinkHold | undefined {
 
 /** True while a link's hold is in effect (it lifts itself at `releaseAt`). */
 export function isOnHold(link: Pick<ShortLink, 'hold'>, now = new Date()): boolean {
-  if (!link.hold) return false
-  return !link.hold.releaseAt || new Date(link.hold.releaseAt) > now
+  // Same rule the redirect engine applies.
+  return HoldPages.isActive(link.hold, now)
 }
 
 /** Targeting rules, or undefined when targeting is off or empty. */
