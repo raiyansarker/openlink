@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertDialog } from '@astryxdesign/core/AlertDialog'
+import RemoveDomainDialog, { type LinkFate } from '#/components/domains/RemoveDomainDialog'
 import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 import { Card } from '@astryxdesign/core/Card'
@@ -36,7 +36,7 @@ export default function DomainDetailSheet({
   target,
   onOpenChange,
 }: DomainDetailSheetProps) {
-  const { getDomainById, verifyDomain, removeDomain } = useDomainsWorkspace()
+  const { customDomains, getDomainById, verifyDomain, removeDomain } = useDomainsWorkspace()
   const [removeAlertOpen, setRemoveAlertOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
@@ -60,13 +60,11 @@ export default function DomainDetailSheet({
 
   const close = () => onOpenChange(false)
 
-  const confirmRemove = () => {
+  const removeWithLinks = async (fate: LinkFate) => {
     if (!custom) return
-    setRemoveAlertOpen(false)
     setActionError(null)
-    removeDomain(custom.id).then(close, (err: unknown) =>
-      setActionError(err instanceof Error ? err.message : 'Could not remove the domain.'),
-    )
+    await removeDomain(custom.id, fate)
+    close()
   }
 
   if (target && !custom) {
@@ -172,13 +170,12 @@ export default function DomainDetailSheet({
       </Drawer>
 
       {custom ? (
-        <AlertDialog
+        <RemoveDomainDialog
           isOpen={removeAlertOpen}
           onOpenChange={setRemoveAlertOpen}
-          title={`Remove ${custom.hostname}?`}
-          description="Short links on this host stop working immediately. This cannot be undone."
-          actionLabel="Remove domain"
-          onAction={confirmRemove}
+          domain={custom}
+          otherDomains={customDomains.filter((d) => d.id !== custom.id)}
+          onRemove={removeWithLinks}
         />
       ) : null}
     </>
