@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 import { EmptyState } from '@astryxdesign/core/EmptyState'
 import { Heading } from '@astryxdesign/core/Heading'
@@ -45,6 +46,13 @@ export default function DashboardDomainsPanel() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<DomainStatusFilter>('all')
   const [sheetTarget, setSheetTarget] = useState<DomainSheetTarget | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const run = (action: () => Promise<unknown>) => {
+    setActionError(null)
+    action().catch((err: unknown) =>
+      setActionError(err instanceof Error ? err.message : 'Something went wrong.'),
+    )
+  }
 
   useEffect(() => {
     setSearchQuery('')
@@ -94,6 +102,7 @@ export default function DashboardDomainsPanel() {
       paddingInline={8}
       paddingBlockEnd={10}
     >
+      {actionError ? <Banner status="error" title={actionError} /> : null}
       <HStack
         hAlign="between"
         vAlign="start"
@@ -219,8 +228,8 @@ export default function DashboardDomainsPanel() {
                     <DomainRowMenu
                       domain={row}
                       onOpen={openCustomDomain}
-                      onVerify={verifyDomain}
-                      onRemove={removeDomain}
+                      onVerify={(id) => run(() => verifyDomain(id))}
+                      onRemove={(id) => run(() => removeDomain(id))}
                     />
                   ),
                 },

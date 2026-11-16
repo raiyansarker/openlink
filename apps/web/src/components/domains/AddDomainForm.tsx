@@ -10,11 +10,7 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { WorkspaceCustomDomain } from '#/data/demo/domains'
-import {
-  demoDnsRecordsForHostname,
-  isValidCustomHostname,
-} from '#/lib/domains/demo-dns'
+import { isValidCustomHostname } from '#/lib/domains/demo-dns'
 import DomainIllustration from './DomainIllustration'
 
 export default function AddDomainForm() {
@@ -24,6 +20,7 @@ export default function AddDomainForm() {
 
   const [hostname, setHostname] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const onHostnameChange = (value: string) => {
     const stripped = value.replace(/^https?:\/\//i, '')
@@ -31,7 +28,8 @@ export default function AddDomainForm() {
     if (error) setError(null)
   }
 
-  const submit = () => {
+  const submit = async () => {
+    if (isSaving) return
     const normalized = hostname.trim().toLowerCase()
     if (!normalized) {
       setError('Enter a hostname.')
@@ -42,17 +40,15 @@ export default function AddDomainForm() {
       return
     }
 
-    const domain: WorkspaceCustomDomain = {
-      id: `dom_${Date.now()}`,
-      orgId: activeOrg.id,
-      hostname: normalized,
-      readiness: 'pending',
-      linkCount: 0,
-      createdAt: new Date().toISOString(),
-      dnsRecords: demoDnsRecordsForHostname(normalized),
+    setIsSaving(true)
+    try {
+      await addDomain(normalized)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not add the domain.')
+      return
+    } finally {
+      setIsSaving(false)
     }
-
-    addDomain(domain)
     void navigate({
       to: '/w/$orgSlug/domains',
       params: { orgSlug: activeOrg.slug },
@@ -95,7 +91,7 @@ export default function AddDomainForm() {
             })
           }
         />
-        <Button variant="primary" label="Continue" onClick={submit} />
+        <Button variant="primary" label="Continue" isLoading={isSaving} onClick={() => void submit()} />
       </HStack>
     </VStack>
   )
