@@ -6,7 +6,6 @@ import {
   DateTimeInput,
   type ISODateTimeString,
 } from '@astryxdesign/core/DateTimeInput'
-import { FileInput } from '@astryxdesign/core/FileInput'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { IconButton } from '@astryxdesign/core/IconButton'
@@ -26,6 +25,7 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { useKeyPress } from '#/hooks/use-key-press'
 import CreateLinkSuccess from '#/components/create-link/CreateLinkSuccess'
 import Favicon from '#/components/create-link/Favicon'
+import PreviewImageField from '#/components/create-link/PreviewImageField'
 import HoldPagePreview from '#/components/create-link/HoldPagePreview'
 import FormSection, {
   FieldRow,
@@ -203,7 +203,6 @@ export default function CreateLinkForm({
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [created, setCreated] = useState<ShortLink | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [previewFileError, setPreviewFileError] = useState<string | null>(null)
 
   const [isUploadingPreview, setIsUploadingPreview] = useState(false)
@@ -211,26 +210,22 @@ export default function CreateLinkForm({
   /** Uploads a social image; the link keeps its URL. */
   const choosePreviewImage = (file: File | null) => {
     setPreviewFileError(null)
-    setPreviewFile(file)
     if (!file) {
       update('previewImage', '')
       return
     }
     if (!PREVIEW_IMAGE_ACCEPT.split(',').includes(file.type)) {
       setPreviewFileError('Use a PNG, JPG, WebP or GIF image.')
-      setPreviewFile(null)
       return
     }
     if (file.size > MAX_PREVIEW_IMAGE_BYTES) {
       setPreviewFileError('Images must be 5 MB or smaller.')
-      setPreviewFile(null)
       return
     }
     setIsUploadingPreview(true)
     MediaUploads.setLinkPreview(activeOrg.id, file)
       .then((url) => update('previewImage', url))
       .catch((err: unknown) => {
-        setPreviewFile(null)
         setPreviewFileError(err instanceof Error ? err.message : 'The upload failed. Please try again.')
       })
       .finally(() => setIsUploadingPreview(false))
@@ -532,7 +527,6 @@ export default function CreateLinkForm({
             onCreateAnother={() => {
               setCreated(null)
               setShowErrors(false)
-              setPreviewFile(null)
               setPreviewFileError(null)
               setDraft({ ...emptyDraft(created.folderId ?? null), slug: generateSlug() })
             }}
@@ -907,55 +901,17 @@ export default function CreateLinkForm({
                   width="100%"
                 />
               </WithCounter>
-              {draft.previewImage && !previewFile ? (
-                <HStack gap={3} vAlign="center" width="100%">
-                  <img
-                    src={draft.previewImage}
-                    alt="Current social preview image"
-                    style={{
-                      width: 96,
-                      aspectRatio: '1.91 / 1',
-                      objectFit: 'cover',
-                      borderRadius: 8,
-                      border: '1px solid var(--color-border)',
-                    }}
-                  />
-                  <VStack gap={1} style={{ flex: 1, minWidth: 0 }}>
-                    <Text weight="semibold">Current image</Text>
-                    <Text type="supporting" color="secondary">
-                      Drop a new one below to replace it.
-                    </Text>
-                  </VStack>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    label="Remove"
-                    onClick={() => update('previewImage', '')}
-                  />
-                </HStack>
-              ) : null}
-              <FileInput
-                label="Image"
-                mode="dropzone"
+              <PreviewImageField
+                imageUrl={draft.previewImage}
+                isUploading={isUploadingPreview}
+                error={previewFileError ?? visibleError('previewImage') ?? null}
                 accept={PREVIEW_IMAGE_ACCEPT}
-                maxSize={MAX_PREVIEW_IMAGE_BYTES}
-                description={
-                  isUploadingPreview
-                    ? 'Uploading…'
-                    : 'PNG, JPG, WebP or GIF up to 5 MB. 1200 × 630 px looks best everywhere.'
-                }
-                placeholder="Drop an image here, or click to browse"
-                value={previewFile}
-                onChange={(files) =>
-                  choosePreviewImage(Array.isArray(files) ? (files[0] ?? null) : files)
-                }
-                status={
-                  previewFileError
-                    ? { type: 'error', message: previewFileError }
-                    : statusFor('previewImage')
-                }
-                isOptional
-                width="100%"
+                maxBytes={MAX_PREVIEW_IMAGE_BYTES}
+                onChoose={choosePreviewImage}
+                onRemove={() => {
+                  setPreviewFileError(null)
+                  update('previewImage', '')
+                }}
               />
             </FormSection>
 
