@@ -30,6 +30,27 @@ export function hostOf(url: string | undefined): string {
   }
 }
 
+/**
+ * A link's status as of `now`, not as of when the list was fetched: schedules
+ * start, expiry dates pass and click limits run out while the page is open.
+ */
+export class LinkLiveStatus {
+  static isExpired(link: ShortLink, now = new Date()): boolean {
+    if (link.expiresAt && new Date(link.expiresAt) <= now) return true
+    return link.maxClicks != null && link.clicks >= link.maxClicks
+  }
+
+  /** Scheduled and its start time is still ahead. */
+  static isWaiting(link: ShortLink, now = new Date()): boolean {
+    return link.status === 'scheduled' && (!link.activateAt || new Date(link.activateAt) > now)
+  }
+
+  static current(link: ShortLink, now = new Date()): ShortLink['status'] {
+    if (link.status === 'scheduled' && !LinkLiveStatus.isWaiting(link, now)) return 'active'
+    return link.status
+  }
+}
+
 /** One-line status for a saved link (hold wins over the stored status). */
 export function linkStatusLine(link: ShortLink, now = new Date()): string {
   if (isOnHold(link, now)) {
@@ -38,17 +59,17 @@ export function linkStatusLine(link: ShortLink, now = new Date()): string {
       ? `On hold — showing “${page.heading}” until ${formatDateTime(link.hold!.releaseAt)}`
       : `On hold — showing “${page.heading}” until you release it`
   }
-  if (link.status === 'scheduled') {
+  if (LinkLiveStatus.isExpired(link, now)) return 'Expired'
+  if (LinkLiveStatus.isWaiting(link, now)) {
     return `Scheduled — starts redirecting ${formatDateTime(link.activateAt)}`
   }
-  if (link.expiresAt && new Date(link.expiresAt) <= now) return 'Expired'
-  return linkStatusMeta(link.status).description
+  return linkStatusMeta(LinkLiveStatus.current(link, now)).description
 }
 
 export function linkStatusLabel(link: ShortLink, now = new Date()): string {
   if (isOnHold(link, now)) return 'On hold'
-  if (link.expiresAt && new Date(link.expiresAt) <= now) return 'Expired'
-  return linkStatusMeta(link.status).label
+  if (LinkLiveStatus.isExpired(link, now)) return 'Expired'
+  return linkStatusMeta(LinkLiveStatus.current(link, now)).label
 }
 
 /** Everything configured on a link, as label/value rows. */

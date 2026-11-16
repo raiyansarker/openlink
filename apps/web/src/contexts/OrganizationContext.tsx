@@ -38,6 +38,7 @@ import {
 } from '#/lib/links/create-link'
 import { demoCheckHealth } from '#/lib/links/demo-health'
 import { ShortUrl } from '#/lib/links/short-url'
+import { LinkLiveStatus } from '#/lib/links/link-summary'
 import { linksWorkspace$, type LinkLocalExtras } from '#/state/links-workspace.state'
 import NotFoundPage from '#/components/not-found/NotFoundPage'
 import WorkspaceStatusScreen, { type StatusPresentation } from '#/components/workspace/WorkspaceStatusScreen'
@@ -96,6 +97,9 @@ type OrganizationProviderProps = {
   presentation?: StatusPresentation
   children: ReactNode
 }
+
+/** How often the links list (clicks, status) refreshes while the tab is visible. */
+const LINKS_REFRESH_MS = 30_000
 
 /**
  * Loads the user's workspaces, then renders `children` inside the chosen one.
@@ -170,7 +174,14 @@ function OrganizationScope({
   const linksKey = QueryKeys.links(orgId)
   const foldersKey = QueryKeys.folders(orgId)
 
-  const linksQuery = useQuery({ queryKey: linksKey, queryFn: () => linksApi.listLinks(orgId) })
+  // Clicks land on the redirect path, outside this page, so the list refreshes
+  // itself: on a timer while the tab is visible, and when you come back to it.
+  const linksQuery = useQuery({
+    queryKey: linksKey,
+    queryFn: () => linksApi.listLinks(orgId),
+    refetchInterval: LINKS_REFRESH_MS,
+    refetchOnWindowFocus: true,
+  })
   const foldersQuery = useQuery({ queryKey: foldersKey, queryFn: () => linksApi.listFolders(orgId) })
   // Domains never block the workspace; without them links fall back to the app host.
   const domainsQuery = useQuery({ queryKey: QueryKeys.domains(orgId), queryFn: () => domainsApi.list(orgId) })
@@ -218,7 +229,7 @@ function OrganizationScope({
   const stats = useMemo<OrgDashboardStats>(
     () => ({
       totalLinks: links.length,
-      activeLinks: links.filter((link) => link.status === 'active').length,
+      activeLinks: links.filter((link) => LinkLiveStatus.current(link) === 'active' && !LinkLiveStatus.isExpired(link)).length,
       clicksToday: summary?.clicksToday ?? 0,
       clicksThisWeek: summary?.clicksThisWeek ?? 0,
       uniqueVisitorsWeek: summary?.uniqueVisitorsWeek ?? 0,
