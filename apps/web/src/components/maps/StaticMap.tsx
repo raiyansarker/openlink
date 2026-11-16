@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { AttributionControl, Map, useMap, type MapProps } from '@vis.gl/react-maplibre'
+import { Map, type MapProps } from '@vis.gl/react-maplibre'
 import { Card } from '@astryxdesign/core/Card'
 import { Center } from '@astryxdesign/core/Center'
 import { Text } from '@astryxdesign/core/Text'
@@ -63,39 +63,9 @@ export default function StaticMap({ height, label, children, ...view }: StaticMa
             if (!isReady) queueMicrotask(() => setHasError(true))
           }}
         >
-          {/*<CollapsedAttribution />*/}
           {children}
         </Map>
       )}
     </Card>
   )
-}
-
-/**
- * The OpenStreetMap and OpenFreeMap licences require attribution, so it stays
- * one tap away behind MapLibre's ⓘ. MapLibre expands the compact control the
- * first time it becomes compact; fold it once, then leave toggling to MapLibre.
- */
-function CollapsedAttribution() {
-  const { current: map } = useMap()
-
-  useEffect(() => {
-    const control = map?.getContainer().querySelector('.maplibregl-ctrl-attrib')
-    if (!control) return
-    const fold = () => {
-      if (!control.classList.contains('maplibregl-compact-show')) return false
-      control.classList.remove('maplibregl-compact-show')
-      return true
-    }
-    if (fold()) return
-    const observer = new MutationObserver(() => {
-      if (fold()) observer.disconnect()
-    })
-    observer.observe(control, { attributes: true, attributeFilter: ['class'] })
-    // A tap before MapLibre expands it means the person wants it open.
-    control.addEventListener('click', () => observer.disconnect(), { once: true })
-    return () => observer.disconnect()
-  }, [map])
-
-  return <AttributionControl compact />
 }
