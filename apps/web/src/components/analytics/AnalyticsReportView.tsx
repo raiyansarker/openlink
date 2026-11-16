@@ -37,8 +37,6 @@ type AnalyticsReportViewProps = {
   chartHeight?: number
   trafficView: TrafficView
   onTrafficViewChange: (view: TrafficView) => void
-  /** The live "Recent clicks" list; off for reports about a past period. */
-  showRecentClicks?: boolean
 }
 
 /** Every analytics panel for one report, with loading, error and no-clicks states. */
@@ -55,7 +53,6 @@ export default function AnalyticsReportView({
   chartHeight,
   trafficView,
   onTrafficViewChange,
-  showRecentClicks = true,
 }: AnalyticsReportViewProps) {
   if (error && !report) {
     return (
@@ -106,7 +103,7 @@ export default function AnalyticsReportView({
       </AnalyticsCard>
 
       <Grid columns={{ minWidth: 360, max: 2 }} gap={5} width="100%">
-        {isSingleLink ? null : <TopLinksCard rows={report.links} isComparing={isComparing} {...(onSelectLink ? { onSelect: onSelectLink } : {})} />}
+        {isSingleLink ? null : <TopLinksCard rows={report.links} isComparing={isComparing} onSelect={onSelectLink ?? (() => {})} />}
         {isSingleLink ? null : <DestinationsCard rows={report.destinations} isComparing={isComparing} />}
         <SourcesCard report={report} isComparing={isComparing} />
         <TechnologyCard report={report} isComparing={isComparing} />
@@ -124,7 +121,7 @@ export default function AnalyticsReportView({
         </AnalyticsCard>
       </Grid>
 
-      {showRecentClicks ? <RecentClicksCard organizationId={organizationId} linkId={linkId} /> : null}
+      <RecentClicksCard organizationId={organizationId} linkId={linkId} />
     </VStack>
   )
 }
