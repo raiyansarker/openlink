@@ -20,7 +20,8 @@ export default function AnalyticsCard({
   children,
 }: AnalyticsCardProps) {
   return (
-    <Card padding={5} style={{ width: '100%', minWidth: 0 }}>
+    // Fills its grid cell, so cards side by side are always the same height.
+    <Card padding={5} style={{ width: '100%', height: '100%', minWidth: 0 }}>
       <VStack gap={4} hAlign="stretch" width="100%">
         <HStack hAlign="between" vAlign="start" gap={3} width="100%" wrap="wrap">
           <VStack gap={0.5} hAlign="start">
