@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Selector } from '@astryxdesign/core/Selector'
+import { ShortUrl } from '#/lib/links/short-url'
 import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
@@ -30,9 +32,13 @@ type ImportLinksDialogProps = {
   folders: LinkFolder[]
   /** Rows without a (matching) folder go here — the folder being viewed. */
   defaultFolderId: string | null
+  /** Domains links can be imported onto (active ones); the app's own host is always offered. */
+  domains: { id: string; hostname: string }[]
   /** Creates one link; throws with a user-facing message on failure. */
   onCreate: (draft: CreateLinkDraft) => void | Promise<void>
 }
+
+const APP_HOST = '__app__'
 
 type Row = ImportRow & Record<string, unknown>
 
@@ -43,34 +49,43 @@ export default function ImportLinksDialog({
   links,
   folders,
   defaultFolderId,
+  domains,
   onCreate,
 }: ImportLinksDialogProps) {
   const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<ImportPreview | null>(null)
+  const [text, setText] = useState<string | null>(null)
+  const [domainChoice, setDomainChoice] = useState(APP_HOST)
+  const [tooLarge, setTooLarge] = useState(false)
   const [result, setResult] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
       setFile(null)
-      setPreview(null)
+      setText(null)
+      setTooLarge(false)
+      setDomainChoice(APP_HOST)
       setResult(null)
     }
   }, [isOpen])
 
+  const domainId = domainChoice === APP_HOST ? null : domainChoice
+  // Re-checked whenever the file or the domain changes: back-halves must be free on that domain.
+  const preview: ImportPreview | null = useMemo(() => {
+    if (tooLarge) return { ok: false, error: 'CSV files must be 1 MB or smaller.' }
+    return text == null ? null : previewImport(text, { links, folders, defaultFolderId, domainId })
+  }, [tooLarge, text, links, folders, defaultFolderId, domainId])
+
   const choose = (next: File | null) => {
     setFile(next)
     setResult(null)
-    if (!next) {
-      setPreview(null)
-      return
-    }
+    setText(null)
+    setTooLarge(false)
+    if (!next) return
     if (next.size > MAX_IMPORT_BYTES) {
-      setPreview({ ok: false, error: 'CSV files must be 1 MB or smaller.' })
+      setTooLarge(true)
       return
     }
-    void next.text().then((text) =>
-      setPreview(previewImport(text, { links, folders, defaultFolderId })),
-    )
+    void next.text().then(setText)
   }
 
   const importValid = async () => {
@@ -87,7 +102,7 @@ export default function ImportLinksDialog({
       }
     }
     setFile(null)
-    setPreview(null)
+    setText(null)
     setResult(
       `Created ${created} ${created === 1 ? 'link' : 'links'}.` +
         (failures.length > 0 ? ` ${failures.length} couldn’t be created.` : ''),
@@ -126,6 +141,17 @@ export default function ImportLinksDialog({
                 description="Columns: destination (required), slug, title, tags (separated by |), folder (e.g. Docs / Guides), notes."
                 value={file}
                 onChange={(files) => choose(Array.isArray(files) ? (files[0] ?? null) : files)}
+                width="100%"
+              />
+              <Selector
+                label="Domain"
+                description="Every imported link goes on this domain."
+                options={[
+                  { value: APP_HOST, label: `${ShortUrl.appHost() || 'App domain'} (default)` },
+                  ...domains.map((d) => ({ value: d.id, label: d.hostname })),
+                ]}
+                value={domainChoice}
+                onChange={setDomainChoice}
                 width="100%"
               />
               <Text type="supporting" color="secondary">
