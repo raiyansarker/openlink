@@ -71,4 +71,25 @@ export const AnalyticsSummary = type({
   'topReferrer?': 'string',
 })
 
+export const RecentClicksQuery = type({
+  'linkId?': 'string',
+  'limit?': type('string.integer.parse').to('1 <= number.integer <= 50'),
+})
+
+/** One recent click. Visitors are never identified: there is no IP or visitor id here. */
+export const RecentClick = type({
+  id: 'string',
+  occurredAt: 'string',
+  link: type({ id: 'string', slug: 'string', 'title?': 'string' }),
+  channel: ClickChannel,
+  'referrerHost?': 'string',
+  'country?': 'string',
+  'city?': 'string',
+  device: 'string',
+  browser: 'string',
+  os: 'string',
+})
+
+export const RecentClicksResponse = type({ items: RecentClick.array() })
+
 export { OrganizationIdPath }
