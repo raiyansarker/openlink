@@ -46,7 +46,6 @@ import { Route as WOrgSlugDomainsRouteRouteImport } from './routes/w/$orgSlug/do
 import { Route as WOrgSlugNotificationsRouteImport } from './routes/w/$orgSlug/notifications'
 import { Route as WOrgSlugReportsRouteImport } from './routes/w/$orgSlug/reports'
 import { Route as WOrgSlugSettingsRouteRouteImport } from './routes/w/$orgSlug/settings/route'
-import { Route as ApiReportsOrganizationIdExportRouteImport } from './routes/api/reports/$organizationId/export'
 import { Route as WOrgSlugDomainsIndexRouteImport } from './routes/w/$orgSlug/domains/index'
 import { Route as WOrgSlugDomainsNewRouteImport } from './routes/w/$orgSlug/domains/new'
 import { Route as WOrgSlugLinksIndexRouteImport } from './routes/w/$orgSlug/links/index'
@@ -244,12 +243,6 @@ const WOrgSlugSettingsRouteRoute = WOrgSlugSettingsRouteRouteImport.update({
   path: '/settings',
   getParentRoute: () => WOrgSlugRouteRoute,
 } as any)
-const ApiReportsOrganizationIdExportRoute =
-  ApiReportsOrganizationIdExportRouteImport.update({
-    id: '/api/reports/$organizationId/export',
-    path: '/api/reports/$organizationId/export',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const WOrgSlugDomainsIndexRoute = WOrgSlugDomainsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -330,7 +323,6 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
   '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
-  '/api/reports/$organizationId/export': typeof ApiReportsOrganizationIdExportRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
   '/w/$orgSlug/settings/$': typeof WOrgSlugSettingsSplatRoute
@@ -372,7 +364,6 @@ export interface FileRoutesByTo {
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
   '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
   '/w/$orgSlug': typeof WOrgSlugIndexRoute
-  '/api/reports/$organizationId/export': typeof ApiReportsOrganizationIdExportRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
   '/w/$orgSlug/settings/$': typeof WOrgSlugSettingsSplatRoute
@@ -421,7 +412,6 @@ export interface FileRoutesById {
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
   '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
-  '/api/reports/$organizationId/export': typeof ApiReportsOrganizationIdExportRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
   '/w/$orgSlug/settings/$': typeof WOrgSlugSettingsSplatRoute
@@ -470,7 +460,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/notifications'
     | '/w/$orgSlug/reports'
     | '/w/$orgSlug/'
-    | '/api/reports/$organizationId/export'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
     | '/w/$orgSlug/settings/$'
@@ -512,7 +501,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/notifications'
     | '/w/$orgSlug/reports'
     | '/w/$orgSlug'
-    | '/api/reports/$organizationId/export'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
     | '/w/$orgSlug/settings/$'
@@ -560,7 +548,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/notifications'
     | '/w/$orgSlug/reports'
     | '/w/$orgSlug/'
-    | '/api/reports/$organizationId/export'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
     | '/w/$orgSlug/settings/$'
@@ -589,7 +576,6 @@ export interface RootRouteChildren {
   ApiMediaSplatRoute: typeof ApiMediaSplatRoute
   ApiUploadsAvatarRoute: typeof ApiUploadsAvatarRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
-  ApiReportsOrganizationIdExportRoute: typeof ApiReportsOrganizationIdExportRoute
   ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute: typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
   ApiUploadsOrganizationsOrganizationIdLogoRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
@@ -855,13 +841,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WOrgSlugSettingsRouteRouteImport
       parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/api/reports/$organizationId/export': {
-      id: '/api/reports/$organizationId/export'
-      path: '/api/reports/$organizationId/export'
-      fullPath: '/api/reports/$organizationId/export'
-      preLoaderRoute: typeof ApiReportsOrganizationIdExportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/w/$orgSlug/domains/': {
       id: '/w/$orgSlug/domains/'
       path: '/'
@@ -1052,7 +1031,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaSplatRoute: ApiMediaSplatRoute,
   ApiUploadsAvatarRoute: ApiUploadsAvatarRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
-  ApiReportsOrganizationIdExportRoute: ApiReportsOrganizationIdExportRoute,
   ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute:
     ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute,
   ApiUploadsOrganizationsOrganizationIdLogoRoute:
