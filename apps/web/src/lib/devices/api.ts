@@ -5,7 +5,7 @@ import { UserAgent } from './user-agent'
 
 type DeviceSessionDto = Awaited<ReturnType<OpenLinkClient['account']['listDeviceSessions']>>['items'][number]
 
-const METHOD_LABEL: Record<string, string> = { google: 'Google', github: 'GitHub', email: 'Email and password' }
+const METHOD_LABEL: Record<string, string> = { google: 'Google', github: 'GitHub', email: 'Email and password', passkey: 'Passkey' }
 const regionNames = typeof Intl !== 'undefined' && 'DisplayNames' in Intl ? new Intl.DisplayNames(['en'], { type: 'region' }) : null
 
 /** API sessions → the shape the Devices screen renders. */

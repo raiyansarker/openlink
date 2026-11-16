@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type SVGProps } from 'react'
+import { useEffect, useState, type FormEvent, type SVGProps } from 'react'
 import { getRouteApi, useRouter } from '@tanstack/react-router'
 import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
@@ -164,6 +164,34 @@ function ProviderIcon({ provider }: { provider: 'google' | 'github' }) {
   )
 }
 
+/** A key with a person's head: the common passkey mark. */
+function PasskeyIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="9" cy="7.5" r="3.5" />
+      <path d="M2.5 20v-1.5A5.5 5.5 0 0 1 8 13h2" />
+      <circle cx="17" cy="13.5" r="2.5" />
+      <path d="M17 16v5l1.5-1.2L17 18.6" />
+    </svg>
+  )
+}
+
+/** Whether this browser can use passkeys at all, and with autofill. */
+class PasskeySupport {
+  static isAvailable(): boolean {
+    return typeof window !== 'undefined' && typeof window.PublicKeyCredential === 'function'
+  }
+
+  static async canAutofill(): Promise<boolean> {
+    if (!PasskeySupport.isAvailable()) return false
+    const check = (window.PublicKeyCredential as unknown as { isConditionalMediationAvailable?: () => Promise<boolean> })
+      .isConditionalMediationAvailable
+    return typeof check === 'function' ? check().catch(() => false) : false
+  }
+}
+
+type Mode = 'signIn' | 'signUp'
+
 function EyeIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -180,12 +208,58 @@ export default function LoginPage() {
   const { providers, emailPassword } = routeApi.useRouteContext()
   const destination = LoginRedirect.sanitize(search.redirect)
 
+  const [mode, setMode] = useState<Mode>('signIn')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [hasPasskeys, setHasPasskeys] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState(AuthErrorMessages.oauth(search.error) ?? '')
-  const [pending, setPending] = useState<'email' | 'google' | 'github' | null>(null)
+  const [pending, setPending] = useState<'email' | 'google' | 'github' | 'passkey' | null>(null)
+  const isSignUp = mode === 'signUp'
+
+  const finish = async () => {
+    AuthSession.invalidate()
+    await router.navigate({ href: destination, replace: true })
+  }
+
+  // Passkeys show up in the email field's autofill when the browser supports it.
+  useEffect(() => {
+    setHasPasskeys(PasskeySupport.isAvailable())
+    let cancelled = false
+    void PasskeySupport.canAutofill().then(async (canAutofill) => {
+      if (!canAutofill || cancelled) return
+      const { data, error: passkeyError } = await AuthSession.client.signIn.passkey({ autoFill: true })
+      if (cancelled) return
+      if (data && !passkeyError) await finish()
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function handlePasskey() {
+    if (pending) return
+    setError('')
+    setNotice('')
+    setPending('passkey')
+    try {
+      const { data, error: passkeyError } = await AuthSession.client.signIn.passkey()
+      if (passkeyError || !data) {
+        const message = AuthErrorMessages.passkey(passkeyError)
+        if (message) setError(message)
+        return
+      }
+      await finish()
+    } catch (caught) {
+      const message = AuthErrorMessages.passkey(caught instanceof Error ? { message: `${caught.name} ${caught.message}` } : undefined)
+      if (message) setError(message)
+    } finally {
+      setPending(null)
+    }
+  }
 
   const enabledProviders = (['google', 'github'] as const).filter((name) => providers[name])
 
@@ -196,15 +270,26 @@ export default function LoginPage() {
     setNotice('')
     setPending('email')
     try {
-      const { error: signInError } = await AuthSession.client.signIn.email({ email: email.trim(), password })
-      if (signInError) {
-        setError(AuthErrorMessages.emailSignIn(signInError))
-        return
+      if (isSignUp) {
+        const { error: signUpError } = await AuthSession.client.signUp.email({
+          name: name.trim() || email.trim().split('@')[0]!,
+          email: email.trim(),
+          password,
+        })
+        if (signUpError) {
+          setError(AuthErrorMessages.emailSignUp(signUpError))
+          return
+        }
+      } else {
+        const { error: signInError } = await AuthSession.client.signIn.email({ email: email.trim(), password })
+        if (signInError) {
+          setError(AuthErrorMessages.emailSignIn(signInError))
+          return
+        }
       }
-      AuthSession.invalidate()
-      await router.navigate({ href: destination, replace: true })
+      await finish()
     } catch {
-      setError(AuthErrorMessages.emailSignIn(undefined))
+      setError(isSignUp ? AuthErrorMessages.emailSignUp(undefined) : AuthErrorMessages.emailSignIn(undefined))
     } finally {
       setPending(null)
     }
@@ -284,11 +369,28 @@ export default function LoginPage() {
           <VStack gap={6} className="openlink-login-form">
             <VStack gap={6}>
               <VStack gap={2}>
-                <Heading level={1} className="openlink-login-heading">Welcome back</Heading>
-                <Text color="secondary" size="sm">{emailPassword ? 'Sign in to your OpenLink workspace.' : 'Sign in with Google or GitHub to continue.'}</Text>
+                <Heading level={1} className="openlink-login-heading">{isSignUp ? 'Create your account' : 'Welcome back'}</Heading>
+                <Text color="secondary" size="sm">
+                  {isSignUp
+                    ? 'Start shortening links in a minute.'
+                    : emailPassword
+                      ? 'Sign in to your OpenLink workspace.'
+                      : 'Sign in with Google or GitHub to continue.'}
+                </Text>
               </VStack>
 
               <VStack gap={5}>
+                {hasPasskeys && !isSignUp ? (
+                  <Button
+                    label="Sign in with a passkey"
+                    size="md"
+                    width="100%"
+                    icon={<PasskeyIcon />}
+                    isLoading={pending === 'passkey'}
+                    isDisabled={pending !== null}
+                    onClick={() => void handlePasskey()}
+                  />
+                ) : null}
                 {enabledProviders.length > 0 && (
                   <>
                     <Grid columns={enabledProviders.length === 1 ? 1 : 2} gap={3}>
@@ -306,7 +408,7 @@ export default function LoginPage() {
                       ))}
                     </Grid>
                     {emailPassword ? (
-                      <Divider label={<Text size="xsm" color="secondary">or sign in with email</Text>} />
+                      <Divider label={<Text size="xsm" color="secondary">{isSignUp ? 'or sign up with email' : 'or sign in with email'}</Text>} />
                     ) : null}
                   </>
                 )}
@@ -317,13 +419,25 @@ export default function LoginPage() {
               {/* POST so credentials can never end up in the URL if this is submitted before hydration. */}
               <form method="post" onSubmit={handleSubmit}>
                 <VStack gap={5}>
+                  {isSignUp ? (
+                    <TextInput
+                      label="Your name"
+                      placeholder="Ada Lovelace"
+                      value={name}
+                      onChange={setName}
+                      autoComplete="name"
+                      htmlName="name"
+                      width="100%"
+                    />
+                  ) : null}
                   <TextInput
                     label="Email address"
                     type="email"
                     placeholder="you@company.com"
                     value={email}
                     onChange={setEmail}
-                    autoComplete="username"
+                    // "webauthn" lets the browser offer saved passkeys right here.
+                    autoComplete={isSignUp ? 'email' : 'username webauthn'}
                     autoCapitalize="none"
                     hasSpellCheck={false}
                     htmlName="email"
@@ -335,10 +449,10 @@ export default function LoginPage() {
                       <TextInput
                         label="Password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Enter your password"
+                        placeholder={isSignUp ? 'At least 8 characters' : 'Enter your password'}
                         value={password}
                         onChange={setPassword}
-                        autoComplete="current-password"
+                        autoComplete={isSignUp ? 'new-password' : 'current-password webauthn'}
                         htmlName="password"
                         width="100%"
                         controlStyle={{ paddingInlineEnd: 'var(--spacing-10)' }}
@@ -356,6 +470,7 @@ export default function LoginPage() {
                         onClick={() => setShowPassword((visible) => !visible)}
                       />
                     </VStack>
+                    {isSignUp ? null : (
                     <HStack hAlign="end">
                       <Link
                         href="#login-notice"
@@ -369,9 +484,10 @@ export default function LoginPage() {
                         Forgot password?
                       </Link>
                     </HStack>
+                    )}
                   </VStack>
                   <Button
-                    label="Sign in"
+                    label={isSignUp ? 'Create account' : 'Sign in'}
                     variant="primary"
                     type="submit"
                     width="100%"
@@ -390,9 +506,28 @@ export default function LoginPage() {
               ) : null}
             </VStack>
 
-            <Text size="xsm" color="secondary" justify="center">
-              New here? Signing in creates your account.
-            </Text>
+            {emailPassword ? (
+              <Text size="xsm" color="secondary" justify="center">
+                {isSignUp ? 'Already have an account? ' : 'New here? '}
+                <Link
+                  href={isSignUp ? '#sign-in' : '#sign-up'}
+                  size="xsm"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    setMode(isSignUp ? 'signIn' : 'signUp')
+                    setError('')
+                    setNotice('')
+                  }}
+                >
+                  {isSignUp ? 'Sign in' : 'Create an account'}
+                </Link>
+                {isSignUp ? null : ' · Google and GitHub create one on first sign-in.'}
+              </Text>
+            ) : (
+              <Text size="xsm" color="secondary" justify="center">
+                New here? Signing in creates your account.
+              </Text>
+            )}
 
             <Section id="login-notice" variant="transparent" padding={0} role="status" aria-live="polite">
               {error ? (
