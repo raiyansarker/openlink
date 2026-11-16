@@ -6,8 +6,10 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react'
+import { useToast } from '@astryxdesign/core/Toast'
 import { use$ } from '@legendapp/state/react'
 import { MAX_LINK_NOTES_LENGTH } from '@openlink/contracts'
 import { useAnalyticsSummary } from '#/hooks/use-analytics'
@@ -47,6 +49,8 @@ import {
   WorkspaceDirectoryProvider,
 } from '#/contexts/WorkspaceDirectoryContext'
 import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
+import { WorkspaceDeparture } from '#/lib/dashboard/workspace-departure'
 
 type OrganizationContextValue = {
   organizations: Organization[]
@@ -121,6 +125,39 @@ function WorkspaceGate({ orgSlugFromRoute, presentation = 'page', children }: Or
   const navigate = useNavigate()
   const activeOrg = status === 'ready' ? ActiveWorkspace.pick(organizations, orgSlugFromRoute) : null
   const hasNoWorkspaces = status === 'ready' && organizations.length === 0
+  const showToast = useToast()
+
+  // The workspace we were just in. If it drops out of the list while we're on
+  // its pages, we were removed from it (or it was deleted or renamed).
+  const lastActive = useRef<Organization | null>(null)
+  const departure = useMemo(
+    () =>
+      status === 'ready' && !activeOrg && orgSlugFromRoute && lastActive.current?.slug === orgSlugFromRoute
+        ? WorkspaceDeparture.of(lastActive.current, organizations)
+        : null,
+    [status, activeOrg, orgSlugFromRoute, organizations],
+  )
+
+  useEffect(() => {
+    if (activeOrg) lastActive.current = activeOrg
+  }, [activeOrg])
+
+  useEffect(() => {
+    if (!departure) return
+    if (departure.kind === 'renamed') {
+      // Same workspace, new URL: follow it, keeping the section you were on.
+      const next = WorkspaceUrl.replaceOrg(window.location.pathname, departure.to.slug)
+      void navigate({ href: `${next}${window.location.search}`, replace: true })
+      return
+    }
+    lastActive.current = null
+    showToast({
+      body: `You no longer have access to ${departure.from.name}.`,
+      uniqueID: `left-${departure.from.id}`,
+    })
+    // `/w` opens one of your other workspaces, or sets up a new one.
+    void navigate({ to: '/w', replace: true })
+  }, [departure, navigate, showToast])
 
   useEffect(() => {
     if (activeOrg) ActiveWorkspace.remember(activeOrg.slug)
@@ -133,7 +170,7 @@ function WorkspaceGate({ orgSlugFromRoute, presentation = 'page', children }: Or
   if (status === 'error') {
     return <WorkspaceStatusScreen presentation={presentation} state="error" message={errorMessage ?? 'Try again.'} onRetry={refetch} />
   }
-  if (status === 'loading' || hasNoWorkspaces) return <WorkspaceStatusScreen presentation={presentation} state="loading" />
+  if (status === 'loading' || hasNoWorkspaces || departure) return <WorkspaceStatusScreen presentation={presentation} state="loading" />
   if (!activeOrg) return presentation === 'inline' ? <WorkspaceStatusScreen presentation="inline" state="missing" /> : <NotFoundPage />
   return (
     <OrganizationScope activeOrg={activeOrg} presentation={presentation}>
