@@ -184,7 +184,7 @@ export class VanityDomainView {
         title: hostname,
         eyebrow: 'Branded short links',
         heading: hostname,
-        body: 'Every link here is created and managed by the owner of this domain. Open the full link you were given and it takes you straight to its destination.',
+        body: 'Short links, managed by the owner of this domain.',
         illustration: <EmptyLinksIllustration width={220} />,
         content: credit,
       }),
