@@ -5,6 +5,9 @@ import { DomainIdPath, RedirectStatus } from '../domains/schema'
 import { LinkHold, LinkTargeting, SocialPreview } from './delivery'
 import { OrganizationIdPath } from '../organizations/schema'
 
+/** Team notes on a link (stored as its `description`). */
+export const MAX_LINK_NOTES_LENGTH = 5000
+
 export const LinkStatus = type(
   "'draft' | 'scheduled' | 'active' | 'paused' | 'expired' | 'disabled'",
 )
@@ -60,7 +63,7 @@ export const CreateLinkRequest = type({
   'folderId?': 'string | null',
   destinationUrl: HttpUrl,
   'title?': 'string',
-  'description?': 'string',
+  'description?': `string <= ${MAX_LINK_NOTES_LENGTH}`,
   'redirectStatus?': RedirectStatus,
   'activateAt?': 'string',
   'expiresAt?': 'string',
@@ -83,7 +86,7 @@ export const UpdateLinkRequest = type({
   'destinationUrl?': HttpUrl,
   'title?': 'string',
   /** For every optional setting below, null removes it and an absent field keeps it. */
-  'description?': 'string | null',
+  'description?': type(`string <= ${MAX_LINK_NOTES_LENGTH}`).or('null'),
   'redirectStatus?': RedirectStatus,
   'status?': LinkStatus,
   'enabled?': 'boolean',
