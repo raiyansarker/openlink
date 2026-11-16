@@ -1,6 +1,7 @@
 import { VStack } from '@astryxdesign/core/VStack'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Heading } from '@astryxdesign/core/Heading'
+import { Section } from '@astryxdesign/core/Section'
 import { Button } from '@astryxdesign/core/Button'
 import { Text } from '@astryxdesign/core/Text'
 import CreateLinkChromeButton from '#/components/dashboard/CreateLinkChromeButton'
@@ -17,13 +18,9 @@ export default function DashboardOverview() {
   const analyticsPath = WorkspaceUrl.build(activeOrg.slug, 'analytics')
 
   return (
-    <VStack
-      gap={10}
-      width="fill"
-      paddingBlockStart={8}
-      paddingInline={8}
-      paddingBlockEnd={10}
-    >
+    // A Section (not a padded stack) so the recent-links table bleeds to its edges, like the links page.
+    <Section paddingInline={8} paddingBlockStart={8} paddingBlockEnd={10}>
+    <VStack gap={10} width="fill">
       <HStack hAlign="between" vAlign="center" gap={4} wrap="wrap" width="fill">
         <VStack gap={2}>
           <Heading level={1}>Overview</Heading>
@@ -61,7 +58,7 @@ export default function DashboardOverview() {
 
       <VStack
         as="section"
-        gap={5}
+        gap={10}
         width="fill"
         aria-labelledby="overview-recent-links"
       >
@@ -89,5 +86,6 @@ export default function DashboardOverview() {
         <DashboardRecentLinksTable />
       </VStack>
     </VStack>
+    </Section>
   )
 }
