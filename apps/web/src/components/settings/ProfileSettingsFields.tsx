@@ -11,6 +11,7 @@ import { Avatar } from '@astryxdesign/core/Avatar'
 import { Spinner } from '@astryxdesign/core/Spinner'
 
 import ChangePasswordDialog from '#/components/settings/ChangePasswordDialog'
+import PasskeysSettingsBlock from '#/components/settings/PasskeysSettingsBlock'
 import DeleteAccountDialog from '#/components/settings/DeleteAccountDialog'
 import { useCurrentUser, useLinkedAccounts, useRefreshCurrentUser } from '#/hooks/use-current-user'
 import { ProfileApi, ProfileError } from '#/lib/profile/api'
@@ -288,6 +289,13 @@ export default function ProfileSettingsFields() {
           </VStack>
         ) : null}
         {accounts.isError ? <Status message="Could not load your sign-in methods." tone="error" /> : null}
+      </ProfileBlock>
+
+      <ProfileBlock
+        title="Passkeys"
+        description="Sign in with Face ID, Touch ID, Windows Hello or a security key instead of a password."
+      >
+        <PasskeysSettingsBlock />
       </ProfileBlock>
 
       <ProfileBlock
