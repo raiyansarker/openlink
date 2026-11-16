@@ -32,7 +32,23 @@ type QrModel = {
   badge: { x: number; size: number }
 }
 
-function buildModel(value: string): QrModel {
+/**
+ * The URL a QR code encodes: the short link plus `?qr`, so the redirect engine
+ * can count scans separately. The visitor still lands on the same destination.
+ */
+export function qrTarget(shortUrl: string): string {
+  try {
+    const url = new URL(shortUrl)
+    if (!url.searchParams.has('qr')) url.searchParams.set('qr', '')
+    // `?qr` rather than `?qr=`, which encodes to a smaller code.
+    return url.toString().replace(/([?&]qr)=(?=&|$)/, '$1')
+  } catch {
+    return shortUrl
+  }
+}
+
+function buildModel(shortUrl: string): QrModel {
+  const value = qrTarget(shortUrl)
   const qr = qrcode(0, 'H')
   qr.addData(value)
   qr.make()
