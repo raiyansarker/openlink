@@ -15,13 +15,25 @@ export class AnalyticsWindow {
   static readonly HOURS: Record<AnalyticsRange, number> = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30, '90d': 24 * 90 }
 
   private constructor(
-    readonly range: AnalyticsRange,
+    readonly range: AnalyticsRange | 'month',
     readonly bucket: 'hour' | 'day',
     /** Viewer's UTC offset in ms. */
     readonly offset: number,
     readonly start: number,
     readonly end: number,
+    /** Where the comparison period starts; defaults to the same length right before `start`. */
+    private readonly comparedFrom?: number,
   ) {}
+
+  /**
+   * One calendar month (`monthIndex` 0-11) in the viewer's time zone, by day,
+   * compared with the calendar month before it.
+   */
+  static month(year: number, monthIndex: number, tzOffsetMinutes = 0): AnalyticsWindow {
+    const offset = tzOffsetMinutes * 60_000
+    const at = (m: number) => Date.UTC(year, m, 1) - offset
+    return new AnalyticsWindow('month', 'day', offset, at(monthIndex), at(monthIndex + 1), at(monthIndex - 1))
+  }
 
   /**
    * `range` worth of whole buckets ending with the one in progress, so a click
@@ -40,7 +52,11 @@ export class AnalyticsWindow {
     return this.end - this.start
   }
   get previousStart() {
-    return this.start - this.length
+    return this.comparedFrom ?? this.start - this.length
+  }
+  /** How far the comparison period is moved to line up with this one. */
+  get previousShift() {
+    return this.start - this.previousStart
   }
   get bucketSize() {
     return this.bucket === 'hour' ? HOUR : DAY
@@ -59,7 +75,8 @@ export class AnalyticsWindow {
   }
 }
 
-type Scope = { organizationId: string; linkId?: string }
+/** A workspace, one link, or a set of links (e.g. a campaign's). */
+export type Scope = { organizationId: string; linkId?: string; linkIds?: readonly string[] }
 
 /** Breakdowns keep the previous period's count beside the current one. */
 type Counted = { key: string; current: number; previous: number }
@@ -67,9 +84,13 @@ type Counted = { key: string; current: number; previous: number }
 /** Workspace or link analytics from the stored clicks. */
 export class AnalyticsReports {
   static build(scope: Scope, range: AnalyticsRange, tzOffsetMinutes = 0, now = new Date()) {
+    return AnalyticsReports.buildFor(scope, AnalyticsWindow.of(range, now, tzOffsetMinutes))
+  }
+
+  /** The report for any window, e.g. a calendar month. */
+  static buildFor(scope: Scope, window: AnalyticsWindow) {
     return Effect.gen(function* () {
       const db = yield* Db
-      const window = AnalyticsWindow.of(range, now, tzOffsetMinutes)
       const inWindow = AnalyticsReports.where(scope, window.previousStart, window.end)
       const isCurrent = sql<number>`case when ${linkClick.occurredAt} >= ${window.start} then 1 else 0 end`
       // D1 binds JS numbers as REAL, so cast: integer division is what makes buckets.
@@ -177,6 +198,8 @@ export class AnalyticsReports {
     return and(
       eq(linkClick.organizationId, scope.organizationId),
       scope.linkId ? eq(linkClick.linkId, scope.linkId) : undefined,
+      // An empty set (a campaign with no links) matches nothing.
+      scope.linkIds ? (scope.linkIds.length > 0 ? inArray(linkClick.linkId, [...scope.linkIds]) : sql`0`) : undefined,
       gte(linkClick.occurredAt, new Date(from)),
       lt(linkClick.occurredAt, new Date(to)),
     )!
@@ -233,7 +256,8 @@ export class AnalyticsReports {
         current.set(start, { clicks: Number(point.clicks), unique: Number(point.unique), qr: Number(point.qr ?? 0) })
       } else {
         // Shift the previous window onto this one's time axis.
-        previous.set(start + window.length, (previous.get(start + window.length) ?? 0) + Number(point.clicks))
+        const shifted = start + window.previousShift
+        previous.set(shifted, (previous.get(shifted) ?? 0) + Number(point.clicks))
       }
     }
     const byChannel = new Map<string, number>()

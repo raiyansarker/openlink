@@ -156,6 +156,11 @@ mock.module('#/server/analytics/report', () => ({
   AnalyticsSummaries: { build: buildSummary },
   RecentClicks: { list: listRecent },
 }))
+const monthlyReport = mock((input: { month: string; campaign?: string }) =>
+  Effect.succeed({ month: input.month, ...(input.campaign ? { campaign: input.campaign, linkCount: 2 } : {}), newLinks: 4, report: { ...emptyReport, range: 'month' } }),
+)
+const listCampaigns = mock((_organizationId: string) => Effect.succeed([{ name: 'spring-launch', links: 2 }]))
+mock.module('#/server/reports/service', () => ({ Reports: { monthly: monthlyReport, campaigns: listCampaigns } }))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
 const { handleOpenApiRequest } = await import('./openapi-handler')
@@ -177,7 +182,7 @@ const spies = [
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
   listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, summarizeTarget, audit, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
-  buildReport, buildSummary, frameable, listRecent, listInvitesForEmail,
+  buildReport, buildSummary, frameable, listRecent, listInvitesForEmail, monthlyReport, listCampaigns,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -1135,6 +1140,32 @@ describe('analytics', () => {
     expect((await request('GET', `${orgPath}/analytics?range=1y`)).status).toBe(400)
     expect((await request('GET', `${orgPath}/analytics?tzOffset=9999`)).status).toBe(400)
     expect(buildReport).not.toHaveBeenCalled()
+  })
+})
+
+describe('reports', () => {
+  test('every member can read a month, for the workspace or one campaign, in their time zone', async () => {
+    role = 'viewer'
+    const response = await request('GET', `${orgPath}/reports/monthly?month=2026-11&tzOffset=360`)
+    expect(response.status).toBe(200)
+    expect(monthlyReport).toHaveBeenLastCalledWith({ organizationId: org.id, month: '2026-11', tzOffsetMinutes: 360 })
+    expect(await response.json()).toMatchObject({ month: '2026-11', newLinks: 4, report: { range: 'month' } })
+    expect((await request('GET', `${orgPath}/reports/monthly?month=2026-11&campaign=spring-launch`)).status).toBe(200)
+    expect(monthlyReport).toHaveBeenLastCalledWith({ organizationId: org.id, month: '2026-11', tzOffsetMinutes: 0, campaign: 'spring-launch' })
+    const campaigns = await request('GET', `${orgPath}/reports/campaigns`)
+    expect(await campaigns.json()).toEqual({ items: [{ name: 'spring-launch', links: 2 }] })
+  })
+
+  test('non-members and bad months are refused', async () => {
+    role = null
+    expect((await request('GET', `${orgPath}/reports/monthly?month=2026-11`)).status).toBe(403)
+    expect((await request('GET', `${orgPath}/reports/campaigns`)).status).toBe(403)
+    role = 'viewer'
+    for (const month of ['2026-13', '2026-1', 'november', '']) {
+      expect((await request('GET', `${orgPath}/reports/monthly?month=${month}`)).status).toBe(400)
+    }
+    expect((await request('GET', `${orgPath}/reports/monthly`)).status).toBe(400)
+    expect(monthlyReport).not.toHaveBeenCalled()
   })
 })
 

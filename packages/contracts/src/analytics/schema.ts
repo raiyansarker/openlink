@@ -32,7 +32,8 @@ export const BreakdownRow = type({
 })
 
 export const AnalyticsReport = type({
-  range: AnalyticsRange,
+  /** A rolling range, or `month` for a calendar-month report. */
+  range: AnalyticsRange.or("'month'"),
   bucket: "'hour' | 'day'",
   windowStart: 'string',
   windowEnd: 'string',
