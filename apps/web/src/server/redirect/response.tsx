@@ -62,12 +62,7 @@ export class PublicPage {
     'input:focus{outline:2px solid var(--accent);outline-offset:1px}',
     'button,.button{height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}',
     '.alert{margin:4px 0 0;color:light-dark(#b42318,#ff8a80);font-weight:500}',
-    '.promo{margin-top:28px;width:100%;padding:24px;border:1px solid var(--color-border);border-radius:16px;background:var(--color-background-surface);display:flex;flex-direction:column;align-items:center;gap:8px}',
-    '.promo p{margin:0}.promo-kicker{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-secondary)}',
-    '.promo-title{font-size:22px;font-weight:700;letter-spacing:-.02em}.promo-copy{color:var(--color-text-secondary)}',
-    '.features{list-style:none;margin:8px 0 12px;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:6px}',
-    '.features li{padding:4px 10px;border:1px solid var(--color-border);border-radius:999px;font-size:13px;color:var(--color-text-secondary)}',
-    '.maker{margin:16px 0 0;font-size:13px;color:var(--color-text-secondary)}.maker a{color:var(--color-text-primary);font-weight:600;text-decoration:none}.maker a:hover,.promo a.button:hover{text-decoration:underline}',
+    '.powered{margin:24px 0 0;padding-top:16px;border-top:1px solid var(--color-border);font-size:13px;color:var(--color-text-secondary)}.powered a{color:var(--color-text-primary);font-weight:600;text-decoration:none}.powered a:hover{text-decoration:underline}',
   ].join('')
 }
 
@@ -174,17 +169,15 @@ export class LinkMissingView {
 }
 
 /**
- * What a custom domain shows at its root (`go.brand.com/`, no back-half): it says the
- * address is a short-link domain and promotes OpenLink, with the maker's credit.
+ * What a custom domain shows at its root (`go.brand.com/`, no back-half): it
+ * explains the address is a short-link domain, with a quiet "powered by" link.
  * The workspace behind it stays private.
  */
 export class VanityDomainView {
-  /** Things OpenLink really does; keep in step with the product. */
-  private static readonly FEATURES = ['Your own domain', 'Click analytics', 'Password protection', 'Expiry and click limits', 'Device and country targeting']
-
-  static readonly MAKER = { name: 'Raiyan Sarker', url: 'https://github.com/raiyansarker' }
-
   static render(hostname: string, appOrigin: string | null): Response {
+    const credit = appOrigin
+      ? `<p class="powered">Powered by <a href="${PublicPage.escape(appOrigin)}" rel="noopener">OpenLink</a></p>`
+      : ''
     return PublicPage.html(
       200,
       PublicPage.branded({
@@ -193,22 +186,11 @@ export class VanityDomainView {
         heading: hostname,
         body: 'Short links, managed by the owner of this domain.',
         illustration: <EmptyLinksIllustration width={220} />,
-        content: `${appOrigin ? VanityDomainView.promo(appOrigin) : ''}${VanityDomainView.maker()}`,
+        content: credit,
       }),
       // A real page, unlike the 404s: fine to cache briefly at the edge.
       { 'cache-control': 'public, max-age=300' },
     )
-  }
-
-  private static promo(appOrigin: string) {
-    const origin = PublicPage.escape(appOrigin)
-    const features = VanityDomainView.FEATURES.map((f) => `<li>${PublicPage.escape(f)}</li>`).join('')
-    return `<section class="promo" aria-label="About OpenLink"><p class="promo-kicker">Powered by</p><p class="promo-title">OpenLink</p><p class="promo-copy">Short links on your own domain, with the numbers behind every click.</p><ul class="features">${features}</ul><a class="button" href="${origin}/signup" rel="noopener">Create your short links</a></section>`
-  }
-
-  private static maker() {
-    const { name, url } = VanityDomainView.MAKER
-    return `<p class="maker">Built by <a href="${PublicPage.escape(url)}" rel="noopener">${PublicPage.escape(name)}</a></p>`
   }
 }
 
