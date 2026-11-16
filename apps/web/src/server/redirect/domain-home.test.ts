@@ -37,6 +37,9 @@ describe('DomainHome', () => {
     const html = await response.text()
     expect(html).toContain('<h1>go.brand.com</h1>')
     expect(html).toContain('href="https://openlink.app"')
+    expect(html).toContain('Powered by')
+    // No made-up example address.
+    expect(html).not.toContain('class="example"')
     expect(response.headers.get('x-robots-tag')).toBe('noindex')
   })
 

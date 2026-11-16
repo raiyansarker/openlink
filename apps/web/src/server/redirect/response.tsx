@@ -62,9 +62,7 @@ export class PublicPage {
     'input:focus{outline:2px solid var(--accent);outline-offset:1px}',
     'button,.button{height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}',
     '.alert{margin:4px 0 0;color:light-dark(#b42318,#ff8a80);font-weight:500}',
-    ".example{margin:8px 0 0;padding:8px 14px;border-radius:10px;border:1px solid var(--color-border);background:var(--color-background-surface);font:500 15px/1.4 ui-monospace,'SF Mono',Menlo,monospace}",
-    '.example span{color:var(--color-text-secondary)}',
-    '.powered{margin-top:20px;font-size:13px}.powered a{color:inherit;font-weight:600}',
+    '.powered{margin:24px 0 0;padding-top:16px;border-top:1px solid var(--color-border);font-size:13px;color:var(--color-text-secondary)}.powered a{color:var(--color-text-primary);font-weight:600;text-decoration:none}.powered a:hover{text-decoration:underline}',
   ].join('')
 }
 
@@ -177,19 +175,18 @@ export class LinkMissingView {
  */
 export class VanityDomainView {
   static render(hostname: string, appOrigin: string | null): Response {
-    const host = PublicPage.escape(hostname)
-    const poweredBy = appOrigin
-      ? `<p class="body powered">Short links by <a href="${PublicPage.escape(appOrigin)}" rel="noopener">OpenLink</a></p>`
+    const credit = appOrigin
+      ? `<p class="powered">Powered by <a href="${PublicPage.escape(appOrigin)}" rel="noopener">OpenLink</a></p>`
       : ''
     return PublicPage.html(
       200,
       PublicPage.branded({
         title: hostname,
-        eyebrow: 'Short-link domain',
+        eyebrow: 'Branded short links',
         heading: hostname,
-        body: `This domain is used for short links. Each one looks like ${hostname}/something and takes you straight to its page.`,
+        body: 'Every link here is created and managed by the owner of this domain. Open the full link you were given and it takes you straight to its destination.',
         illustration: <EmptyLinksIllustration width={220} />,
-        content: `<p class="example"><span>${host}/</span>launch</p>${poweredBy}`,
+        content: credit,
       }),
       // A real page, unlike the 404s: fine to cache briefly at the edge.
       { 'cache-control': 'public, max-age=300' },
