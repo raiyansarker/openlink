@@ -1,8 +1,11 @@
 /** Dashboard / settings shell surfaces — follow Astryx neutral tokens in light and dark. */
 export const DASHBOARD_SURFACE_BG = 'var(--color-background-body)'
 
-/** Column 1 — org switcher rail (dark chrome in both modes; sits between canvas and panel in dark). */
-export const DASHBOARD_RAIL_BG = 'light-dark(#161618, #101012)'
+/**
+ * Column 1 — org switcher rail (dark chrome in both modes). In dark mode it uses
+ * the content panel's surface (#18181b) so it stands off the page (#0c0c0e) like column 3.
+ */
+export const DASHBOARD_RAIL_BG = 'light-dark(#161618, #18181b)'
 export const DASHBOARD_RAIL_HOVER_BG = 'rgba(255, 255, 255, 0.07)'
 export const DASHBOARD_RAIL_SELECTED_BG = 'rgba(255, 255, 255, 0.08)'
 
