@@ -35,10 +35,7 @@
       "namespace_id": "1001",
       "simple": { "limit": 3, "period": 60 }
     }
-  ],
-  "vars": {
-    "DOMAIN_PROVIDER": "memory",
-    "BETTER_AUTH_URL": "http://localhost:3000",
-    "EXPOSE_INVITE_TOKENS_IN_API": "true"
-  }
+  ]
+  // No "vars": settings and secrets come from .dev.vars locally (see .dev.vars.example)
+  // and from the Worker's secrets in production, so deploys never overwrite them.
 }

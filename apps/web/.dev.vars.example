@@ -1,11 +1,17 @@
 BETTER_AUTH_SECRET=dev-only-change-me-use-openssl-rand-base64-32
 BOOTSTRAP_ORG_INVITE_TOKEN=local-bootstrap-invite-token
 
-# Invite create responses include the raw token only when this is true (keep false in production).
-# EXPOSE_INVITE_TOKENS_IN_API is set to "true" in wrangler.jsonc for local Workers dev.
+# The app's own origin: dashboard, sign-in and passkeys live here, and links
+# without a custom domain are served from it. No trailing slash.
+BETTER_AUTH_URL=http://localhost:3000
 
-# Use DOMAIN_PROVIDER=cloudflare with real credentials when testing SaaS hostnames.
-# DOMAIN_PROVIDER=memory is set in wrangler.jsonc for local development.
+# memory: domains are only simulated. cloudflare: real Cloudflare for SaaS (needs the CF_* values below).
+DOMAIN_PROVIDER=memory
+
+# "true" makes invite responses include the raw invite token, so you can accept
+# invites locally without email. Leave it unset (or "false") in production.
+EXPOSE_INVITE_TOKENS_IN_API=true
+
 CF_API_TOKEN=
 CF_ZONE_ID=
 CF_SAAS_CNAME_TARGET=

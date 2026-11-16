@@ -39,7 +39,7 @@ This project uses the Cloudflare Vite plugin (configured in `vite.config.ts`) an
 2. Authenticate: `wrangler login`
 3. Deploy: `npx wrangler deploy`
 
-For production env vars, run `wrangler secret put MY_VAR` for each secret listed in `.env.example`. Public (non-secret) vars go in `wrangler.jsonc` under `vars`.
+For production, set every value from `.dev.vars.example` (including `BETTER_AUTH_URL` and `DOMAIN_PROVIDER`) as a Worker secret with `wrangler secret put NAME` or in the dashboard. `wrangler.jsonc` deliberately has no `vars`: a deploy would overwrite dashboard variables, but never secrets.
 
 KV, D1, R2, and Durable Object bindings are configured in `wrangler.jsonc` — see https://developers.cloudflare.com/workers/wrangler/configuration/.
 
