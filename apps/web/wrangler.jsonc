@@ -28,6 +28,14 @@
       "dataset": "openlink_clicks"
     }
   ],
+  "ratelimits": [
+    {
+      // Wrong-password attempts on protected links, per link and visitor IP.
+      "name": "LINK_PASSWORD_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 }
+    }
+  ],
   "vars": {
     "DOMAIN_PROVIDER": "memory",
     "BETTER_AUTH_URL": "http://localhost:3000",
