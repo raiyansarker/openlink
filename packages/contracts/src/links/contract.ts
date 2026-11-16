@@ -3,6 +3,7 @@ import { type } from 'arktype'
 import { ListActivityResponse } from '../activity/schema'
 import { EmptyResponse } from '../system/schema'
 import { oc, openapi } from '../oc'
+import { HttpUrl } from '../schema-utils'
 import {
   AddLinkTagsRequest,
   BulkLinksResponse,
@@ -156,7 +157,19 @@ export const getWorkspaceLinkHistory = workspaceLinkOp('GET', 'getWorkspaceLinkH
   .input(type({ params: WorkspaceLinkIdPath }))
   .output(ListActivityResponse)
 
+const workspacePost = (operationId: string, path: `/${string}`, summary: string) =>
+  oc.meta(openapi({ method: 'POST', operationId, path, summary, inputStructure: 'detailed', tags: ['Links'] }))
+
+export const checkFraming = workspacePost(
+  'checkFraming',
+  '/organizations/{organizationId}/links/frame-check',
+  'Whether a destination can be shown in a frame (cloaked links fall back to a redirect when not)',
+)
+  .input(type({ params: OrganizationIdPath, body: type({ url: HttpUrl }) }))
+  .output(type({ frameable: 'boolean' }))
+
 export const contract = {
+  checkFraming,
   createWorkspaceLink,
   getWorkspaceLinkHistory,
   getWorkspaceLink,
