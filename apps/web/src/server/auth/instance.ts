@@ -4,6 +4,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import * as schema from '@openlink/db/schema'
 import { getBindings } from '../env'
 import { getDb } from '../db'
+import { AuthLog } from './auth-log'
 import { AuthHooks } from './hooks'
 import { AuthOrigins } from './origins'
 import { EmailPasswordSignIn, SocialProviders } from './providers'
@@ -84,6 +85,8 @@ function createAuth() {
     advanced: {
       cookiePrefix: 'openlink',
     },
+    logger: AuthLog.logger,
+    onAPIError: { onError: AuthLog.onAPIError },
   })
 }
 

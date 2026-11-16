@@ -1,7 +1,7 @@
 import { organization, user } from '@openlink/db/schema'
 import { ORPCError } from '@orpc/server'
 import { eq } from 'drizzle-orm'
-import { Data, Effect } from 'effect'
+import { Cause, Data, Effect } from 'effect'
 
 import { audit } from '../activity/audit'
 import { AuthOrigins } from '../auth/origins'
@@ -199,7 +199,7 @@ export class MediaUploads {
           const status = MediaUploads.ORPC_STATUS[error.code] ?? 400
           return Effect.succeed(Response.json({ message: error.message }, { status }))
         }
-        return Effect.logError(`media upload failed: ${String(error)}`).pipe(
+        return Effect.logError('media.upload_failed', Cause.fail(error)).pipe(
           Effect.as(Response.json({ message: 'The upload failed. Please try again.' }, { status: 500 })),
         )
       }),

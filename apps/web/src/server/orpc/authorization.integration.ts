@@ -161,7 +161,7 @@ mock.module('#/server/analytics/report', () => ({
   AnalyticsSummaries: { build: buildSummary },
   RecentClicks: { list: listRecent },
 }))
-mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
+mock.module('#/server/effect/runtime', () => ({ requestEffectContext, effectRuntime: { runPromise: Effect.runPromise } }))
 
 const { handleOpenApiRequest } = await import('./openapi-handler')
 const { ApiClient } = await import('#/lib/api/client')

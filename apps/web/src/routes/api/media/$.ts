@@ -7,7 +7,12 @@ import { MediaUploads } from '#/server/media/uploads'
 const serve = ({ params }: { params: { _splat?: string } }) =>
   effectRuntime.runPromise(
     MediaUploads.serve(params._splat ?? '').pipe(
-      Effect.catch(() => Effect.succeed(new Response('Unavailable', { status: 503, headers: { 'cache-control': 'no-store' } }))),
+      Effect.catchCause((cause) =>
+        Effect.logError('media.serve_failed', cause).pipe(
+          Effect.as(new Response('Unavailable', { status: 503, headers: { 'cache-control': 'no-store' } })),
+        ),
+      ),
+      Effect.annotateLogs({ key: params._splat ?? '' }),
     ),
   )
 
