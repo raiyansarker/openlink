@@ -5,7 +5,7 @@ import {
   getDashboardNavGroups,
   type DashboardNavItem,
 } from '#/lib/dashboard/nav-items'
-import { dashboardSectionFromPathname } from '#/lib/dashboard/build-org-path'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { useActivePathname } from '#/hooks/useActivePathname'
 import CreateLinkChromeButton from '#/components/dashboard/CreateLinkChromeButton'
 import {
@@ -129,7 +129,7 @@ function NavGroupLabel({ label, isFirst }: { label: string; isFirst: boolean }) 
 export default function DashboardNavColumn() {
   const { activeOrg } = useOrganization()
   const pathname = useActivePathname()
-  const section = dashboardSectionFromPathname(pathname, activeOrg.slug)
+  const section = WorkspaceUrl.sectionOf(pathname, activeOrg.slug)
   const groups = getDashboardNavGroups(activeOrg.slug)
   return (
     <div

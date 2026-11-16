@@ -65,6 +65,8 @@ function RootDocument({ children }: { children: ReactNode }) {
           <TanStackDevtools
             config={{
               position: 'bottom-right',
+              urlFlag: 'debug',
+              requireUrlFlag: true,
             }}
             plugins={[
               {

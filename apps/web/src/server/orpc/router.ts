@@ -9,6 +9,7 @@ import { getDomainInOrganization } from '#/server/api/access'
 import {
   toActivityDto,
   toApiKeyDto,
+  toDeviceSessionDto,
   toCommentDto,
   toDomainDto,
   toFolderDto,
@@ -58,6 +59,9 @@ import {
   toggleCommentReaction,
   updateComment,
 } from '#/server/comments/service'
+import { DeviceSessions } from '#/server/devices/sessions'
+import { MediaStore } from '#/server/media/media-store'
+import { ReservedSlugs } from '@openlink/contracts'
 import { runHealthChecks } from '#/server/health/checks'
 import { addTagsToLinks, deleteLinks, moveLinks } from '#/server/links/bulk'
 import { queryOrganizationLinks } from '#/server/links/queries'
@@ -65,6 +69,7 @@ import {
   createLinkRecord,
   deleteLinkRecord,
   getLinkInDomain,
+  getLinkInOrganization,
   listLinksForDomain,
   updateLinkRecord,
 } from '#/server/links/service'
@@ -250,6 +255,40 @@ export const router = os.router({
     }),
   },
 
+  account: {
+    // Cookie sessions only: an API key is not a device and must not sign people out.
+    listDeviceSessions: os.account.listDeviceSessions.effect(function* () {
+      const session = yield* requireAuthSession
+      const currentId = session.session.session.id
+      const rows = yield* DeviceSessions.list(session.session.user.id)
+      return { items: rows.map((row) => toDeviceSessionDto(row, currentId)) }
+    }),
+
+    revokeDeviceSession: os.account.revokeDeviceSession.effect(function* ({ input, errors }) {
+      const session = yield* requireAuthSession
+      yield* DeviceSessions.revoke({
+        userId: session.session.user.id,
+        sessionId: input.params.sessionId,
+        currentSessionId: session.session.session.id,
+      }).pipe(
+        Effect.catchTags({
+          DeviceSessionNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'That device is already signed out' })),
+          CannotRevokeCurrentSession: () => Effect.fail(errors.BAD_REQUEST({ message: 'Use Log out to sign out this device' })),
+        }),
+      )
+      return {}
+    }),
+
+    revokeOtherDeviceSessions: os.account.revokeOtherDeviceSessions.effect(function* () {
+      const session = yield* requireAuthSession
+      const revoked = yield* DeviceSessions.revokeOthers({
+        userId: session.session.user.id,
+        currentSessionId: session.session.session.id,
+      })
+      return { revoked }
+    }),
+  },
+
   apiKeys: {
     listApiKeys: os.apiKeys.listApiKeys.effect(function* ({ input }) {
       yield* requireOrgAdminUserEffect(input.params.organizationId)
@@ -376,7 +415,9 @@ export const router = os.router({
 
     deleteOrganization: os.organizations.deleteOrganization.effect(function* ({ input }) {
       yield* requireOrgOwnerEffect(input.params.organizationId)
+      const existing = yield* getOrganizationById(input.params.organizationId)
       yield* deleteOrganization(input.params.organizationId)
+      yield* MediaStore.removeQuietly(existing?.logoKey)
       return {}
     }),
 
@@ -718,6 +759,60 @@ export const router = os.router({
       return { affected }
     }),
 
+    createWorkspaceLink: os.links.createWorkspaceLink.effect(function* ({ input, errors }) {
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      const domainId = input.body.domainId ?? null
+      if (domainId) yield* requireDomain(input.params.organizationId, domainId)
+      // On the app host, a slug must not shadow an app page.
+      if (!domainId && input.body.slug && ReservedSlugs.isReserved(input.body.slug)) {
+        return yield* Effect.fail(errors.BAD_REQUEST({ message: `“${input.body.slug}” is reserved. Choose another back-half.` }))
+      }
+      yield* requireLinkFolder(input.params.organizationId, input.body.folderId, errors)
+      const { domainId: _ignored, ...body } = input.body
+      const row = yield* createLinkRecord({
+        ...body,
+        organizationId: input.params.organizationId,
+        domainId,
+        userId: principalUserId(session),
+        activateAt: body.activateAt ? new Date(body.activateAt) : undefined,
+        expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
+      }).pipe(Effect.catchTags({
+        SlugConflict: () => Effect.fail(errors.CONFLICT({ message: 'That back-half is already taken' })),
+        BackendError: () => Effect.fail(errors.BAD_REQUEST({ message: 'Unable to create link' })),
+      }))
+      yield* audit(session, {
+        organizationId: input.params.organizationId,
+        action: 'link.created',
+        target: { type: 'link', id: row.id, label: row.title || row.slug },
+      })
+      return toLinkDto(row)
+    }),
+
+    getWorkspaceLink: os.links.getWorkspaceLink.effect(function* ({ input, errors }) {
+      yield* requireOrgMemberEffect(input.params.organizationId)
+      const row = yield* getLinkInOrganization(input.params.organizationId, input.params.linkId)
+      if (!row) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Link not found' }))
+      return toLinkDto(row)
+    }),
+
+    updateWorkspaceLink: os.links.updateWorkspaceLink.effect(function* ({ input, errors }) {
+      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
+      yield* requireLinkFolder(input.params.organizationId, input.body.folderId, errors)
+      const existing = yield* getLinkInOrganization(input.params.organizationId, input.params.linkId)
+      if (!existing) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Link not found' }))
+      const updated = yield* updateLinkRecord(existing, input.body)
+      const changes = diffLink(existing, updated)
+      if (changes.length > 0) {
+        yield* audit(session, {
+          organizationId: input.params.organizationId,
+          action: linkUpdateAction(changes),
+          target: { type: 'link', id: updated.id, label: updated.title || updated.slug },
+          changes,
+        })
+      }
+      return toLinkDto(updated)
+    }),
+
     listLinks: os.links.listLinks.effect(function* ({ input }) {
       yield* requireOrgMemberEffect(input.params.organizationId)
       yield* requireDomain(input.params.organizationId, input.params.domainId)
@@ -729,8 +824,9 @@ export const router = os.router({
       const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
       yield* requireDomain(input.params.organizationId, input.params.domainId)
       yield* requireLinkFolder(input.params.organizationId, input.body.folderId, errors)
+      const { domainId: _fromBody, ...linkBody } = input.body
       const row = yield* createLinkRecord({
-        ...input.body,
+        ...linkBody,
         organizationId: input.params.organizationId,
         domainId: input.params.domainId,
         userId: principalUserId(session),

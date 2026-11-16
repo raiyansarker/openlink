@@ -8,6 +8,6 @@ Three-column layout:
 
 Data lives in `src/data/demo/`. Styling: `src/styles/dashboard-three-column.css`.
 
-URLs are org-scoped: `/dashboard/org_openlink`, `/dashboard/org_acme/links`, etc.
+URLs are org-scoped under `/w`: `/w/acme`, `/w/acme/links`, etc. Old `/dashboard/...` URLs redirect to `/w/...`.
 
 Run: `bun run dev --filter=@openlink/web`.

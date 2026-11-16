@@ -8,14 +8,15 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { Grid, GridSpan } from '@astryxdesign/core/Grid'
 import { Button } from '@astryxdesign/core/Button'
 import { Avatar } from '@astryxdesign/core/Avatar'
-import { useOrganization } from '#/contexts/OrganizationContext'
-import { buildDashboardOrgPath } from '#/lib/dashboard/build-org-path'
-import { persistActiveOrgSlug } from '#/lib/dashboard/org-slug'
+import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
+import { SquareImage } from '#/lib/media/square-image'
+import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 import { slugifyOrganizationSlug } from '#/lib/organization/slugify'
 
-const ICON_MAX_BYTES = 5 * 1024 * 1024
-const ICON_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif'
-const PICTURE_HELP = 'We support PNG, JPG, or GIF portraits under 5 MB.'
+const ICON_MAX_BYTES = SquareImage.MAX_UPLOAD_BYTES
+const ICON_ACCEPT = SquareImage.ACCEPT
+const PICTURE_HELP = 'PNG, JPG, WebP, or GIF up to 10 MB. We crop it to a square.'
 const SLUG_PLACEHOLDER = 'acme-inc'
 
 function MutedCaption({ children }: { children: ReactNode }) {
@@ -60,20 +61,14 @@ function FormBlock({
   )
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') resolve(reader.result)
-      else reject(new Error('Could not read image.'))
-    }
-    reader.onerror = () => reject(new Error('Could not read image.'))
-    reader.readAsDataURL(file)
-  })
+type CreateOrganizationFormProps = {
+  /** `onboarding` is the first workspace after sign-up: different copy and no way back. */
+  variant?: 'create' | 'onboarding'
 }
 
-export default function CreateOrganizationForm() {
-  const { createOrganization } = useOrganization()
+export default function CreateOrganizationForm({ variant = 'create' }: CreateOrganizationFormProps) {
+  const isOnboarding = variant === 'onboarding'
+  const { createOrganization } = useWorkspaceDirectory()
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingIconFile = useRef<File | null>(null)
@@ -88,7 +83,7 @@ export default function CreateOrganizationForm() {
 
   const displayName = name.trim() || 'Organization'
   const slugPathSegment = slug.trim() || SLUG_PLACEHOLDER
-  const slugDescription = `Used in dashboard paths: /dashboard/${slugPathSegment}`
+  const slugDescription = `Your workspace URL: /w/${slugPathSegment}`
 
   const onNameChange = (value: string) => {
     setName(value)
@@ -114,7 +109,7 @@ export default function CreateOrganizationForm() {
       return
     }
     if (file.size > ICON_MAX_BYTES) {
-      setUploadError('That file is larger than 5 MB. Choose a smaller image.')
+      setUploadError('That file is larger than 10 MB. Choose a smaller image.')
       return
     }
     setUploadError(null)
@@ -140,18 +135,14 @@ export default function CreateOrganizationForm() {
     setFormError(null)
     setIsSubmitting(true)
     try {
-      let iconDataUrl: string | null = null
-      if (pendingIconFile.current) {
-        iconDataUrl = await readFileAsDataUrl(pendingIconFile.current)
-      }
-
-      const org = createOrganization({
+      // The logo is uploaded once the workspace exists; a failed upload keeps the workspace.
+      const { organization: org } = await createOrganization({
         name,
-        slug: slug || undefined,
-        iconDataUrl,
+        slug,
+        logo: pendingIconFile.current,
       })
-      persistActiveOrgSlug(org.slug)
-      void navigate({ to: buildDashboardOrgPath(org.slug), replace: true })
+      ActiveWorkspace.remember(org.slug)
+      void navigate({ to: WorkspaceUrl.build(org.slug), replace: true })
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : 'Could not create organization.',
@@ -165,10 +156,12 @@ export default function CreateOrganizationForm() {
     <VStack gap={8} hAlign="stretch" width="100%">
         <VStack gap={1} hAlign="start" width="100%">
           <Heading level={3}>
-            Create organization
+            {isOnboarding ? 'Create your workspace' : 'Create organization'}
           </Heading>
           <Text color="secondary" type="supporting">
-            Add a workspace with its own links, members, and branding.
+            {isOnboarding
+              ? 'Your links, domains, and teammates live in a workspace. You can add more later.'
+              : 'Add a workspace with its own links, members, and branding.'}
           </Text>
         </VStack>
 
@@ -266,16 +259,18 @@ export default function CreateOrganizationForm() {
         ) : null}
 
         <HStack gap={2} vAlign="center" hAlign="end" wrap="wrap" width="100%">
+          {isOnboarding ? null : (
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Cancel"
+              onClick={() => void navigate({ to: '/w' })}
+            />
+          )}
           <Button
-            variant="ghost"
+            variant={isOnboarding ? 'primary' : 'secondary'}
             size="sm"
-            label="Cancel"
-            onClick={() => void navigate({ to: '/dashboard' })}
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            label={isSubmitting ? 'Creating…' : 'Create organization'}
+            label={isSubmitting ? 'Creating…' : isOnboarding ? 'Continue' : 'Create organization'}
             isDisabled={isSubmitting || !name.trim() || !slug.trim()}
             onClick={() => void handleSubmit()}
           />

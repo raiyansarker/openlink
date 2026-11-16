@@ -6,15 +6,15 @@ import { Text } from '@astryxdesign/core/Text'
 import CreateLinkChromeButton from '#/components/dashboard/CreateLinkChromeButton'
 import { useNavigate } from '@tanstack/react-router'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { buildDashboardOrgPath } from '#/lib/dashboard/build-org-path'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import DashboardOverviewMetrics from './DashboardOverviewMetrics'
 import DashboardRecentLinksTable from './DashboardRecentLinksTable'
 
 export default function DashboardOverview() {
   const { stats, activeOrg } = useOrganization()
   const navigate = useNavigate()
-  const linksPath = buildDashboardOrgPath(activeOrg.slug, 'links')
-  const analyticsPath = buildDashboardOrgPath(activeOrg.slug, 'analytics')
+  const linksPath = WorkspaceUrl.build(activeOrg.slug, 'links')
+  const analyticsPath = WorkspaceUrl.build(activeOrg.slug, 'analytics')
 
   return (
     <VStack

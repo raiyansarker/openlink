@@ -147,6 +147,8 @@ type CreateLinkActionsProps = {
   submitLabel?: string
   onSubmit: () => void
   onCancel: () => void
+  /** True while the link is being saved. */
+  isSubmitting?: boolean
 }
 
 /**
@@ -188,6 +190,7 @@ export function CreateLinkActions({
   submitLabel = 'Create link',
   onSubmit,
   onCancel,
+  isSubmitting = false,
 }: CreateLinkActionsProps) {
   return (
     <div
@@ -205,6 +208,7 @@ export function CreateLinkActions({
         width="100%"
         aria-keyshortcuts="Meta+Enter Control+Enter"
         endContent={<InlineShortcut />}
+        isLoading={isSubmitting}
         onClick={onSubmit}
       />
     </div>

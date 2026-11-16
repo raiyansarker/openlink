@@ -31,7 +31,7 @@ type ImportLinksDialogProps = {
   /** Rows without a (matching) folder go here — the folder being viewed. */
   defaultFolderId: string | null
   /** Creates one link; throws with a user-facing message on failure. */
-  onCreate: (draft: CreateLinkDraft) => void
+  onCreate: (draft: CreateLinkDraft) => void | Promise<void>
 }
 
 type Row = ImportRow & Record<string, unknown>
@@ -73,14 +73,14 @@ export default function ImportLinksDialog({
     )
   }
 
-  const importValid = () => {
+  const importValid = async () => {
     if (!preview?.ok) return
     let created = 0
     const failures: string[] = []
     for (const row of preview.rows) {
       if (row.error) continue
       try {
-        onCreate(row.draft)
+        await onCreate(row.draft)
         created++
       } catch (err) {
         failures.push(`Line ${row.line}: ${err instanceof Error ? err.message : 'failed'}`)
@@ -229,7 +229,7 @@ export default function ImportLinksDialog({
                 variant="primary"
                 label={validCount > 0 ? `Import ${validCount} ${validCount === 1 ? 'link' : 'links'}` : 'Import'}
                 isDisabled={validCount === 0}
-                onClick={importValid}
+                onClick={() => void importValid()}
               />
             </HStack>
           </LayoutFooter>

@@ -6,9 +6,6 @@ export type { DashboardStatCardModel } from './build-stat-cards'
 export { getDashboardNavGroups } from './nav-items'
 export type { DashboardNavItem, DashboardNavGroup } from './nav-items'
 export {
-  buildDashboardOrgPath,
-  dashboardSectionFromPathname,
-  replaceOrgInPathname,
+  WorkspaceUrl,
 } from './build-org-path'
 export type { DashboardSection } from './build-org-path'
-export { getDefaultOrgId } from './default-org'

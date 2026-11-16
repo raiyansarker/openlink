@@ -17,7 +17,7 @@ export default function DashboardRecentLinksTable() {
 
   const openLink = (link: ShortLink) =>
     void navigate({
-      to: '/dashboard/$orgSlug/links/$linkId',
+      to: '/w/$orgSlug/links/$linkId',
       params: { orgSlug: activeOrg.slug, linkId: link.id },
     })
 
@@ -34,7 +34,6 @@ export default function DashboardRecentLinksTable() {
   return (
     <LinksListView
       links={rows}
-      org={activeOrg}
       onOpenLink={openLink}
       linkMenu={(link) => [
         { id: 'open', label: 'Open details', onClick: () => openLink(link) },

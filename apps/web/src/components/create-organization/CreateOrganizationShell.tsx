@@ -4,13 +4,19 @@ import {
   DASHBOARD_SURFACE_BG,
   SHELL_NAV_TEXT_PRIMARY,
 } from '#/components/dashboard/layout/dashboard-shell-colors'
+import { Button } from '@astryxdesign/core/Button'
+import { HStack } from '@astryxdesign/core/HStack'
+import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { useKeyPress } from '#/hooks/use-key-press'
+import { AuthSession } from '#/lib/auth/client'
 
 /** Compact centered column for the create-organization form (~23–24rem). */
 const CREATE_ORGANIZATION_FORM_MAX_WIDTH = '24rem'
 
 type CreateOrganizationShellProps = {
   children: ReactNode
+  /** Onboarding has nowhere to go back to, so it offers sign-out instead. */
+  variant?: 'create' | 'onboarding'
 }
 
 function ChevronBackIcon() {
@@ -33,10 +39,25 @@ function ChevronBackIcon() {
 
 export default function CreateOrganizationShell({
   children,
+  variant = 'create',
 }: CreateOrganizationShellProps) {
-  // Escape goes back to the dashboard, like the back link.
+  const isOnboarding = variant === 'onboarding'
+  const { organizations, status } = useWorkspaceDirectory()
+  // With no workspace, "Dashboard" would send you straight back here; offer account settings instead.
+  const hasNoWorkspaces = status === 'ready' && organizations.length === 0
+  const showEscape = isOnboarding || hasNoWorkspaces
+  // Escape goes back to the dashboard, like the back link (not during onboarding).
   const navigate = useNavigate()
-  useKeyPress('Escape', () => void navigate({ to: '/dashboard' }), { allowInInputs: true })
+  useKeyPress('Escape', () => {
+    if (!showEscape) void navigate({ to: '/w' })
+  }, { allowInInputs: true })
+  const signOut = async () => {
+    try {
+      await AuthSession.signOut()
+    } finally {
+      await navigate({ to: '/login', replace: true })
+    }
+  }
 
   return (
     <div
@@ -60,28 +81,37 @@ export default function CreateOrganizationShell({
           zIndex: 1,
         }}
       >
-        <Link
-          to="/dashboard"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '2px 0',
-            border: 'none',
-            borderRadius: 0,
-            cursor: 'pointer',
-            backgroundColor: 'transparent',
-            color: SHELL_NAV_TEXT_PRIMARY,
-            fontSize: 16,
-            fontWeight: 600,
-            fontFamily: 'inherit',
-            letterSpacing: '-0.02em',
-            textDecoration: 'none',
-          }}
-        >
-          <ChevronBackIcon />
-          Dashboard
-        </Link>
+        {showEscape ? (
+          <HStack gap={2}>
+            {hasNoWorkspaces && !isOnboarding ? (
+              <Button variant="ghost" size="sm" label="Account settings" onClick={() => void navigate({ to: '/settings/profile' })} />
+            ) : null}
+            <Button variant="ghost" size="sm" label="Sign out" onClick={() => void signOut()} />
+          </HStack>
+        ) : (
+          <Link
+            to="/w"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '2px 0',
+              border: 'none',
+              borderRadius: 0,
+              cursor: 'pointer',
+              backgroundColor: 'transparent',
+              color: SHELL_NAV_TEXT_PRIMARY,
+              fontSize: 16,
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              letterSpacing: '-0.02em',
+              textDecoration: 'none',
+            }}
+          >
+            <ChevronBackIcon />
+            Dashboard
+          </Link>
+        )}
       </div>
 
       <div

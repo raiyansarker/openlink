@@ -4,14 +4,9 @@ export const OPENFREEMAP_STYLES = {
   dark: 'https://tiles.openfreemap.org/styles/dark',
 } as const
 
-/** Credit line OpenFreeMap and the OSM licence (ODbL) require wherever a map shows. */
-export const OPENFREEMAP_CREDIT = '© OpenFreeMap · OpenMapTiles · OpenStreetMap contributors'
+let shared: ReturnType<typeof importMapLibre> | undefined
 
-/**
- * Loads MapLibre, its worker, and its stylesheet on the client only.
- * MapLibre touches `window`, so it must never be imported during SSR.
- */
-export async function loadMapLibre() {
+async function importMapLibre() {
   const [maplibre, worker] = await Promise.all([
     import('maplibre-gl'),
     import('maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'),
@@ -19,6 +14,15 @@ export async function loadMapLibre() {
   ])
   maplibre.setWorkerUrl(worker.default)
   return maplibre
+}
+
+/**
+ * MapLibre with its worker and stylesheet, for `<Map mapLib={…}>`. Loaded once,
+ * on the client only: MapLibre touches `window`, so it must never load during SSR.
+ */
+export function loadMapLibre() {
+  shared ??= importMapLibre()
+  return shared
 }
 
 /**

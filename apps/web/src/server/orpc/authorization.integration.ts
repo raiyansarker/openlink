@@ -27,7 +27,9 @@ const linkRow: typeof link.$inferSelect = {
 let role: OrganizationRole | null = 'viewer'
 
 let authenticated = true
-const session = { session: { user: { id: 'user-1', email: 'user@example.com' } } }
+const session = { session: { user: { id: 'user-1', email: 'user@example.com' }, session: { id: 'sess-current' } } }
+/** The principal a cookie request acts as (see effect/principal.ts). */
+const cookieActor = expect.objectContaining({ session: { user: session.session.user } })
 const requireSession = mock((_request: Request) => Effect.succeed(authenticated ? session : null))
 const requireOrgMembership = mock((_userId: string, _organizationId: string) =>
   Effect.succeed(role === null ? null : { role }),
@@ -75,12 +77,17 @@ const listApiKeys = mock((_organizationId: string) => Effect.succeed([keyRow]))
 const createApiKey = mock((input: { name: string; role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ row: { ...keyRow, ...input }, secret: 'ol_live_secret-value' }))
 const updateApiKeyRole = mock((input: { role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ row: { ...keyRow, role: input.role }, previousRole: 'member' as const }))
 const revokeApiKey = mock((_organizationId: string, _keyId: string) => Effect.succeed(keyRow))
+const deviceRow = { id: 'sess-current', ipAddress: '203.0.113.7', userAgent: 'UA', city: 'Dhaka', country: 'BD', latitude: 23.8, longitude: 90.4, signInMethod: 'github', createdAt: now, updatedAt: now, expiresAt: now }
+const listDeviceSessions = mock((_userId: string) => Effect.succeed([deviceRow, { ...deviceRow, id: 'sess-laptop', city: null, latitude: null, longitude: null }]))
+const revokeDeviceSession = mock((_input: unknown) => Effect.void)
+const revokeOtherDeviceSessions = mock((_input: unknown) => Effect.succeed(2))
 const listDomainsForOrganization = mock((_organizationId: string) => Effect.succeed([domain]))
 const registerCustomDomain = mock((_input: unknown) => Effect.succeed(domain))
 const removeCustomDomain = mock((_domainId: string, _organizationId: string) => Effect.succeed(true))
 const refreshCustomDomain = mock((_domainId: string) => Effect.succeed(domain))
 const createLinkRecord = mock((_input: unknown) => Effect.succeed(linkRow))
 const getLinkInDomain = mock((_domainId: string, _linkId: string) => Effect.succeed(linkRow))
+const getLinkInOrganization = mock((_organizationId: string, _linkId: string) => Effect.succeed(linkRow as typeof linkRow | null))
 const listLinksForDomain = mock((_domainId: string) => Effect.succeed([linkRow]))
 const updateLinkRecord = mock((existing: typeof linkRow, input: { title?: string; password?: string | null }) => Effect.succeed({
   ...existing, title: input.title ?? existing.title,
@@ -102,7 +109,7 @@ mock.module('#/server/auth/session', () => ({ requireSession }))
 mock.module('#/server/auth/service', () => ({ signIn, signUp, signOut }))
 mock.module('#/server/api/access', () => ({ requireOrgMembership, getDomainInOrganization }))
 mock.module('#/server/domain/service', () => ({ listDomainsForOrganization, registerCustomDomain, removeCustomDomain, refreshCustomDomain }))
-mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
+mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, getLinkInOrganization, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
 mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
   acceptMemberInvite, createOrganizationWithBootstrapInvite,
@@ -124,10 +131,15 @@ mock.module('#/server/comments/service', () => ({
 mock.module('#/server/apikeys/service', () => ({
   authenticateApiKey, listApiKeys, createApiKey, updateApiKeyRole, revokeApiKey,
 }))
+mock.module('#/server/devices/sessions', () => ({
+  DeviceSessions: { list: listDeviceSessions, revoke: revokeDeviceSession, revokeOthers: revokeOtherDeviceSessions },
+}))
 mock.module('#/server/health/checks', () => ({ runHealthChecks }))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
 const { handleOpenApiRequest } = await import('./openapi-handler')
+const { ApiClient } = await import('#/lib/api/client')
+const { ApiError } = await import('#/lib/api/error')
 
 const sideEffects = [
   createMemberInvite, registerCustomDomain, removeCustomDomain, refreshCustomDomain,
@@ -136,13 +148,13 @@ const sideEffects = [
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
   moveLinks, addTagsToLinks, deleteLinks, createComment, updateComment, deleteComment, toggleCommentReaction,
-  createApiKey, updateApiKeyRole, revokeApiKey,
+  createApiKey, updateApiKeyRole, revokeApiKey, revokeDeviceSession, revokeOtherDeviceSessions,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
-  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments, authenticateApiKey, listApiKeys,
+  listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -327,7 +339,7 @@ for (const endpoint of mutations) {
           endpoint.assertWrite()
           expectNoSideEffects(endpoint.effects)
           if (endpoint.response) expect(await response.json()).toMatchObject(endpoint.response)
-          else expect(await response.json()).toEqual({})
+          else expect(response.status === 204 ? response.body : await response.json()).toEqual(response.status === 204 ? null : {})
         }
       })
     }
@@ -539,7 +551,7 @@ for (const endpoint of auditedMutations) {
     const response = await request(endpoint.method, endpoint.path, endpoint.body)
     expect(response.status).toBeLessThan(300)
     expect(audit).toHaveBeenCalledTimes(1)
-    expect(audit).toHaveBeenCalledWith(session, expect.objectContaining({ organizationId: org.id, action: endpoint.action }))
+    expect(audit).toHaveBeenCalledWith(cookieActor, expect.objectContaining({ organizationId: org.id, action: endpoint.action }))
   })
   test(`${endpoint.name} writes nothing when the caller is forbidden`, async () => {
     role = 'viewer'
@@ -552,12 +564,12 @@ for (const endpoint of auditedMutations) {
 test('role changes and link edits carry before/after changes', async () => {
   role = 'owner'
   await request('PATCH', `${orgPath}/members/user-2`, { role: 'viewer' })
-  expect(audit).toHaveBeenLastCalledWith(session, expect.objectContaining({
+  expect(audit).toHaveBeenLastCalledWith(cookieActor, expect.objectContaining({
     target: { type: 'member', id: 'user-2', label: 'Teammate' },
     changes: [{ label: 'Role', from: 'member', to: 'viewer' }],
   }))
   await request('PATCH', linkPath, { title: 'Updated' })
-  expect(audit).toHaveBeenLastCalledWith(session, expect.objectContaining({
+  expect(audit).toHaveBeenLastCalledWith(cookieActor, expect.objectContaining({
     action: 'link.updated',
     changes: [{ label: 'Title', from: '—', to: 'Updated' }],
   }))
@@ -641,7 +653,7 @@ describe('link comments', () => {
         expect(createComment).toHaveBeenCalledWith({
           organizationId: org.id, linkId: linkRow.id, body: 'Ship it', author: { id: 'user-1', label: 'user@example.com' },
         })
-        expect(audit).toHaveBeenCalledWith(session, expect.objectContaining({
+        expect(audit).toHaveBeenCalledWith(cookieActor, expect.objectContaining({
           action: 'link.commented', changes: [{ label: 'Comment', from: '—', to: 'Looks good to me' }],
         }))
       } else {
@@ -747,9 +759,9 @@ describe('API key management', () => {
   test('key lifecycle is audited, and unchanged roles are not', async () => {
     role = 'admin'
     await request('POST', keysPath, { name: 'CI', role: 'member' })
-    expect(audit).toHaveBeenLastCalledWith(session, expect.objectContaining({ action: 'apikey.created' }))
+    expect(audit).toHaveBeenLastCalledWith(cookieActor, expect.objectContaining({ action: 'apikey.created' }))
     await request('PATCH', `${keysPath}/key-1`, { role: 'viewer' })
-    expect(audit).toHaveBeenLastCalledWith(session, expect.objectContaining({
+    expect(audit).toHaveBeenLastCalledWith(cookieActor, expect.objectContaining({
       action: 'apikey.role_changed', changes: [{ label: 'Role', from: 'member', to: 'viewer' }],
     }))
     audit.mockClear()
@@ -757,7 +769,7 @@ describe('API key management', () => {
     await request('PATCH', `${keysPath}/key-1`, { role: 'member' })
     expect(audit).not.toHaveBeenCalled()
     await request('DELETE', `${keysPath}/key-1`)
-    expect(audit).toHaveBeenLastCalledWith(session, expect.objectContaining({ action: 'apikey.revoked' }))
+    expect(audit).toHaveBeenLastCalledWith(cookieActor, expect.objectContaining({ action: 'apikey.revoked' }))
   })
 
   test('unknown keys are a 404', async () => {
@@ -857,6 +869,179 @@ describe('requests authenticated with an API key', () => {
     expect(response.status).toBe(200)
     expect(authenticateApiKey).not.toHaveBeenCalled()
     expect(requireSession).toHaveBeenCalled()
+  })
+})
+
+// The real browser client against the real router: proves the two sides agree on the wire format.
+describe('frontend ApiClient against the real server', () => {
+  const client = ApiClient.create({
+    origin: () => 'http://localhost',
+    fetch: async (url, init) => {
+      const result = await handleOpenApiRequest(new Request(url, init))
+      if (!result.response) throw new Error(`unmatched ${url}`)
+      return result.response
+    },
+  })
+  const failure = async (promise: Promise<unknown>) => ApiError.from(await promise.then(() => null, (e) => e))
+
+  test('parses successful, validated responses', async () => {
+    role = 'viewer'
+    const orgs = await client.organizations.listOrganizations()
+    expect(orgs.items[0]).toMatchObject({ role: 'viewer', organization: { id: org.id } })
+    const links = await client.links.listOrganizationLinks({ params: { organizationId: org.id }, query: { q: 'x', limit: '10' } })
+    expect(links.total).toBe(7)
+  })
+
+  test('sends bodies and path params the server accepts', async () => {
+    role = 'member'
+    const folder = await client.folders.createFolder({ params: { organizationId: org.id }, body: { name: 'Docs', parentId: null } })
+    expect(folder.name).toBe('Docs')
+    const created = await client.links.createLink({
+      params: { organizationId: org.id, domainId: domain.id },
+      body: { slug: 'hello', destinationUrl: 'https://example.com/' },
+    })
+    expect(created.id).toBe(linkRow.id)
+    await client.links.deleteLink({ params: { organizationId: org.id, domainId: domain.id, linkId: linkRow.id } })
+    expect(deleteLinkRecord).toHaveBeenCalledWith(linkRow.id)
+  })
+
+  test('maps HTTP errors to ApiError with codes, statuses and server messages', async () => {
+    authenticated = false
+    expect(await failure(client.organizations.listOrganizations())).toMatchObject({ code: 'UNAUTHORIZED', status: 401, isUnauthorized: true })
+    authenticated = true
+    role = null
+    expect(await failure(client.organizations.getOrganization({ params: { organizationId: org.id } }))).toMatchObject({
+      code: 'FORBIDDEN', status: 403, message: 'Not a member of this organization',
+    })
+    role = 'owner'
+    createLinkRecord.mockImplementationOnce(() => Effect.fail({ _tag: 'SlugConflict' }) as never)
+    expect(await failure(client.links.createLink({
+      params: { organizationId: org.id, domainId: domain.id },
+      body: { slug: 'hello', destinationUrl: 'https://example.com/' },
+    }))).toMatchObject({ code: 'CONFLICT', status: 409, message: 'Slug already exists on this domain', isRetryable: false })
+  })
+
+  test('input the contract rejects never reaches the network call as a success', async () => {
+    role = 'owner'
+    const error = await failure(client.organizations.createOrganizationInvite({
+      params: { organizationId: org.id },
+      body: { email: 'a@example.com', role: 'owner' as never },
+    }))
+    expect(error.status).toBe(400)
+  })
+})
+
+describe('device sessions', () => {
+  test('lists your sessions, marks this one, and never includes tokens', async () => {
+    const response = await request('GET', '/me/sessions')
+    expect(response.status).toBe(200)
+    const body = (await response.json()) as { items: Record<string, unknown>[] }
+    expect(listDeviceSessions).toHaveBeenCalledWith('user-1')
+    expect(body.items.map((i) => [i.id, i.current])).toEqual([['sess-current', true], ['sess-laptop', false]])
+    expect(body.items[0]).toMatchObject({ city: 'Dhaka', latitude: 23.8, signInMethod: 'github' })
+    expect(body.items[1]).not.toHaveProperty('city')
+    expect(JSON.stringify(body)).not.toContain('token')
+  })
+
+  test('revokes another session for the signed-in person only', async () => {
+    expect((await request('DELETE', '/me/sessions/sess-laptop')).status).toBe(204)
+    expect(revokeDeviceSession).toHaveBeenCalledWith({ userId: 'user-1', sessionId: 'sess-laptop', currentSessionId: 'sess-current' })
+  })
+
+  test('maps service failures to clear HTTP errors', async () => {
+    revokeDeviceSession.mockImplementationOnce(() => Effect.fail({ _tag: 'DeviceSessionNotFound' }) as never)
+    expect((await request('DELETE', '/me/sessions/gone')).status).toBe(404)
+    revokeDeviceSession.mockImplementationOnce(() => Effect.fail({ _tag: 'CannotRevokeCurrentSession' }) as never)
+    const current = await request('DELETE', '/me/sessions/sess-current')
+    expect(current.status).toBe(400)
+    expect(await current.json()).toMatchObject({ message: 'Use Log out to sign out this device' })
+  })
+
+  test('signs out every other device and reports how many', async () => {
+    const response = await request('POST', '/me/sessions/revoke-others')
+    expect(await response.json()).toEqual({ revoked: 2 })
+    expect(revokeOtherDeviceSessions).toHaveBeenCalledWith({ userId: 'user-1', currentSessionId: 'sess-current' })
+  })
+
+  test('signed-out callers and API keys cannot see or end sessions', async () => {
+    authenticated = false
+    for (const [method, path] of [['GET', '/me/sessions'], ['DELETE', '/me/sessions/x'], ['POST', '/me/sessions/revoke-others']] as const) {
+      expect((await request(method, path)).status).toBe(401)
+    }
+    keyPrincipal = { id: 'key-1', organizationId: org.id, role: 'admin', name: 'CI' }
+    expect((await request('POST', '/me/sessions/revoke-others', undefined, { authorization: 'Bearer ol_live_x' })).status).toBe(401)
+    expect(revokeOtherDeviceSessions).not.toHaveBeenCalled()
+    expect(listDeviceSessions).not.toHaveBeenCalled()
+  })
+})
+
+// Bun tolerates a body on 204; Workers do not. Every no-content response must be truly empty.
+describe('no-content responses', () => {
+  const deletes = [
+    ['DELETE', linkPath], ['DELETE', domainPath], ['DELETE', `${orgPath}/folders/folder-1`],
+    ['DELETE', `${orgPath}/members/user-2`], ['DELETE', `${orgPath}/invites/invite-1`],
+    ['DELETE', `${orgPath}/api-keys/key-1`], ['DELETE', orgPath], ['DELETE', '/me/sessions/sess-laptop'],
+  ] as const
+  for (const [method, path] of deletes) {
+    test(`${method} ${path} returns 204 with no body`, async () => {
+      role = 'owner'
+      const response = await request(method, path)
+      expect(response.status).toBe(204)
+      expect(response.body).toBeNull()
+      // Rebuilding with the strict Fetch rules must not throw, as it does in Workers.
+      expect(() => new Response(response.body, { status: response.status })).not.toThrow()
+    })
+  }
+})
+
+describe('workspace links (app host by default)', () => {
+  const create = (body: Record<string, unknown>) => request('POST', `${orgPath}/links`, body)
+
+  test('a link without a domain goes on the app host', async () => {
+    role = 'member'
+    const response = await create({ slug: 'launch', destinationUrl: 'https://example.com/' })
+    expect(response.status).toBe(201)
+    expect(createLinkRecord).toHaveBeenCalledWith(expect.objectContaining({ organizationId: org.id, domainId: null, slug: 'launch' }))
+    expect(getDomainInOrganization).not.toHaveBeenCalled()
+  })
+
+  test('a custom domain must belong to the workspace', async () => {
+    role = 'member'
+    expect((await create({ slug: 'x', destinationUrl: 'https://example.com/', domainId: domain.id })).status).toBe(201)
+    expect(getDomainInOrganization).toHaveBeenCalledWith(domain.id, org.id)
+    expect(createLinkRecord).toHaveBeenLastCalledWith(expect.objectContaining({ domainId: domain.id }))
+    getDomainInOrganization.mockImplementationOnce(() => Effect.succeed(null as never))
+    expect((await create({ slug: 'y', destinationUrl: 'https://example.com/', domainId: 'foreign' })).status).toBe(404)
+  })
+
+  test('app-host slugs cannot shadow app pages; custom domains can use them', async () => {
+    role = 'member'
+    for (const slug of ['login', 'Settings', 'w', 'api', 'onboarding']) {
+      const response = await create({ slug, destinationUrl: 'https://example.com/' })
+      expect(response.status).toBe(400)
+      expect(await response.json()).toMatchObject({ message: expect.stringContaining('reserved') })
+    }
+    expect(createLinkRecord).not.toHaveBeenCalled()
+    expect((await create({ slug: 'login', destinationUrl: 'https://example.com/', domainId: domain.id })).status).toBe(201)
+  })
+
+  test('a taken back-half is a conflict', async () => {
+    role = 'member'
+    createLinkRecord.mockImplementationOnce(() => Effect.fail({ _tag: 'SlugConflict' }) as never)
+    const response = await create({ slug: 'taken', destinationUrl: 'https://example.com/' })
+    expect(response.status).toBe(409)
+  })
+
+  test('viewers cannot create, and get/update are scoped to the workspace', async () => {
+    role = 'viewer'
+    expect((await create({ slug: 'v', destinationUrl: 'https://example.com/' })).status).toBe(403)
+    expect((await request('GET', `${orgPath}/links/${linkRow.id}`)).status).toBe(200)
+    expect(getLinkInOrganization).toHaveBeenCalledWith(org.id, linkRow.id)
+    expect((await request('PATCH', `${orgPath}/links/${linkRow.id}`, { title: 'x' })).status).toBe(403)
+    role = 'member'
+    expect((await request('PATCH', `${orgPath}/links/${linkRow.id}`, { title: 'New' })).status).toBe(200)
+    getLinkInOrganization.mockImplementationOnce(() => Effect.succeed(null))
+    expect((await request('GET', `${orgPath}/links/other`)).status).toBe(404)
   })
 })
 

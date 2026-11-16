@@ -3,15 +3,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { Tooltip } from '@astryxdesign/core/Tooltip'
 import type { Organization } from '#/data/demo/types'
 import { getOrganizationBrand } from '#/data/demo/organization-branding'
-import {
-  replaceOrgInPathname,
-} from '#/lib/dashboard/build-org-path'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
-import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { useActivePathname } from '#/hooks/useActivePathname'
 import DashboardAccountMenu from './DashboardAccountMenu'
 import { PlusIcon, SettingsIcon } from '#/components/icons/IcnMcp'
-import { buildSettingsPath } from '#/lib/settings/sections'
 import { isDashboardSettingsPath } from '#/lib/dashboard/paths/settings'
 import type { CSSProperties, ReactNode } from 'react'
 import {
@@ -113,7 +109,7 @@ function RailSettingsButton() {
         type="button"
         aria-label="Settings"
         aria-current={isActive ? 'page' : undefined}
-        onClick={() => void navigate({ to: buildSettingsPath('profile') })}
+        onClick={() => void navigate({ to: '/settings/profile' })}
         style={{
           ...orgControlBase,
           backgroundColor,
@@ -138,7 +134,6 @@ export default function OrganizationIconRail({
   const [createHovered, setCreateHovered] = useState(false)
   const pathname = useActivePathname()
   const navigate = useNavigate()
-  const { orgCustomIcons } = useWorkspaceDirectory()
   function handleCreateOrganization() {
     void navigate({ to: '/create/organization' })
   }
@@ -173,7 +168,7 @@ export default function OrganizationIconRail({
       >
         {organizations.map((org) => {
           const brand = getOrganizationBrand(org.id)
-          const target = replaceOrgInPathname(pathname, org.slug)
+          const target = WorkspaceUrl.replaceOrg(pathname, org.slug)
           const isActive = org.slug === activeOrgSlug
 
           return (
@@ -187,7 +182,7 @@ export default function OrganizationIconRail({
                 name={org.name}
                 brand={brand}
                 size={ORG_LOGO_SIZE}
-                customImageUrl={orgCustomIcons[org.id]}
+                customImageUrl={org.logoUrl}
               />
             </OrgSwitchButton>
           )

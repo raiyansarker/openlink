@@ -1,115 +1,116 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
-import { demoOrganizations } from '#/data/demo/organizations'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
+
 import type { Organization } from '#/data/demo/types'
-import {
-  isValidOrganizationSlug,
-  slugifyOrganizationSlug,
-} from '#/lib/organization/slugify'
+import { ApiError } from '#/lib/api/error'
+import { AuthSession } from '#/lib/auth/client'
+import { QueryKeys } from '#/lib/api/query'
+import { WorkspaceApi } from '#/lib/api/workspaces'
+import { isValidOrganizationSlug } from '#/lib/organization/slugify'
+import { SquareImage } from '#/lib/media/square-image'
+import { MediaUploads } from '#/lib/media/uploads'
 
 export type CreateOrganizationInput = {
   name: string
-  slug?: string
-  iconDataUrl?: string | null
+  slug: string
+  /** Uploaded to R2 after the workspace exists. */
+  logo?: File | null
 }
+
+export type DirectoryStatus = 'loading' | 'ready' | 'error'
 
 type WorkspaceDirectoryContextValue = {
   organizations: Organization[]
-  createOrganization: (input: CreateOrganizationInput) => Organization
-  orgCustomIcons: Record<string, string>
+  status: DirectoryStatus
+  /** User-facing message when `status` is `error`. */
+  errorMessage: string | null
+  refetch: () => void
+  /**
+   * Rejects with an Error carrying a user-facing message. A logo that fails to
+   * upload does not undo the workspace; `logoError` explains what happened.
+   */
+  createOrganization: (input: CreateOrganizationInput) => Promise<{ organization: Organization; logoError: string | null }>
+  /** Refresh after changing a workspace (for example its logo). */
+  invalidate: () => Promise<void>
 }
 
-const WorkspaceDirectoryContext =
-  createContext<WorkspaceDirectoryContextValue | null>(null)
+const WorkspaceDirectoryContext = createContext<WorkspaceDirectoryContextValue | null>(null)
 
-function uniqueOrgSlug(name: string, existing: Organization[]): string {
-  const base = slugifyOrganizationSlug(name) || 'workspace'
-  if (!existing.some((org) => org.slug === base)) return base
-  let n = 2
-  while (existing.some((org) => org.slug === `${base}-${n}`)) n += 1
-  return `${base}-${n}`
-}
+const NO_ORGANIZATIONS: Organization[] = []
 
 export function WorkspaceDirectoryProvider({ children }: { children: ReactNode }) {
-  const [extraOrgs, setExtraOrgs] = useState<Organization[]>([])
-  const [orgCustomIcons, setOrgCustomIcons] = useState<Record<string, string>>({})
+  const queryClient = useQueryClient()
+  const query = useQuery({
+    queryKey: QueryKeys.organizations,
+    queryFn: () => WorkspaceApi.shared.listOrganizations(),
+  })
 
-  const organizations = useMemo(
-    () => [...demoOrganizations, ...extraOrgs],
-    [extraOrgs],
-  )
+  const create = useMutation({
+    mutationFn: (input: CreateOrganizationInput) => WorkspaceApi.shared.createOrganization(input),
+    onSuccess: (created) => {
+      queryClient.setQueryData<Organization[]>(QueryKeys.organizations, (prev) => [...(prev ?? []), created])
+    },
+  })
 
   const createOrganization = useCallback(
-    (input: CreateOrganizationInput) => {
+    async (input: CreateOrganizationInput) => {
       const name = input.name.trim()
-      if (!name) {
-        throw new Error('Enter a workspace name.')
+      if (!name) throw new Error('Enter a workspace name.')
+      if (!isValidOrganizationSlug(input.slug)) {
+        throw new Error('Use a slug with lowercase letters, numbers, and hyphens (min. 2 characters).')
       }
-
-      const slugCandidate = input.slug?.trim()
-        ? slugifyOrganizationSlug(input.slug)
-        : uniqueOrgSlug(name, organizations)
-
-      if (!slugCandidate || !isValidOrganizationSlug(slugCandidate)) {
-        throw new Error(
-          'Use a slug with lowercase letters, numbers, and hyphens (min. 2 characters).',
-        )
+      let organization: Organization
+      try {
+        organization = await create.mutateAsync({ ...input, name })
+      } catch (error) {
+        throw new Error(ApiError.message(error, 'Could not create the workspace.'))
       }
-
-      if (organizations.some((org) => org.slug === slugCandidate)) {
-        throw new Error(`“${slugCandidate}” is already taken. Pick another slug.`)
+      // The first workspace completes onboarding; re-read the session so the guard sees it.
+      AuthSession.invalidate()
+      let logoError: string | null = null
+      if (input.logo) {
+        try {
+          const logoUrl = await MediaUploads.setLogo(organization.id, await SquareImage.fromFile(input.logo))
+          organization = { ...organization, logoUrl }
+          queryClient.setQueryData<Organization[]>(QueryKeys.organizations, (prev) =>
+            (prev ?? []).map((org) => (org.id === organization.id ? organization : org)),
+          )
+        } catch (error) {
+          logoError = error instanceof Error ? error.message : 'The logo could not be uploaded.'
+        }
       }
-
-      const created: Organization = {
-        id: `org_${slugCandidate.replace(/-/g, '_')}`,
-        name,
-        slug: slugCandidate,
-        plan: 'free',
-        memberCount: 1,
-      }
-      setExtraOrgs((prev) => [...prev, created])
-
-      if (input.iconDataUrl) {
-        const iconUrl = input.iconDataUrl
-        setOrgCustomIcons((prev) => ({
-          ...prev,
-          [created.id]: iconUrl,
-        }))
-      }
-
-      return created
+      return { organization, logoError }
     },
-    [organizations],
+    [create, queryClient],
   )
 
-  const value = useMemo(
+  const refetch = useCallback(() => void query.refetch(), [query])
+  const invalidate = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: QueryKeys.organizations }),
+    [queryClient],
+  )
+
+  const status: DirectoryStatus = query.isError ? 'error' : query.data ? 'ready' : 'loading'
+
+  const value = useMemo<WorkspaceDirectoryContextValue>(
     () => ({
-      organizations,
+      organizations: query.data ?? NO_ORGANIZATIONS,
+      status,
+      errorMessage: query.isError ? ApiError.message(query.error, 'Could not load your workspaces.') : null,
+      refetch,
       createOrganization,
-      orgCustomIcons,
+      invalidate,
     }),
-    [organizations, createOrganization, orgCustomIcons],
+    [query.data, query.error, query.isError, status, refetch, createOrganization, invalidate],
   )
 
-  return (
-    <WorkspaceDirectoryContext.Provider value={value}>
-      {children}
-    </WorkspaceDirectoryContext.Provider>
-  )
+  return <WorkspaceDirectoryContext.Provider value={value}>{children}</WorkspaceDirectoryContext.Provider>
 }
 
 export function useWorkspaceDirectory(): WorkspaceDirectoryContextValue {
   const ctx = useContext(WorkspaceDirectoryContext)
   if (!ctx) {
-    throw new Error(
-      'useWorkspaceDirectory must be used within WorkspaceDirectoryProvider',
-    )
+    throw new Error('useWorkspaceDirectory must be used within WorkspaceDirectoryProvider')
   }
   return ctx
 }

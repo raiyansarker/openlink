@@ -1,3 +1,4 @@
+import { contract as account } from './account'
 import { contract as activity } from './activity'
 import { contract as apiKeys } from './api-keys'
 import { contract as auth } from './auth'
@@ -13,6 +14,7 @@ import { oc } from './oc'
 const router = {
   system,
   auth,
+  account,
   activity,
   apiKeys,
   organizations,

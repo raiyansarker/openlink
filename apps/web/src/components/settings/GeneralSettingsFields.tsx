@@ -10,7 +10,16 @@ import { VStack } from '@astryxdesign/core/VStack'
 import DeleteWorkspaceDialog from '#/components/settings/DeleteWorkspaceDialog'
 import TransferOwnershipDialog from '#/components/settings/TransferOwnershipDialog'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { getMembersForOrg } from '#/data/demo/queries'
+import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
+import { SquareImage } from '#/lib/media/square-image'
+import { MediaUploads } from '#/lib/media/uploads'
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+import { ApiError } from '#/lib/api/error'
+import { WorkspaceMembersApi } from '#/lib/api/members'
+import { QueryKeys } from '#/lib/api/query'
+import { WorkspaceApi } from '#/lib/api/workspaces'
+import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 import {
   isValidOrganizationSlug,
   slugifyOrganizationSlug,
@@ -18,8 +27,7 @@ import {
 import { exportLinks, type LinkExportFormat } from '#/lib/settings/export-links'
 
 const FIELDS_MAX_WIDTH = 560
-const LOGO_MAX_BYTES = 2 * 1024 * 1024
-const LOGO_ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml'
+const LOGO_ACCEPT = SquareImage.ACCEPT
 
 type GeneralForm = {
   name: string
@@ -87,28 +95,87 @@ export default function GeneralSettingsFields() {
   )
   const [saved, setSaved] = useState<GeneralForm>(initial)
   const [form, setForm] = useState<GeneralForm>(initial)
-  const [logoSrc, setLogoSrc] = useState<string | null>(null)
+  const { invalidate: refreshWorkspaces } = useWorkspaceDirectory()
+  const logoSrc = activeOrg.logoUrl ?? null
   const [logoError, setLogoError] = useState<string | null>(null)
+  const [isSavingLogo, setIsSavingLogo] = useState(false)
+  const canEditLogo = activeOrg.role === 'owner' || activeOrg.role === 'admin'
   const [transferOpen, setTransferOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [ownerName, setOwnerName] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
+  // Follow the saved values (they change after a save or a refresh)...
   useEffect(() => {
     setSaved(initial)
     setForm(initial)
-    setLogoSrc(null)
-    setOwnerName(null)
-    setNotice(null)
   }, [initial])
 
+  // ...but only clear messages when switching to a different workspace.
+  useEffect(() => {
+    setOwnerName(null)
+    setNotice(null)
+  }, [activeOrg.id])
+
+  const navigate = useNavigate()
+  const isOwner = activeOrg.role === 'owner'
+  const canEdit = isOwner || activeOrg.role === 'admin'
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const membersQuery = useQuery({
+    queryKey: [...QueryKeys.members(activeOrg.id), canEdit],
+    queryFn: () => new WorkspaceMembersApi().list(activeOrg.id, { includeInvites: canEdit }),
+    enabled: isOwner,
+  })
   const adminCandidates = useMemo(
-    () =>
-      getMembersForOrg(activeOrg.id).filter(
-        (member) => member.role === 'admin' && member.status === 'active',
-      ),
-    [activeOrg.id],
+    () => (membersQuery.data ?? []).filter((member) => member.role === 'admin' && member.status === 'active'),
+    [membersQuery.data],
   )
+
+  const save = async () => {
+    setIsSaving(true)
+    setError(null)
+    try {
+      const next = { name: trimmedName, slug: form.slug }
+      const changes = {
+        ...(next.name !== saved.name ? { name: next.name } : {}),
+        ...(next.slug !== saved.slug ? { slug: next.slug } : {}),
+      }
+      await new WorkspaceApi().update(activeOrg.id, changes)
+      if (changes.slug) ActiveWorkspace.remember(changes.slug)
+      await refreshWorkspaces()
+      setForm(next)
+      setSaved(next)
+      setNotice('Workspace settings saved.')
+    } catch (e) {
+      setError(ApiError.message(e, 'Could not save the workspace.'))
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const transfer = async (memberId: string) => {
+    setError(null)
+    try {
+      await new WorkspaceMembersApi().transferOwnership(activeOrg.id, memberId)
+      const member = adminCandidates.find((m) => m.id === memberId)
+      setOwnerName(member?.name ?? null)
+      await refreshWorkspaces()
+    } catch (e) {
+      setError(ApiError.message(e, 'Could not transfer ownership.'))
+    }
+  }
+
+  const remove = async () => {
+    setError(null)
+    try {
+      await new WorkspaceApi().delete(activeOrg.id)
+      await refreshWorkspaces()
+      await navigate({ to: '/w', replace: true })
+    } catch (e) {
+      setError(ApiError.message(e, 'Could not delete the workspace.'))
+    }
+  }
 
   const update = <K extends keyof GeneralForm>(key: K, value: GeneralForm[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -124,32 +191,27 @@ export default function GeneralSettingsFields() {
     slugChanged
   const canSave = isDirty && !nameError && !slugError
 
-  const onLogoFile = (file: File | undefined) => {
-    if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setLogoError('Choose a PNG, JPG, WebP, or SVG image.')
-      return
-    }
-    if (file.size > LOGO_MAX_BYTES) {
-      setLogoError('That image is larger than 2 MB.')
-      return
-    }
+  /** Upload (or clear, with null) the logo in R2, then refresh the workspace everywhere. */
+  const saveLogo = async (file: File | null) => {
+    if (fileRef.current) fileRef.current.value = ''
     setLogoError(null)
-    const url = URL.createObjectURL(file)
-    setLogoSrc((prev) => {
-      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev)
-      return url
-    })
+    setIsSavingLogo(true)
+    try {
+      if (file) await MediaUploads.setLogo(activeOrg.id, await SquareImage.fromFile(file))
+      else await MediaUploads.clearLogo(activeOrg.id)
+      await refreshWorkspaces()
+    } catch (error) {
+      setLogoError(error instanceof Error ? error.message : 'The logo could not be saved.')
+    } finally {
+      setIsSavingLogo(false)
+    }
   }
 
-  const removeLogo = () => {
-    setLogoError(null)
-    setLogoSrc((prev) => {
-      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev)
-      return null
-    })
-    if (fileRef.current) fileRef.current.value = ''
+  const onLogoFile = (file: File | undefined) => {
+    if (file) void saveLogo(file)
   }
+
+  const removeLogo = () => void saveLogo(null)
 
   const exportAs = (format: LinkExportFormat) => {
     exportLinks(links, format, saved.slug)
@@ -200,14 +262,16 @@ export default function GeneralSettingsFields() {
           description={
             ownerName
               ? `${ownerName} now owns this workspace.`
-              : 'Hand billing and full control to another admin.'
+              : isOwner
+                ? 'Hand full control to another admin.'
+                : 'Only the owner can transfer the workspace.'
           }
           action={
             <Button
               variant="secondary"
               size="sm"
               label="Transfer"
-              isDisabled={ownerName != null}
+              isDisabled={ownerName != null || !isOwner}
               onClick={() => setTransferOpen(true)}
             />
           }
@@ -219,13 +283,13 @@ export default function GeneralSettingsFields() {
       node: (
         <ActionRow
           title="Delete workspace"
-          description="Remove all links, domains, and members for good."
+          description={isOwner ? 'Remove all links, domains, and members for good.' : 'Only the owner can delete the workspace.'}
           action={
             <Button
               variant="destructive"
               size="sm"
               label="Delete"
-              isDisabled={ownerName != null}
+              isDisabled={ownerName != null || !isOwner}
               onClick={() => setDeleteOpen(true)}
             />
           }
@@ -256,17 +320,24 @@ export default function GeneralSettingsFields() {
                 variant="secondary"
                 size="sm"
                 label={logoSrc ? 'Replace' : 'Upload'}
+                isLoading={isSavingLogo}
+                isDisabled={!canEditLogo}
                 onClick={() => {
                   setLogoError(null)
                   fileRef.current?.click()
                 }}
               />
               {logoSrc ? (
-                <Button variant="ghost" size="sm" label="Remove" onClick={removeLogo} />
+                <Button variant="ghost" size="sm" label="Remove" onClick={removeLogo} isDisabled={!canEditLogo || isSavingLogo} />
               ) : null}
             </HStack>
-            <Text type="supporting" color={logoError ? 'primary' : 'secondary'}>
-              {logoError ?? 'Square image, PNG or SVG, up to 2 MB.'}
+            <Text
+              type="supporting"
+              color={logoError ? 'primary' : 'secondary'}
+              role={logoError ? 'alert' : undefined}
+            >
+              {logoError ??
+                (canEditLogo ? 'PNG, JPG, WebP, or GIF up to 10 MB. We crop it to a square.' : 'Only owners and admins can change the logo.')}
             </Text>
           </VStack>
         </HStack>
@@ -327,15 +398,17 @@ export default function GeneralSettingsFields() {
             variant="primary"
             size="sm"
             label="Save changes"
-            isDisabled={!canSave}
-            onClick={() => {
-              const next = { ...form, name: trimmedName }
-              setForm(next)
-              setSaved(next)
-              setNotice('Workspace settings saved.')
-            }}
+            isDisabled={!canSave || !canEdit}
+            isLoading={isSaving}
+            onClick={() => void save()}
           />
         </HStack>
+      ) : null}
+
+      {error ? (
+        <Text type="supporting" weight="medium" role="alert">
+          {error}
+        </Text>
       ) : null}
 
       {notice ? (
@@ -359,17 +432,14 @@ export default function GeneralSettingsFields() {
         onOpenChange={setTransferOpen}
         workspaceName={saved.name}
         candidates={adminCandidates}
-        onTransfer={(memberId) => {
-          const member = adminCandidates.find((m) => m.id === memberId)
-          setOwnerName(member?.name ?? null)
-        }}
+        onTransfer={(memberId) => void transfer(memberId)}
       />
       <DeleteWorkspaceDialog
         isOpen={deleteOpen}
         onOpenChange={setDeleteOpen}
         workspaceName={saved.name}
         linkCount={links.length}
-        onDelete={() => setNotice('Demo only: the workspace was not deleted.')}
+        onDelete={() => void remove()}
       />
     </VStack>
   )

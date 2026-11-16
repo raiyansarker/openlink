@@ -5,17 +5,13 @@ import { IconButton } from '@astryxdesign/core/IconButton'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import type { WorkspaceApiKey } from '#/data/demo/api-keys'
 import type { WorkspaceMemberRole } from '#/data/demo/types'
-import {
-  buildFullApiKeySecret,
-  randomApiKeyPrefix,
-} from '#/lib/api-keys/generate-api-key-secret'
-import ApiKeySecretRevealDialog from '#/components/settings/ApiKeySecretRevealDialog'
 import ChangeApiKeyRoleDialog from '#/components/settings/ChangeApiKeyRoleDialog'
 
 type ApiKeyRowMenuProps = {
   apiKey: WorkspaceApiKey
   onChangeRole: (keyId: string, role: WorkspaceMemberRole) => void
-  onRotate: (keyId: string, prefix: string) => void
+  /** Replaces the key. The new secret is shown by the parent, since this row goes away with the old key. */
+  onRotate: (keyId: string) => void
   onRevoke: (keyId: string) => void
 }
 
@@ -28,7 +24,6 @@ export default function ApiKeyRowMenu({
   const [roleDialogOpen, setRoleDialogOpen] = useState(false)
   const [revokeAlertOpen, setRevokeAlertOpen] = useState(false)
   const [rotateAlertOpen, setRotateAlertOpen] = useState(false)
-  const [rotatedSecret, setRotatedSecret] = useState<string | null>(null)
 
   const items = [
     {
@@ -51,11 +46,8 @@ export default function ApiKeyRowMenu({
   ]
 
   const confirmRotate = () => {
-    const prefix = randomApiKeyPrefix()
-    const secret = buildFullApiKeySecret(prefix)
-    onRotate(apiKey.id, prefix)
-    setRotatedSecret(secret)
     setRotateAlertOpen(false)
+    onRotate(apiKey.id)
   }
 
   const confirmRevoke = () => {
@@ -105,15 +97,6 @@ export default function ApiKeyRowMenu({
         description="This API key will stop working immediately. Anything still using it will fail until you create or rotate a replacement."
         actionLabel="Revoke key"
         onAction={confirmRevoke}
-      />
-      <ApiKeySecretRevealDialog
-        isOpen={rotatedSecret != null}
-        onOpenChange={(open) => {
-          if (!open) setRotatedSecret(null)
-        }}
-        title="Save your new key"
-        body="The previous secret no longer works. Copy the new key and update your integrations—you cannot view it again after you close this dialog."
-        secret={rotatedSecret ?? ''}
       />
     </>
   )

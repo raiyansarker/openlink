@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type DragEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
+import { Banner } from '@astryxdesign/core/Banner'
 import { BreadcrumbItem, Breadcrumbs } from '@astryxdesign/core/Breadcrumbs'
 import { Button } from '@astryxdesign/core/Button'
 import { EmptyState } from '@astryxdesign/core/EmptyState'
@@ -76,6 +77,14 @@ export default function LinksBrowser({
   const [deletingFolder, setDeletingFolder] = useState<LinkFolder | null>(null)
   const [deletingLink, setDeletingLink] = useState<ShortLink | null>(null)
   const [isImportOpen, setIsImportOpen] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  /** Runs an action from a menu or drop, showing its failure above the list. */
+  const run = (action: () => Promise<unknown>) => {
+    setActionError(null)
+    action().catch((err: unknown) =>
+      setActionError(err instanceof Error ? err.message : 'Something went wrong.'),
+    )
+  }
   const canCreateFolderHere = canCreateFolderIn(folders, currentId)
   // "F" → new folder in the folder being viewed (like "C" for a new link).
   useKeyPress('f', () => setNewFolderOpen(true), {
@@ -84,7 +93,7 @@ export default function LinksBrowser({
 
   const openLink = (linkId: string) =>
     void navigate({
-      to: '/dashboard/$orgSlug/links/$linkId',
+      to: '/w/$orgSlug/links/$linkId',
       params: { orgSlug: activeOrg.slug, linkId },
     })
   const editLink = (linkId: string) =>
@@ -111,24 +120,20 @@ export default function LinksBrowser({
   /** Drag-and-drop move; invalid drops (cycles, same place) are ignored. */
   const dropItem = (itemKey: string, destinationId: string | null) => {
     const [kind, id] = itemKey.split(/:(.*)/s)
-    try {
-      if (kind === 'folder') {
-        const folder = folders.find((f) => f.id === id)
-        if (
-          !folder ||
-          folder.parentId === destinationId ||
-          !canMoveFolder(folders, id, destinationId)
-        ) {
-          return
-        }
-        moveFolder(id, destinationId)
-      } else if (kind === 'link') {
-        const link = links.find((l) => l.id === id)
-        if (!link || (link.folderId ?? null) === destinationId) return
-        moveLink(id, destinationId)
+    if (kind === 'folder') {
+      const folder = folders.find((f) => f.id === id)
+      if (
+        !folder ||
+        folder.parentId === destinationId ||
+        !canMoveFolder(folders, id, destinationId)
+      ) {
+        return
       }
-    } catch {
-      /* e.g. sibling name clash at the destination — leave things as they are */
+      run(() => moveFolder(id, destinationId))
+    } else if (kind === 'link') {
+      const link = links.find((l) => l.id === id)
+      if (!link || (link.folderId ?? null) === destinationId) return
+      run(() => moveLink(id, destinationId))
     }
   }
 
@@ -161,20 +166,20 @@ export default function LinksBrowser({
     {
       id: 'duplicate',
       label: 'Duplicate',
-      onClick: () => editLink(duplicateLink(link.id).id),
+      onClick: () => run(async () => editLink((await duplicateLink(link.id)).id)),
     },
     { type: 'divider' as const },
     isOnHold(link)
       ? {
           id: 'release',
           label: 'Release hold',
-          onClick: () => setLinkHold(link.id, null),
+          onClick: () => run(() => setLinkHold(link.id, null)),
         }
       : {
           id: 'hold',
           label: 'Put on hold',
           onClick: () =>
-            setLinkHold(link.id, { page: link.hold?.page ?? 'bad-gateway' }),
+            run(() => setLinkHold(link.id, { page: link.hold?.page ?? 'bad-gateway' })),
         },
     {
       id: 'move',
@@ -222,6 +227,7 @@ export default function LinksBrowser({
 
   return (
     <VStack gap={5} hAlign="stretch" width="100%">
+      {actionError ? <Banner status="error" title={actionError} /> : null}
       <HStack hAlign="between" vAlign="center" gap={4} wrap="wrap">
         <Breadcrumbs label="Folder path">
           <BreadcrumbItem
@@ -319,7 +325,6 @@ export default function LinksBrowser({
               <LinksListView
                 key={currentId ?? 'root'}
                 links={folderLinks}
-                org={activeOrg}
                 linkMenu={linkMenu}
                 onOpenLink={(link) => openLink(link.id)}
               />
@@ -334,8 +339,8 @@ export default function LinksBrowser({
         title="New folder"
         subtitle={`Inside ${folderPathLabel(folders, currentId)}`}
         submitLabel="Create folder"
-        onSubmit={(name) => {
-          createFolder(name, currentId)
+        onSubmit={async (name) => {
+          await createFolder(name, currentId)
         }}
       />
       <FolderNameDialog
@@ -347,7 +352,7 @@ export default function LinksBrowser({
         submitLabel="Save name"
         initialName={renaming?.name}
         onSubmit={(name) => {
-          if (renaming) renameFolder(renaming.id, name)
+          if (renaming) return renameFolder(renaming.id, name)
         }}
       />
       <MoveToFolderDialog
@@ -357,9 +362,9 @@ export default function LinksBrowser({
           if (!open) setMoving(null)
         }}
         onMove={(subject, destinationId) => {
-          if (subject.kind === 'folder') moveFolder(subject.id, destinationId)
-          else if (subject.kind === 'links') moveLinks(subject.ids, destinationId)
-          else moveLink(subject.id, destinationId)
+          if (subject.kind === 'folder') return moveFolder(subject.id, destinationId)
+          if (subject.kind === 'links') return moveLinks(subject.ids, destinationId)
+          return moveLink(subject.id, destinationId)
         }}
       />
       <DeleteFolderDialog
@@ -371,9 +376,12 @@ export default function LinksBrowser({
         }}
         onConfirm={(id, mode) => {
           const wasInside = path.some((f) => f.id === id)
-          deleteFolder(id, mode)
-          // Leave a folder that no longer exists (or moved its contents up).
-          if (wasInside) onOpenFolder(deletingFolder?.parentId ?? null)
+          const parentId = deletingFolder?.parentId ?? null
+          run(async () => {
+            await deleteFolder(id, mode)
+            // Leave a folder that no longer exists (or moved its contents up).
+            if (wasInside) onOpenFolder(parentId)
+          })
         }}
       />
       <ImportLinksDialog
@@ -382,8 +390,8 @@ export default function LinksBrowser({
         links={links}
         folders={folders}
         defaultFolderId={currentId}
-        onCreate={(draft) => {
-          createLink(draft)
+        onCreate={async (draft) => {
+          await createLink(draft)
         }}
       />
       <AlertDialog
@@ -396,7 +404,10 @@ export default function LinksBrowser({
         actionLabel="Delete link"
         actionVariant="destructive"
         onAction={() => {
-          if (deletingLink) deleteLink(deletingLink.id)
+          if (deletingLink) {
+            const id = deletingLink.id
+            run(() => deleteLink(id))
+          }
           setDeletingLink(null)
         }}
       />

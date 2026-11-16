@@ -1,31 +1,30 @@
-import { demoOrganizations } from '#/data/demo/organizations'
-import { getOrganizationById } from '#/data/demo/queries'
+import type { Organization } from '#/data/demo/types'
 import { isValidOrganizationSlug } from '#/lib/organization/slugify'
 
-const STORAGE_KEY = 'openlink.active-org-slug'
-const LEGACY_STORAGE_KEY = 'openlink.active-org'
+/** Which workspace the user is looking at, remembered between visits. */
+export class ActiveWorkspace {
+  static readonly STORAGE_KEY = 'openlink.active-org-slug'
 
-export function getDefaultOrgSlug(): string {
-  if (typeof window !== 'undefined') {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
-    if (stored && isValidOrganizationSlug(stored)) {
-      return stored
-    }
+  /** The slug saved by a previous visit, if it is well-formed. */
+  static remembered(): string | null {
+    if (typeof window === 'undefined') return null
+    const stored = window.localStorage.getItem(ActiveWorkspace.STORAGE_KEY)
+    return stored && isValidOrganizationSlug(stored) ? stored : null
+  }
 
-    const legacyId = window.localStorage.getItem(LEGACY_STORAGE_KEY)
-    if (legacyId) {
-      const org = getOrganizationById(legacyId)
-      if (org) {
-        window.localStorage.setItem(STORAGE_KEY, org.slug)
-        return org.slug
-      }
+  static remember(slug: string): void {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(ActiveWorkspace.STORAGE_KEY, slug)
     }
   }
-  return demoOrganizations[0]?.slug ?? 'apple'
-}
 
-export function persistActiveOrgSlug(slug: string): void {
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem(STORAGE_KEY, slug)
+  /**
+   * An explicit slug must match a workspace the user belongs to (never silently
+   * substituting another). Without one: the remembered workspace, else the first.
+   */
+  static pick(organizations: Organization[], slug?: string | null): Organization | null {
+    if (slug) return organizations.find((org) => org.slug === slug) ?? null
+    const remembered = ActiveWorkspace.remembered()
+    return organizations.find((org) => org.slug === remembered) ?? organizations[0] ?? null
   }
 }

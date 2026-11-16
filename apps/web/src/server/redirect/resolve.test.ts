@@ -38,7 +38,7 @@ function setup(options: { analyticsFails?: boolean } = {}) {
       id: crypto.randomUUID(), organizationId: 'o1', domainId: 'd1', slug: 'abc',
       destinationUrl: 'https://example.com/dest', createdAt: now, updatedAt: now, ...overrides,
     }).returning().get()
-  const resolve = (input: { host: string; slug: string; password?: string }) =>
+  const resolve = (input: { host: string; slug: string; password?: string; appHost?: string }) =>
     Effect.runPromise(
       resolveRedirect(input).pipe(
         Effect.provideService(Db, db),
@@ -133,5 +133,23 @@ describe('outcomeToResponse', () => {
     const form = outcomeToResponse({ type: 'password_invalid' })
     expect(form.status).toBe(401)
     expect(await form.text()).toContain('Incorrect password')
+  })
+})
+
+describe('resolveRedirect on the app host', () => {
+  test('resolves links with no custom domain, and only those', async () => {
+    const t = setup()
+    t.seed({ domainId: null, slug: 'launch', destinationUrl: 'https://example.com/app-host' })
+    t.seed({ slug: 'only-custom', destinationUrl: 'https://example.com/custom' })
+    expect(await t.resolve({ host: 'app.openlink.test', slug: 'launch', appHost: 'APP.openlink.test:443' })).toMatchObject({
+      type: 'redirect', url: 'https://example.com/app-host',
+    })
+    expect(await t.resolve({ host: 'app.openlink.test', slug: 'only-custom', appHost: 'app.openlink.test' })).toEqual({ type: 'not_found' })
+  })
+
+  test('app-host links are not served on custom domains', async () => {
+    const t = setup()
+    t.seed({ domainId: null, slug: 'launch' })
+    expect(await t.resolve({ host: 'go.example.com', slug: 'launch', appHost: 'app.openlink.test' })).toEqual({ type: 'not_found' })
   })
 })

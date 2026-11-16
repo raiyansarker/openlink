@@ -1,4 +1,6 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
+import { Spinner } from '@astryxdesign/core/Spinner'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Badge } from '@astryxdesign/core/Badge'
 import { Button } from '@astryxdesign/core/Button'
@@ -13,11 +15,10 @@ import {
   SmartphoneIcon,
 } from '#/components/icons/IcnMcp'
 import DeviceDetailSheet from '#/components/settings/DeviceDetailSheet'
-import {
-  DEMO_ACTIVE_SESSIONS,
-  type ActiveSession,
-  type DeviceKind,
-} from '#/data/demo/active-sessions'
+import type { ActiveSession, DeviceKind } from '#/data/demo/active-sessions'
+import { ApiError } from '#/lib/api/error'
+import { QueryKeys } from '#/lib/api/query'
+import { DevicesApi } from '#/lib/devices/api'
 import { formatLastActive } from '#/lib/settings/session-time'
 
 const DEVICE_ICONS: Record<DeviceKind, (size: number) => ReactNode> = {
@@ -27,23 +28,54 @@ const DEVICE_ICONS: Record<DeviceKind, (size: number) => ReactNode> = {
 }
 
 const FIELDS_MAX_WIDTH = 560
+const devices = new DevicesApi()
 
 function sessionCaption(session: ActiveSession): string {
-  return `${session.client} · ${session.city}, ${session.country}`
+  const place = [session.city, session.country].filter(Boolean).join(', ')
+  return place ? `${session.client} · ${place}` : session.client
 }
 
 export default function DevicesSettingsFields() {
-  const [sessions, setSessions] = useState<ActiveSession[]>(
-    () => DEMO_ACTIVE_SESSIONS,
-  )
+  const queryClient = useQueryClient()
+  const query = useQuery({ queryKey: QueryKeys.deviceSessions, queryFn: () => devices.list() })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [signOutAllOpen, setSignOutAllOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
+  const refresh = () => queryClient.invalidateQueries({ queryKey: QueryKeys.deviceSessions })
+  const signOutOne = useMutation({
+    mutationFn: (id: string) => devices.signOut(id),
+    onSuccess: () => setSelectedId(null),
+    onError: (e) => setError(ApiError.message(e)),
+    onSettled: refresh,
+  })
+  const signOutOthers = useMutation({
+    mutationFn: () => devices.signOutOthers(),
+    onError: (e) => setError(ApiError.message(e)),
+    onSettled: () => {
+      setSignOutAllOpen(false)
+      void refresh()
+    },
+  })
+
+  if (query.isPending) return <Spinner size="md" label="Loading your devices…" />
+  if (query.isError) {
+    return (
+      <VStack gap={2} hAlign="start" role="alert">
+        <Text>{ApiError.message(query.error, 'Could not load your devices.')}</Text>
+        <Button size="sm" variant="secondary" label="Try again" onClick={() => void query.refetch()} />
+      </VStack>
+    )
+  }
+
+  const sessions: ActiveSession[] = query.data
   const selected = sessions.find((s) => s.id === selectedId) ?? null
   const otherCount = sessions.filter((s) => !s.isCurrent).length
 
-  const signOut = (id: string) =>
-    setSessions((prev) => prev.filter((s) => s.id !== id))
+  const signOut = (id: string) => {
+    setError(null)
+    signOutOne.mutate(id)
+  }
 
   return (
     <VStack
@@ -94,6 +126,12 @@ export default function DevicesSettingsFields() {
         </Text>
       )}
 
+      {error ? (
+        <Text type="supporting" weight="medium" role="alert">
+          {error}
+        </Text>
+      ) : null}
+
       <DeviceDetailSheet
         session={selected}
         onOpenChange={(open) => {
@@ -109,8 +147,8 @@ export default function DevicesSettingsFields() {
         description={`${otherCount} ${otherCount === 1 ? 'device' : 'devices'} will need to sign in again.`}
         actionLabel="Sign out all"
         onAction={() => {
-          setSessions((prev) => prev.filter((s) => s.isCurrent))
-          setSignOutAllOpen(false)
+          setError(null)
+          signOutOthers.mutate()
         }}
       />
     </VStack>

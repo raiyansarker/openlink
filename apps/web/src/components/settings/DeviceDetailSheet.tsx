@@ -7,7 +7,6 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import DeviceLocationMap from '#/components/settings/DeviceLocationMap'
-import { OPENFREEMAP_CREDIT } from '#/lib/maps/load-maplibre'
 import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
@@ -40,17 +39,20 @@ export default function DeviceDetailSheet({
   onSignOut,
 }: DeviceDetailSheetProps) {
   const [signOutOpen, setSignOutOpen] = useState(false)
+  // Keep the last device on screen while the drawer animates closed.
+  const [shown, setShown] = useState(session)
+  if (session && session !== shown) setShown(session)
 
-  if (!session) return null
-
-  const place = `${session.city}, ${session.country}`
+  if (!shown) return null
+  const isOpen = session != null
+  const place = [shown.city, shown.country].filter(Boolean).join(', ') || 'Unknown location'
 
   return (
     <>
       <Drawer
-        isOpen
+        isOpen={isOpen}
         onOpenChange={onOpenChange}
-        label={session.name}
+        label={shown.name}
         side="end"
         width={420}
         hasScrim
@@ -60,11 +62,11 @@ export default function DeviceDetailSheet({
         <Layout
           header={
             <DrawerHeader
-              title={session.name}
+              title={shown.name}
               subtitle={
-                session.isCurrent
+                shown.isCurrent
                   ? 'This device'
-                  : formatLastActive(session.lastActiveAt)
+                  : formatLastActive(shown.lastActiveAt)
               }
               onOpenChange={onOpenChange}
             />
@@ -72,42 +74,41 @@ export default function DeviceDetailSheet({
           content={
             <LayoutContent>
               <VStack gap={6} hAlign="stretch" width="100%">
+                {shown.coordinates ? (
                 <VStack gap={2} hAlign="stretch" width="100%">
-                  <DeviceLocationMap
-                    lat={session.coordinates.lat}
-                    lng={session.coordinates.lng}
-                    label={`Approximate location: ${place}`}
-                  />
-                  <VStack gap={0.5} hAlign="start" width="100%">
-                    <Text type="supporting" color="secondary">
-                      Approximate location from the IP address.
-                    </Text>
-                    <Text type="supporting" color="secondary">
-                      {OPENFREEMAP_CREDIT}
-                    </Text>
+                    <DeviceLocationMap
+                      lat={shown.coordinates.lat}
+                      lng={shown.coordinates.lng}
+                      label={`Approximate location: ${place}`}
+                    />
+                    <VStack gap={0.5} hAlign="start" width="100%">
+                      <Text type="supporting" color="secondary">
+                        Approximate location from the IP address.
+                      </Text>
+                    </VStack>
                   </VStack>
-                </VStack>
+                ) : null}
 
                 <VStack gap={3} hAlign="stretch" width="100%">
                   <DetailRow label="Location">{place}</DetailRow>
-                  <DetailRow label="IP address">{session.ipAddress}</DetailRow>
-                  <DetailRow label="Browser">{session.client}</DetailRow>
-                  <DetailRow label="Operating system">{session.os}</DetailRow>
-                  <DetailRow label="Signed in with">{session.signInMethod}</DetailRow>
+                  <DetailRow label="IP address">{shown.ipAddress}</DetailRow>
+                  <DetailRow label="Browser">{shown.client}</DetailRow>
+                  <DetailRow label="Operating system">{shown.os}</DetailRow>
+                  <DetailRow label="Signed in with">{shown.signInMethod}</DetailRow>
                   <DetailRow label="Signed in">
-                    {formatSessionDate(session.signedInAt)}
+                    {formatSessionDate(shown.signedInAt)}
                   </DetailRow>
                   <DetailRow label="Last active">
-                    {session.isCurrent
+                    {shown.isCurrent
                       ? 'Now'
-                      : formatSessionDate(session.lastActiveAt)}
+                      : formatSessionDate(shown.lastActiveAt)}
                   </DetailRow>
                 </VStack>
               </VStack>
             </LayoutContent>
           }
           footer={
-            session.isCurrent ? undefined : (
+            shown.isCurrent ? undefined : (
               <LayoutFooter hasDivider>
                 <HStack hAlign="end" width="100%">
                   <Button
@@ -126,11 +127,11 @@ export default function DeviceDetailSheet({
       <AlertDialog
         isOpen={signOutOpen}
         onOpenChange={setSignOutOpen}
-        title={`Sign out ${session.name}?`}
+        title={`Sign out ${shown.name}?`}
         description="That device will need to sign in again to use OpenLink."
         actionLabel="Sign out"
         onAction={() => {
-          onSignOut(session.id)
+          onSignOut(shown.id)
           setSignOutOpen(false)
           onOpenChange(false)
         }}

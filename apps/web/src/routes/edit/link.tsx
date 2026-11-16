@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import EditLinkScreen from '#/components/create-link/EditLinkScreen'
+import { AuthSession } from '#/lib/auth/client'
 import { OrganizationProvider } from '#/contexts/OrganizationContext'
-import { getDefaultOrgSlug } from '#/lib/dashboard/org-slug'
 import { createPageHead } from '#/lib/page-title'
 
 type EditLinkSearch = {
@@ -12,6 +12,7 @@ type EditLinkSearch = {
 }
 
 export const Route = createFileRoute('/edit/link')({
+  beforeLoad: ({ location }) => AuthSession.requireSignedIn(location),
   head: createPageHead('Edit link'),
   validateSearch: (search: Record<string, unknown>): EditLinkSearch => ({
     org: typeof search.org === 'string' && search.org ? search.org : undefined,
@@ -23,7 +24,7 @@ export const Route = createFileRoute('/edit/link')({
 function EditLinkPage() {
   const { org, link } = Route.useSearch()
   return (
-    <OrganizationProvider orgSlugFromRoute={org ?? getDefaultOrgSlug()}>
+    <OrganizationProvider orgSlugFromRoute={org}>
       <EditLinkScreen linkId={link} />
     </OrganizationProvider>
   )

@@ -12,34 +12,47 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as AboutRouteImport } from './routes/about'
-import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
+import { Route as WRouteRouteImport } from './routes/w/route'
 import { Route as ApiDocsRouteImport } from './routes/api/docs'
 import { Route as CreateLinkRouteImport } from './routes/create/link'
 import { Route as CreateOrganizationRouteImport } from './routes/create/organization'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
-import { Route as DashboardOrgSlugRouteRouteImport } from './routes/dashboard/$orgSlug/route'
-import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analytics'
-import { Route as DashboardLinksRouteImport } from './routes/dashboard/links'
-import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as DashboardSplatRouteImport } from './routes/dashboard/$'
 import { Route as EditLinkRouteImport } from './routes/edit/link'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
-import { Route as SettingsSectionRouteImport } from './routes/settings/$section'
+import { Route as SettingsWorkspaceRouteRouteImport } from './routes/settings/_workspace/route'
+import { Route as SettingsAccountsRouteImport } from './routes/settings/accounts'
+import { Route as SettingsAppearanceRouteImport } from './routes/settings/appearance'
+import { Route as SettingsDevelopersRouteImport } from './routes/settings/developers'
+import { Route as SettingsDevicesRouteImport } from './routes/settings/devices'
+import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
+import { Route as WIndexRouteImport } from './routes/w/index'
+import { Route as WOrgSlugRouteRouteImport } from './routes/w/$orgSlug/route'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
+import { Route as ApiUploadsAvatarRouteImport } from './routes/api/uploads/avatar'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
-import { Route as DashboardOrgSlugIndexRouteImport } from './routes/dashboard/$orgSlug/index'
-import { Route as DashboardOrgSlugActivityRouteImport } from './routes/dashboard/$orgSlug/activity'
-import { Route as DashboardOrgSlugAnalyticsRouteImport } from './routes/dashboard/$orgSlug/analytics'
-import { Route as DashboardOrgSlugDomainsRouteRouteImport } from './routes/dashboard/$orgSlug/domains/route'
-import { Route as DashboardOrgSlugNotificationsRouteImport } from './routes/dashboard/$orgSlug/notifications'
-import { Route as DashboardOrgSlugReportsRouteImport } from './routes/dashboard/$orgSlug/reports'
-import { Route as DashboardOrgSlugSettingsRouteRouteImport } from './routes/dashboard/$orgSlug/settings/route'
-import { Route as DashboardOrgSlugDomainsIndexRouteImport } from './routes/dashboard/$orgSlug/domains/index'
-import { Route as DashboardOrgSlugDomainsNewRouteImport } from './routes/dashboard/$orgSlug/domains/new'
-import { Route as DashboardOrgSlugLinksIndexRouteImport } from './routes/dashboard/$orgSlug/links/index'
-import { Route as DashboardOrgSlugLinksLinkIdRouteImport } from './routes/dashboard/$orgSlug/links/$linkId'
-import { Route as DashboardOrgSlugSettingsIndexRouteImport } from './routes/dashboard/$orgSlug/settings/index'
-import { Route as DashboardOrgSlugSettingsSectionRouteImport } from './routes/dashboard/$orgSlug/settings/$section'
+import { Route as SettingsWorkspaceApiKeysRouteImport } from './routes/settings/_workspace/api-keys'
+import { Route as SettingsWorkspaceGeneralRouteImport } from './routes/settings/_workspace/general'
+import { Route as SettingsWorkspaceIntegrationsRouteImport } from './routes/settings/_workspace/integrations'
+import { Route as SettingsWorkspaceMembersRouteImport } from './routes/settings/_workspace/members'
+import { Route as WOrgSlugIndexRouteImport } from './routes/w/$orgSlug/index'
+import { Route as WOrgSlugActivityRouteImport } from './routes/w/$orgSlug/activity'
+import { Route as WOrgSlugAnalyticsRouteImport } from './routes/w/$orgSlug/analytics'
+import { Route as WOrgSlugDomainsRouteRouteImport } from './routes/w/$orgSlug/domains/route'
+import { Route as WOrgSlugNotificationsRouteImport } from './routes/w/$orgSlug/notifications'
+import { Route as WOrgSlugReportsRouteImport } from './routes/w/$orgSlug/reports'
+import { Route as WOrgSlugSettingsRouteRouteImport } from './routes/w/$orgSlug/settings/route'
+import { Route as WOrgSlugDomainsIndexRouteImport } from './routes/w/$orgSlug/domains/index'
+import { Route as WOrgSlugDomainsNewRouteImport } from './routes/w/$orgSlug/domains/new'
+import { Route as WOrgSlugLinksIndexRouteImport } from './routes/w/$orgSlug/links/index'
+import { Route as WOrgSlugLinksLinkIdRouteImport } from './routes/w/$orgSlug/links/$linkId'
+import { Route as WOrgSlugSettingsIndexRouteImport } from './routes/w/$orgSlug/settings/index'
+import { Route as WOrgSlugSettingsSplatRouteImport } from './routes/w/$orgSlug/settings/$'
+import { Route as ApiUploadsOrganizationsOrganizationIdLogoRouteImport } from './routes/api/uploads/organizations/$organizationId/logo'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -56,19 +69,24 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRouteRoute = DashboardRouteRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WRouteRoute = WRouteRouteImport.update({
+  id: '/w',
+  path: '/w',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDocsRoute = ApiDocsRouteImport.update({
@@ -87,29 +105,14 @@ const CreateOrganizationRoute = CreateOrganizationRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DashboardRouteRoute,
+  id: '/dashboard/',
+  path: '/dashboard/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardOrgSlugRouteRoute = DashboardOrgSlugRouteRouteImport.update({
-  id: '/$orgSlug',
-  path: '/$orgSlug',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardAnalyticsRoute = DashboardAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardLinksRoute = DashboardLinksRouteImport.update({
-  id: '/links',
-  path: '/links',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => DashboardRouteRoute,
+const DashboardSplatRoute = DashboardSplatRouteImport.update({
+  id: '/dashboard/$',
+  path: '/dashboard/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const EditLinkRoute = EditLinkRouteImport.update({
   id: '/edit/link',
@@ -121,297 +124,446 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SettingsRouteRoute,
 } as any)
-const SettingsSectionRoute = SettingsSectionRouteImport.update({
-  id: '/$section',
-  path: '/$section',
+const SettingsWorkspaceRouteRoute = SettingsWorkspaceRouteRouteImport.update({
+  id: '/_workspace',
   getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsAccountsRoute = SettingsAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
+  id: '/appearance',
+  path: '/appearance',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsDevelopersRoute = SettingsDevelopersRouteImport.update({
+  id: '/developers',
+  path: '/developers',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsDevicesRoute = SettingsDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const WIndexRoute = WIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WRouteRoute,
+} as any)
+const WOrgSlugRouteRoute = WOrgSlugRouteRouteImport.update({
+  id: '/$orgSlug',
+  path: '/$orgSlug',
+  getParentRoute: () => WRouteRoute,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMediaSplatRoute = ApiMediaSplatRouteImport.update({
+  id: '/api/media/$',
+  path: '/api/media/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUploadsAvatarRoute = ApiUploadsAvatarRouteImport.update({
+  id: '/api/uploads/avatar',
+  path: '/api/uploads/avatar',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
   id: '/api/v1/$',
   path: '/api/v1/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardOrgSlugIndexRoute = DashboardOrgSlugIndexRouteImport.update({
+const SettingsWorkspaceApiKeysRoute =
+  SettingsWorkspaceApiKeysRouteImport.update({
+    id: '/api-keys',
+    path: '/api-keys',
+    getParentRoute: () => SettingsWorkspaceRouteRoute,
+  } as any)
+const SettingsWorkspaceGeneralRoute =
+  SettingsWorkspaceGeneralRouteImport.update({
+    id: '/general',
+    path: '/general',
+    getParentRoute: () => SettingsWorkspaceRouteRoute,
+  } as any)
+const SettingsWorkspaceIntegrationsRoute =
+  SettingsWorkspaceIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => SettingsWorkspaceRouteRoute,
+  } as any)
+const SettingsWorkspaceMembersRoute =
+  SettingsWorkspaceMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => SettingsWorkspaceRouteRoute,
+  } as any)
+const WOrgSlugIndexRoute = WOrgSlugIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => DashboardOrgSlugRouteRoute,
+  getParentRoute: () => WOrgSlugRouteRoute,
 } as any)
-const DashboardOrgSlugActivityRoute =
-  DashboardOrgSlugActivityRouteImport.update({
-    id: '/activity',
-    path: '/activity',
-    getParentRoute: () => DashboardOrgSlugRouteRoute,
-  } as any)
-const DashboardOrgSlugAnalyticsRoute =
-  DashboardOrgSlugAnalyticsRouteImport.update({
-    id: '/analytics',
-    path: '/analytics',
-    getParentRoute: () => DashboardOrgSlugRouteRoute,
-  } as any)
-const DashboardOrgSlugDomainsRouteRoute =
-  DashboardOrgSlugDomainsRouteRouteImport.update({
-    id: '/domains',
-    path: '/domains',
-    getParentRoute: () => DashboardOrgSlugRouteRoute,
-  } as any)
-const DashboardOrgSlugNotificationsRoute =
-  DashboardOrgSlugNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => DashboardOrgSlugRouteRoute,
-  } as any)
-const DashboardOrgSlugReportsRoute = DashboardOrgSlugReportsRouteImport.update({
+const WOrgSlugActivityRoute = WOrgSlugActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => WOrgSlugRouteRoute,
+} as any)
+const WOrgSlugAnalyticsRoute = WOrgSlugAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => WOrgSlugRouteRoute,
+} as any)
+const WOrgSlugDomainsRouteRoute = WOrgSlugDomainsRouteRouteImport.update({
+  id: '/domains',
+  path: '/domains',
+  getParentRoute: () => WOrgSlugRouteRoute,
+} as any)
+const WOrgSlugNotificationsRoute = WOrgSlugNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => WOrgSlugRouteRoute,
+} as any)
+const WOrgSlugReportsRoute = WOrgSlugReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
-  getParentRoute: () => DashboardOrgSlugRouteRoute,
+  getParentRoute: () => WOrgSlugRouteRoute,
 } as any)
-const DashboardOrgSlugSettingsRouteRoute =
-  DashboardOrgSlugSettingsRouteRouteImport.update({
-    id: '/settings',
-    path: '/settings',
-    getParentRoute: () => DashboardOrgSlugRouteRoute,
-  } as any)
-const DashboardOrgSlugDomainsIndexRoute =
-  DashboardOrgSlugDomainsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => DashboardOrgSlugDomainsRouteRoute,
-  } as any)
-const DashboardOrgSlugDomainsNewRoute =
-  DashboardOrgSlugDomainsNewRouteImport.update({
-    id: '/new',
-    path: '/new',
-    getParentRoute: () => DashboardOrgSlugDomainsRouteRoute,
-  } as any)
-const DashboardOrgSlugLinksIndexRoute =
-  DashboardOrgSlugLinksIndexRouteImport.update({
-    id: '/links/',
-    path: '/links/',
-    getParentRoute: () => DashboardOrgSlugRouteRoute,
-  } as any)
-const DashboardOrgSlugLinksLinkIdRoute =
-  DashboardOrgSlugLinksLinkIdRouteImport.update({
-    id: '/links/$linkId',
-    path: '/links/$linkId',
-    getParentRoute: () => DashboardOrgSlugRouteRoute,
-  } as any)
-const DashboardOrgSlugSettingsIndexRoute =
-  DashboardOrgSlugSettingsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => DashboardOrgSlugSettingsRouteRoute,
-  } as any)
-const DashboardOrgSlugSettingsSectionRoute =
-  DashboardOrgSlugSettingsSectionRouteImport.update({
-    id: '/$section',
-    path: '/$section',
-    getParentRoute: () => DashboardOrgSlugSettingsRouteRoute,
+const WOrgSlugSettingsRouteRoute = WOrgSlugSettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => WOrgSlugRouteRoute,
+} as any)
+const WOrgSlugDomainsIndexRoute = WOrgSlugDomainsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WOrgSlugDomainsRouteRoute,
+} as any)
+const WOrgSlugDomainsNewRoute = WOrgSlugDomainsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => WOrgSlugDomainsRouteRoute,
+} as any)
+const WOrgSlugLinksIndexRoute = WOrgSlugLinksIndexRouteImport.update({
+  id: '/links/',
+  path: '/links/',
+  getParentRoute: () => WOrgSlugRouteRoute,
+} as any)
+const WOrgSlugLinksLinkIdRoute = WOrgSlugLinksLinkIdRouteImport.update({
+  id: '/links/$linkId',
+  path: '/links/$linkId',
+  getParentRoute: () => WOrgSlugRouteRoute,
+} as any)
+const WOrgSlugSettingsIndexRoute = WOrgSlugSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WOrgSlugSettingsRouteRoute,
+} as any)
+const WOrgSlugSettingsSplatRoute = WOrgSlugSettingsSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => WOrgSlugSettingsRouteRoute,
+} as any)
+const ApiUploadsOrganizationsOrganizationIdLogoRoute =
+  ApiUploadsOrganizationsOrganizationIdLogoRouteImport.update({
+    id: '/api/uploads/organizations/$organizationId/logo',
+    path: '/api/uploads/organizations/$organizationId/logo',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
+  '/w': typeof WRouteRouteWithChildren
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
-  '/dashboard/$orgSlug': typeof DashboardOrgSlugRouteRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/w/$orgSlug': typeof WOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
   '/create/organization': typeof CreateOrganizationRoute
-  '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/links': typeof DashboardLinksRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
-  '/settings/$section': typeof SettingsSectionRoute
+  '/settings/accounts': typeof SettingsAccountsRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/developers': typeof SettingsDevelopersRoute
+  '/settings/devices': typeof SettingsDevicesRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/settings/': typeof SettingsIndexRoute
-  '/dashboard/$orgSlug/domains': typeof DashboardOrgSlugDomainsRouteRouteWithChildren
-  '/dashboard/$orgSlug/settings': typeof DashboardOrgSlugSettingsRouteRouteWithChildren
+  '/w/': typeof WIndexRoute
+  '/w/$orgSlug/domains': typeof WOrgSlugDomainsRouteRouteWithChildren
+  '/w/$orgSlug/settings': typeof WOrgSlugSettingsRouteRouteWithChildren
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
+  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
-  '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
-  '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
-  '/dashboard/$orgSlug/notifications': typeof DashboardOrgSlugNotificationsRoute
-  '/dashboard/$orgSlug/reports': typeof DashboardOrgSlugReportsRoute
-  '/dashboard/$orgSlug/': typeof DashboardOrgSlugIndexRoute
-  '/dashboard/$orgSlug/domains/new': typeof DashboardOrgSlugDomainsNewRoute
-  '/dashboard/$orgSlug/links/$linkId': typeof DashboardOrgSlugLinksLinkIdRoute
-  '/dashboard/$orgSlug/settings/$section': typeof DashboardOrgSlugSettingsSectionRoute
-  '/dashboard/$orgSlug/domains/': typeof DashboardOrgSlugDomainsIndexRoute
-  '/dashboard/$orgSlug/links/': typeof DashboardOrgSlugLinksIndexRoute
-  '/dashboard/$orgSlug/settings/': typeof DashboardOrgSlugSettingsIndexRoute
+  '/settings/api-keys': typeof SettingsWorkspaceApiKeysRoute
+  '/settings/general': typeof SettingsWorkspaceGeneralRoute
+  '/settings/integrations': typeof SettingsWorkspaceIntegrationsRoute
+  '/settings/members': typeof SettingsWorkspaceMembersRoute
+  '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
+  '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
+  '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
+  '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
+  '/w/$orgSlug/': typeof WOrgSlugIndexRoute
+  '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
+  '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
+  '/w/$orgSlug/settings/$': typeof WOrgSlugSettingsSplatRoute
+  '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
+  '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
+  '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/settings': typeof SettingsIndexRoute
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
   '/create/organization': typeof CreateOrganizationRoute
-  '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/links': typeof DashboardLinksRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
-  '/settings/$section': typeof SettingsSectionRoute
+  '/settings/accounts': typeof SettingsAccountsRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/developers': typeof SettingsDevelopersRoute
+  '/settings/devices': typeof SettingsDevicesRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/dashboard': typeof DashboardIndexRoute
-  '/settings': typeof SettingsIndexRoute
+  '/w': typeof WIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
+  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
-  '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
-  '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
-  '/dashboard/$orgSlug/notifications': typeof DashboardOrgSlugNotificationsRoute
-  '/dashboard/$orgSlug/reports': typeof DashboardOrgSlugReportsRoute
-  '/dashboard/$orgSlug': typeof DashboardOrgSlugIndexRoute
-  '/dashboard/$orgSlug/domains/new': typeof DashboardOrgSlugDomainsNewRoute
-  '/dashboard/$orgSlug/links/$linkId': typeof DashboardOrgSlugLinksLinkIdRoute
-  '/dashboard/$orgSlug/settings/$section': typeof DashboardOrgSlugSettingsSectionRoute
-  '/dashboard/$orgSlug/domains': typeof DashboardOrgSlugDomainsIndexRoute
-  '/dashboard/$orgSlug/links': typeof DashboardOrgSlugLinksIndexRoute
-  '/dashboard/$orgSlug/settings': typeof DashboardOrgSlugSettingsIndexRoute
+  '/settings/api-keys': typeof SettingsWorkspaceApiKeysRoute
+  '/settings/general': typeof SettingsWorkspaceGeneralRoute
+  '/settings/integrations': typeof SettingsWorkspaceIntegrationsRoute
+  '/settings/members': typeof SettingsWorkspaceMembersRoute
+  '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
+  '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
+  '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
+  '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
+  '/w/$orgSlug': typeof WOrgSlugIndexRoute
+  '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
+  '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
+  '/w/$orgSlug/settings/$': typeof WOrgSlugSettingsSplatRoute
+  '/w/$orgSlug/domains': typeof WOrgSlugDomainsIndexRoute
+  '/w/$orgSlug/links': typeof WOrgSlugLinksIndexRoute
+  '/w/$orgSlug/settings': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
+  '/w': typeof WRouteRouteWithChildren
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/login': typeof LoginRoute
-  '/dashboard/$orgSlug': typeof DashboardOrgSlugRouteRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/settings/_workspace': typeof SettingsWorkspaceRouteRouteWithChildren
+  '/w/$orgSlug': typeof WOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
   '/create/organization': typeof CreateOrganizationRoute
-  '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/links': typeof DashboardLinksRoute
-  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
-  '/settings/$section': typeof SettingsSectionRoute
+  '/settings/accounts': typeof SettingsAccountsRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/developers': typeof SettingsDevelopersRoute
+  '/settings/devices': typeof SettingsDevicesRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/settings/': typeof SettingsIndexRoute
-  '/dashboard/$orgSlug/domains': typeof DashboardOrgSlugDomainsRouteRouteWithChildren
-  '/dashboard/$orgSlug/settings': typeof DashboardOrgSlugSettingsRouteRouteWithChildren
+  '/w/': typeof WIndexRoute
+  '/w/$orgSlug/domains': typeof WOrgSlugDomainsRouteRouteWithChildren
+  '/w/$orgSlug/settings': typeof WOrgSlugSettingsRouteRouteWithChildren
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
+  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
-  '/dashboard/$orgSlug/activity': typeof DashboardOrgSlugActivityRoute
-  '/dashboard/$orgSlug/analytics': typeof DashboardOrgSlugAnalyticsRoute
-  '/dashboard/$orgSlug/notifications': typeof DashboardOrgSlugNotificationsRoute
-  '/dashboard/$orgSlug/reports': typeof DashboardOrgSlugReportsRoute
-  '/dashboard/$orgSlug/': typeof DashboardOrgSlugIndexRoute
-  '/dashboard/$orgSlug/domains/new': typeof DashboardOrgSlugDomainsNewRoute
-  '/dashboard/$orgSlug/links/$linkId': typeof DashboardOrgSlugLinksLinkIdRoute
-  '/dashboard/$orgSlug/settings/$section': typeof DashboardOrgSlugSettingsSectionRoute
-  '/dashboard/$orgSlug/domains/': typeof DashboardOrgSlugDomainsIndexRoute
-  '/dashboard/$orgSlug/links/': typeof DashboardOrgSlugLinksIndexRoute
-  '/dashboard/$orgSlug/settings/': typeof DashboardOrgSlugSettingsIndexRoute
+  '/settings/_workspace/api-keys': typeof SettingsWorkspaceApiKeysRoute
+  '/settings/_workspace/general': typeof SettingsWorkspaceGeneralRoute
+  '/settings/_workspace/integrations': typeof SettingsWorkspaceIntegrationsRoute
+  '/settings/_workspace/members': typeof SettingsWorkspaceMembersRoute
+  '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
+  '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
+  '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
+  '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
+  '/w/$orgSlug/': typeof WOrgSlugIndexRoute
+  '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
+  '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
+  '/w/$orgSlug/settings/$': typeof WOrgSlugSettingsSplatRoute
+  '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
+  '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
+  '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
+  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dashboard'
     | '/settings'
+    | '/w'
     | '/$slug'
     | '/about'
     | '/login'
-    | '/dashboard/$orgSlug'
+    | '/onboarding'
+    | '/w/$orgSlug'
     | '/api/docs'
     | '/create/link'
     | '/create/organization'
-    | '/dashboard/analytics'
-    | '/dashboard/links'
-    | '/dashboard/settings'
+    | '/dashboard/$'
     | '/edit/link'
-    | '/settings/$section'
+    | '/settings/accounts'
+    | '/settings/appearance'
+    | '/settings/developers'
+    | '/settings/devices'
+    | '/settings/profile'
     | '/dashboard/'
     | '/settings/'
-    | '/dashboard/$orgSlug/domains'
-    | '/dashboard/$orgSlug/settings'
+    | '/w/'
+    | '/w/$orgSlug/domains'
+    | '/w/$orgSlug/settings'
+    | '/api/auth/$'
+    | '/api/media/$'
+    | '/api/uploads/avatar'
     | '/api/v1/$'
-    | '/dashboard/$orgSlug/activity'
-    | '/dashboard/$orgSlug/analytics'
-    | '/dashboard/$orgSlug/notifications'
-    | '/dashboard/$orgSlug/reports'
-    | '/dashboard/$orgSlug/'
-    | '/dashboard/$orgSlug/domains/new'
-    | '/dashboard/$orgSlug/links/$linkId'
-    | '/dashboard/$orgSlug/settings/$section'
-    | '/dashboard/$orgSlug/domains/'
-    | '/dashboard/$orgSlug/links/'
-    | '/dashboard/$orgSlug/settings/'
+    | '/settings/api-keys'
+    | '/settings/general'
+    | '/settings/integrations'
+    | '/settings/members'
+    | '/w/$orgSlug/activity'
+    | '/w/$orgSlug/analytics'
+    | '/w/$orgSlug/notifications'
+    | '/w/$orgSlug/reports'
+    | '/w/$orgSlug/'
+    | '/w/$orgSlug/domains/new'
+    | '/w/$orgSlug/links/$linkId'
+    | '/w/$orgSlug/settings/$'
+    | '/w/$orgSlug/domains/'
+    | '/w/$orgSlug/links/'
+    | '/w/$orgSlug/settings/'
+    | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$slug'
     | '/about'
     | '/login'
+    | '/onboarding'
+    | '/settings'
     | '/api/docs'
     | '/create/link'
     | '/create/organization'
-    | '/dashboard/analytics'
-    | '/dashboard/links'
-    | '/dashboard/settings'
+    | '/dashboard/$'
     | '/edit/link'
-    | '/settings/$section'
+    | '/settings/accounts'
+    | '/settings/appearance'
+    | '/settings/developers'
+    | '/settings/devices'
+    | '/settings/profile'
     | '/dashboard'
-    | '/settings'
+    | '/w'
+    | '/api/auth/$'
+    | '/api/media/$'
+    | '/api/uploads/avatar'
     | '/api/v1/$'
-    | '/dashboard/$orgSlug/activity'
-    | '/dashboard/$orgSlug/analytics'
-    | '/dashboard/$orgSlug/notifications'
-    | '/dashboard/$orgSlug/reports'
-    | '/dashboard/$orgSlug'
-    | '/dashboard/$orgSlug/domains/new'
-    | '/dashboard/$orgSlug/links/$linkId'
-    | '/dashboard/$orgSlug/settings/$section'
-    | '/dashboard/$orgSlug/domains'
-    | '/dashboard/$orgSlug/links'
-    | '/dashboard/$orgSlug/settings'
+    | '/settings/api-keys'
+    | '/settings/general'
+    | '/settings/integrations'
+    | '/settings/members'
+    | '/w/$orgSlug/activity'
+    | '/w/$orgSlug/analytics'
+    | '/w/$orgSlug/notifications'
+    | '/w/$orgSlug/reports'
+    | '/w/$orgSlug'
+    | '/w/$orgSlug/domains/new'
+    | '/w/$orgSlug/links/$linkId'
+    | '/w/$orgSlug/settings/$'
+    | '/w/$orgSlug/domains'
+    | '/w/$orgSlug/links'
+    | '/w/$orgSlug/settings'
+    | '/api/uploads/organizations/$organizationId/logo'
   id:
     | '__root__'
     | '/'
-    | '/dashboard'
     | '/settings'
+    | '/w'
     | '/$slug'
     | '/about'
     | '/login'
-    | '/dashboard/$orgSlug'
+    | '/onboarding'
+    | '/settings/_workspace'
+    | '/w/$orgSlug'
     | '/api/docs'
     | '/create/link'
     | '/create/organization'
-    | '/dashboard/analytics'
-    | '/dashboard/links'
-    | '/dashboard/settings'
+    | '/dashboard/$'
     | '/edit/link'
-    | '/settings/$section'
+    | '/settings/accounts'
+    | '/settings/appearance'
+    | '/settings/developers'
+    | '/settings/devices'
+    | '/settings/profile'
     | '/dashboard/'
     | '/settings/'
-    | '/dashboard/$orgSlug/domains'
-    | '/dashboard/$orgSlug/settings'
+    | '/w/'
+    | '/w/$orgSlug/domains'
+    | '/w/$orgSlug/settings'
+    | '/api/auth/$'
+    | '/api/media/$'
+    | '/api/uploads/avatar'
     | '/api/v1/$'
-    | '/dashboard/$orgSlug/activity'
-    | '/dashboard/$orgSlug/analytics'
-    | '/dashboard/$orgSlug/notifications'
-    | '/dashboard/$orgSlug/reports'
-    | '/dashboard/$orgSlug/'
-    | '/dashboard/$orgSlug/domains/new'
-    | '/dashboard/$orgSlug/links/$linkId'
-    | '/dashboard/$orgSlug/settings/$section'
-    | '/dashboard/$orgSlug/domains/'
-    | '/dashboard/$orgSlug/links/'
-    | '/dashboard/$orgSlug/settings/'
+    | '/settings/_workspace/api-keys'
+    | '/settings/_workspace/general'
+    | '/settings/_workspace/integrations'
+    | '/settings/_workspace/members'
+    | '/w/$orgSlug/activity'
+    | '/w/$orgSlug/analytics'
+    | '/w/$orgSlug/notifications'
+    | '/w/$orgSlug/reports'
+    | '/w/$orgSlug/'
+    | '/w/$orgSlug/domains/new'
+    | '/w/$orgSlug/links/$linkId'
+    | '/w/$orgSlug/settings/$'
+    | '/w/$orgSlug/domains/'
+    | '/w/$orgSlug/links/'
+    | '/w/$orgSlug/settings/'
+    | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
+  WRouteRoute: typeof WRouteRouteWithChildren
   SlugRoute: typeof SlugRoute
   AboutRoute: typeof AboutRoute
   LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
   ApiDocsRoute: typeof ApiDocsRoute
   CreateLinkRoute: typeof CreateLinkRoute
   CreateOrganizationRoute: typeof CreateOrganizationRoute
+  DashboardSplatRoute: typeof DashboardSplatRoute
   EditLinkRoute: typeof EditLinkRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiMediaSplatRoute: typeof ApiMediaSplatRoute
+  ApiUploadsAvatarRoute: typeof ApiUploadsAvatarRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
+  ApiUploadsOrganizationsOrganizationIdLogoRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -437,13 +589,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -451,11 +596,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/w': {
+      id: '/w'
+      path: '/w'
+      fullPath: '/w'
+      preLoaderRoute: typeof WRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/docs': {
@@ -481,38 +640,17 @@ declare module '@tanstack/react-router' {
     }
     '/dashboard/': {
       id: '/dashboard/'
-      path: '/'
+      path: '/dashboard'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/dashboard/$orgSlug': {
-      id: '/dashboard/$orgSlug'
-      path: '/$orgSlug'
-      fullPath: '/dashboard/$orgSlug'
-      preLoaderRoute: typeof DashboardOrgSlugRouteRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/analytics': {
-      id: '/dashboard/analytics'
-      path: '/analytics'
-      fullPath: '/dashboard/analytics'
-      preLoaderRoute: typeof DashboardAnalyticsRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/links': {
-      id: '/dashboard/links'
-      path: '/links'
-      fullPath: '/dashboard/links'
-      preLoaderRoute: typeof DashboardLinksRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/settings': {
-      id: '/dashboard/settings'
-      path: '/settings'
-      fullPath: '/dashboard/settings'
-      preLoaderRoute: typeof DashboardSettingsRouteImport
-      parentRoute: typeof DashboardRouteRoute
+    '/dashboard/$': {
+      id: '/dashboard/$'
+      path: '/dashboard/$'
+      fullPath: '/dashboard/$'
+      preLoaderRoute: typeof DashboardSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/edit/link': {
       id: '/edit/link'
@@ -528,12 +666,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof SettingsRouteRoute
     }
-    '/settings/$section': {
-      id: '/settings/$section'
-      path: '/$section'
-      fullPath: '/settings/$section'
-      preLoaderRoute: typeof SettingsSectionRouteImport
+    '/settings/_workspace': {
+      id: '/settings/_workspace'
+      path: ''
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsWorkspaceRouteRouteImport
       parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/accounts': {
+      id: '/settings/accounts'
+      path: '/accounts'
+      fullPath: '/settings/accounts'
+      preLoaderRoute: typeof SettingsAccountsRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/appearance': {
+      id: '/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof SettingsAppearanceRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/developers': {
+      id: '/settings/developers'
+      path: '/developers'
+      fullPath: '/settings/developers'
+      preLoaderRoute: typeof SettingsDevelopersRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/devices': {
+      id: '/settings/devices'
+      path: '/devices'
+      fullPath: '/settings/devices'
+      preLoaderRoute: typeof SettingsDevicesRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/w/': {
+      id: '/w/'
+      path: '/'
+      fullPath: '/w/'
+      preLoaderRoute: typeof WIndexRouteImport
+      parentRoute: typeof WRouteRoute
+    }
+    '/w/$orgSlug': {
+      id: '/w/$orgSlug'
+      path: '/$orgSlug'
+      fullPath: '/w/$orgSlug'
+      preLoaderRoute: typeof WOrgSlugRouteRouteImport
+      parentRoute: typeof WRouteRoute
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/media/$': {
+      id: '/api/media/$'
+      path: '/api/media/$'
+      fullPath: '/api/media/$'
+      preLoaderRoute: typeof ApiMediaSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/uploads/avatar': {
+      id: '/api/uploads/avatar'
+      path: '/api/uploads/avatar'
+      fullPath: '/api/uploads/avatar'
+      preLoaderRoute: typeof ApiUploadsAvatarRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/v1/$': {
       id: '/api/v1/$'
@@ -542,190 +750,172 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/$orgSlug/': {
-      id: '/dashboard/$orgSlug/'
-      path: '/'
-      fullPath: '/dashboard/$orgSlug/'
-      preLoaderRoute: typeof DashboardOrgSlugIndexRouteImport
-      parentRoute: typeof DashboardOrgSlugRouteRoute
+    '/settings/_workspace/api-keys': {
+      id: '/settings/_workspace/api-keys'
+      path: '/api-keys'
+      fullPath: '/settings/api-keys'
+      preLoaderRoute: typeof SettingsWorkspaceApiKeysRouteImport
+      parentRoute: typeof SettingsWorkspaceRouteRoute
     }
-    '/dashboard/$orgSlug/activity': {
-      id: '/dashboard/$orgSlug/activity'
+    '/settings/_workspace/general': {
+      id: '/settings/_workspace/general'
+      path: '/general'
+      fullPath: '/settings/general'
+      preLoaderRoute: typeof SettingsWorkspaceGeneralRouteImport
+      parentRoute: typeof SettingsWorkspaceRouteRoute
+    }
+    '/settings/_workspace/integrations': {
+      id: '/settings/_workspace/integrations'
+      path: '/integrations'
+      fullPath: '/settings/integrations'
+      preLoaderRoute: typeof SettingsWorkspaceIntegrationsRouteImport
+      parentRoute: typeof SettingsWorkspaceRouteRoute
+    }
+    '/settings/_workspace/members': {
+      id: '/settings/_workspace/members'
+      path: '/members'
+      fullPath: '/settings/members'
+      preLoaderRoute: typeof SettingsWorkspaceMembersRouteImport
+      parentRoute: typeof SettingsWorkspaceRouteRoute
+    }
+    '/w/$orgSlug/': {
+      id: '/w/$orgSlug/'
+      path: '/'
+      fullPath: '/w/$orgSlug/'
+      preLoaderRoute: typeof WOrgSlugIndexRouteImport
+      parentRoute: typeof WOrgSlugRouteRoute
+    }
+    '/w/$orgSlug/activity': {
+      id: '/w/$orgSlug/activity'
       path: '/activity'
-      fullPath: '/dashboard/$orgSlug/activity'
-      preLoaderRoute: typeof DashboardOrgSlugActivityRouteImport
-      parentRoute: typeof DashboardOrgSlugRouteRoute
+      fullPath: '/w/$orgSlug/activity'
+      preLoaderRoute: typeof WOrgSlugActivityRouteImport
+      parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/dashboard/$orgSlug/analytics': {
-      id: '/dashboard/$orgSlug/analytics'
+    '/w/$orgSlug/analytics': {
+      id: '/w/$orgSlug/analytics'
       path: '/analytics'
-      fullPath: '/dashboard/$orgSlug/analytics'
-      preLoaderRoute: typeof DashboardOrgSlugAnalyticsRouteImport
-      parentRoute: typeof DashboardOrgSlugRouteRoute
+      fullPath: '/w/$orgSlug/analytics'
+      preLoaderRoute: typeof WOrgSlugAnalyticsRouteImport
+      parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/dashboard/$orgSlug/domains': {
-      id: '/dashboard/$orgSlug/domains'
+    '/w/$orgSlug/domains': {
+      id: '/w/$orgSlug/domains'
       path: '/domains'
-      fullPath: '/dashboard/$orgSlug/domains'
-      preLoaderRoute: typeof DashboardOrgSlugDomainsRouteRouteImport
-      parentRoute: typeof DashboardOrgSlugRouteRoute
+      fullPath: '/w/$orgSlug/domains'
+      preLoaderRoute: typeof WOrgSlugDomainsRouteRouteImport
+      parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/dashboard/$orgSlug/notifications': {
-      id: '/dashboard/$orgSlug/notifications'
+    '/w/$orgSlug/notifications': {
+      id: '/w/$orgSlug/notifications'
       path: '/notifications'
-      fullPath: '/dashboard/$orgSlug/notifications'
-      preLoaderRoute: typeof DashboardOrgSlugNotificationsRouteImport
-      parentRoute: typeof DashboardOrgSlugRouteRoute
+      fullPath: '/w/$orgSlug/notifications'
+      preLoaderRoute: typeof WOrgSlugNotificationsRouteImport
+      parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/dashboard/$orgSlug/reports': {
-      id: '/dashboard/$orgSlug/reports'
+    '/w/$orgSlug/reports': {
+      id: '/w/$orgSlug/reports'
       path: '/reports'
-      fullPath: '/dashboard/$orgSlug/reports'
-      preLoaderRoute: typeof DashboardOrgSlugReportsRouteImport
-      parentRoute: typeof DashboardOrgSlugRouteRoute
+      fullPath: '/w/$orgSlug/reports'
+      preLoaderRoute: typeof WOrgSlugReportsRouteImport
+      parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/dashboard/$orgSlug/settings': {
-      id: '/dashboard/$orgSlug/settings'
+    '/w/$orgSlug/settings': {
+      id: '/w/$orgSlug/settings'
       path: '/settings'
-      fullPath: '/dashboard/$orgSlug/settings'
-      preLoaderRoute: typeof DashboardOrgSlugSettingsRouteRouteImport
-      parentRoute: typeof DashboardOrgSlugRouteRoute
+      fullPath: '/w/$orgSlug/settings'
+      preLoaderRoute: typeof WOrgSlugSettingsRouteRouteImport
+      parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/dashboard/$orgSlug/domains/': {
-      id: '/dashboard/$orgSlug/domains/'
+    '/w/$orgSlug/domains/': {
+      id: '/w/$orgSlug/domains/'
       path: '/'
-      fullPath: '/dashboard/$orgSlug/domains/'
-      preLoaderRoute: typeof DashboardOrgSlugDomainsIndexRouteImport
-      parentRoute: typeof DashboardOrgSlugDomainsRouteRoute
+      fullPath: '/w/$orgSlug/domains/'
+      preLoaderRoute: typeof WOrgSlugDomainsIndexRouteImport
+      parentRoute: typeof WOrgSlugDomainsRouteRoute
     }
-    '/dashboard/$orgSlug/domains/new': {
-      id: '/dashboard/$orgSlug/domains/new'
+    '/w/$orgSlug/domains/new': {
+      id: '/w/$orgSlug/domains/new'
       path: '/new'
-      fullPath: '/dashboard/$orgSlug/domains/new'
-      preLoaderRoute: typeof DashboardOrgSlugDomainsNewRouteImport
-      parentRoute: typeof DashboardOrgSlugDomainsRouteRoute
+      fullPath: '/w/$orgSlug/domains/new'
+      preLoaderRoute: typeof WOrgSlugDomainsNewRouteImport
+      parentRoute: typeof WOrgSlugDomainsRouteRoute
     }
-    '/dashboard/$orgSlug/links/': {
-      id: '/dashboard/$orgSlug/links/'
+    '/w/$orgSlug/links/': {
+      id: '/w/$orgSlug/links/'
       path: '/links'
-      fullPath: '/dashboard/$orgSlug/links/'
-      preLoaderRoute: typeof DashboardOrgSlugLinksIndexRouteImport
-      parentRoute: typeof DashboardOrgSlugRouteRoute
+      fullPath: '/w/$orgSlug/links/'
+      preLoaderRoute: typeof WOrgSlugLinksIndexRouteImport
+      parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/dashboard/$orgSlug/links/$linkId': {
-      id: '/dashboard/$orgSlug/links/$linkId'
+    '/w/$orgSlug/links/$linkId': {
+      id: '/w/$orgSlug/links/$linkId'
       path: '/links/$linkId'
-      fullPath: '/dashboard/$orgSlug/links/$linkId'
-      preLoaderRoute: typeof DashboardOrgSlugLinksLinkIdRouteImport
-      parentRoute: typeof DashboardOrgSlugRouteRoute
+      fullPath: '/w/$orgSlug/links/$linkId'
+      preLoaderRoute: typeof WOrgSlugLinksLinkIdRouteImport
+      parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/dashboard/$orgSlug/settings/': {
-      id: '/dashboard/$orgSlug/settings/'
+    '/w/$orgSlug/settings/': {
+      id: '/w/$orgSlug/settings/'
       path: '/'
-      fullPath: '/dashboard/$orgSlug/settings/'
-      preLoaderRoute: typeof DashboardOrgSlugSettingsIndexRouteImport
-      parentRoute: typeof DashboardOrgSlugSettingsRouteRoute
+      fullPath: '/w/$orgSlug/settings/'
+      preLoaderRoute: typeof WOrgSlugSettingsIndexRouteImport
+      parentRoute: typeof WOrgSlugSettingsRouteRoute
     }
-    '/dashboard/$orgSlug/settings/$section': {
-      id: '/dashboard/$orgSlug/settings/$section'
-      path: '/$section'
-      fullPath: '/dashboard/$orgSlug/settings/$section'
-      preLoaderRoute: typeof DashboardOrgSlugSettingsSectionRouteImport
-      parentRoute: typeof DashboardOrgSlugSettingsRouteRoute
+    '/w/$orgSlug/settings/$': {
+      id: '/w/$orgSlug/settings/$'
+      path: '/$'
+      fullPath: '/w/$orgSlug/settings/$'
+      preLoaderRoute: typeof WOrgSlugSettingsSplatRouteImport
+      parentRoute: typeof WOrgSlugSettingsRouteRoute
+    }
+    '/api/uploads/organizations/$organizationId/logo': {
+      id: '/api/uploads/organizations/$organizationId/logo'
+      path: '/api/uploads/organizations/$organizationId/logo'
+      fullPath: '/api/uploads/organizations/$organizationId/logo'
+      preLoaderRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface DashboardOrgSlugDomainsRouteRouteChildren {
-  DashboardOrgSlugDomainsNewRoute: typeof DashboardOrgSlugDomainsNewRoute
-  DashboardOrgSlugDomainsIndexRoute: typeof DashboardOrgSlugDomainsIndexRoute
+interface SettingsWorkspaceRouteRouteChildren {
+  SettingsWorkspaceApiKeysRoute: typeof SettingsWorkspaceApiKeysRoute
+  SettingsWorkspaceGeneralRoute: typeof SettingsWorkspaceGeneralRoute
+  SettingsWorkspaceIntegrationsRoute: typeof SettingsWorkspaceIntegrationsRoute
+  SettingsWorkspaceMembersRoute: typeof SettingsWorkspaceMembersRoute
 }
 
-const DashboardOrgSlugDomainsRouteRouteChildren: DashboardOrgSlugDomainsRouteRouteChildren =
+const SettingsWorkspaceRouteRouteChildren: SettingsWorkspaceRouteRouteChildren =
   {
-    DashboardOrgSlugDomainsNewRoute: DashboardOrgSlugDomainsNewRoute,
-    DashboardOrgSlugDomainsIndexRoute: DashboardOrgSlugDomainsIndexRoute,
+    SettingsWorkspaceApiKeysRoute: SettingsWorkspaceApiKeysRoute,
+    SettingsWorkspaceGeneralRoute: SettingsWorkspaceGeneralRoute,
+    SettingsWorkspaceIntegrationsRoute: SettingsWorkspaceIntegrationsRoute,
+    SettingsWorkspaceMembersRoute: SettingsWorkspaceMembersRoute,
   }
 
-const DashboardOrgSlugDomainsRouteRouteWithChildren =
-  DashboardOrgSlugDomainsRouteRoute._addFileChildren(
-    DashboardOrgSlugDomainsRouteRouteChildren,
+const SettingsWorkspaceRouteRouteWithChildren =
+  SettingsWorkspaceRouteRoute._addFileChildren(
+    SettingsWorkspaceRouteRouteChildren,
   )
-
-interface DashboardOrgSlugSettingsRouteRouteChildren {
-  DashboardOrgSlugSettingsSectionRoute: typeof DashboardOrgSlugSettingsSectionRoute
-  DashboardOrgSlugSettingsIndexRoute: typeof DashboardOrgSlugSettingsIndexRoute
-}
-
-const DashboardOrgSlugSettingsRouteRouteChildren: DashboardOrgSlugSettingsRouteRouteChildren =
-  {
-    DashboardOrgSlugSettingsSectionRoute: DashboardOrgSlugSettingsSectionRoute,
-    DashboardOrgSlugSettingsIndexRoute: DashboardOrgSlugSettingsIndexRoute,
-  }
-
-const DashboardOrgSlugSettingsRouteRouteWithChildren =
-  DashboardOrgSlugSettingsRouteRoute._addFileChildren(
-    DashboardOrgSlugSettingsRouteRouteChildren,
-  )
-
-interface DashboardOrgSlugRouteRouteChildren {
-  DashboardOrgSlugDomainsRouteRoute: typeof DashboardOrgSlugDomainsRouteRouteWithChildren
-  DashboardOrgSlugSettingsRouteRoute: typeof DashboardOrgSlugSettingsRouteRouteWithChildren
-  DashboardOrgSlugActivityRoute: typeof DashboardOrgSlugActivityRoute
-  DashboardOrgSlugAnalyticsRoute: typeof DashboardOrgSlugAnalyticsRoute
-  DashboardOrgSlugNotificationsRoute: typeof DashboardOrgSlugNotificationsRoute
-  DashboardOrgSlugReportsRoute: typeof DashboardOrgSlugReportsRoute
-  DashboardOrgSlugIndexRoute: typeof DashboardOrgSlugIndexRoute
-  DashboardOrgSlugLinksLinkIdRoute: typeof DashboardOrgSlugLinksLinkIdRoute
-  DashboardOrgSlugLinksIndexRoute: typeof DashboardOrgSlugLinksIndexRoute
-}
-
-const DashboardOrgSlugRouteRouteChildren: DashboardOrgSlugRouteRouteChildren = {
-  DashboardOrgSlugDomainsRouteRoute:
-    DashboardOrgSlugDomainsRouteRouteWithChildren,
-  DashboardOrgSlugSettingsRouteRoute:
-    DashboardOrgSlugSettingsRouteRouteWithChildren,
-  DashboardOrgSlugActivityRoute: DashboardOrgSlugActivityRoute,
-  DashboardOrgSlugAnalyticsRoute: DashboardOrgSlugAnalyticsRoute,
-  DashboardOrgSlugNotificationsRoute: DashboardOrgSlugNotificationsRoute,
-  DashboardOrgSlugReportsRoute: DashboardOrgSlugReportsRoute,
-  DashboardOrgSlugIndexRoute: DashboardOrgSlugIndexRoute,
-  DashboardOrgSlugLinksLinkIdRoute: DashboardOrgSlugLinksLinkIdRoute,
-  DashboardOrgSlugLinksIndexRoute: DashboardOrgSlugLinksIndexRoute,
-}
-
-const DashboardOrgSlugRouteRouteWithChildren =
-  DashboardOrgSlugRouteRoute._addFileChildren(
-    DashboardOrgSlugRouteRouteChildren,
-  )
-
-interface DashboardRouteRouteChildren {
-  DashboardOrgSlugRouteRoute: typeof DashboardOrgSlugRouteRouteWithChildren
-  DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
-  DashboardLinksRoute: typeof DashboardLinksRoute
-  DashboardSettingsRoute: typeof DashboardSettingsRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
-}
-
-const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
-  DashboardOrgSlugRouteRoute: DashboardOrgSlugRouteRouteWithChildren,
-  DashboardAnalyticsRoute: DashboardAnalyticsRoute,
-  DashboardLinksRoute: DashboardLinksRoute,
-  DashboardSettingsRoute: DashboardSettingsRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
-}
-
-const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
-  DashboardRouteRouteChildren,
-)
 
 interface SettingsRouteRouteChildren {
-  SettingsSectionRoute: typeof SettingsSectionRoute
+  SettingsWorkspaceRouteRoute: typeof SettingsWorkspaceRouteRouteWithChildren
+  SettingsAccountsRoute: typeof SettingsAccountsRoute
+  SettingsAppearanceRoute: typeof SettingsAppearanceRoute
+  SettingsDevelopersRoute: typeof SettingsDevelopersRoute
+  SettingsDevicesRoute: typeof SettingsDevicesRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
-  SettingsSectionRoute: SettingsSectionRoute,
+  SettingsWorkspaceRouteRoute: SettingsWorkspaceRouteRouteWithChildren,
+  SettingsAccountsRoute: SettingsAccountsRoute,
+  SettingsAppearanceRoute: SettingsAppearanceRoute,
+  SettingsDevelopersRoute: SettingsDevelopersRoute,
+  SettingsDevicesRoute: SettingsDevicesRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
 
@@ -733,18 +923,95 @@ const SettingsRouteRouteWithChildren = SettingsRouteRoute._addFileChildren(
   SettingsRouteRouteChildren,
 )
 
+interface WOrgSlugDomainsRouteRouteChildren {
+  WOrgSlugDomainsNewRoute: typeof WOrgSlugDomainsNewRoute
+  WOrgSlugDomainsIndexRoute: typeof WOrgSlugDomainsIndexRoute
+}
+
+const WOrgSlugDomainsRouteRouteChildren: WOrgSlugDomainsRouteRouteChildren = {
+  WOrgSlugDomainsNewRoute: WOrgSlugDomainsNewRoute,
+  WOrgSlugDomainsIndexRoute: WOrgSlugDomainsIndexRoute,
+}
+
+const WOrgSlugDomainsRouteRouteWithChildren =
+  WOrgSlugDomainsRouteRoute._addFileChildren(WOrgSlugDomainsRouteRouteChildren)
+
+interface WOrgSlugSettingsRouteRouteChildren {
+  WOrgSlugSettingsSplatRoute: typeof WOrgSlugSettingsSplatRoute
+  WOrgSlugSettingsIndexRoute: typeof WOrgSlugSettingsIndexRoute
+}
+
+const WOrgSlugSettingsRouteRouteChildren: WOrgSlugSettingsRouteRouteChildren = {
+  WOrgSlugSettingsSplatRoute: WOrgSlugSettingsSplatRoute,
+  WOrgSlugSettingsIndexRoute: WOrgSlugSettingsIndexRoute,
+}
+
+const WOrgSlugSettingsRouteRouteWithChildren =
+  WOrgSlugSettingsRouteRoute._addFileChildren(
+    WOrgSlugSettingsRouteRouteChildren,
+  )
+
+interface WOrgSlugRouteRouteChildren {
+  WOrgSlugDomainsRouteRoute: typeof WOrgSlugDomainsRouteRouteWithChildren
+  WOrgSlugSettingsRouteRoute: typeof WOrgSlugSettingsRouteRouteWithChildren
+  WOrgSlugActivityRoute: typeof WOrgSlugActivityRoute
+  WOrgSlugAnalyticsRoute: typeof WOrgSlugAnalyticsRoute
+  WOrgSlugNotificationsRoute: typeof WOrgSlugNotificationsRoute
+  WOrgSlugReportsRoute: typeof WOrgSlugReportsRoute
+  WOrgSlugIndexRoute: typeof WOrgSlugIndexRoute
+  WOrgSlugLinksLinkIdRoute: typeof WOrgSlugLinksLinkIdRoute
+  WOrgSlugLinksIndexRoute: typeof WOrgSlugLinksIndexRoute
+}
+
+const WOrgSlugRouteRouteChildren: WOrgSlugRouteRouteChildren = {
+  WOrgSlugDomainsRouteRoute: WOrgSlugDomainsRouteRouteWithChildren,
+  WOrgSlugSettingsRouteRoute: WOrgSlugSettingsRouteRouteWithChildren,
+  WOrgSlugActivityRoute: WOrgSlugActivityRoute,
+  WOrgSlugAnalyticsRoute: WOrgSlugAnalyticsRoute,
+  WOrgSlugNotificationsRoute: WOrgSlugNotificationsRoute,
+  WOrgSlugReportsRoute: WOrgSlugReportsRoute,
+  WOrgSlugIndexRoute: WOrgSlugIndexRoute,
+  WOrgSlugLinksLinkIdRoute: WOrgSlugLinksLinkIdRoute,
+  WOrgSlugLinksIndexRoute: WOrgSlugLinksIndexRoute,
+}
+
+const WOrgSlugRouteRouteWithChildren = WOrgSlugRouteRoute._addFileChildren(
+  WOrgSlugRouteRouteChildren,
+)
+
+interface WRouteRouteChildren {
+  WOrgSlugRouteRoute: typeof WOrgSlugRouteRouteWithChildren
+  WIndexRoute: typeof WIndexRoute
+}
+
+const WRouteRouteChildren: WRouteRouteChildren = {
+  WOrgSlugRouteRoute: WOrgSlugRouteRouteWithChildren,
+  WIndexRoute: WIndexRoute,
+}
+
+const WRouteRouteWithChildren =
+  WRouteRoute._addFileChildren(WRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRouteRoute: DashboardRouteRouteWithChildren,
   SettingsRouteRoute: SettingsRouteRouteWithChildren,
+  WRouteRoute: WRouteRouteWithChildren,
   SlugRoute: SlugRoute,
   AboutRoute: AboutRoute,
   LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
   ApiDocsRoute: ApiDocsRoute,
   CreateLinkRoute: CreateLinkRoute,
   CreateOrganizationRoute: CreateOrganizationRoute,
+  DashboardSplatRoute: DashboardSplatRoute,
   EditLinkRoute: EditLinkRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiMediaSplatRoute: ApiMediaSplatRoute,
+  ApiUploadsAvatarRoute: ApiUploadsAvatarRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
+  ApiUploadsOrganizationsOrganizationIdLogoRoute:
+    ApiUploadsOrganizationsOrganizationIdLogoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

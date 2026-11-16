@@ -1,7 +1,7 @@
 export const dashboardPaths = {
-  root: '/dashboard',
-  links: '/dashboard/links',
-  analytics: '/dashboard/analytics',
+  root: '/w',
+  links: '/w/links',
+  analytics: '/w/analytics',
   settings: '/settings',
 } as const
 

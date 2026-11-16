@@ -39,14 +39,9 @@ import LinkPreviewPanel, {
 } from '#/components/create-link/LinkPreviewPanel'
 import SocialPreviewCard from '#/components/create-link/SocialPreviewCard'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { getCustomDomainsForOrg } from '#/data/demo/queries'
-import {
-  defaultShortHost,
-  shortHostFor,
-  shortUrlFor,
-} from '#/data/demo/short-url'
+import { ShortUrl } from '#/lib/links/short-url'
 import type { HoldPage, RedirectStatusCode, ShortLink } from '#/data/demo/types'
-import { buildDashboardOrgPath } from '#/lib/dashboard/build-org-path'
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatCompactNumber } from '#/lib/format/compact-number'
 import { countryFlag, countryName, getCountries } from '#/lib/links/countries'
 import {
@@ -186,7 +181,16 @@ export default function CreateLinkForm({
 }: CreateLinkFormProps) {
   const isEditing = editLink != null
   const navigate = useNavigate()
-  const { activeOrg, links, folders, createLink, updateLink } = useOrganization()
+  const {
+    activeOrg,
+    links,
+    folders,
+    domains,
+    shortHostFor,
+    shortUrlFor,
+    createLink,
+    updateLink,
+  } = useOrganization()
 
   const [draft, setDraft] = useState<CreateLinkDraft>(() =>
     editLink ? linkToDraft(editLink) : emptyDraft(initialFolderId),
@@ -195,6 +199,7 @@ export default function CreateLinkForm({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [created, setCreated] = useState<ShortLink | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [previewFileError, setPreviewFileError] = useState<string | null>(null)
 
@@ -247,17 +252,12 @@ export default function CreateLinkForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const domains = useMemo(
-    () => getCustomDomainsForOrg(activeOrg.id),
-    [activeOrg.id],
-  )
-
   const domainOptions = useMemo(
     () => [
       {
         value: DEFAULT_DOMAIN_VALUE,
-        label: defaultShortHost(activeOrg),
-        description: 'Default OpenLink domain',
+        label: ShortUrl.appHost() || 'This app',
+        description: 'Served by this app',
       },
       ...domains.map((d) => ({
         value: d.id,
@@ -269,7 +269,7 @@ export default function CreateLinkForm({
         disabled: d.readiness !== 'active',
       })),
     ],
-    [activeOrg, domains],
+    [domains],
   )
 
   const folderOptions = useMemo(
@@ -311,12 +311,8 @@ export default function CreateLinkForm({
   const destinationIsValid = isHttpUrl(destination)
   const utm = draft.utmEnabled ? cleanUtm(draft.utm) : undefined
   const finalDestination = destinationIsValid ? applyUtm(destination, utm) : ''
-  const shortHost = shortHostFor(activeOrg, draft.domainId)
-  const shortUrl = shortUrlFor(
-    draft.slug.trim() || '…',
-    activeOrg,
-    draft.domainId,
-  )
+  const shortHost = shortHostFor(draft.domainId)
+  const shortUrl = shortUrlFor(draft.slug.trim() || '…', draft.domainId)
   const status = initialStatus(draft)
   const host = hostOf(destination)
   const displayTitle = draft.title.trim() || host || 'Untitled link'
@@ -420,35 +416,38 @@ export default function CreateLinkForm({
       ? `Scheduled — starts redirecting ${formatLocal(draft.activateAt)}.`
       : 'Goes live as soon as you create it.'
 
-  const linksPath = buildDashboardOrgPath(activeOrg.slug, 'links')
+  const linksPath = WorkspaceUrl.build(activeOrg.slug, 'links')
   const qrFileName = `${shortHost}-${draft.slug.trim() || 'link'}`.replace(
     /[^A-Za-z0-9._-]/g,
     '-',
   )
 
-  const submit = () => {
-    if (created) return
+  const submit = async () => {
+    if (created || isSubmitting) return
     setShowErrors(true)
     if (Object.keys(errors).length > 0) {
       setSubmitError('Fix the highlighted fields to create the link.')
       return
     }
+    setIsSubmitting(true)
     try {
       if (editLink) {
-        updateLink(editLink.id, draft)
+        await updateLink(editLink.id, draft)
         goToDetail(editLink.id)
         return
       }
-      setCreated(createLink(draft))
+      setCreated(await createLink(draft))
       window.scrollTo({ top: 0 })
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const goToDetail = (linkId: string) => {
     void navigate({
-      to: '/dashboard/$orgSlug/links/$linkId',
+      to: '/w/$orgSlug/links/$linkId',
       params: { orgSlug: activeOrg.slug, linkId },
     })
   }
@@ -458,7 +457,7 @@ export default function CreateLinkForm({
   }
 
   // ⌘/Ctrl + Enter submits from anywhere on the page.
-  useKeyPress('mod+Enter', () => submit(), { allowInInputs: true, allowInOverlays: true })
+  useKeyPress('mod+Enter', () => void submit(), { allowInInputs: true, allowInOverlays: true })
 
   const setUtmField = (key: UtmKey, value: string) =>
     update('utm', { ...draft.utm, [key]: value })
@@ -504,7 +503,7 @@ export default function CreateLinkForm({
   const hasExpiryRule = draft.expiryEnabled || draft.clickLimitEnabled
 
   if (created) {
-    const createdUrl = shortUrlFor(created.slug, activeOrg, created.domainId)
+    const createdUrl = shortUrlFor(created.slug, created.domainId)
     return (
       <CreateLinkShell
         backTo={linksPath}
@@ -517,7 +516,7 @@ export default function CreateLinkForm({
             folderLabel={folderPathLabel(folders, created.folderId ?? null)}
             rules={rules.filter((r) => r.label !== 'Folder')}
             tags={created.tags}
-            qrFileName={`${shortHostFor(activeOrg, created.domainId)}-${created.slug}`}
+            qrFileName={`${shortHostFor(created.domainId)}-${created.slug}`}
             onViewLinks={() => goToLinks(created.folderId ?? null)}
             onCreateAnother={() => {
               setCreated(null)
@@ -1251,7 +1250,7 @@ export default function CreateLinkForm({
   return (
     <CreateLinkShell
       backTo={
-        editLink ? `/dashboard/${activeOrg.slug}/links/${editLink.id}` : linksPath
+        editLink ? `/w/${activeOrg.slug}/links/${editLink.id}` : linksPath
       }
       backLabel={editLink ? editLink.title : 'Links'}
       backSearch={editLink ? undefined : { folder: initialFolderId ?? undefined }}
@@ -1280,7 +1279,8 @@ export default function CreateLinkForm({
       asideFooter={
         <CreateLinkActions
           submitLabel={isEditing ? 'Save changes' : 'Create link'}
-          onSubmit={submit}
+          onSubmit={() => void submit()}
+          isSubmitting={isSubmitting}
           onCancel={() =>
             editLink ? goToDetail(editLink.id) : goToLinks(initialFolderId)
           }

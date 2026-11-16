@@ -7,6 +7,8 @@ export const organization = sqliteTable(
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
+    /** R2 object key of the uploaded logo, if any. */
+    logoKey: text('logo_key'),
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
   },

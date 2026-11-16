@@ -1,9 +1,10 @@
 import { useNavigate } from '@tanstack/react-router'
+import { Avatar } from '@astryxdesign/core/Avatar'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
-import { buildSettingsPath } from '#/lib/settings/sections'
+import { useCurrentUser } from '#/hooks/use-current-user'
+import { AuthSession } from '#/lib/auth/client'
 import {
   DASHBOARD_RAIL_BG,
-  DEMO_USER_AVATAR_URL,
   SHELL_CHROME_BORDER,
   SHELL_POPOVER_SURFACE,
 } from './dashboard-shell-colors'
@@ -19,9 +20,19 @@ export default function DashboardAccountMenu({
 }: DashboardAccountMenuProps) {
   const onRail = variant === 'rail'
   const navigate = useNavigate()
+  const { user } = useCurrentUser()
+
+  const signOut = async () => {
+    try {
+      await AuthSession.signOut()
+    } finally {
+      // Even if the request failed, leave the dashboard: the guard re-checks the session.
+      await navigate({ to: '/login', replace: true })
+    }
+  }
 
   const goToProfile = () => {
-    void navigate({ to: buildSettingsPath('profile') })
+    void navigate({ to: '/settings/profile' })
   }
 
   return (
@@ -34,7 +45,7 @@ export default function DashboardAccountMenu({
         <button
           {...triggerProps}
           type="button"
-          aria-label="Account menu"
+          aria-label={user ? `Account menu for ${user.name}` : 'Account menu'}
           style={{
             width: PROFILE_SIZE,
             height: PROFILE_SIZE,
@@ -53,39 +64,35 @@ export default function DashboardAccountMenu({
             marginTop: 0,
           }}
         >
-          <img
-            src={DEMO_USER_AVATAR_URL}
-            alt=""
-            width={PROFILE_SIZE}
-            height={PROFILE_SIZE}
-            style={{
-              display: 'block',
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              pointerEvents: 'none',
-            }}
+          <Avatar
+            src={user?.image ?? undefined}
+            name={user?.name ?? 'Account'}
+            size={36}
+            shape="rounded"
+            tooltip={false}
           />
         </button>
       )}
       items={[
+        // Your name and email open your profile; shown as a normal row, not a disabled one.
         {
           id: 'profile',
-          label: 'My Profile',
+          label: user?.name ?? 'My Profile',
+          ...(user ? { description: user.email } : {}),
           onClick: goToProfile,
         },
         {
           id: 'preferences',
           label: 'Preferences',
           onClick: () =>
-            void navigate({ to: buildSettingsPath('appearance') }),
+            void navigate({ to: '/settings/appearance' }),
         },
         { type: 'divider' },
         {
           id: 'sign-out',
           label: 'Sign out',
           variant: 'destructive',
-          onClick: () => {},
+          onClick: () => void signOut(),
         },
       ]}
     />

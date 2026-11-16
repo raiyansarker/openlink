@@ -12,7 +12,38 @@ import type {
 import { parseReactions } from '#/server/comments/rules'
 import type { CommentRow } from '#/server/comments/service'
 import { ACTION_DEFINITIONS, isKnownAction, type Change } from '#/server/activity/actions'
+import { MediaKey } from '#/server/media/media-key'
 import { deriveLinkStatus } from '#/server/links/rules'
+
+type DeviceSessionRow = {
+  id: string
+  ipAddress: string | null
+  userAgent: string | null
+  city: string | null
+  country: string | null
+  latitude: number | null
+  longitude: number | null
+  signInMethod: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export function toDeviceSessionDto(row: DeviceSessionRow, currentSessionId: string) {
+  const optional = <K extends string, V>(key: K, value: V | null) => (value === null ? {} : ({ [key]: value } as Record<K, V>))
+  return {
+    id: row.id,
+    current: row.id === currentSessionId,
+    ...optional('ipAddress', row.ipAddress),
+    ...optional('userAgent', row.userAgent),
+    ...optional('city', row.city),
+    ...optional('country', row.country),
+    ...optional('latitude', row.latitude),
+    ...optional('longitude', row.longitude),
+    ...optional('signInMethod', row.signInMethod),
+    signedInAt: row.createdAt.toISOString(),
+    lastActiveAt: row.updatedAt.toISOString(),
+  }
+}
 
 export function toUserDto(user: { id: string; email: string; name: string; createdAt: Date }) {
   return {
@@ -28,6 +59,7 @@ export function toOrganizationDto(row: typeof organization.$inferSelect) {
     id: row.id,
     name: row.name,
     slug: row.slug,
+    ...(row.logoKey ? { logoUrl: MediaKey.toUrl(row.logoKey) } : {}),
     createdAt: row.createdAt.toISOString(),
   }
 }

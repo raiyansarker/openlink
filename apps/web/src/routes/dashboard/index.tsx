@@ -1,11 +1,10 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getDefaultOrgSlug } from '#/lib/dashboard/org-slug'
 
+import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
+
+/** The old dashboard URL; kept so existing bookmarks keep working. */
 export const Route = createFileRoute('/dashboard/')({
   beforeLoad: () => {
-    throw redirect({
-      to: '/dashboard/$orgSlug',
-      params: { orgSlug: getDefaultOrgSlug() },
-    })
+    throw redirect({ href: WorkspaceUrl.PREFIX, replace: true })
   },
 })

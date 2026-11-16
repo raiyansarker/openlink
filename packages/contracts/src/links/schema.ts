@@ -19,7 +19,8 @@ export const UtmParameters = type({
 export const Link = type({
   id: 'string',
   organizationId: 'string',
-  domainId: 'string',
+  /** Null means the app's own host (the default domain). */
+  domainId: 'string | null',
   slug: 'string',
   'alias?': 'string',
   /** Containing folder; null or absent means the workspace root. */
@@ -45,6 +46,8 @@ export const Link = type({
 })
 
 export const CreateLinkRequest = type({
+  /** Custom domain to use; omit or null for the app's own host. Ignored on the per-domain route. */
+  'domainId?': 'string | null',
   'slug?': /^[A-Za-z0-9_-]+$/,
   'folderId?': 'string | null',
   destinationUrl: HttpUrl,
@@ -126,3 +129,8 @@ export const AddLinkTagsRequest = type({
 export const DeleteLinksRequest = type({ linkIds: LinkIds })
 
 export const BulkLinksResponse = type({ affected: 'number.integer>=0' })
+
+export const WorkspaceLinkIdPath = type({
+  organizationId: 'string',
+  linkId: 'string',
+})

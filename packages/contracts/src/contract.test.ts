@@ -61,3 +61,11 @@ describe('api keys contract', () => {
     expect(contract.apiKeys.revokeApiKey).toBeDefined()
   })
 })
+
+describe('account contract', () => {
+  test('covers device sessions', () => {
+    expect(contract.account.listDeviceSessions).toBeDefined()
+    expect(contract.account.revokeDeviceSession).toBeDefined()
+    expect(contract.account.revokeOtherDeviceSessions).toBeDefined()
+  })
+})

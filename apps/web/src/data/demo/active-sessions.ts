@@ -7,10 +7,11 @@ export type ActiveSession = {
   /** Browser or app the session runs in. */
   client: string
   os: string
-  city: string
-  country: string
-  /** Approximate location from IP; never precise GPS. */
-  coordinates: { lat: number; lng: number }
+  /** Absent when the location is unknown. */
+  city?: string
+  country?: string
+  /** Approximate location from IP; never precise GPS. Absent when unknown. */
+  coordinates?: { lat: number; lng: number }
   /** Documentation-range IPs (RFC 5737) for the demo. */
   ipAddress: string
   signInMethod: string

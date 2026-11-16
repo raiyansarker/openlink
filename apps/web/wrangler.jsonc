@@ -15,6 +15,13 @@
       "migrations_dir": "../../packages/db/drizzle"
     }
   ],
+  "r2_buckets": [
+    {
+      // Profile pictures and workspace logos. Local dev uses an emulated bucket.
+      "binding": "MEDIA",
+      "bucket_name": "openlink-media"
+    }
+  ],
   "analytics_engine_datasets": [
     {
       "binding": "ANALYTICS",

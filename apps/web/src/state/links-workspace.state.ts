@@ -1,18 +1,19 @@
 import { observable } from '@legendapp/state'
-import type { LinkFolder, ShortLink } from '#/data/demo/types'
+import type { ShortLink } from '#/data/demo/types'
+
+/** Parts of a link the API does not store yet (comments, health checks, their timeline). */
+export type LinkLocalExtras = Pick<ShortLink, 'comments' | 'health' | 'history'>
 
 /**
- * Demo link + folder edits, keyed by org id. Module-level so every
+ * Session-only link extras, keyed by link id. Module-level so every
  * OrganizationProvider (dashboard, /create/link, …) sees the same data during
- * a session. Not persisted: a reload resets to the demo fixtures.
- * An org with no entry falls back to the demo fixtures.
+ * a session. Not persisted: a reload clears them. Links and folders themselves
+ * come from the API (see OrganizationContext).
  */
 export type LinksWorkspaceState = {
-  linksByOrg: Record<string, ShortLink[]>
-  foldersByOrg: Record<string, LinkFolder[]>
+  extrasByLink: Record<string, LinkLocalExtras>
 }
 
 export const linksWorkspace$ = observable<LinksWorkspaceState>({
-  linksByOrg: {},
-  foldersByOrg: {},
+  extrasByLink: {},
 })

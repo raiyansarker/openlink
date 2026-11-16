@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
+import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 import { Card } from '@astryxdesign/core/Card'
 import { Divider } from '@astryxdesign/core/Divider'
@@ -37,6 +38,8 @@ export default function DomainDetailSheet({
 }: DomainDetailSheetProps) {
   const { getDomainById, verifyDomain, removeDomain } = useDomainsWorkspace()
   const [removeAlertOpen, setRemoveAlertOpen] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [isVerifying, setIsVerifying] = useState(false)
 
   const isOpen = target != null
   const custom: WorkspaceCustomDomain | undefined = target
@@ -59,9 +62,11 @@ export default function DomainDetailSheet({
 
   const confirmRemove = () => {
     if (!custom) return
-    removeDomain(custom.id)
     setRemoveAlertOpen(false)
-    close()
+    setActionError(null)
+    removeDomain(custom.id).then(close, (err: unknown) =>
+      setActionError(err instanceof Error ? err.message : 'Could not remove the domain.'),
+    )
   }
 
   if (target && !custom) {
@@ -100,6 +105,7 @@ export default function DomainDetailSheet({
                 {custom ? (
                   <DomainReadinessBanner readiness={custom.readiness} />
                 ) : null}
+                {actionError ? <Banner status="error" title={actionError} /> : null}
 
                 {custom ? (
                   <>
@@ -119,7 +125,16 @@ export default function DomainDetailSheet({
                           variant="primary"
                           size="sm"
                           label="Verify DNS"
-                          onClick={() => verifyDomain(custom.id)}
+                          isLoading={isVerifying}
+                          onClick={() => {
+                            setActionError(null)
+                            setIsVerifying(true)
+                            verifyDomain(custom.id)
+                              .catch((err: unknown) =>
+                                setActionError(err instanceof Error ? err.message : 'Could not check the domain.'),
+                              )
+                              .finally(() => setIsVerifying(false))
+                          }}
                         />
                       ) : null}
                     </VStack>

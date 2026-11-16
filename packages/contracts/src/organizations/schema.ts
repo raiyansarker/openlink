@@ -9,6 +9,8 @@ export const Organization = type({
   id: 'string',
   name: 'string',
   slug: 'string',
+  /** Uploaded logo, served from this app. */
+  'logoUrl?': 'string',
   createdAt: 'string',
 })
 
@@ -21,7 +23,8 @@ export const OrganizationMembership = type({
 export const CreateOrganizationRequest = type({
   name: 'string',
   slug: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-  inviteToken: 'string',
+  /** Optional; a bootstrap invite is consumed when one is given. */
+  'inviteToken?': 'string',
 })
 
 export const CreateOrganizationInviteRequest = type({

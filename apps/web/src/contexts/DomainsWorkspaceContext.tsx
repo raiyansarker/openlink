@@ -7,72 +7,79 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
-import { getCustomDomainsForOrg } from '#/data/demo/queries'
-import { demoVerifyDomain } from '#/lib/domains/demo-verify'
+import { DomainsApi } from '#/lib/api/domains'
+import { QueryKeys } from '#/lib/api/query'
 
 type DomainsWorkspaceContextValue = {
   customDomains: WorkspaceCustomDomain[]
   detailRequestDomainId: string | null
-  addDomain: (domain: WorkspaceCustomDomain) => void
-  replaceDomain: (domainId: string, next: WorkspaceCustomDomain) => void
-  verifyDomain: (domainId: string) => void
-  removeDomain: (domainId: string) => void
+  /** Registers a hostname; rejects with a user-facing message. Opens its details once added. */
+  addDomain: (hostname: string) => Promise<WorkspaceCustomDomain>
+  /** Re-checks DNS and certificate state on the server. */
+  verifyDomain: (domainId: string) => Promise<void>
+  removeDomain: (domainId: string) => Promise<void>
   getDomainById: (domainId: string) => WorkspaceCustomDomain | undefined
   consumeDetailRequest: () => string | null
 }
 
-const DomainsWorkspaceContext = createContext<DomainsWorkspaceContextValue | null>(
-  null,
-)
+const DomainsWorkspaceContext = createContext<DomainsWorkspaceContextValue | null>(null)
 
+const domainsApi = new DomainsApi()
+
+/** Custom domains of the active workspace, from the API (shared with the create-link form). */
 export function DomainsWorkspaceProvider({ children }: { children: ReactNode }) {
-  const { activeOrg } = useOrganization()
-  const [customDomains, setCustomDomains] = useState<WorkspaceCustomDomain[]>(
-    () => getCustomDomainsForOrg(activeOrg.id),
+  const { activeOrg, domains, links } = useOrganization()
+  const queryClient = useQueryClient()
+  const orgId = activeOrg.id
+  const [detailRequestDomainId, setDetailRequestDomainId] = useState<string | null>(null)
+
+  useEffect(() => setDetailRequestDomainId(null), [orgId])
+
+  const customDomains = useMemo(
+    () => domains.map((d) => ({ ...d, linkCount: links.filter((l) => l.domainId === d.id).length })),
+    [domains, links],
   )
-  const [detailRequestDomainId, setDetailRequestDomainId] = useState<
-    string | null
-  >(null)
 
-  useEffect(() => {
-    setCustomDomains(getCustomDomainsForOrg(activeOrg.id))
-    setDetailRequestDomainId(null)
-  }, [activeOrg.id])
+  const setDomains = useCallback(
+    (update: (prev: WorkspaceCustomDomain[]) => WorkspaceCustomDomain[]) =>
+      queryClient.setQueryData<WorkspaceCustomDomain[]>(QueryKeys.domains(orgId), (prev) => update(prev ?? [])),
+    [queryClient, orgId],
+  )
 
-  const addDomain = useCallback((domain: WorkspaceCustomDomain) => {
-    setCustomDomains((prev) => [domain, ...prev])
-    setDetailRequestDomainId(domain.id)
-  }, [])
+  const addDomain = useCallback(
+    async (hostname: string) => {
+      const domain = await domainsApi.add(orgId, hostname)
+      setDomains((prev) => [domain, ...prev.filter((d) => d.id !== domain.id)])
+      setDetailRequestDomainId(domain.id)
+      return domain
+    },
+    [orgId, setDomains],
+  )
+
+  const verifyDomain = useCallback(
+    async (domainId: string) => {
+      const next = await domainsApi.refresh(orgId, domainId)
+      setDomains((prev) => prev.map((d) => (d.id === domainId ? next : d)))
+    },
+    [orgId, setDomains],
+  )
+
+  const removeDomain = useCallback(
+    async (domainId: string) => {
+      await domainsApi.remove(orgId, domainId)
+      setDomains((prev) => prev.filter((d) => d.id !== domainId))
+    },
+    [orgId, setDomains],
+  )
 
   const consumeDetailRequest = useCallback(() => {
     const id = detailRequestDomainId
     if (id) setDetailRequestDomainId(null)
     return id
   }, [detailRequestDomainId])
-
-  const replaceDomain = useCallback(
-    (domainId: string, next: WorkspaceCustomDomain) => {
-      setCustomDomains((prev) =>
-        prev.map((d) => (d.id === domainId ? next : d)),
-      )
-    },
-    [],
-  )
-
-  const verifyDomain = useCallback((domainId: string) => {
-    setCustomDomains((prev) => {
-      const domain = prev.find((d) => d.id === domainId)
-      if (!domain) return prev
-      const next = demoVerifyDomain(domain)
-      return prev.map((d) => (d.id === domainId ? next : d))
-    })
-  }, [])
-
-  const removeDomain = useCallback((domainId: string) => {
-    setCustomDomains((prev) => prev.filter((d) => d.id !== domainId))
-  }, [])
 
   const getDomainById = useCallback(
     (domainId: string) => customDomains.find((d) => d.id === domainId),
@@ -84,29 +91,15 @@ export function DomainsWorkspaceProvider({ children }: { children: ReactNode }) 
       customDomains,
       detailRequestDomainId,
       addDomain,
-      replaceDomain,
       verifyDomain,
       removeDomain,
       getDomainById,
       consumeDetailRequest,
     }),
-    [
-      customDomains,
-      detailRequestDomainId,
-      addDomain,
-      replaceDomain,
-      verifyDomain,
-      removeDomain,
-      getDomainById,
-      consumeDetailRequest,
-    ],
+    [customDomains, detailRequestDomainId, addDomain, verifyDomain, removeDomain, getDomainById, consumeDetailRequest],
   )
 
-  return (
-    <DomainsWorkspaceContext.Provider value={value}>
-      {children}
-    </DomainsWorkspaceContext.Provider>
-  )
+  return <DomainsWorkspaceContext.Provider value={value}>{children}</DomainsWorkspaceContext.Provider>
 }
 
 export function useDomainsWorkspace() {

@@ -5,7 +5,12 @@ export type Organization = {
   name: string
   slug: string
   plan: OrganizationPlan
-  memberCount: number
+  /** Unknown until members are loaded; the API has no cheap count. */
+  memberCount?: number
+  /** Uploaded logo URL, if the workspace has one. */
+  logoUrl?: string
+  /** The signed-in user's role in this workspace (absent for demo data). */
+  role?: WorkspaceMemberRole
 }
 
 export type ShortLinkStatus = 'active' | 'scheduled' | 'paused' | 'archived'

@@ -23,7 +23,7 @@ type MoveToFolderDialogProps = {
   folders: LinkFolder[]
   onOpenChange: (open: boolean) => void
   /** Throws an Error with a user-facing message when the move is rejected. */
-  onMove: (subject: MoveSubject, destinationId: string | null) => void
+  onMove: (subject: MoveSubject, destinationId: string | null) => void | Promise<void>
 }
 
 export default function MoveToFolderDialog({
@@ -66,14 +66,14 @@ export default function MoveToFolderDialog({
 
   const unchanged = selected === (currentId ?? ROOT_VALUE)
 
-  const submit = () => {
+  const submit = async () => {
     if (!subject) return
     if (unchanged) {
       onOpenChange(false)
       return
     }
     try {
-      onMove(subject, selected === ROOT_VALUE ? null : selected)
+      await onMove(subject, selected === ROOT_VALUE ? null : selected)
       onOpenChange(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
@@ -121,7 +121,7 @@ export default function MoveToFolderDialog({
               <Button
                 variant="primary"
                 label={unchanged ? 'Done' : 'Move here'}
-                onClick={submit}
+                onClick={() => void submit()}
               />
             </HStack>
           </LayoutFooter>

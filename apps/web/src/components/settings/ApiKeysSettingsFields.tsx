@@ -1,4 +1,11 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
+import { Spinner } from '@astryxdesign/core/Spinner'
+import { useOrganization } from '#/contexts/OrganizationContext'
+import { ApiKeysApi } from '#/lib/api/api-keys'
+import { ApiError } from '#/lib/api/error'
+import type { AssignableRole } from '#/lib/api/members'
+import { QueryKeys } from '#/lib/api/query'
 import { Button } from '@astryxdesign/core/Button'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -7,46 +14,71 @@ import type { TableColumn } from '@astryxdesign/core/Table'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { PlusIcon } from '#/components/icons/IcnMcp'
-import {
-  DEMO_WORKSPACE_API_KEYS,
-  type WorkspaceApiKey,
-} from '#/data/demo/api-keys'
 import ApiKeyRowMenu from '#/components/settings/ApiKeyRowMenu'
+import ApiKeysIllustration from '#/components/settings/ApiKeysIllustration'
+import ApiKeySecretRevealDialog from '#/components/settings/ApiKeySecretRevealDialog'
 import CreateApiKeyDrawer from '#/components/settings/CreateApiKeyDrawer'
 import type { WorkspaceMemberRole } from '#/data/demo/types'
+import type { WorkspaceApiKey } from '#/data/demo/api-keys'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 
 type ApiKeyRow = WorkspaceApiKey & Record<string, unknown>
 
 const API_DOCS_HREF = '/api/docs'
+const keysApi = new ApiKeysApi()
 
 export default function ApiKeysSettingsFields() {
-  const [apiKeys, setApiKeys] = useState<WorkspaceApiKey[]>(
-    () => DEMO_WORKSPACE_API_KEYS,
-  )
+  const { activeOrg } = useOrganization()
+  const queryClient = useQueryClient()
+  // The server only lets signed-in owners and admins manage keys.
+  const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
+  const queryKey = QueryKeys.apiKeys(activeOrg.id)
+  const query = useQuery({ queryKey, queryFn: () => keysApi.list(activeOrg.id), enabled: canManage })
   const [createOpen, setCreateOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  /** The new secret after a rotation. Held here because the rotated row is replaced. */
+  const [rotatedSecret, setRotatedSecret] = useState<string | null>(null)
 
+  const apiKeys = query.data ?? []
   const keyRows = apiKeys as ApiKeyRow[]
+  const refresh = useCallback(() => queryClient.invalidateQueries({ queryKey }), [queryClient, queryKey])
 
-  const revokeKey = useCallback((keyId: string) => {
-    setApiKeys((prev) => prev.filter((key) => key.id !== keyId))
-  }, [])
+  /** Runs a key action, showing any failure and refreshing the list either way. */
+  const run = useCallback(
+    async <T,>(action: () => Promise<T>): Promise<T> => {
+      setError(null)
+      try {
+        return await action()
+      } catch (e) {
+        setError(ApiError.message(e))
+        throw e
+      } finally {
+        void refresh()
+      }
+    },
+    [refresh],
+  )
 
-  const changeKeyRole = useCallback((keyId: string, role: WorkspaceMemberRole) => {
-    setApiKeys((prev) =>
-      prev.map((key) => (key.id === keyId ? { ...key, role } : key)),
-    )
-  }, [])
+  const revokeKey = useCallback((keyId: string) => void run(() => keysApi.revoke(activeOrg.id, keyId)).catch(() => {}), [run, activeOrg.id])
 
-  const rotateKey = useCallback((keyId: string, prefix: string) => {
-    setApiKeys((prev) =>
-      prev.map((key) =>
-        key.id === keyId
-          ? { ...key, prefix, lastUsedAt: null }
-          : key,
-      ),
-    )
-  }, [])
+  const changeKeyRole = useCallback(
+    (keyId: string, role: WorkspaceMemberRole) => {
+      if (role === 'owner') return
+      void run(() => keysApi.changeRole(activeOrg.id, keyId, role)).catch(() => {})
+    },
+    [run, activeOrg.id],
+  )
+
+  const rotateKey = useCallback(
+    (keyId: string) => {
+      const key = apiKeys.find((k) => k.id === keyId)
+      if (!key || key.role === 'owner') return Promise.reject(new Error('Unknown key'))
+      return run(() => keysApi.rotate(activeOrg.id, { id: key.id, name: key.name, role: key.role as AssignableRole }))
+        .then(setRotatedSecret)
+        .catch(() => {})
+    },
+    [run, apiKeys, activeOrg.id],
+  )
 
   const keyColumns: TableColumn<ApiKeyRow>[] = useMemo(
     () => [
@@ -116,6 +148,25 @@ export default function ApiKeysSettingsFields() {
         />
       </HStack>
 
+      {!canManage ? (
+        <Text type="supporting" color="secondary" role="status">
+          Only workspace owners and admins can view and manage API keys.
+        </Text>
+      ) : null}
+      {canManage && query.isPending ? <Spinner size="md" label="Loading API keys…" /> : null}
+      {canManage && query.isError ? (
+        <VStack gap={2} hAlign="start" role="alert">
+          <Text>{ApiError.message(query.error, 'Could not load API keys.')}</Text>
+          <Button size="sm" variant="secondary" label="Try again" onClick={() => void query.refetch()} />
+        </VStack>
+      ) : null}
+      {error ? (
+        <Text type="supporting" weight="medium" role="alert">
+          {error}
+        </Text>
+      ) : null}
+
+      {canManage && query.isSuccess ? (
       <VStack gap={3} hAlign="stretch" width="100%" paddingBlockStart={5}>
         <HStack hAlign="end" width="100%">
           <Button
@@ -127,6 +178,7 @@ export default function ApiKeysSettingsFields() {
           />
         </HStack>
 
+        {keyRows.length > 0 ? (
         <VStack className="members-table" width="100%" hAlign="stretch">
           <Table<ApiKeyRow>
             className="members-table__grid"
@@ -139,18 +191,36 @@ export default function ApiKeysSettingsFields() {
             hasHover
           />
         </VStack>
-        {keyRows.length === 0 ? (
-          <Text type="supporting" color="secondary">
-            No API keys yet. Create one for scripts or integrations.
-          </Text>
-        ) : null}
+        ) : (
+          <VStack gap={3} hAlign="center" width="100%" paddingBlock={8}>
+            <ApiKeysIllustration width={180} />
+            <VStack gap={1} hAlign="center">
+              <Text weight="semibold">No API keys yet</Text>
+              <Text type="supporting" color="secondary" justify="center">
+                Create a key to call the OpenLink API from scripts or integrations.
+              </Text>
+            </VStack>
+          </VStack>
+        )}
       </VStack>
+      ) : null}
+
+      <ApiKeySecretRevealDialog
+        isOpen={rotatedSecret != null}
+        onOpenChange={(open) => {
+          if (!open) setRotatedSecret(null)
+        }}
+        title="Save your new key"
+        body="The previous key no longer works. Copy the new key and update your integrations. You cannot view it again after you close this dialog."
+        secret={rotatedSecret ?? ''}
+      />
 
       <CreateApiKeyDrawer
         isOpen={createOpen}
         onOpenChange={setCreateOpen}
-        onCreate={(key) => {
-          setApiKeys((prev) => [key, ...prev])
+        onCreate={(input) => {
+          if (input.role === 'owner') return Promise.reject(new Error('Keys cannot be owners.'))
+          return run(() => keysApi.create(activeOrg.id, { name: input.name, role: input.role as AssignableRole }))
         }}
       />
     </VStack>
