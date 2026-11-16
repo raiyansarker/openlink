@@ -40,6 +40,10 @@ export const ListActivityQuery = type({
   'category?': ActivityCategory,
   'limit?': 'string.integer.parse',
   'cursor?': 'string',
+  /** Only what this member did (their user id). */
+  'actor?': 'string',
+  /** Matches the person, the action ("created link") or the item. */
+  'q?': 'string <= 100',
 })
 
 export const ListActivityResponse = type({

@@ -1,10 +1,11 @@
 import { EventBus } from '#/server/events/bus'
 import { activityEvent } from '@openlink/db/schema'
-import { and, desc, eq, lt, or, type SQL } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt, or, type SQL } from 'drizzle-orm'
 import { Effect } from 'effect'
 
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
+import { contains } from '#/server/sql/contains'
 import { ACTION_DEFINITIONS, type ActivityAction, type ActivityCategory, type Change } from './actions'
 
 export type ActivityActor =
@@ -94,6 +95,24 @@ type ListInput = {
   target?: { type: string; id: string }
   limit?: number
   cursor?: string
+  /** User id of the member who acted. */
+  actor?: string
+  /** Free text: actor, action phrase or target. */
+  q?: string
+}
+
+/** Text search over who, what and which item. Phrases aren't stored, so they match through the catalog. */
+const searchCondition = (text: string): SQL | undefined => {
+  const needle = text.trim().toLowerCase()
+  if (!needle) return undefined
+  const actions = Object.entries(ACTION_DEFINITIONS)
+    .filter(([, definition]) => definition.phrase.toLowerCase().includes(needle))
+    .map(([action]) => action)
+  return or(
+    contains(activityEvent.actorLabel, needle),
+    contains(activityEvent.targetLabel, needle),
+    actions.length > 0 ? inArray(activityEvent.action, actions) : undefined,
+  )
 }
 
 /** Newest first, with a cursor that stays stable while new events arrive. */
@@ -113,6 +132,8 @@ export function listActivity(input: ListInput) {
             input.target
               ? and(eq(activityEvent.targetType, input.target.type), eq(activityEvent.targetId, input.target.id))
               : undefined,
+            input.actor ? eq(activityEvent.actorUserId, input.actor) : undefined,
+            input.q ? searchCondition(input.q) : undefined,
             cursor ? beforeCursor(cursor) : undefined,
           ),
         )

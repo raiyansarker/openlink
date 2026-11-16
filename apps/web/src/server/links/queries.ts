@@ -1,18 +1,17 @@
 import { link } from '@openlink/db/schema'
-import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, ne, not, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm'
+import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lte, ne, not, or, type SQL } from 'drizzle-orm'
 import { Effect } from 'effect'
 
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
+import { contains } from '#/server/sql/contains'
 
 export type LinkStatusFilter = 'draft' | 'scheduled' | 'active' | 'paused' | 'expired' | 'disabled'
 
 export const DEFAULT_LINK_PAGE = 50
 export const MAX_LINK_PAGE = 200
 
-const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`)
-const like = (column: SQLWrapper, value: string) =>
-  sql`${column} LIKE ${`%${escapeLike(value)}%`} ESCAPE '\\'`
+const like = contains
 
 /**
  * SQL equivalent of `deriveLinkStatus`, so filtering and the status shown in
