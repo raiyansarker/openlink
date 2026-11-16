@@ -23,7 +23,7 @@ import LinkAnalyticsSection from '#/components/analytics/LinkAnalyticsSection'
 import LinkNotes, { lastNotesEdit } from '#/components/link-detail/LinkNotes'
 import { useLinkHistory } from '#/hooks/use-link-history'
 import { QueryKeys } from '#/lib/api/query'
-import LinkHistoryTimeline from '#/components/link-detail/LinkHistoryTimeline'
+import LinkHistoryTimeline, { type HistoryKind } from '#/components/link-detail/LinkHistoryTimeline'
 import LinkSettingsPanel from '#/components/link-detail/LinkSettingsPanel'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
 import MoveToFolderDialog, { type MoveSubject } from '#/components/links/MoveToFolderDialog'
@@ -46,6 +46,9 @@ type LinkDetailPageProps = {
   onTabChange: (tab: LinkDetailTab) => void
   analyticsView: AnalyticsView
   onAnalyticsViewChange: (change: Partial<AnalyticsView>) => void
+  /** History tab filter; null is All. */
+  historyKind: HistoryKind | null
+  onHistoryKindChange: (kind: HistoryKind | null) => void
 }
 
 const stripScheme = (url: string) => url.replace(/^https?:\/\//, '')
@@ -59,30 +62,6 @@ function TabCount({ count }: { count: number }) {
     <Text type="supporting" color="secondary">
       {count}
     </Text>
-  )
-}
-
-/** Monochrome status: a solid dot while serving, a ring otherwise. No color. */
-function StatusMark({ link }: { link: ShortLink }) {
-  const isServing = !isOnHold(link) && link.status === 'active'
-  return (
-    <HStack gap={1.5} vAlign="center">
-      <span
-        aria-hidden="true"
-        style={{
-          width: 7,
-          height: 7,
-          borderRadius: '50%',
-          flexShrink: 0,
-          boxSizing: 'border-box',
-          background: isServing ? 'var(--color-text-primary)' : 'transparent',
-          border: '1.5px solid var(--color-text-primary)',
-        }}
-      />
-      <Text type="supporting" weight="medium">
-        {linkStatusLabel(link)}
-      </Text>
-    </HStack>
   )
 }
 
@@ -107,7 +86,9 @@ function LinkHeader({
       <VStack gap={2} style={{ minWidth: 0, flex: '1 1 24rem' }}>
         <Heading level={1}>{link.title}</Heading>
         <HStack gap={3} vAlign="center" wrap="wrap">
-          <StatusMark link={link} />
+          <Text type="supporting" weight="medium">
+            {linkStatusLabel(link)}
+          </Text>
           <Text type="supporting" color="secondary">
             {link.clicks > 0 ? `${formatNumber(link.clicks)} lifetime clicks · ` : ''}
             {linkStatusLine(link)}
@@ -194,7 +175,15 @@ function QrSheet({
  * One short link: a header with its identity and actions, then tabs for its
  * analytics (the Insights panels scoped to this link), team notes, settings, and history.
  */
-export default function LinkDetailPage({ linkId, tab, onTabChange, analyticsView, onAnalyticsViewChange }: LinkDetailPageProps) {
+export default function LinkDetailPage({
+  linkId,
+  tab,
+  onTabChange,
+  analyticsView,
+  onAnalyticsViewChange,
+  historyKind,
+  onHistoryKindChange,
+}: LinkDetailPageProps) {
   const navigate = useNavigate()
   const {
     activeOrg,
@@ -214,7 +203,8 @@ export default function LinkDetailPage({ linkId, tab, onTabChange, analyticsView
   const [isQrOpen, setIsQrOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const queryClient = useQueryClient()
-  const history = useLinkHistory(activeOrg.id, linkId)
+  // The filter only applies on the History tab; elsewhere (tab count, Notes) the newest events of any kind.
+  const history = useLinkHistory(activeOrg.id, linkId, tab === 'history' ? historyKind : null)
   const run = (action: () => Promise<unknown>) => {
     setActionError(null)
     action().catch((err: unknown) =>
@@ -246,7 +236,7 @@ export default function LinkDetailPage({ linkId, tab, onTabChange, analyticsView
   const host = shortHostFor(link.domainId)
   const path = getFolderPath(folders, link.folderId ?? null)
   const held = isOnHold(link)
-  const historyCount = history.events.length
+  const historyCount = history.summary?.total ?? 0
   const goToFolder = (folderId: string | null) =>
     void navigate({ to: linksPath, search: { folder: folderId ?? undefined } })
   const openEdit = (id = link.id) =>
@@ -389,9 +379,15 @@ export default function LinkDetailPage({ linkId, tab, onTabChange, analyticsView
           {tab === 'history' ? (
             <LinkHistoryTimeline
               events={history.events}
+              summary={history.summary}
+              kind={historyKind}
+              onKindChange={onHistoryKindChange}
               isLoading={history.isLoading}
               loadError={history.error}
-              onRetry={() => void history.retry()}
+              onRetry={history.retry}
+              hasMore={history.hasMore}
+              isLoadingMore={history.isLoadingMore}
+              onLoadMore={history.loadMore}
             />
           ) : null}
         </VStack>

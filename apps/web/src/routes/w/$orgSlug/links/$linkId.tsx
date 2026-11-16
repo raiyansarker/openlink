@@ -5,11 +5,14 @@ import LinkDetailPage, {
   type LinkDetailTab,
 } from '#/components/link-detail/LinkDetailPage'
 import { AnalyticsSearchParams, type AnalyticsSearch, type AnalyticsView } from '#/lib/analytics/search'
+import type { HistoryKind } from '#/components/link-detail/LinkHistoryTimeline'
 import { createPageHead } from '#/lib/page-title'
 
 type LinkDetailSearch = Omit<AnalyticsSearch, 'link'> & {
   /** Open tab; omitted means Analytics. */
   tab?: LinkDetailTab
+  /** History tab filter; omitted means All. */
+  kind?: HistoryKind
 }
 
 export const Route = createFileRoute('/w/$orgSlug/links/$linkId')({
@@ -21,6 +24,7 @@ export const Route = createFileRoute('/w/$orgSlug/links/$linkId')({
       search.tab !== 'analytics'
         ? (search.tab as LinkDetailTab)
         : undefined,
+    kind: search.kind === 'edits' || search.kind === 'hold' ? search.kind : undefined,
     // The Analytics tab's period, comparison and chart view.
     ...AnalyticsSearchParams.parse(search, { withLink: false }),
   }),
@@ -53,6 +57,10 @@ function LinkDetailRoute() {
         }
         analyticsView={analyticsView}
         onAnalyticsViewChange={changeAnalyticsView}
+        historyKind={search.kind ?? null}
+        onHistoryKindChange={(kind) =>
+          void navigate({ search: (prev) => ({ ...prev, kind: kind ?? undefined }), replace: true, resetScroll: false })
+        }
       />
     </Section>
   )

@@ -1,7 +1,7 @@
 import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 import { Skeleton } from '@astryxdesign/core/Skeleton'
-import { useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import {
@@ -11,6 +11,7 @@ import {
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import type { LinkHistoryEvent } from '#/data/demo/types'
+import type { LinkHistoryKind, LinkHistorySummary } from '#/lib/api/link-history'
 import { formatShortDate } from '#/lib/format/short-date'
 
 /** Same track/node language as MemberActivityTimeline and DomainSetupTimeline. */
@@ -131,30 +132,22 @@ function EventNode({
   )
 }
 
-type Filter = 'all' | 'edits' | 'status' | 'checks'
+/** The History filter; null is "All". Kept in the URL by the route. */
+export type HistoryKind = LinkHistoryKind
 
-const FILTERS: { value: Filter; label: string; types: LinkHistoryEvent['type'][] }[] = [
-  { value: 'all', label: 'All', types: [] },
-  { value: 'edits', label: 'Edits', types: ['created', 'updated', 'moved', 'tagged', 'duplicated'] },
-  { value: 'status', label: 'Hold', types: ['held', 'released'] },
-  { value: 'checks', label: 'Health checks', types: ['checked'] },
+const FILTERS: { value: HistoryKind | 'all'; label: string; count: (summary: LinkHistorySummary) => number }[] = [
+  { value: 'all', label: 'All', count: (summary) => summary.total },
+  { value: 'edits', label: 'Edits', count: (summary) => summary.edits },
+  { value: 'hold', label: 'Hold', count: (summary) => summary.holds },
 ]
 
-function matches(filter: Filter, event: LinkHistoryEvent): boolean {
-  if (filter === 'all') return true
-  return FILTERS.find((f) => f.value === filter)!.types.includes(event.type)
-}
-
-/** "3 people · 12 events since Nov 2" style one-liner above the timeline. */
-function summaryLine(events: LinkHistoryEvent[]): string {
-  const people = new Set(events.map((e) => e.actor)).size
-  const oldest = events.reduce((a, b) => (new Date(a.at) < new Date(b.at) ? a : b))
-  const edits = events.filter((e) => matches('edits', e)).length
+/** "26 events · 22 edits · 2 people · since Nov 2", over the whole history. */
+function summaryLine(summary: LinkHistorySummary): string {
   const parts = [
-    `${events.length} ${events.length === 1 ? 'event' : 'events'}`,
-    `${edits} ${edits === 1 ? 'edit' : 'edits'}`,
-    `${people} ${people === 1 ? 'person' : 'people'}`,
-    `since ${formatShortDate(oldest.at)}`,
+    `${summary.total} ${summary.total === 1 ? 'event' : 'events'}`,
+    `${summary.edits} ${summary.edits === 1 ? 'edit' : 'edits'}`,
+    `${summary.people} ${summary.people === 1 ? 'person' : 'people'}`,
+    ...(summary.since ? [`since ${formatShortDate(summary.since)}`] : []),
   ]
   return parts.join(' · ')
 }
@@ -162,13 +155,43 @@ function summaryLine(events: LinkHistoryEvent[]): string {
 /** Who changed what and when, grouped by day, newest first, with type filters. */
 type LinkHistoryTimelineProps = {
   events: LinkHistoryEvent[]
+  summary?: LinkHistorySummary
+  kind: HistoryKind | null
+  onKindChange: (kind: HistoryKind | null) => void
   isLoading?: boolean
   loadError?: unknown
   onRetry?: () => void
+  hasMore?: boolean
+  isLoadingMore?: boolean
+  onLoadMore?: () => void
 }
 
-export default function LinkHistoryTimeline({ events, isLoading = false, loadError, onRetry }: LinkHistoryTimelineProps) {
-  const [filter, setFilter] = useState<Filter>('all')
+export default function LinkHistoryTimeline({
+  events,
+  summary,
+  kind,
+  onKindChange,
+  isLoading = false,
+  loadError,
+  onRetry,
+  hasMore = false,
+  isLoadingMore = false,
+  onLoadMore,
+}: LinkHistoryTimelineProps) {
+  // Load older events when the end of the list scrolls into view.
+  const endRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const end = endRef.current
+    if (!end || !hasMore || !onLoadMore) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && !isLoadingMore) onLoadMore()
+      },
+      { rootMargin: '400px 0px' },
+    )
+    observer.observe(end)
+    return () => observer.disconnect()
+  }, [hasMore, isLoadingMore, onLoadMore])
 
   if (loadError && events.length === 0) {
     return (
@@ -193,7 +216,7 @@ export default function LinkHistoryTimeline({ events, isLoading = false, loadErr
     )
   }
 
-  if (events.length === 0) {
+  if (!summary || summary.total === 0) {
     return (
       <Text type="supporting" color="secondary">
         No changes recorded yet.
@@ -201,23 +224,21 @@ export default function LinkHistoryTimeline({ events, isLoading = false, loadErr
     )
   }
 
-  const groups = groupByDay(events.filter((event) => matches(filter, event)))
+  const groups = groupByDay(events)
   // Only offer filters that have something behind them.
-  const available = FILTERS.filter(
-    (f) => f.value === 'all' || events.some((event) => matches(f.value, event)),
-  )
+  const available = FILTERS.filter((f) => f.value === 'all' || f.count(summary) > 0)
 
   return (
     <VStack gap={8} hAlign="stretch" width="100%" style={{ maxWidth: 760 }}>
       <VStack gap={4} hAlign="start" width="100%">
         <Text type="supporting" color="secondary">
-          {summaryLine(events)}
+          {summaryLine(summary)}
         </Text>
         {available.length > 2 ? (
           <SegmentedControl
             label="Filter history"
-            value={filter}
-            onChange={(value) => setFilter(value as Filter)}
+            value={kind ?? 'all'}
+            onChange={(value) => onKindChange(value === 'all' ? null : (value as HistoryKind))}
             size="sm"
           >
             {available.map((f) => (
@@ -249,6 +270,13 @@ export default function LinkHistoryTimeline({ events, isLoading = false, loadErr
               </VStack>
             </VStack>
           ))}
+
+          {/* End of the list: scrolling here loads the next page; the button is the fallback. */}
+          <VStack ref={endRef as never} hAlign="start" width="100%">
+            {hasMore && onLoadMore ? (
+              <Button variant="ghost" size="sm" label="Load older history" isLoading={isLoadingMore} onClick={onLoadMore} />
+            ) : null}
+          </VStack>
         </VStack>
       )}
     </VStack>

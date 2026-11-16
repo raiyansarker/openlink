@@ -49,12 +49,28 @@ export class HistoryMapper {
 
 type LinkRef = { organizationId: string; linkId: string }
 
-/** A link's history, newest first. */
+export type LinkHistoryKind = 'edits' | 'hold'
+
+/** Totals over the link's whole history (from the first page). */
+export type LinkHistorySummary = { total: number; edits: number; holds: number; people: number; since?: string }
+
+export type LinkHistoryPage = { events: LinkHistoryEvent[]; nextCursor?: string; summary?: LinkHistorySummary }
+
+/** A link's history, newest first, one page at a time. */
 export class LinkHistoryApi {
+  static readonly PAGE_SIZE = 30
+
   constructor(private readonly client: OpenLinkClient = ApiClient.instance) {}
 
-  async list(ref: LinkRef): Promise<LinkHistoryEvent[]> {
-    const { items } = await this.client.links.getWorkspaceLinkHistory({ params: ref })
-    return items.flatMap((row) => HistoryMapper.toUi(row) ?? [])
+  async page(ref: LinkRef, kind: LinkHistoryKind | null, cursor?: string): Promise<LinkHistoryPage> {
+    const { items, nextCursor, summary } = await this.client.links.getWorkspaceLinkHistory({
+      params: ref,
+      query: { limit: String(LinkHistoryApi.PAGE_SIZE), ...(kind ? { kind } : {}), ...(cursor ? { cursor } : {}) },
+    })
+    return {
+      events: items.flatMap((row) => HistoryMapper.toUi(row) ?? []),
+      ...(nextCursor ? { nextCursor } : {}),
+      ...(summary ? { summary } : {}),
+    }
   }
 }
