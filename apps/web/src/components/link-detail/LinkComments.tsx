@@ -248,6 +248,7 @@ function CommentItem({
   const tooLong = draft.trim().length > COMMENT_MAX_LENGTH
   const isPending = comment.isPending === true
   const articleRef = useEnterAnimation<HTMLElement>(isNew)
+  const hasReactions = Object.values(comment.reactions ?? {}).some((people) => people.length > 0)
 
   const cancel = () => {
     setDraft(comment.body)
@@ -290,7 +291,7 @@ function CommentItem({
               display: 'block',
               flex: 1,
               width: 2,
-              marginBlock: 'var(--spacing-2)',
+              marginBlock: 'var(--spacing-1)',
               borderRadius: 'var(--radius-full)',
               background: THREAD_LINE,
             }}
@@ -302,7 +303,7 @@ function CommentItem({
       <VStack
         gap={1}
         hAlign="stretch"
-        paddingBlockEnd={hasThreadLine ? 8 : 0}
+        paddingBlockEnd={hasThreadLine ? 4 : 0}
         style={{ flex: 1, minWidth: 0 }}
       >
         <HStack gap={2} hAlign="between" vAlign="center" width="100%" style={{ minHeight: AVATAR_PX }}>
@@ -404,12 +405,13 @@ function CommentItem({
             </HStack>
           </VStack>
         ) : (
-          <Text style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.6 }}>
+          <Text style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>
             {comment.body}
           </Text>
         )}
 
-        {!isEditing ? (
+        {/* Only take up room when someone has reacted. */}
+        {!isEditing && hasReactions ? (
           <VStack hAlign="start" paddingBlockStart={1}>
             <ReactionChips reactions={comment.reactions ?? {}} onToggle={onToggleReaction} />
           </VStack>
