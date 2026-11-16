@@ -1,6 +1,6 @@
 import type { AnalyticsRange, AnalyticsReport, ClickChannel } from '@openlink/contracts'
 import { link, linkClick } from '@openlink/db/schema'
-import { and, eq, gte, inArray, lt, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lt, sql, type SQL } from 'drizzle-orm'
 import { Effect } from 'effect'
 
 import { countryName } from '#/lib/links/countries'
@@ -372,6 +372,58 @@ export class AnalyticsSummaries {
         clicksThisWeek: Number(week?.clicks ?? 0),
         uniqueVisitorsWeek: Number(week?.unique ?? 0),
         ...(top?.host ? { topReferrer: top.host } : {}),
+      }
+    })
+  }
+}
+
+/** The latest clicks, newest first, joined to their links. */
+export class RecentClicks {
+  static readonly DEFAULT_LIMIT = 20
+
+  static list(scope: Scope, limit = RecentClicks.DEFAULT_LIMIT) {
+    return Effect.gen(function* () {
+      const db = yield* Db
+      const rows = yield* operation('analytics.recent', () =>
+        db
+          .select({
+            id: linkClick.id,
+            occurredAt: linkClick.occurredAt,
+            channel: linkClick.channel,
+            referrerHost: linkClick.referrerHost,
+            country: linkClick.country,
+            city: linkClick.city,
+            device: linkClick.device,
+            browser: linkClick.browser,
+            os: linkClick.os,
+            linkId: link.id,
+            slug: link.slug,
+            title: link.title,
+          })
+          .from(linkClick)
+          .innerJoin(link, eq(link.id, linkClick.linkId))
+          .where(
+            and(
+              eq(linkClick.organizationId, scope.organizationId),
+              scope.linkId ? eq(linkClick.linkId, scope.linkId) : undefined,
+            ),
+          )
+          .orderBy(desc(linkClick.occurredAt), desc(linkClick.id))
+          .limit(limit),
+      )
+      return {
+        items: rows.map((row) => ({
+          id: row.id,
+          occurredAt: row.occurredAt.toISOString(),
+          link: { id: row.linkId, slug: row.slug, ...(row.title ? { title: row.title } : {}) },
+          channel: row.channel as ClickChannel,
+          ...(row.referrerHost ? { referrerHost: row.referrerHost } : {}),
+          ...(row.country ? { country: row.country } : {}),
+          ...(row.city ? { city: row.city } : {}),
+          device: row.device,
+          browser: row.browser,
+          os: row.os,
+        })),
       }
     })
   }

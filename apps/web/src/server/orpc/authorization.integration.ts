@@ -145,9 +145,11 @@ const buildReport = mock((_scope: object, _range: string, _tz: number) => Effect
 const buildSummary = mock((_organizationId: string, _tz: number) => Effect.succeed({ clicksToday: 0, clicksThisWeek: 0, uniqueVisitorsWeek: 0 }))
 const frameable = mock((_url: string) => Effect.succeed(false))
 mock.module('#/server/redirect/frame-check', () => ({ FrameCheck: { frameable } }))
+const listRecent = mock((_scope: object, _limit?: number) => Effect.succeed({ items: [] }))
 mock.module('#/server/analytics/report', () => ({
   AnalyticsReports: { build: buildReport },
   AnalyticsSummaries: { build: buildSummary },
+  RecentClicks: { list: listRecent },
 }))
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext }))
 
@@ -169,7 +171,7 @@ const spies = [
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
   listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, audit, listComments, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
-  buildReport, buildSummary, frameable,
+  buildReport, buildSummary, frameable, listRecent,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -1152,6 +1154,9 @@ describe('analytics', () => {
     expect(buildReport).toHaveBeenLastCalledWith({ organizationId: org.id, linkId: linkRow.id }, '30d', 0)
     expect((await request('GET', `${orgPath}/analytics/summary?tzOffset=-300`)).status).toBe(200)
     expect(buildSummary).toHaveBeenLastCalledWith(org.id, -300)
+    expect((await request('GET', `${orgPath}/analytics/recent?linkId=${linkRow.id}&limit=5`)).status).toBe(200)
+    expect(listRecent).toHaveBeenLastCalledWith({ organizationId: org.id, linkId: linkRow.id }, 5)
+    expect((await request('GET', `${orgPath}/analytics/recent?limit=500`)).status).toBe(400)
   })
 
   test('non-members, foreign links and bad ranges are refused', async () => {

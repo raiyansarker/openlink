@@ -1,5 +1,5 @@
 import { FrameCheck } from '#/server/redirect/frame-check'
-import { AnalyticsReports, AnalyticsSummaries } from '#/server/analytics/report'
+import { AnalyticsReports, AnalyticsSummaries, RecentClicks } from '#/server/analytics/report'
 import { contract } from '@openlink/contracts'
 import '@orpc/effect/extensions/effect'
 import { ArkTypeToJsonSchemaConverter } from '@orpc/arktype'
@@ -376,6 +376,14 @@ export const router = os.router({
       // A link outside this workspace must not reveal whether it exists.
       if (linkId && !(yield* getLinkInOrganization(organizationId, linkId))) return yield* Effect.fail(notFound('Link not found'))
       return yield* AnalyticsReports.build({ organizationId, ...(linkId ? { linkId } : {}) }, range, tzOffset)
+    }),
+
+    listRecentClicks: os.analytics.listRecentClicks.effect(function* ({ input }) {
+      const organizationId = input.params.organizationId
+      yield* requireOrgMemberEffect(organizationId)
+      const { linkId, limit } = input.query
+      if (linkId && !(yield* getLinkInOrganization(organizationId, linkId))) return yield* Effect.fail(notFound('Link not found'))
+      return yield* RecentClicks.list({ organizationId, ...(linkId ? { linkId } : {}) }, limit)
     }),
 
     getAnalyticsSummary: os.analytics.getAnalyticsSummary.effect(function* ({ input }) {

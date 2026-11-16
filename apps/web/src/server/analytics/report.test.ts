@@ -5,7 +5,7 @@ import { Effect } from 'effect'
 
 import { Db } from '#/server/effect/services/db'
 import { createTestDatabase } from '#/server/testing/sqlite'
-import { AnalyticsReports, AnalyticsSummaries, AnalyticsWindow } from './report'
+import { AnalyticsReports, AnalyticsSummaries, AnalyticsWindow, RecentClicks } from './report'
 
 const databases: Database[] = []
 afterEach(() => {
@@ -138,5 +138,20 @@ describe('AnalyticsSummaries', () => {
       uniqueVisitorsWeek: 2,
       topReferrer: 't.co',
     })
+  })
+})
+
+describe('RecentClicks', () => {
+  test('newest first, with the link, and scoped like reports', async () => {
+    const t = setup()
+    t.seedLink('l1', 'launch', 'https://example.com/')
+    t.click(new Date('2026-11-18T09:00:00.000Z'), { city: 'Dhaka', country: 'BD' })
+    t.click(new Date('2026-11-18T10:00:00.000Z'), { referrerHost: 't.co', channel: 'social' })
+    t.click(new Date('2026-11-18T10:05:00.000Z'), { organizationId: 'o2' })
+    const { items } = await t.run(RecentClicks.list({ organizationId: 'o1' }, 10))
+    expect(items.map((c) => c.occurredAt)).toEqual(['2026-11-18T10:00:00.000Z', '2026-11-18T09:00:00.000Z'])
+    expect(items[0]).toMatchObject({ link: { id: 'l1', slug: 'launch', title: 'launch' }, channel: 'social', referrerHost: 't.co' })
+    expect(items[1]).toMatchObject({ country: 'BD', city: 'Dhaka' })
+    expect(JSON.stringify(items)).not.toContain('visitor')
   })
 })
