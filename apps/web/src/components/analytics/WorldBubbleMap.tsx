@@ -1,26 +1,28 @@
-import { useEffect, useRef, useState } from 'react'
-import type {
-  GeoJSONSource,
-  GeoJSONSourceSpecification,
-  Map as MapLibreMap,
-} from 'maplibre-gl'
-import { Card } from '@astryxdesign/core/Card'
-import { Text } from '@astryxdesign/core/Text'
+import { useEffect, useMemo, useState } from 'react'
+import { Layer, Source, useMap } from '@vis.gl/react-maplibre'
+import type { GeoJSONSourceSpecification } from 'maplibre-gl'
+import StaticMap from '#/components/maps/StaticMap'
 import { useResolvedColorScheme } from '#/hooks/use-resolved-color-scheme'
 import type { CountryRow } from '#/lib/analytics/demo-dataset'
 import { formatNumber } from '#/lib/analytics/format'
-import {
-  OPENFREEMAP_STYLES,
-  loadMapLibre,
-  resolveCssColor, collapseAttribution } from '#/lib/maps/load-maplibre'
+import { resolveCssColor } from '#/lib/maps/load-maplibre'
 
 type WorldBubbleMapProps = {
   countries: CountryRow[]
   height?: number
 }
 
-const SOURCE_ID = 'country-clicks'
-const LAYER_ID = 'country-clicks-circles'
+const ACCENT_TOKEN = '--color-data-categorical-blue'
+const ACCENT_FALLBACK = '#0171E3'
+
+/** Frame the populated world rather than a fixed zoom, so every country fits the card. */
+const WORLD_VIEW = {
+  bounds: [
+    [-140, -42],
+    [155, 64],
+  ] as [[number, number], [number, number]],
+  fitBoundsOptions: { padding: 8 },
+}
 
 function toGeoJson(countries: CountryRow[]): GeoJSONSourceSpecification['data'] {
   const max = Math.max(1, ...countries.map((c) => c.clicks))
@@ -44,130 +46,71 @@ function toGeoJson(countries: CountryRow[]): GeoJSONSourceSpecification['data'] 
  * Non-interactive by design; exact numbers live in the list beside it.
  */
 export default function WorldBubbleMap({ countries, height = 280 }: WorldBubbleMapProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<MapLibreMap | null>(null)
-  const dataRef = useRef(countries)
   const scheme = useResolvedColorScheme()
-  const [hasError, setHasError] = useState(false)
-
-  dataRef.current = countries
-
+  // WebGL needs a concrete colour; tokens resolve in the browser, per scheme.
+  const [accent, setAccent] = useState(ACCENT_FALLBACK)
   useEffect(() => {
-    let isCancelled = false
-    const container = containerRef.current
-    if (!container) return
-
-    void (async () => {
-      try {
-        const maplibre = await loadMapLibre()
-        if (isCancelled) return
-        const map = new maplibre.Map({
-          container,
-          style: OPENFREEMAP_STYLES[scheme],
-          // Frame the populated world rather than a fixed zoom, so every
-          // country fits whatever width the card has.
-          bounds: [
-            [-140, -42],
-            [155, 64],
-          ],
-          fitBoundsOptions: { padding: 8 },
-          interactive: false,
-          // Map data licences (OpenStreetMap ODbL, OpenFreeMap) require attribution; the compact
-          // control shows it as a small ⓘ on the map instead of a separate line of text.
-          attributionControl: { compact: true },
-          fadeDuration: 0,
-          renderWorldCopies: false,
-        })
-        collapseAttribution(map)
-
-        const canvasLayer = map.getCanvasContainer()
-        canvasLayer.style.transition = 'none'
-        canvasLayer.style.opacity = '0'
-        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-        const addBubbles = () => {
-          // Place names collide with the bubbles; the list beside the map
-          // already names every country, so hide the basemap's text layers.
-          for (const layer of map.getStyle().layers ?? []) {
-            if (layer.type === 'symbol') map.setLayoutProperty(layer.id, 'visibility', 'none')
-          }
-          const accent = resolveCssColor(container, '--color-data-categorical-blue', '#0171E3')
-          if (!map.getSource(SOURCE_ID)) {
-            map.addSource(SOURCE_ID, { type: 'geojson', data: toGeoJson(dataRef.current) })
-          }
-          if (!map.getLayer(LAYER_ID)) {
-            map.addLayer({
-              id: LAYER_ID,
-              type: 'circle',
-              source: SOURCE_ID,
-              paint: {
-                'circle-radius': ['interpolate', ['linear'], ['get', 'weight'], 0, 3, 1, 26],
-                'circle-color': accent,
-                'circle-opacity': 0.32,
-                'circle-stroke-color': accent,
-                'circle-stroke-width': 1.25,
-                'circle-stroke-opacity': 0.9,
-              },
-            })
-          }
-        }
-
-        let isLoaded = false
-        map.on('error', () => {
-          if (!isLoaded) setHasError(true)
-        })
-        // A style swap (light/dark) drops custom layers, so re-add them.
-        map.on('style.load', addBubbles)
-        map.once('idle', () => {
-          isLoaded = true
-          canvasLayer.style.transition = reduceMotion ? 'none' : 'opacity 180ms ease-out'
-          canvasLayer.style.opacity = '1'
-        })
-        mapRef.current = map
-      } catch {
-        if (!isCancelled) setHasError(true)
-      }
-    })()
-
-    return () => {
-      isCancelled = true
-      mapRef.current?.remove()
-      mapRef.current = null
-    }
-    // Created once; data and style updates are applied below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    const source = mapRef.current?.getSource(SOURCE_ID) as GeoJSONSource | undefined
-    source?.setData(toGeoJson(countries))
-  }, [countries])
-
-  useEffect(() => {
-    mapRef.current?.setStyle(OPENFREEMAP_STYLES[scheme])
+    setAccent(resolveCssColor(document.body, ACCENT_TOKEN, ACCENT_FALLBACK))
   }, [scheme])
 
+  const data = useMemo(() => toGeoJson(countries), [countries])
   const top = countries[0]
 
   return (
-    <Card
-      ref={containerRef}
-      padding={0}
-      variant="muted"
+    <StaticMap
       height={height}
-      role="img"
-      aria-label={
+      initialViewState={WORLD_VIEW}
+      renderWorldCopies={false}
+      label={
         top
           ? `World map of clicks by country. Most clicks from ${top.label}: ${formatNumber(top.clicks)}.`
           : 'World map of clicks by country.'
       }
-      style={{ width: '100%', overflow: 'hidden', position: 'relative' }}
     >
-      {hasError ? (
-        <Text type="supporting" color="secondary">
-          Map unavailable
-        </Text>
-      ) : null}
-    </Card>
+      <HideBasemapLabels />
+      <Source id="country-clicks" type="geojson" data={data}>
+        <Layer
+          id="country-clicks-circles"
+          type="circle"
+          paint={{
+            'circle-radius': ['interpolate', ['linear'], ['get', 'weight'], 0, 3, 1, 26],
+            'circle-color': accent,
+            'circle-opacity': 0.32,
+            'circle-stroke-color': accent,
+            'circle-stroke-width': 1.25,
+            'circle-stroke-opacity': 0.9,
+          }}
+        />
+      </Source>
+    </StaticMap>
   )
+}
+
+/**
+ * Place names collide with the bubbles, and the list beside the map already
+ * names every country, so hide the basemap's text layers (again after a
+ * light/dark style swap).
+ */
+function HideBasemapLabels() {
+  const { current: ref } = useMap()
+
+  useEffect(() => {
+    const map = ref?.getMap()
+    if (!map) return
+    const hide = () => {
+      for (const layer of map.getStyle()?.layers ?? []) {
+        if (layer.type === 'symbol' && map.getLayoutProperty(layer.id, 'visibility') !== 'none') {
+          map.setLayoutProperty(layer.id, 'visibility', 'none')
+        }
+      }
+    }
+    if (map.isStyleLoaded()) hide()
+    // A scheme swap diffs the new style in, which can turn labels back on.
+    map.on('styledata', hide)
+    return () => {
+      map.off('styledata', hide)
+    }
+  }, [ref])
+
+  return null
 }
