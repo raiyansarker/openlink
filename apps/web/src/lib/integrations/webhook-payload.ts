@@ -4,35 +4,33 @@ import {
   type WebhookEventGroup,
 } from '#/data/demo/webhooks'
 
-const SAMPLE_DATA_BY_GROUP: Record<WebhookEventGroup, Record<string, unknown>> = {
-  links: {
-    id: 'lnk_8f2k1',
-    shortUrl: '/launch',
-    destination: 'https://example.com/launch',
-  },
+type SamplePart = { subject: { type: string; id: string; label: string }; data?: Record<string, unknown> }
+
+const SAMPLE_BY_GROUP: Record<WebhookEventGroup, SamplePart> = {
+  links: { subject: { type: 'link', id: 'lnk_8f2k1', label: 'Spring launch' } },
   clicks: {
-    linkId: 'lnk_8f2k1',
-    country: 'US',
-    referrer: 'twitter.com',
+    subject: { type: 'link', id: 'lnk_8f2k1', label: 'Spring launch' },
+    data: { clickCount: 1000, country: 'US', platform: 'ios', delivery: 'redirect' },
   },
-  domains: {
-    id: 'dom_3k9a',
-    hostname: 'go.example.com',
-  },
-  members: {
-    id: 'mem_71bd',
-    email: 'member@example.com',
-    role: 'editor',
-  },
+  domains: { subject: { type: 'domain', id: 'dom_3k9a', label: 'go.example.com' } },
+  members: { subject: { type: 'member', id: 'usr_71bd', label: 'member@example.com' } },
+  developers: { subject: { type: 'api_key', id: 'key_2c8e', label: 'Zapier' } },
+  workspace: { subject: { type: 'workspace', id: 'org_5d1a', label: 'Acme' } },
 }
 
-/** Pretty-printed example body for one event type. */
+/** Pretty-printed example body for one event type, in the shape the server publishes. */
 export function sampleWebhookPayload(event: WebhookEvent): string {
+  const sample = SAMPLE_BY_GROUP[WEBHOOK_EVENT_DEFINITIONS[event].group]
+  const byPerson = WEBHOOK_EVENT_DEFINITIONS[event].group !== 'clicks'
   return JSON.stringify(
     {
+      id: 'evt_0c4f9a2e',
       type: event,
-      createdAt: '2026-11-13T09:30:00.000Z',
-      data: SAMPLE_DATA_BY_GROUP[WEBHOOK_EVENT_DEFINITIONS[event].group],
+      organizationId: 'org_5d1a',
+      occurredAt: '2026-11-13T09:30:00.000Z',
+      subject: sample.subject,
+      ...(byPerson ? { actor: { type: 'member', id: 'usr_9a1f', label: 'Ada Lovelace' } } : {}),
+      ...(sample.data ? { data: sample.data } : {}),
     },
     null,
     2,
