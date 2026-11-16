@@ -8,7 +8,6 @@ import {
   DomainIdPath,
   ListDomainsResponse,
   OrganizationIdPath,
-  RemoveDomainQuery,
 } from './schema'
 
 export const listDomains = oc
@@ -45,12 +44,12 @@ export const removeDomain = oc
       operationId: 'removeDomain',
       path: '/organizations/{organizationId}/domains/{domainId}',
       successStatus: 204,
-      summary: 'Remove a domain. Its links are deleted too, unless moveLinksTo moves them first',
+      summary: 'Remove a domain and delete every short link on it',
       inputStructure: 'detailed',
       tags: ['Domains'],
     }),
   )
-  .input(type({ params: DomainIdPath, query: RemoveDomainQuery }))
+  .input(type({ params: DomainIdPath }))
   .output(EmptyResponse)
 
 export const getDomain = oc

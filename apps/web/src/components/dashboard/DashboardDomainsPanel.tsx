@@ -229,9 +229,8 @@ export default function DashboardDomainsPanel() {
                       domain={row}
                       onOpen={openCustomDomain}
                       onVerify={(id) => run(() => verifyDomain(id))}
-                      otherDomains={customDomains.filter((d) => d.id !== row.id)}
-                      // The dialog shows failures (e.g. back-halves already taken) and stays open.
-                      onRemove={(id, fate) => removeDomain(id, fate)}
+                      // The dialog shows a failure and stays open.
+                      onRemove={removeDomain}
                     />
                   ),
                 },

@@ -3,22 +3,20 @@ import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { IconButton } from '@astryxdesign/core/IconButton'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
-import RemoveDomainDialog, { type LinkFate } from './RemoveDomainDialog'
+import RemoveDomainDialog from './RemoveDomainDialog'
 
 type DomainRowMenuProps = {
   domain: WorkspaceCustomDomain
   onOpen: (domain: WorkspaceCustomDomain) => void
   onVerify: (domainId: string) => void
-  /** The workspace's other domains, as places to move this one's links. */
-  otherDomains: WorkspaceCustomDomain[]
-  onRemove: (domainId: string, fate: LinkFate) => Promise<void>
+  /** Rejects with a message the dialog shows. */
+  onRemove: (domainId: string) => Promise<void>
 }
 
 export default function DomainRowMenu({
   domain,
   onOpen,
   onVerify,
-  otherDomains,
   onRemove,
 }: DomainRowMenuProps) {
   const [removeAlertOpen, setRemoveAlertOpen] = useState(false)
@@ -76,8 +74,7 @@ export default function DomainRowMenu({
         isOpen={removeAlertOpen}
         onOpenChange={setRemoveAlertOpen}
         domain={domain}
-        otherDomains={otherDomains}
-        onRemove={(fate) => onRemove(domain.id, fate)}
+        onRemove={() => onRemove(domain.id)}
       />
     </>
   )

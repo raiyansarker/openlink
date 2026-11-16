@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import RemoveDomainDialog, { type LinkFate } from '#/components/domains/RemoveDomainDialog'
+import RemoveDomainDialog from '#/components/domains/RemoveDomainDialog'
 import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 import { Card } from '@astryxdesign/core/Card'
@@ -36,7 +36,7 @@ export default function DomainDetailSheet({
   target,
   onOpenChange,
 }: DomainDetailSheetProps) {
-  const { customDomains, getDomainById, verifyDomain, removeDomain } = useDomainsWorkspace()
+  const { getDomainById, verifyDomain, removeDomain } = useDomainsWorkspace()
   const [removeAlertOpen, setRemoveAlertOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
@@ -60,10 +60,10 @@ export default function DomainDetailSheet({
 
   const close = () => onOpenChange(false)
 
-  const removeWithLinks = async (fate: LinkFate) => {
+  const removeWithLinks = async () => {
     if (!custom) return
     setActionError(null)
-    await removeDomain(custom.id, fate)
+    await removeDomain(custom.id)
     close()
   }
 
@@ -174,7 +174,6 @@ export default function DomainDetailSheet({
           isOpen={removeAlertOpen}
           onOpenChange={setRemoveAlertOpen}
           domain={custom}
-          otherDomains={customDomains.filter((d) => d.id !== custom.id)}
           onRemove={removeWithLinks}
         />
       ) : null}

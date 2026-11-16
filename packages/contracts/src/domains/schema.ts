@@ -29,18 +29,9 @@ export const CustomDomain = type({
   'defaultRedirectStatus?': RedirectStatus,
   createdAt: 'string',
   'activeAt?': 'string',
-  /** Short links on this domain. Removing the domain deletes them unless they are moved first. */
+  /** Short links on this domain. Removing the domain deletes them. */
   linkCount: 'number.integer>=0',
 })
-
-/** Removing a domain: by default its links are deleted with it. */
-export const RemoveDomainQuery = type({
-  /** Move the links first: another active domain's id, or `default` for the app's own host. */
-  'moveLinksTo?': 'string',
-})
-
-/** `moveLinksTo` value for the app's own host. */
-export const DEFAULT_DOMAIN_TARGET = 'default'
 
 export const DomainIdPath = type({
   organizationId: 'string',

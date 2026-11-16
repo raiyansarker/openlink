@@ -21,8 +21,8 @@ type DomainsWorkspaceContextValue = {
   addDomain: (hostname: string) => Promise<WorkspaceCustomDomain>
   /** Re-checks DNS and certificate state on the server. */
   verifyDomain: (domainId: string) => Promise<void>
-  /** `moveLinksTo`: a domain id, `null` for the app host, or omitted to delete the links with the domain. */
-  removeDomain: (domainId: string, moveLinksTo?: string | null) => Promise<void>
+  /** Removes the domain and deletes every short link on it. */
+  removeDomain: (domainId: string) => Promise<void>
   getDomainById: (domainId: string) => WorkspaceCustomDomain | undefined
   consumeDetailRequest: () => string | null
 }
@@ -74,10 +74,10 @@ export function DomainsWorkspaceProvider({ children }: { children: ReactNode }) 
   )
 
   const removeDomain = useCallback(
-    async (domainId: string, moveLinksTo?: string | null) => {
-      await domainsApi.remove(orgId, domainId, moveLinksTo)
+    async (domainId: string) => {
+      await domainsApi.remove(orgId, domainId)
       setDomains((prev) => prev.filter((d) => d.id !== domainId))
-      // Its links moved or were deleted on the server.
+      // Its links were deleted on the server.
       await queryClient.invalidateQueries({ queryKey: QueryKeys.links(orgId) })
     },
     [orgId, setDomains, queryClient],

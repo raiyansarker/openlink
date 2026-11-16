@@ -1,5 +1,4 @@
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
-import { DEFAULT_DOMAIN_TARGET } from '@openlink/contracts'
 import { ApiClient, type OpenLinkClient } from './client'
 import { ApiError } from './error'
 
@@ -45,16 +44,9 @@ export class DomainsApi {
     )
   }
 
-  /**
-   * Removes a domain. `moveLinksTo` moves its links first (a domain id, or
-   * `null` for the app's own host); without it the links are deleted too.
-   */
-  remove(organizationId: string, domainId: string, moveLinksTo?: string | null) {
-    const query = moveLinksTo === undefined ? {} : { moveLinksTo: moveLinksTo ?? DEFAULT_DOMAIN_TARGET }
-    return this.call(
-      () => this.client.domains.removeDomain({ params: { organizationId, domainId }, query }),
-      'Could not remove the domain.',
-    )
+  /** Removes a domain and every short link on it. */
+  remove(organizationId: string, domainId: string) {
+    return this.call(() => this.client.domains.removeDomain({ params: { organizationId, domainId } }), 'Could not remove the domain.')
   }
 
   private async call<T>(run: () => Promise<T>, fallback: string): Promise<T> {

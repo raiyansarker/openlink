@@ -56,7 +56,7 @@ import { LinkHistory, type LinkHistoryKind } from '#/server/activity/link-histor
 import { DomainLinks } from '#/server/domain/domain-links'
 import { DeviceSessions } from '#/server/devices/sessions'
 import { MediaStore } from '#/server/media/media-store'
-import { DEFAULT_DOMAIN_TARGET, ReservedSlugs } from '@openlink/contracts'
+import { ReservedSlugs } from '@openlink/contracts'
 import { runHealthChecks } from '#/server/health/checks'
 import { addTagsToLinks, deleteLinks, moveLinks } from '#/server/links/bulk'
 import { queryOrganizationLinks } from '#/server/links/queries'
@@ -655,36 +655,15 @@ export const router = os.router({
       const { organizationId, domainId } = input.params
       const { session } = yield* requireOrgAdminEffect(organizationId)
       const domain = yield* requireDomain(organizationId, domainId)
+      // Its links are deleted with it (the foreign key cascades); the log keeps how many.
       const linkCount = yield* DomainLinks.countFor(organizationId, domainId)
-
-      // Moving first: if it can't happen, nothing is removed and nothing is lost.
-      const moveTo = input.query.moveLinksTo
-      let movedTo: string | null = null
-      if (moveTo !== undefined && linkCount > 0) {
-        const to = moveTo === DEFAULT_DOMAIN_TARGET ? null : moveTo
-        yield* DomainLinks.moveAll({ organizationId, fromDomainId: domainId, to }).pipe(
-          Effect.catchTags({
-            DomainMoveTargetInvalid: (error) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
-            DomainLinksConflict: (error) =>
-              Effect.fail(
-                errors.CONFLICT({
-                  message: `${error.total} ${error.total === 1 ? 'back-half is' : 'back-halves are'} already taken there: ${error.slugs.join(', ')}${error.total > error.slugs.length ? ', …' : ''}. Rename ${error.total === 1 ? 'it' : 'them'} or pick another domain.`,
-                }),
-              ),
-          }),
-        )
-        movedTo = to === null ? 'the default domain' : ((yield* requireDomain(organizationId, to)).hostname)
-      }
-
       const removed = yield* removeCustomDomain(domainId, organizationId)
       if (!removed) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Domain not found' }))
       yield* audit(session, {
         organizationId,
         action: 'domain.removed',
         target: { type: 'domain', id: domainId, label: domain.hostname },
-        ...(linkCount > 0
-          ? { changes: [{ label: 'Links', from: String(linkCount), to: movedTo ? `moved to ${movedTo}` : 'deleted' }] }
-          : {}),
+        ...(linkCount > 0 ? { changes: [{ label: 'Links deleted', from: String(linkCount), to: '0' }] } : {}),
       })
       return {}
     }),
