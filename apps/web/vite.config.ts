@@ -10,7 +10,11 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
-    devtools(),
+    devtools({
+      // react-maplibre hands every prop to MapLibre, which rejects the injected
+      // `data-tsd-source` attribute on sources and layers.
+      injectSource: { enabled: true, ignore: { components: ['Source', 'Layer'] } },
+    }),
     cloudflare({ viteEnvironment: { name: 'ssr' } }),
     tailwindcss(),
     tanstackStart(),
