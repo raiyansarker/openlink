@@ -44,7 +44,6 @@ import { Route as WOrgSlugActivityRouteImport } from './routes/w/$orgSlug/activi
 import { Route as WOrgSlugAnalyticsRouteImport } from './routes/w/$orgSlug/analytics'
 import { Route as WOrgSlugDomainsRouteRouteImport } from './routes/w/$orgSlug/domains/route'
 import { Route as WOrgSlugNotificationsRouteImport } from './routes/w/$orgSlug/notifications'
-import { Route as WOrgSlugReportsRouteImport } from './routes/w/$orgSlug/reports'
 import { Route as WOrgSlugSettingsRouteRouteImport } from './routes/w/$orgSlug/settings/route'
 import { Route as WOrgSlugDomainsIndexRouteImport } from './routes/w/$orgSlug/domains/index'
 import { Route as WOrgSlugDomainsNewRouteImport } from './routes/w/$orgSlug/domains/new'
@@ -233,11 +232,6 @@ const WOrgSlugNotificationsRoute = WOrgSlugNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => WOrgSlugRouteRoute,
 } as any)
-const WOrgSlugReportsRoute = WOrgSlugReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => WOrgSlugRouteRoute,
-} as any)
 const WOrgSlugSettingsRouteRoute = WOrgSlugSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -321,7 +315,6 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
-  '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -362,7 +355,6 @@ export interface FileRoutesByTo {
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
-  '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
   '/w/$orgSlug': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -410,7 +402,6 @@ export interface FileRoutesById {
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
   '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
-  '/w/$orgSlug/reports': typeof WOrgSlugReportsRoute
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -458,7 +449,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
     | '/w/$orgSlug/notifications'
-    | '/w/$orgSlug/reports'
     | '/w/$orgSlug/'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -499,7 +489,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
     | '/w/$orgSlug/notifications'
-    | '/w/$orgSlug/reports'
     | '/w/$orgSlug'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -546,7 +535,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
     | '/w/$orgSlug/notifications'
-    | '/w/$orgSlug/reports'
     | '/w/$orgSlug/'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -827,13 +815,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WOrgSlugNotificationsRouteImport
       parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/w/$orgSlug/reports': {
-      id: '/w/$orgSlug/reports'
-      path: '/reports'
-      fullPath: '/w/$orgSlug/reports'
-      preLoaderRoute: typeof WOrgSlugReportsRouteImport
-      parentRoute: typeof WOrgSlugRouteRoute
-    }
     '/w/$orgSlug/settings': {
       id: '/w/$orgSlug/settings'
       path: '/settings'
@@ -978,7 +959,6 @@ interface WOrgSlugRouteRouteChildren {
   WOrgSlugActivityRoute: typeof WOrgSlugActivityRoute
   WOrgSlugAnalyticsRoute: typeof WOrgSlugAnalyticsRoute
   WOrgSlugNotificationsRoute: typeof WOrgSlugNotificationsRoute
-  WOrgSlugReportsRoute: typeof WOrgSlugReportsRoute
   WOrgSlugIndexRoute: typeof WOrgSlugIndexRoute
   WOrgSlugLinksLinkIdRoute: typeof WOrgSlugLinksLinkIdRoute
   WOrgSlugLinksIndexRoute: typeof WOrgSlugLinksIndexRoute
@@ -990,7 +970,6 @@ const WOrgSlugRouteRouteChildren: WOrgSlugRouteRouteChildren = {
   WOrgSlugActivityRoute: WOrgSlugActivityRoute,
   WOrgSlugAnalyticsRoute: WOrgSlugAnalyticsRoute,
   WOrgSlugNotificationsRoute: WOrgSlugNotificationsRoute,
-  WOrgSlugReportsRoute: WOrgSlugReportsRoute,
   WOrgSlugIndexRoute: WOrgSlugIndexRoute,
   WOrgSlugLinksLinkIdRoute: WOrgSlugLinksLinkIdRoute,
   WOrgSlugLinksIndexRoute: WOrgSlugLinksIndexRoute,

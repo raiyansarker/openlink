@@ -14,7 +14,6 @@ import {
   DashboardIcon,
   LinkIcon,
   BarChartIcon,
-  ReportIcon,
   GlobeIcon,
   ActivityIcon,
   BellIcon,
@@ -65,7 +64,6 @@ const NAV_ICONS: Record<DashboardSection, ReactNode> = {
   links: <LinkIcon size={16} strokeWidth={1.2} />,
   analytics: <BarChartIcon size={16} strokeWidth={1.2} />,
   domains: <GlobeIcon size={16} strokeWidth={1.2} />,
-  reports: <ReportIcon size={16} strokeWidth={1.2} />,
   settings: <SettingsIcon size={16} strokeWidth={1.2} />,
 }
 

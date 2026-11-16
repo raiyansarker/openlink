@@ -5,7 +5,6 @@ export type DashboardSection =
   | 'links'
   | 'analytics'
   | 'domains'
-  | 'reports'
   | 'settings'
 
 const sectionSegment: Record<DashboardSection, string | null> = {
@@ -15,7 +14,6 @@ const sectionSegment: Record<DashboardSection, string | null> = {
   links: 'links',
   analytics: 'analytics',
   domains: 'domains',
-  reports: 'reports',
   settings: 'settings',
 }
 
