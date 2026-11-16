@@ -18,6 +18,9 @@ export class QueryKeys {
     [...QueryKeys.workspace(organizationId), 'comments', linkId] as const
   static linkHistory = (organizationId: string, linkId: string) =>
     [...QueryKeys.workspace(organizationId), 'history', linkId] as const
+  static analytics = (organizationId: string, range: string, linkId: string | null) =>
+    [...QueryKeys.workspace(organizationId), 'analytics', range, linkId ?? 'all'] as const
+  static analyticsSummary = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'analytics', 'summary'] as const
   static apiKeys = (organizationId: string) => [...QueryKeys.workspace(organizationId), 'api-keys'] as const
 }
 
