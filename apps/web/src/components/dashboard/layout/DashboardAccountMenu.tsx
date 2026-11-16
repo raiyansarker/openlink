@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Avatar } from '@astryxdesign/core/Avatar'
+import { DefaultAvatar } from '#/lib/avatars/default-avatar'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { useCurrentUser } from '#/hooks/use-current-user'
 import { AuthSession } from '#/lib/auth/client'
@@ -65,7 +66,8 @@ export default function DashboardAccountMenu({
           }}
         >
           <Avatar
-            src={user?.image ?? undefined}
+            // No picture yet: a generated one, so the button never shows dark initials on the dark rail.
+            src={user?.image || (user ? DefaultAvatar.dataUri(user.id, user.name || user.email) : undefined)}
             name={user?.name ?? 'Account'}
             size={36}
             shape="rounded"
