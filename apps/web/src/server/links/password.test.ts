@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { Effect } from 'effect'
-import { hashLinkPassword, verifyLinkPassword } from './password'
+import { PBKDF2_ITERATIONS, hashLinkPassword, verifyLinkPassword } from './password'
 
 const verify = (password: string, stored: string | null | undefined) =>
   Effect.runPromise(verifyLinkPassword(password, stored))
@@ -16,9 +16,17 @@ describe('link password hashing', () => {
     expect(await Effect.runPromise(effect)).not.toBe(stored)
   })
 
+  test('new hashes stay within the Workers PBKDF2 limit of 100,000 iterations', async () => {
+    const stored = await Effect.runPromise(hashLinkPassword('hunter2'))
+    const iterations = Number(stored.split('$')[1])
+    expect(iterations).toBe(PBKDF2_ITERATIONS)
+    expect(iterations).toBeLessThanOrEqual(100_000)
+  })
+
   test('verification rejects missing or malformed hashes', async () => {
     expect(await verify('x', null)).toBe(false)
     expect(await verify('x', 'pbkdf2-sha256$nope')).toBe(false)
+    expect(await verify('x', 'pbkdf2-sha256$0$c2FsdA$aGFzaA')).toBe(false)
   })
 
   test('verifyLinkPassword accepts legacy sha256 hex', async () => {
