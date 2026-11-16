@@ -148,6 +148,117 @@ const onCommentInvalid = (errors: { BAD_REQUEST: MessageError }) => ({
   CommentInvalid: (error: CommentInvalid) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
 })
 
+/** A link addressed by workspace and link id, optionally pinned to a domain. */
+type LinkAddress = { organizationId: string; linkId: string; domainId?: string }
+type CommentAddress = LinkAddress & { commentId: string }
+type CommentErrors = ErrorFactories & { BAD_REQUEST: MessageError }
+
+/**
+ * A link's comment thread and history. Served at both the per-domain paths and
+ * the workspace paths (which also reach links on the app's own host).
+ */
+class LinkThread {
+  static locate(address: LinkAddress) {
+    return Effect.gen(function* () {
+      if (address.domainId) return yield* requireLink(address.organizationId, address.domainId, address.linkId)
+      const row = yield* getLinkInOrganization(address.organizationId, address.linkId)
+      if (!row) return yield* Effect.fail(notFound('Link not found'))
+      return row
+    })
+  }
+
+  static list(address: LinkAddress) {
+    return Effect.gen(function* () {
+      yield* requireOrgMemberEffect(address.organizationId)
+      yield* LinkThread.locate(address)
+      const rows = yield* listComments(address.organizationId, address.linkId)
+      return { items: rows.map(toCommentDto) }
+    })
+  }
+
+  static create(address: LinkAddress, body: string, errors: CommentErrors) {
+    return Effect.gen(function* () {
+      const { session } = yield* requireLinkWriterEffect(address.organizationId)
+      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
+      const existing = yield* LinkThread.locate(address)
+      const user = session.session.user
+      const row = yield* createComment({
+        organizationId: address.organizationId,
+        linkId: address.linkId,
+        author: { id: user.id, label: user.name || user.email },
+        body,
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
+      yield* audit(session, {
+        organizationId: address.organizationId,
+        action: 'link.commented',
+        target: { type: 'link', id: existing.id, label: existing.title || existing.slug },
+        changes: [{ label: 'Comment', from: '—', to: excerpt(row.body) }],
+      })
+      return toCommentDto(row)
+    })
+  }
+
+  static update(address: CommentAddress, body: string, errors: CommentErrors) {
+    return Effect.gen(function* () {
+      const { session } = yield* requireLinkWriterEffect(address.organizationId)
+      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
+      yield* LinkThread.locate(address)
+      const row = yield* updateComment({
+        organizationId: address.organizationId,
+        linkId: address.linkId,
+        commentId: address.commentId,
+        actorUserId: session.session.user.id,
+        body,
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors), ...onCommentInvalid(errors) }))
+      return toCommentDto(row)
+    })
+  }
+
+  static remove(address: CommentAddress, errors: ErrorFactories) {
+    return Effect.gen(function* () {
+      const { session, membership } = yield* requireOrgMemberEffect(address.organizationId)
+      yield* LinkThread.locate(address)
+      yield* deleteComment({
+        organizationId: address.organizationId,
+        linkId: address.linkId,
+        commentId: address.commentId,
+        actorUserId: session.session.user.id,
+        actorIsAdmin: isAdmin(membership.role),
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors) }))
+      return {}
+    })
+  }
+
+  static react(address: CommentAddress, emoji: string, errors: CommentErrors) {
+    return Effect.gen(function* () {
+      const { session } = yield* requireLinkWriterEffect(address.organizationId)
+      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Reactions require a signed-in member' }))
+      yield* LinkThread.locate(address)
+      const row = yield* toggleCommentReaction({
+        organizationId: address.organizationId,
+        linkId: address.linkId,
+        commentId: address.commentId,
+        userId: session.session.user.id,
+        emoji,
+      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
+      return toCommentDto(row)
+    })
+  }
+
+  static history(address: LinkAddress) {
+    return Effect.gen(function* () {
+      const { membership } = yield* requireOrgMemberEffect(address.organizationId)
+      yield* LinkThread.locate(address)
+      const { items } = yield* listActivity({
+        organizationId: address.organizationId,
+        target: { type: 'link', id: address.linkId },
+        limit: 100,
+      })
+      return { items: items.map((row) => toActivityDto(row, { includeIp: isAdmin(membership.role) })) }
+    })
+  }
+}
+
 const onFolderNotFound = (errors: ErrorFactories) => ({
   FolderNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'Folder not found' })),
 })
@@ -640,71 +751,34 @@ export const router = os.router({
 
   comments: {
     listLinkComments: os.comments.listLinkComments.effect(function* ({ input }) {
-      yield* requireOrgMemberEffect(input.params.organizationId)
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      const rows = yield* listComments(input.params.organizationId, input.params.linkId)
-      return { items: rows.map(toCommentDto) }
+      return yield* LinkThread.list(input.params)
     }),
-
     createLinkComment: os.comments.createLinkComment.effect(function* ({ input, errors }) {
-      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
-      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
-      const existing = yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      const user = session.session.user
-      const row = yield* createComment({
-        organizationId: input.params.organizationId,
-        linkId: input.params.linkId,
-        author: { id: user.id, label: user.name || user.email },
-        body: input.body.body,
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
-      yield* audit(session, {
-        organizationId: input.params.organizationId,
-        action: 'link.commented',
-        target: { type: 'link', id: existing.id, label: existing.title || existing.slug },
-        changes: [{ label: 'Comment', from: '—', to: excerpt(row.body) }],
-      })
-      return toCommentDto(row)
+      return yield* LinkThread.create(input.params, input.body.body, errors)
     }),
-
     updateLinkComment: os.comments.updateLinkComment.effect(function* ({ input, errors }) {
-      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
-      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Comments require a signed-in member' }))
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      const row = yield* updateComment({
-        organizationId: input.params.organizationId,
-        linkId: input.params.linkId,
-        commentId: input.params.commentId,
-        actorUserId: session.session.user.id,
-        body: input.body.body,
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors), ...onCommentInvalid(errors) }))
-      return toCommentDto(row)
+      return yield* LinkThread.update(input.params, input.body.body, errors)
     }),
-
     deleteLinkComment: os.comments.deleteLinkComment.effect(function* ({ input, errors }) {
-      const { session, membership } = yield* requireOrgMemberEffect(input.params.organizationId)
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      yield* deleteComment({
-        organizationId: input.params.organizationId,
-        linkId: input.params.linkId,
-        commentId: input.params.commentId,
-        actorUserId: session.session.user.id,
-        actorIsAdmin: isAdmin(membership.role),
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentForbidden(errors) }))
-      return {}
+      return yield* LinkThread.remove(input.params, errors)
     }),
-
     toggleCommentReaction: os.comments.toggleCommentReaction.effect(function* ({ input, errors }) {
-      const { session } = yield* requireLinkWriterEffect(input.params.organizationId)
-      if (session.apiKey) return yield* Effect.fail(errors.FORBIDDEN({ message: 'Reactions require a signed-in member' }))
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      const row = yield* toggleCommentReaction({
-        organizationId: input.params.organizationId,
-        linkId: input.params.linkId,
-        commentId: input.params.commentId,
-        userId: session.session.user.id,
-        emoji: input.body.emoji,
-      }).pipe(Effect.catchTags({ ...onCommentNotFound(errors), ...onCommentInvalid(errors) }))
-      return toCommentDto(row)
+      return yield* LinkThread.react(input.params, input.body.emoji, errors)
+    }),
+    listWorkspaceLinkComments: os.comments.listWorkspaceLinkComments.effect(function* ({ input }) {
+      return yield* LinkThread.list(input.params)
+    }),
+    createWorkspaceLinkComment: os.comments.createWorkspaceLinkComment.effect(function* ({ input, errors }) {
+      return yield* LinkThread.create(input.params, input.body.body, errors)
+    }),
+    updateWorkspaceLinkComment: os.comments.updateWorkspaceLinkComment.effect(function* ({ input, errors }) {
+      return yield* LinkThread.update(input.params, input.body.body, errors)
+    }),
+    deleteWorkspaceLinkComment: os.comments.deleteWorkspaceLinkComment.effect(function* ({ input, errors }) {
+      return yield* LinkThread.remove(input.params, errors)
+    }),
+    toggleWorkspaceCommentReaction: os.comments.toggleWorkspaceCommentReaction.effect(function* ({ input, errors }) {
+      return yield* LinkThread.react(input.params, input.body.emoji, errors)
     }),
   },
 
@@ -879,14 +953,10 @@ export const router = os.router({
     }),
 
     getLinkHistory: os.links.getLinkHistory.effect(function* ({ input }) {
-      const { membership } = yield* requireOrgMemberEffect(input.params.organizationId)
-      yield* requireLink(input.params.organizationId, input.params.domainId, input.params.linkId)
-      const { items } = yield* listActivity({
-        organizationId: input.params.organizationId,
-        target: { type: 'link', id: input.params.linkId },
-        limit: 100,
-      })
-      return { items: items.map((row) => toActivityDto(row, { includeIp: isAdmin(membership.role) })) }
+      return yield* LinkThread.history(input.params)
+    }),
+    getWorkspaceLinkHistory: os.links.getWorkspaceLinkHistory.effect(function* ({ input }) {
+      return yield* LinkThread.history(input.params)
     }),
   },
 })

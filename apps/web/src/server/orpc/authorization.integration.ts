@@ -624,6 +624,29 @@ test('link history is scoped to the link and verifies it belongs to the domain',
 
 const commentsPath = `${linkPath}/comments`
 
+describe('workspace link thread (no domain in the path)', () => {
+  const workspaceLinkPath = `${orgPath}/links/${linkRow.id}`
+
+  test('history and comments work for links found by workspace and id', async () => {
+    role = 'viewer'
+    expect((await request('GET', `${workspaceLinkPath}/history`)).status).toBe(200)
+    expect(listActivity).toHaveBeenCalledWith({ organizationId: org.id, target: { type: 'link', id: linkRow.id }, limit: 100 })
+    expect((await request('GET', `${workspaceLinkPath}/comments`)).status).toBe(200)
+    expect(getLinkInOrganization).toHaveBeenCalledWith(org.id, linkRow.id)
+    expect(getLinkInDomain).not.toHaveBeenCalled()
+  })
+
+  test('the same rules apply: viewers cannot comment, unknown links are 404', async () => {
+    role = 'viewer'
+    expect((await request('POST', `${workspaceLinkPath}/comments`, { body: 'Hi' })).status).toBe(403)
+    role = 'member'
+    expect((await request('POST', `${workspaceLinkPath}/comments`, { body: 'Hi' })).status).toBe(201)
+    expect((await request('POST', `${workspaceLinkPath}/comments/c1/reactions`, { emoji: '🎉' })).status).toBe(200)
+    getLinkInOrganization.mockImplementationOnce(() => Effect.succeed(null))
+    expect((await request('GET', `${workspaceLinkPath}/comments`)).status).toBe(404)
+  })
+})
+
 describe('link comments', () => {
   test('every member can read the thread, with reactions and author data', async () => {
     role = 'viewer'
