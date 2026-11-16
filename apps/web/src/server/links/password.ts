@@ -2,7 +2,12 @@ import { createHash, timingSafeEqual } from 'node:crypto'
 import { Effect } from 'effect'
 import { operation } from '#/server/effect/operations'
 
-const PBKDF2_ITERATIONS = 210_000
+/**
+ * Cloudflare Workers reject PBKDF2 above 100,000 iterations
+ * ("iteration counts above 100000 are not supported"), so this is the ceiling.
+ * Local dev (workerd via Vite) does not enforce it, which hid the failure.
+ */
+export const PBKDF2_ITERATIONS = 100_000
 const PREFIX = 'pbkdf2-sha256'
 
 const toBase64Url = (bytes: Uint8Array) => Buffer.from(bytes).toString('base64url')
@@ -39,7 +44,7 @@ export const verifyLinkPassword = (password: string, stored: string | null | und
     if (stored.startsWith(`${PREFIX}$`)) {
       const [, iterationsRaw, saltB64, hashB64] = stored.split('$')
       const iterations = Number(iterationsRaw)
-      if (!Number.isFinite(iterations) || !saltB64 || !hashB64) return false
+      if (!Number.isInteger(iterations) || iterations <= 0 || !saltB64 || !hashB64) return false
 
       const expected = fromBase64Url(hashB64)
       const derived = yield* derivePbkdf2(password, fromBase64Url(saltB64), iterations)

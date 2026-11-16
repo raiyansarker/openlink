@@ -23,6 +23,10 @@ export class AuthHandler {
 
   /** Handle a request, answering 503 on any failure. */
   static serve(request: Request) {
-    return AuthHandler.handle(request).pipe(Effect.catch(() => Effect.succeed(AuthHandler.unavailable())))
+    return AuthHandler.handle(request).pipe(
+      Effect.catchCause((cause) => Effect.logError('auth.request_failed', cause).pipe(Effect.as(AuthHandler.unavailable()))),
+      Effect.annotateLogs({ method: request.method, path: new URL(request.url).pathname }),
+      Effect.withSpan('auth.request'),
+    )
   }
 }

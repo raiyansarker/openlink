@@ -20,9 +20,12 @@ export const Route = createFileRoute('/')({
             return yield* DomainHome.respond({ host: new URL(request.url).host, appOrigin: BETTER_AUTH_URL || null })
           }).pipe(
             // Only a custom domain's lookup can fail: answer like a short link would, never with the app.
-            Effect.catch(() =>
-              Effect.succeed(new Response('Service unavailable', { status: 503, headers: { 'cache-control': 'no-store' } })),
+            Effect.catchCause((cause) =>
+              Effect.logError('domain_home.failed', cause).pipe(
+                Effect.as(new Response('Service unavailable', { status: 503, headers: { 'cache-control': 'no-store' } })),
+              ),
             ),
+            Effect.annotateLogs({ host: new URL(request.url).host }),
           ),
         )
         return vanity ?? next()

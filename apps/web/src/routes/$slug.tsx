@@ -33,7 +33,12 @@ const serve = (request: Request, slug: string, withPassword: boolean) =>
       })
       const url = new URL(request.url)
       return RedirectResponses.for(outcome, url, !!appHost && url.host === appHost)
-    }).pipe(Effect.catch(() => Effect.succeed(unavailable()))),
+    }).pipe(
+      Effect.catchCause((cause) => Effect.logError('redirect.failed', cause).pipe(Effect.as(unavailable()))),
+      // Never the submitted password: only where the visitor was going.
+      Effect.annotateLogs({ host: new URL(request.url).host, slug, method: request.method }),
+      Effect.withSpan('redirect'),
+    ),
   )
 
 export const Route = createFileRoute('/$slug')({

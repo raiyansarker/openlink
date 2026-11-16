@@ -41,13 +41,13 @@
 	],
   "observability": {
     "logs": {
-      "enabled": false,
+      "enabled": true,
       "head_sampling_rate": 1,
       "invocation_logs": true,
       "persist": true
     },
     "traces": {
-      "enabled": false,
+      "enabled": true,
       "head_sampling_rate": 1,
       "persist": true
     },
@@ -55,4 +55,6 @@
       "enabled": true
     }
   },
+  // Readable stack traces in Workers Logs (the Vite plugin emits the Worker's maps).
+  "upload_source_maps": true,
 }

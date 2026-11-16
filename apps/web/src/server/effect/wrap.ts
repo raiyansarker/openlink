@@ -2,12 +2,17 @@ import type { EffectWrapOptions } from '@orpc/effect'
 import { ORPCError } from '@orpc/server'
 import { Cause, Effect } from 'effect'
 
-/** Map unexpected failures to ORPC errors; preserve thrown ORPCError. */
+/**
+ * Map unexpected failures to ORPC errors; preserve thrown ORPCError.
+ * Every procedure runs in a trace span (`rpc links.update`) and its logs carry the
+ * procedure name. Failures are logged once, by the handler's error interceptor.
+ */
 export function wrapApiEffect<A>(
   effect: Effect.Effect<A, unknown>,
-  _opts: EffectWrapOptions,
+  opts: EffectWrapOptions,
 ): Effect.Effect<A, unknown> {
-  return effect.pipe(
+  const procedure = opts.path.join('.')
+  const mapped = effect.pipe(
     Effect.catchCause((cause) => {
       const error = Cause.squash(cause)
       if (error instanceof ORPCError) {
@@ -23,5 +28,7 @@ export function wrapApiEffect<A>(
       }
       return Effect.failCause(cause)
     }),
+    Effect.annotateLogs({ procedure }),
   )
+  return opts.kind === 'handler' ? mapped.pipe(Effect.withSpan(`rpc ${procedure}`)) : mapped
 }

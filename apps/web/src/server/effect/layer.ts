@@ -3,6 +3,8 @@ import { createOpenLinkDomainClient } from '@openlink/domain'
 import { getAuth } from '#/server/auth/instance'
 import { getDb } from '#/server/db'
 import { getBindings } from '#/server/env'
+import { EffectLogger } from '#/server/observability/effect-logger'
+import { CloudflareTracer } from '#/server/observability/cloudflare-tracer'
 import { operation } from './operations'
 import { Auth } from './services/auth'
 import { Bindings } from './services/bindings'
@@ -28,6 +30,9 @@ const SyncScheduler = Layer.succeed(
 
 export const AppLayer = Layer.mergeAll(
   SyncScheduler,
+  // JSON logs for Workers Logs, and Effect spans as Workers trace spans.
+  EffectLogger.layer,
+  CloudflareTracer.layer,
   DbLive,
   BindingsLive,
   AuthLive,
