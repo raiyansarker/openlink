@@ -4,22 +4,21 @@ import { VStack } from '@astryxdesign/core/VStack'
 import CopyValueButton from '#/components/common/CopyValueButton'
 import RouteRail from '#/components/common/RouteRail'
 import type { DomainDnsRecord } from '#/data/demo/domains'
-import {
-  dnsRecordFqdn,
-  dnsRecordNameLabel,
-} from '#/lib/domains/dns-record-display'
+import { dnsValueFieldLabel } from '#/lib/domains/dns-record-display'
+import { DnsRecordName } from '#/lib/domains/dns-record-name'
 
 type DomainDnsRecordRouteProps = {
   record: DomainDnsRecord
   domainHostname: string
 }
 
-export default function DomainDnsRecordRoute({
-  record,
-  domainHostname,
-}: DomainDnsRecordRouteProps) {
-  const fqdn = dnsRecordFqdn(record.host, domainHostname)
-  const isRouting = record.purpose === 'routing'
+/**
+ * One record as it goes into a DNS provider: the Name/Host field (relative to
+ * the zone, which most providers add themselves), then the value. The full
+ * name is shown for providers that want it.
+ */
+export default function DomainDnsRecordRoute({ record, domainHostname }: DomainDnsRecordRouteProps) {
+  const name = DnsRecordName.of(record.host, domainHostname)
 
   return (
     <HStack gap={3} vAlign="stretch" width="100%">
@@ -27,16 +26,18 @@ export default function DomainDnsRecordRoute({
       <VStack gap={3} hAlign="start" width="100%">
         <VStack gap={1} hAlign="start">
           <Text type="supporting" color="secondary">
-            {isRouting ? 'Visitors open' : 'Prove ownership of'}
+            Name (in {name.zone})
           </Text>
-          <CopyValueButton
-            display={fqdn}
-            copyValue={dnsRecordNameLabel(record.host)}
-          />
+          <CopyValueButton display={name.host} />
+          {name.host !== name.fqdn ? (
+            <Text type="supporting" color="secondary" style={{ overflowWrap: 'anywhere' }}>
+              Full name: {name.fqdn}
+            </Text>
+          ) : null}
         </VStack>
         <VStack gap={1} hAlign="start">
           <Text type="supporting" color="secondary">
-            {isRouting ? 'Routes through' : 'TXT value at your DNS'}
+            {dnsValueFieldLabel(record)}
           </Text>
           <CopyValueButton display={record.value} />
         </VStack>
