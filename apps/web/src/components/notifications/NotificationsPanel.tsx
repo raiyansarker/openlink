@@ -102,7 +102,7 @@ export default function NotificationsPanel() {
       <VStack gap={8} width="fill">
         <VStack gap={2}>
           <Heading level={1}>Notifications</Heading>
-          <Text color="secondary">Invites to other workspaces land here.</Text>
+          <Text color="secondary">Things waiting on you, like an invite to join someone’s workspace.</Text>
         </VStack>
 
         {joined ? (
@@ -121,10 +121,8 @@ export default function NotificationsPanel() {
           />
         ) : null}
 
-        <VStack as="section" gap={3} width="fill" aria-labelledby="notifications-invites">
-          <Heading level={2} id="notifications-invites">
-            Invitations
-          </Heading>
+        {/* Each row says what it is ("Grace invited you to join Acme"), so no section heading. */}
+        <VStack as="section" gap={3} width="fill" aria-label="Workspace invites">
           {invites.isPending ? (
             <VStack gap={4} hAlign="stretch" width="fill" aria-busy="true" aria-label="Loading invitations">
               {[0, 1].map((index) => (
@@ -147,8 +145,8 @@ export default function NotificationsPanel() {
             <EmptyState
               isCompact
               headingLevel={4}
-              title="You’re all caught up"
-              description="When someone invites you to their workspace, you can join or decline here."
+              title="Nothing waiting on you"
+              description="When someone invites you to their workspace, it shows up here so you can join or decline."
             />
           ) : (
             <List density="balanced">
