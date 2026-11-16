@@ -5,14 +5,14 @@ import { ApiError } from './error'
 type DomainDto = Awaited<ReturnType<OpenLinkClient['domains']['getDomain']>>
 
 export class DomainMapper {
-  static toUi(row: DomainDto, linkCount = 0): WorkspaceCustomDomain {
+  static toUi(row: DomainDto): WorkspaceCustomDomain {
     return {
       id: row.id,
       orgId: row.organizationId,
       hostname: row.hostname,
       // The UI has no separate "removing" state; it reads as still being set up.
       readiness: row.readiness === 'removing' ? 'pending' : row.readiness,
-      linkCount,
+      linkCount: row.linkCount,
       createdAt: row.createdAt,
       ...(row.activeAt ? { activeAt: row.activeAt } : {}),
       dnsRecords: row.dnsRecords.map((r) => ({ ...r, status: r.status ?? 'required' })),
@@ -44,6 +44,7 @@ export class DomainsApi {
     )
   }
 
+  /** Removes a domain and every short link on it. */
   remove(organizationId: string, domainId: string) {
     return this.call(() => this.client.domains.removeDomain({ params: { organizationId, domainId } }), 'Could not remove the domain.')
   }

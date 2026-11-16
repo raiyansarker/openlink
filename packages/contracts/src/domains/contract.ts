@@ -44,6 +44,7 @@ export const removeDomain = oc
       operationId: 'removeDomain',
       path: '/organizations/{organizationId}/domains/{domainId}',
       successStatus: 204,
+      summary: 'Remove a domain and delete every short link on it',
       inputStructure: 'detailed',
       tags: ['Domains'],
     }),

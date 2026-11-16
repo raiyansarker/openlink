@@ -113,6 +113,11 @@ mock.module('#/server/auth/session', () => ({ requireSession }))
 mock.module('#/server/auth/service', () => ({ signIn, signUp, signOut }))
 mock.module('#/server/api/access', () => ({ requireOrgMembership, getDomainInOrganization }))
 mock.module('#/server/domain/service', () => ({ listDomainsForOrganization, registerCustomDomain, removeCustomDomain, refreshCustomDomain }))
+const domainLinkCounts = mock((_organizationId: string) => Effect.succeed(new Map<string, number>()))
+const domainLinkCount = mock((_organizationId: string, _domainId: string) => Effect.succeed(0))
+mock.module('#/server/domain/domain-links', () => ({
+  DomainLinks: { counts: domainLinkCounts, countFor: domainLinkCount },
+}))
 mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, getLinkInOrganization, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
 mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
@@ -177,7 +182,7 @@ const spies = [
   getOrganizationById, listOrganizationsForUser, getLinkInDomain, listLinksForDomain,
   listDomainsForOrganization, listMembers, listPendingInvites,
   listFolders, ensureFolderInOrganization, queryOrganizationLinks, listActivity, summarizeTarget, audit, authenticateApiKey, listApiKeys, listDeviceSessions, getLinkInOrganization,
-  buildReport, buildSummary, frameable, listRecent, listInvitesForEmail,
+  buildReport, buildSummary, frameable, listRecent, listInvitesForEmail, domainLinkCounts, domainLinkCount,
 ]
 beforeEach(() => {
   role = 'viewer'
@@ -1135,6 +1140,31 @@ describe('analytics', () => {
     expect((await request('GET', `${orgPath}/analytics?range=1y`)).status).toBe(400)
     expect((await request('GET', `${orgPath}/analytics?tzOffset=9999`)).status).toBe(400)
     expect(buildReport).not.toHaveBeenCalled()
+  })
+})
+
+describe('removing a domain with links', () => {
+  test('lists and gets domains with their link counts', async () => {
+    role = 'viewer'
+    domainLinkCounts.mockImplementationOnce(() => Effect.succeed(new Map([[domain.id, 7]])))
+    const list = (await (await request('GET', domainsPath)).json()) as { items: { id: string; linkCount: number }[] }
+    expect(list.items.find((d) => d.id === domain.id)?.linkCount).toBe(7)
+  })
+
+  test('its links are deleted with it, and the log records how many', async () => {
+    role = 'admin'
+    domainLinkCount.mockImplementationOnce(() => Effect.succeed(4))
+    expect((await request('DELETE', domainPath)).status).toBe(204)
+    expect(removeCustomDomain).toHaveBeenCalledWith(domain.id, org.id)
+    expect(audit).toHaveBeenCalledWith(cookieActor, expect.objectContaining({
+      action: 'domain.removed', changes: [{ label: 'Links deleted', from: '4', to: '0' }],
+    }))
+  })
+
+  test('a domain with no links logs no change', async () => {
+    role = 'admin'
+    expect((await request('DELETE', domainPath)).status).toBe(204)
+    expect(audit).toHaveBeenCalledWith(cookieActor, expect.not.objectContaining({ changes: expect.anything() }))
   })
 })
 

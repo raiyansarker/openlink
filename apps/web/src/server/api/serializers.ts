@@ -73,7 +73,7 @@ type DnsRecordDto = {
 
 type RedirectCode = 301 | 302 | 307 | 308
 
-export function toDomainDto(row: typeof customDomain.$inferSelect) {
+export function toDomainDto(row: typeof customDomain.$inferSelect, linkCount = 0) {
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -83,6 +83,7 @@ export function toDomainDto(row: typeof customDomain.$inferSelect) {
     defaultRedirectStatus: row.defaultRedirectStatus as RedirectCode,
     createdAt: row.createdAt.toISOString(),
     ...(row.activeAt ? { activeAt: row.activeAt.toISOString() } : {}),
+    linkCount,
   }
 }
 

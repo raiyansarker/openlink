@@ -29,6 +29,8 @@ export const CustomDomain = type({
   'defaultRedirectStatus?': RedirectStatus,
   createdAt: 'string',
   'activeAt?': 'string',
+  /** Short links on this domain. Removing the domain deletes them. */
+  linkCount: 'number.integer>=0',
 })
 
 export const DomainIdPath = type({

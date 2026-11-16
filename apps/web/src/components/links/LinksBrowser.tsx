@@ -49,6 +49,7 @@ export default function LinksBrowser({
     activeOrg,
     links,
     folders,
+    domains,
     createFolder,
     renameFolder,
     moveFolder,
@@ -390,6 +391,7 @@ export default function LinksBrowser({
         links={links}
         folders={folders}
         defaultFolderId={currentId}
+        domains={domains.filter((d) => d.readiness === 'active')}
         onCreate={async (draft) => {
           await createLink(draft)
         }}

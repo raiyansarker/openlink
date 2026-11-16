@@ -1,15 +1,16 @@
 import { useState } from 'react'
-import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { IconButton } from '@astryxdesign/core/IconButton'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
+import RemoveDomainDialog from './RemoveDomainDialog'
 
 type DomainRowMenuProps = {
   domain: WorkspaceCustomDomain
   onOpen: (domain: WorkspaceCustomDomain) => void
   onVerify: (domainId: string) => void
-  onRemove: (domainId: string) => void
+  /** Rejects with a message the dialog shows. */
+  onRemove: (domainId: string) => Promise<void>
 }
 
 export default function DomainRowMenu({
@@ -49,11 +50,6 @@ export default function DomainRowMenu({
     },
   ]
 
-  const confirmRemove = () => {
-    onRemove(domain.id)
-    setRemoveAlertOpen(false)
-  }
-
   return (
     <>
       <DropdownMenu
@@ -74,13 +70,11 @@ export default function DomainRowMenu({
         )}
         items={items}
       />
-      <AlertDialog
+      <RemoveDomainDialog
         isOpen={removeAlertOpen}
         onOpenChange={setRemoveAlertOpen}
-        title={`Remove ${domain.hostname}?`}
-        description="Short links on this host stop working immediately. This cannot be undone."
-        actionLabel="Remove domain"
-        onAction={confirmRemove}
+        domain={domain}
+        onRemove={() => onRemove(domain.id)}
       />
     </>
   )

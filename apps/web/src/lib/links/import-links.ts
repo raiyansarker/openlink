@@ -100,7 +100,14 @@ export function previewImport(
     links,
     folders,
     defaultFolderId,
-  }: { links: ShortLink[]; folders: LinkFolder[]; defaultFolderId: string | null },
+    domainId = null,
+  }: {
+    links: ShortLink[]
+    folders: LinkFolder[]
+    defaultFolderId: string | null
+    /** Domain every imported link goes on; `null` is the app's own host. */
+    domainId?: string | null
+  },
 ): ImportPreview {
   const table = parseCsv(text)
   if (table.length < 2) {
@@ -127,6 +134,7 @@ export function previewImport(
     const resolved = resolveFolder(folders, folderRaw)
     const draft: CreateLinkDraft = {
       ...emptyDraft(resolved === undefined ? defaultFolderId : resolved),
+      domainId,
       destination: cell('destination'),
       slug: cell('slug'),
       title: cell('title'),
@@ -142,11 +150,11 @@ export function previewImport(
     }
     const errors = validateDraft(draft, { links })
     let error = Object.values(errors)[0]
-    if (!error && draft.slug && isSlugTaken(accepted, null, draft.slug)) {
+    if (!error && draft.slug && isSlugTaken(accepted, domainId, draft.slug)) {
       error = 'Back-half appears twice in this file.'
     }
     if (!error && draft.slug) {
-      accepted.push({ slug: draft.slug, domainId: null } as ShortLink)
+      accepted.push({ slug: draft.slug, domainId } as ShortLink)
     }
     return {
       line: i + 2,

@@ -229,7 +229,8 @@ export default function DashboardDomainsPanel() {
                       domain={row}
                       onOpen={openCustomDomain}
                       onVerify={(id) => run(() => verifyDomain(id))}
-                      onRemove={(id) => run(() => removeDomain(id))}
+                      // The dialog shows a failure and stays open.
+                      onRemove={removeDomain}
                     />
                   ),
                 },
