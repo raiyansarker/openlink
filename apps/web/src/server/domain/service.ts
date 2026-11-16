@@ -49,6 +49,26 @@ export function refreshCustomDomain(domainId: string) {
     )
     if (!row) return null
 
+    // Local (memory) domains have nothing to check, and the in-memory provider
+    // forgets them between requests: confirm them instead of asking it.
+    if (row.provider === 'memory') {
+      const [confirmed] = yield* operation('domain.refresh.update', () =>
+        db
+          .update(customDomain)
+          .set({
+            readiness: 'active',
+            dnsRecordsJson: JSON.stringify(
+              (JSON.parse(row.dnsRecordsJson || '[]') as { status?: string }[]).map((record) => ({ ...record, status: 'verified' })),
+            ),
+            activeAt: row.activeAt ?? new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(customDomain.id, domainId))
+          .returning(),
+      )
+      return confirmed ?? null
+    }
+
     const client = yield* useDomainClient
     const remote = yield* operation('domain.refresh.provider', () => client.refresh(row.hostname))
     const readiness = mapReadiness(remote.status)
@@ -86,6 +106,8 @@ export function registerCustomDomain(input: {
     const now = new Date()
     const provider = bindings.DOMAIN_PROVIDER === 'cloudflare' ? 'cloudflare' : 'memory'
 
+    const readiness = mapReadiness(created.status)
+
     const [row] = yield* operation('domain.register.insert', () =>
       db
         .insert(customDomain)
@@ -93,7 +115,9 @@ export function registerCustomDomain(input: {
           id,
           organizationId: input.organizationId,
           hostname: created.hostname,
-          readiness: mapReadiness(created.status),
+          readiness,
+          // Locally (memory provider) a domain is active the moment it's added.
+          activeAt: readiness === 'active' ? now : null,
           provider,
           providerDomainId: created.id,
           dnsRecordsJson: serializeDnsRecords(created.records ?? []),

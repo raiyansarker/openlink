@@ -32,8 +32,9 @@ export function createOpenLinkDomainClient(env: OpenLinkDomainEnv) {
     })
   }
 
+  // Local development: nothing to verify, so domains are active as soon as they're added.
   return createDomainClient({
-    provider: memoryProvider({ initialStatus: 'pending_verification' }),
+    provider: memoryProvider({ initialStatus: 'active' }),
   })
 }
 
