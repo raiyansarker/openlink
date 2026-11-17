@@ -5,6 +5,7 @@ import type { Organization } from '#/data/demo/types'
 import { getOrganizationBrand } from '#/data/demo/organization-branding'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
+import OpenLinkAppMark from '#/components/dashboard/icons/OpenLinkAppMark'
 import { useActivePathname } from '#/hooks/useActivePathname'
 import DashboardAccountMenu from './DashboardAccountMenu'
 import { PlusIcon, SettingsIcon } from '#/components/icons/IcnMcp'
@@ -181,6 +182,27 @@ export default function OrganizationIconRail({
           flexShrink: 0,
         }}
       >
+        <Tooltip content="OpenLink" placement="end">
+          <button
+            type="button"
+            aria-label="OpenLink home"
+            onClick={() => void navigate({ to: '/w' })}
+            style={{ ...orgControlBase, marginBottom: 8, background: 'transparent' }}
+          >
+            <OpenLinkAppMark size={ORG_LOGO_SIZE} variant="light" />
+          </button>
+        </Tooltip>
+        <div
+          aria-hidden
+          style={{
+            width: 20,
+            height: 1,
+            flexShrink: 0,
+            marginBottom: 8,
+            backgroundColor: 'rgba(255, 255, 255, 0.14)',
+          }}
+        />
+
         <div
           style={{
             display: 'flex',

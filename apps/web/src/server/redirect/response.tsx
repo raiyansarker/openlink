@@ -45,8 +45,13 @@ export class PublicPage {
   static branded(page: BrandedPage): string {
     const art = renderToStaticMarkup(page.illustration)
     const eyebrow = page.eyebrow ? `<p class="eyebrow">${PublicPage.escape(page.eyebrow)}</p>` : ''
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>${PublicPage.escape(page.title)}</title><style>${PublicPage.STYLES}</style></head><body><main><div class="art">${art}</div>${eyebrow}<h1>${PublicPage.escape(page.heading)}</h1><p class="body">${PublicPage.escape(page.body)}</p>${page.content ?? ''}</main></body></html>`
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="${PublicPage.ICON}"><title>${PublicPage.escape(page.title)}</title><style>${PublicPage.STYLES}</style></head><body><main><div class="art">${art}</div>${eyebrow}<h1>${PublicPage.escape(page.heading)}</h1><p class="body">${PublicPage.escape(page.body)}</p>${page.content ?? ''}</main></body></html>`
   }
+
+  /** The favicon as a data URI (black tile, white tile in dark mode), so visitor pages on any custom domain carry it without a request. */
+  private static readonly ICON = `data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none"><style>.t{fill:#111418}.a{stroke:#FAFAF7}@media (prefers-color-scheme:dark){.t{fill:#FAFAF7}.a{stroke:#111418}}</style><rect class="t" width="96" height="96" rx="24"/><g transform="translate(9.842 9.842) scale(.763158)" stroke-width="12" stroke-linecap="round"><path class="a" d="M28 78L48 22"/><path d="M52 78L72 22" stroke="#F2541B"/></g></svg>',
+  )}`
 
   private static readonly STYLES = [
     ':root{color-scheme:light dark;--color-text-primary:light-dark(#0a0a0a,#f4f4f5);--color-text-secondary:light-dark(#4b4b50,#c9c9ce);--color-background-surface:light-dark(#fff,#18181b);--color-background-body:light-dark(#f7f7f8,#0f0f11);--color-border:light-dark(rgba(0,0,0,.12),rgba(255,255,255,.14));--accent:light-dark(#1b1b1b,#f1f1f1);--on-accent:light-dark(#fff,#111)}',
