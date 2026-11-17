@@ -9,6 +9,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import AstryxProviders from '#/components/AstryxProviders'
 import NotFoundPage from '#/components/not-found/NotFoundPage'
+import { FAVICON_BOOTSTRAP_SCRIPT } from '#/lib/favicon-bootstrap'
 import { COLOR_MODE_BOOTSTRAP_SCRIPT } from '#/lib/settings/color-mode-bootstrap'
 
 import appCss from '../styles.css?url'
@@ -30,8 +31,15 @@ export const Route = createRootRoute({
         name: 'description',
         content: 'OpenLink — organization-aware link shortener dashboard',
       },
+      { name: 'theme-color', content: '#FAFAF7', media: '(prefers-color-scheme: light)' },
+      { name: 'theme-color', content: '#111418', media: '(prefers-color-scheme: dark)' },
+      { property: 'og:title', content: 'OpenLink' },
+      { property: 'og:image', content: '/og.png' },
+      { name: 'twitter:card', content: 'summary_large_image' },
     ],
     links: [
+      { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      { rel: 'manifest', href: '/manifest.json' },
       {
         rel: 'stylesheet',
         href: appCss,
@@ -53,6 +61,7 @@ function RootDocument({ children }: { children: ReactNode }) {
     <html lang="en" className={isApiDocs ? 'api-docs-page' : undefined}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: COLOR_MODE_BOOTSTRAP_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: FAVICON_BOOTSTRAP_SCRIPT }} />
         <HeadContent />
       </head>
       <body className={isApiDocs ? 'api-docs-page' : undefined}>
