@@ -13,8 +13,6 @@ type AuthShellProps = {
   /** The other page: "Sign up" on sign-in, "Log in" on sign-up. */
   switchTo: { prompt: string; label: string; to: '/login' | '/signup'; redirect?: string }
   children: ReactNode
-  /** Messages for screen readers and sighted users, under the card. */
-  status?: ReactNode
 }
 
 /**
@@ -22,7 +20,7 @@ type AuthShellProps = {
  * switch to the other page, then the form centered on the page with nothing
  * around it (the Astryx `login` template).
  */
-export default function AuthShell({ heading, subheading, switchTo, children, status }: AuthShellProps) {
+export default function AuthShell({ heading, subheading, switchTo, children }: AuthShellProps) {
   const navigate = useNavigate()
   const search = switchTo.redirect ? { redirect: switchTo.redirect } : {}
   const href = switchTo.redirect ? `${switchTo.to}?redirect=${encodeURIComponent(switchTo.redirect)}` : switchTo.to
@@ -71,7 +69,6 @@ export default function AuthShell({ heading, subheading, switchTo, children, sta
             </VStack>
             {children}
           </VStack>
-          {status}
         </VStack>
       </Center>
     </VStack>

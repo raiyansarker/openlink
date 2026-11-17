@@ -10,7 +10,6 @@ import PasswordField from '#/components/common/PasswordField'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
 import AuthShell from './AuthShell'
-import AuthStatus from './AuthStatus'
 import ProviderButtons, { hasProviders } from './ProviderButtons'
 import { useAuthActions, type AuthProvider } from './use-auth-actions'
 
@@ -54,7 +53,6 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
       heading="Create your account"
       subheading="Short links, QR codes and analytics, in a minute."
       switchTo={{ prompt: 'Already have an account?', label: 'Log in', ...signIn }}
-      status={<AuthStatus error={auth.error} notice={auth.notice} />}
     >
       {/* Google and GitHub create the account on first sign-in. */}
       <ProviderButtons providers={providers} pending={auth.pending} onSocial={(p) => void auth.social(p)} />

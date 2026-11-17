@@ -1,6 +1,7 @@
 import { useRouter } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
+import { useNotify } from '#/hooks/use-notify'
 import { AuthSession } from '#/lib/auth/client'
 
 export type AuthProvider = 'google' | 'github'
@@ -8,7 +9,7 @@ export type PendingAction = 'email' | AuthProvider | 'passkey' | null
 
 /**
  * What the sign-in and sign-up pages share: one action in flight at a time,
- * one message to show, Google/GitHub redirects, and leaving once signed in.
+ * messages shown as toasts, Google/GitHub redirects, and leaving once signed in.
  */
 export function useAuthActions(input: {
   destination: string
@@ -17,13 +18,15 @@ export function useAuthActions(input: {
 }) {
   const router = useRouter()
   const [pending, setPending] = useState<PendingAction>(null)
-  const [error, setError] = useState(input.initialError ?? '')
-  const [notice, setNotice] = useState('')
+  const notify = useNotify()
+  const setError = notify.error
+  const setNotice = notify.info
 
-  const clearMessages = () => {
-    setError('')
-    setNotice('')
-  }
+  // An error the page was opened with (e.g. a failed Google/GitHub sign-in).
+  useEffect(() => {
+    if (input.initialError) notify.error(input.initialError)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const finish = async () => {
     AuthSession.invalidate()
@@ -33,7 +36,6 @@ export function useAuthActions(input: {
   /** Runs one action; others are ignored until it settles. Return a message to show it as an error. */
   const run = async (action: Exclude<PendingAction, null>, work: () => Promise<string | null | void>) => {
     if (pending) return
-    clearMessages()
     setPending(action)
     try {
       const message = await work()
@@ -60,5 +62,5 @@ export function useAuthActions(input: {
       }
     })
 
-  return { pending, error, notice, setError, setNotice, clearMessages, finish, run, social }
+  return { pending, setError, setNotice, finish, run, social }
 }
