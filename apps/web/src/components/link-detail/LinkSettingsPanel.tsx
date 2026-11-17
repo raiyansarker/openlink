@@ -3,7 +3,6 @@ import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { QrRow, SettingsList } from '#/components/create-link/LinkPreviewPanel'
-import LinkHealthCard from '#/components/link-detail/LinkHealthCard'
 import type { LinkFolder, ShortLink } from '#/data/demo/types'
 import { formatDateTime, linkSettingsRows } from '#/lib/links/link-summary'
 
@@ -12,7 +11,6 @@ type LinkSettingsPanelProps = {
   shortUrl: string
   host: string
   folders: LinkFolder[]
-  onCheckHealth: () => Promise<void>
 }
 
 const stripScheme = (url: string) => url.replace(/^https?:\/\//, '')
@@ -66,13 +64,12 @@ function SettingsSection({
   )
 }
 
-/** The link's settings, details, QR code and destination health. */
+/** The link's settings, details, and QR code. */
 export default function LinkSettingsPanel({
   link,
   shortUrl,
   host,
   folders,
-  onCheckHealth,
 }: LinkSettingsPanelProps) {
   return (
     <VStack gap={10} hAlign="stretch" width="100%" style={{ maxWidth: 960 }}>
@@ -97,13 +94,6 @@ export default function LinkSettingsPanel({
         description="Print it or put it on packaging. Scans count as clicks."
       >
         <QrRow value={shortUrl} fileName={`${host}-${link.slug}`} />
-      </SettingsSection>
-
-      <SettingsSection
-        title="Destination health"
-        description="Whether the page this link points at still loads."
-      >
-        <LinkHealthCard health={link.health} onCheck={onCheckHealth} isFlat />
       </SettingsSection>
     </VStack>
   )

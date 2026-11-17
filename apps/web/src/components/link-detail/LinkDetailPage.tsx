@@ -194,7 +194,6 @@ export default function LinkDetailPage({
     setLinkHold,
     saveLinkNotes,
     deleteLink,
-    checkLinksHealth,
     shortHostFor,
     shortUrlFor,
   } = useOrganization()
@@ -372,7 +371,6 @@ export default function LinkDetailPage({
               shortUrl={shortUrl}
               host={host}
               folders={folders}
-              onCheckHealth={() => checkLinksHealth([link.id])}
             />
           ) : null}
 
