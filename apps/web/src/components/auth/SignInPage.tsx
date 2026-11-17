@@ -13,7 +13,6 @@ import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
 import { PasskeySupport } from './auth-icons'
 import AuthShell from './AuthShell'
-import AuthStatus from './AuthStatus'
 import ProviderButtons, { hasProviders } from './ProviderButtons'
 import { useAuthActions, type AuthProvider } from './use-auth-actions'
 
@@ -80,7 +79,6 @@ export default function SignInPage({ destination, redirect, oauthError, provider
       heading="Welcome back"
       subheading="Sign in to your OpenLink workspace."
       switchTo={{ prompt: 'New to OpenLink?', label: 'Sign up', ...signUp }}
-      status={<AuthStatus error={auth.error} notice={auth.notice} />}
     >
       <ProviderButtons
         providers={providers}
@@ -127,7 +125,7 @@ export default function SignInPage({ destination, redirect, oauthError, provider
                 />
                 <HStack hAlign="end">
                   <Link
-                    href="#auth-status"
+                    href="#"
                     size="xsm"
                     color="secondary"
                     onClick={(event) => {

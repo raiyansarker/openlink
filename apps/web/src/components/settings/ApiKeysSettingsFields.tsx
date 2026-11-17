@@ -4,6 +4,7 @@ import { Spinner } from '@astryxdesign/core/Spinner'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { ApiKeysApi } from '#/lib/api/api-keys'
 import { ApiError } from '#/lib/api/error'
+import { useNotify } from '#/hooks/use-notify'
 import type { AssignableRole } from '#/lib/api/members'
 import { QueryKeys } from '#/lib/api/query'
 import { Button } from '@astryxdesign/core/Button'
@@ -35,7 +36,7 @@ export default function ApiKeysSettingsFields() {
   const queryKey = QueryKeys.apiKeys(activeOrg.id)
   const query = useQuery({ queryKey, queryFn: () => keysApi.list(activeOrg.id), enabled: canManage })
   const [createOpen, setCreateOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const notify = useNotify()
   /** The new secret after a rotation. Held here because the rotated row is replaced. */
   const [rotatedSecret, setRotatedSecret] = useState<string | null>(null)
 
@@ -46,17 +47,16 @@ export default function ApiKeysSettingsFields() {
   /** Runs a key action, showing any failure and refreshing the list either way. */
   const run = useCallback(
     async <T,>(action: () => Promise<T>): Promise<T> => {
-      setError(null)
       try {
         return await action()
       } catch (e) {
-        setError(ApiError.message(e))
+        notify.error(ApiError.message(e))
         throw e
       } finally {
         void refresh()
       }
     },
-    [refresh],
+    [refresh, notify],
   )
 
   const revokeKey = useCallback((keyId: string) => void run(() => keysApi.revoke(activeOrg.id, keyId)).catch(() => {}), [run, activeOrg.id])
@@ -159,11 +159,6 @@ export default function ApiKeysSettingsFields() {
           <Text>{ApiError.message(query.error, 'Could not load API keys.')}</Text>
           <Button size="sm" variant="secondary" label="Try again" onClick={() => void query.refetch()} />
         </VStack>
-      ) : null}
-      {error ? (
-        <Text type="supporting" weight="medium" role="alert">
-          {error}
-        </Text>
       ) : null}
 
       {canManage && query.isSuccess ? (
