@@ -6,6 +6,7 @@ import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import OpenLinkAppMark from '#/components/dashboard/icons/OpenLinkAppMark'
 
 type AuthShellProps = {
   heading: string
@@ -33,9 +34,12 @@ export default function AuthShell({ heading, subheading, switchTo, children }: A
       style={{ minHeight: '100dvh', backgroundColor: 'var(--color-background-body)' }}
     >
       <HStack as="header" hAlign="between" vAlign="center" gap={4} paddingInline={6} paddingBlock={5} width="100%">
-        <Text weight="semibold" size="lg" style={{ letterSpacing: '-0.045em' }}>
-          OpenLink
-        </Text>
+        <HStack gap={2} vAlign="center">
+          <OpenLinkAppMark size={28} />
+          <Text weight="semibold" size="lg" style={{ letterSpacing: '-0.045em' }}>
+            OpenLink
+          </Text>
+        </HStack>
         <HStack gap={3} vAlign="center">
           <Text type="supporting" color="secondary">
             {switchTo.prompt}

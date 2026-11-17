@@ -30,8 +30,18 @@ export const Route = createRootRoute({
         name: 'description',
         content: 'OpenLink — organization-aware link shortener dashboard',
       },
+      { name: 'theme-color', content: '#FAFAF7', media: '(prefers-color-scheme: light)' },
+      { name: 'theme-color', content: '#111418', media: '(prefers-color-scheme: dark)' },
+      { property: 'og:title', content: 'OpenLink' },
+      { property: 'og:image', content: '/og.png' },
+      { name: 'twitter:card', content: 'summary_large_image' },
     ],
     links: [
+      // Black logo on light browser themes, white on dark. Chrome and Firefox honor `media` on icons.
+      { rel: 'icon', href: '/favicon-black.png', type: 'image/png', media: '(prefers-color-scheme: light)' },
+      { rel: 'icon', href: '/favicon-white.png', type: 'image/png', media: '(prefers-color-scheme: dark)' },
+      { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      { rel: 'manifest', href: '/manifest.json' },
       {
         rel: 'stylesheet',
         href: appCss,
