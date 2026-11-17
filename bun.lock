@@ -16,6 +16,7 @@
       "dependencies": {
         "@astryxdesign/core": "^0.7.14",
         "@astryxdesign/theme-neutral": "^0.7.14",
+        "@better-auth/api-key": "1.7.22",
         "@better-auth/passkey": "1.7.22",
         "@fontsource-variable/geist": "^5.3.0",
         "@fontsource-variable/geist-mono": "^5.3.0",
@@ -198,6 +199,8 @@
     "@babel/traverse": ["@babel/traverse@8.1.2", "", { "dependencies": { "@babel/code-frame": "^8.0.6", "@babel/generator": "^8.1.2", "@babel/helper-globals": "^8.0.6", "@babel/parser": "^8.1.2", "@babel/template": "^8.1.2", "@babel/types": "^8.1.2", "obug": "^3.0.0" } }, "sha512-J8OoydypQO6HGgRYiiHPMj0iBfz2XpSm5hkmd0+OEHWgQFzYL8TEvYq2y4Gu8vxRCa7g06BilFZ0Imiye5jzzg=="],
 
     "@babel/types": ["@babel/types@7.29.8", "", { "dependencies": { "@babel/helper-string-parser": "^7.29.7", "@babel/helper-validator-identifier": "^7.29.7" } }, "sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg=="],
+
+    "@better-auth/api-key": ["@better-auth/api-key@1.7.22", "", { "dependencies": { "zod": "^4.5.4" }, "peerDependencies": { "@better-auth/core": "^1.7.22", "@better-auth/utils": "^0.4.2 || ^0.5.0", "better-auth": "^1.7.22", "better-call": "1.4.5" } }, "sha512-QaFYxRBbg6BMGNZwTerIBBav6E3xkShHoKR1AMUyXHSzKLgrod3ocxnEm6w+VSM6MCoKYPJB7iIEBsiQR7NzJw=="],
 
     "@better-auth/core": ["@better-auth/core@1.7.22", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "zod": "^4.5.4" }, "peerDependencies": { "@better-auth/utils": "^0.4.2 || ^0.5.0", "@better-fetch/fetch": "1.3.3", "@opentelemetry/api": "^1.9.0", "better-call": "1.4.5", "jose": "^6.1.0", "kysely": "^0.28.5 || ^0.29.0", "nanostores": "^1.0.1" }, "optionalPeers": ["@opentelemetry/api"] }, "sha512-SnXqxtrf9Ns8GSGzDzqKuf80Ve9m2UTPdBPpPqCvp0XgzFmHQ8aa5dXoeEoyXPc/GXpuxUu9S1Ug97tYnMITkQ=="],
 
