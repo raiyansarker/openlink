@@ -18,6 +18,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { ApiError } from '#/lib/api/error'
 import { WorkspaceMembersApi } from '#/lib/api/members'
 import { QueryKeys } from '#/lib/api/query'
+import { useNotify } from '#/hooks/use-notify'
 import { WorkspaceApi } from '#/lib/api/workspaces'
 import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 import {
@@ -103,7 +104,7 @@ export default function GeneralSettingsFields() {
   const [transferOpen, setTransferOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [ownerName, setOwnerName] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const notify = useNotify()
 
   // Follow the saved values (they change after a save or a refresh)...
   useEffect(() => {
@@ -111,17 +112,15 @@ export default function GeneralSettingsFields() {
     setForm(initial)
   }, [initial])
 
-  // ...but only clear messages when switching to a different workspace.
+  // ...but only reset the transfer result when switching to a different workspace.
   useEffect(() => {
     setOwnerName(null)
-    setNotice(null)
   }, [activeOrg.id])
 
   const navigate = useNavigate()
   const isOwner = activeOrg.role === 'owner'
   const canEdit = isOwner || activeOrg.role === 'admin'
   const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const membersQuery = useQuery({
     queryKey: [...QueryKeys.members(activeOrg.id), canEdit],
     queryFn: () => new WorkspaceMembersApi().list(activeOrg.id, { includeInvites: canEdit }),
@@ -134,7 +133,6 @@ export default function GeneralSettingsFields() {
 
   const save = async () => {
     setIsSaving(true)
-    setError(null)
     try {
       const next = { name: trimmedName, slug: form.slug }
       const changes = {
@@ -146,34 +144,32 @@ export default function GeneralSettingsFields() {
       await refreshWorkspaces()
       setForm(next)
       setSaved(next)
-      setNotice('Workspace settings saved.')
+      notify.info('Workspace settings saved.')
     } catch (e) {
-      setError(ApiError.message(e, 'Could not save the workspace.'))
+      notify.error(ApiError.message(e, 'Could not save the workspace.'))
     } finally {
       setIsSaving(false)
     }
   }
 
   const transfer = async (memberId: string) => {
-    setError(null)
     try {
       await new WorkspaceMembersApi().transferOwnership(activeOrg.id, memberId)
       const member = adminCandidates.find((m) => m.id === memberId)
       setOwnerName(member?.name ?? null)
       await refreshWorkspaces()
     } catch (e) {
-      setError(ApiError.message(e, 'Could not transfer ownership.'))
+      notify.error(ApiError.message(e, 'Could not transfer ownership.'))
     }
   }
 
   const remove = async () => {
-    setError(null)
     try {
       await new WorkspaceApi().delete(activeOrg.id)
       await refreshWorkspaces()
       await navigate({ to: '/w', replace: true })
     } catch (e) {
-      setError(ApiError.message(e, 'Could not delete the workspace.'))
+      notify.error(ApiError.message(e, 'Could not delete the workspace.'))
     }
   }
 
@@ -215,7 +211,7 @@ export default function GeneralSettingsFields() {
 
   const exportAs = (format: LinkExportFormat) => {
     exportLinks(links, format, saved.slug)
-    setNotice(`Exported ${links.length} links as ${format.toUpperCase()}.`)
+    notify.info(`Exported ${links.length} links as ${format.toUpperCase()}.`)
   }
 
   const dangerRows: { key: string; node: ReactNode }[] = [
@@ -403,18 +399,6 @@ export default function GeneralSettingsFields() {
             onClick={() => void save()}
           />
         </HStack>
-      ) : null}
-
-      {error ? (
-        <Text type="supporting" weight="medium" role="alert">
-          {error}
-        </Text>
-      ) : null}
-
-      {notice ? (
-        <Text type="supporting" color="secondary" role="status">
-          {notice}
-        </Text>
       ) : null}
 
       <VStack hAlign="stretch" width="100%" paddingBlockStart={4}>

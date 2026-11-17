@@ -17,6 +17,7 @@ import {
 import DeviceDetailSheet from '#/components/settings/DeviceDetailSheet'
 import type { ActiveSession, DeviceKind } from '#/data/demo/active-sessions'
 import { ApiError } from '#/lib/api/error'
+import { useNotify } from '#/hooks/use-notify'
 import { QueryKeys } from '#/lib/api/query'
 import { DevicesApi } from '#/lib/devices/api'
 import { formatLastActive } from '#/lib/settings/session-time'
@@ -40,18 +41,18 @@ export default function DevicesSettingsFields() {
   const query = useQuery({ queryKey: QueryKeys.deviceSessions, queryFn: () => devices.list() })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [signOutAllOpen, setSignOutAllOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const notify = useNotify()
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: QueryKeys.deviceSessions })
   const signOutOne = useMutation({
     mutationFn: (id: string) => devices.signOut(id),
     onSuccess: () => setSelectedId(null),
-    onError: (e) => setError(ApiError.message(e)),
+    onError: (e) => notify.error(ApiError.message(e)),
     onSettled: refresh,
   })
   const signOutOthers = useMutation({
     mutationFn: () => devices.signOutOthers(),
-    onError: (e) => setError(ApiError.message(e)),
+    onError: (e) => notify.error(ApiError.message(e)),
     onSettled: () => {
       setSignOutAllOpen(false)
       void refresh()
@@ -73,7 +74,6 @@ export default function DevicesSettingsFields() {
   const otherCount = sessions.filter((s) => !s.isCurrent).length
 
   const signOut = (id: string) => {
-    setError(null)
     signOutOne.mutate(id)
   }
 
@@ -126,12 +126,6 @@ export default function DevicesSettingsFields() {
         </Text>
       )}
 
-      {error ? (
-        <Text type="supporting" weight="medium" role="alert">
-          {error}
-        </Text>
-      ) : null}
-
       <DeviceDetailSheet
         session={selected}
         onOpenChange={(open) => {
@@ -147,8 +141,7 @@ export default function DevicesSettingsFields() {
         description={`${otherCount} ${otherCount === 1 ? 'device' : 'devices'} will need to sign in again.`}
         actionLabel="Sign out all"
         onAction={() => {
-          setError(null)
-          signOutOthers.mutate()
+                signOutOthers.mutate()
         }}
       />
     </VStack>

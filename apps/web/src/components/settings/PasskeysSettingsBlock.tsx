@@ -10,6 +10,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
+import { useNotify } from '#/hooks/use-notify'
 import { QueryKeys } from '#/lib/api/query'
 
 type Passkey = { id: string; name?: string | null; createdAt?: string | Date | null; deviceType?: string; backedUp?: boolean }
@@ -60,7 +61,7 @@ class PasskeysApi {
 export default function PasskeysSettingsBlock() {
   const queryClient = useQueryClient()
   const [isSupported, setIsSupported] = useState(true)
-  const [message, setMessage] = useState<{ text: string; tone: 'error' | 'info' } | null>(null)
+  const notify = useNotify()
   const [removing, setRemoving] = useState<Passkey | null>(null)
 
   useEffect(() => setIsSupported(typeof window.PublicKeyCredential === 'function'), [])
@@ -71,15 +72,15 @@ export default function PasskeysSettingsBlock() {
   const add = useMutation({
     mutationFn: PasskeysApi.add,
     onSuccess: (outcome) => {
-      if (outcome === 'added') setMessage({ text: 'Passkey added. You can use it next time you sign in.', tone: 'info' })
+      if (outcome === 'added') notify.info('Passkey added. You can use it next time you sign in.')
     },
-    onError: (error) => setMessage({ text: error instanceof Error ? error.message : 'Could not add the passkey.', tone: 'error' }),
+    onError: (error) => notify.error(error instanceof Error ? error.message : 'Could not add the passkey.'),
     onSettled: refresh,
   })
   const remove = useMutation({
     mutationFn: (passkey: Passkey) => PasskeysApi.remove(passkey.id),
-    onSuccess: () => setMessage({ text: 'Passkey removed.', tone: 'info' }),
-    onError: (error) => setMessage({ text: error instanceof Error ? error.message : 'Could not remove the passkey.', tone: 'error' }),
+    onSuccess: () => notify.info('Passkey removed.'),
+    onError: (error) => notify.error(error instanceof Error ? error.message : 'Could not remove the passkey.'),
     onSettled: refresh,
   })
 
@@ -118,7 +119,6 @@ export default function PasskeysSettingsBlock() {
           isLoading={add.isPending}
           isDisabled={!isSupported}
           onClick={() => {
-            setMessage(null)
             add.mutate()
           }}
         />
@@ -131,10 +131,6 @@ export default function PasskeysSettingsBlock() {
       {passkeys.isError ? (
         <Text type="supporting" role="alert">
           Could not load your passkeys.
-        </Text>
-      ) : message ? (
-        <Text type="supporting" color={message.tone === 'info' ? 'secondary' : undefined} role={message.tone === 'error' ? 'alert' : 'status'}>
-          {message.text}
         </Text>
       ) : null}
 
