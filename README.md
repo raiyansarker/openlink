@@ -1,4 +1,11 @@
-# OpenLink
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/logo-light.svg">
+    <img src="apps/web/public/logo-dark.svg" alt="OpenLink logo" width="96" height="96">
+  </picture>
+</p>
+
+<h1 align="center">OpenLink</h1>
 
 OpenLink is a **link shortener and redirect platform** built for [Cloudflare Workers](https://developers.cloudflare.com/workers/). Organizations manage custom domains, create rich short links (scheduling, passwords, UTM, fallbacks), and expose a versioned HTTP API from a single Worker that handles both SSR and API traffic.
 
