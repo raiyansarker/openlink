@@ -405,6 +405,7 @@ export const router = os.router({
         organizationId: input.params.organizationId,
         keyId: input.params.keyId,
         role: input.body.role,
+        userId: session.session.user.id,
       }).pipe(Effect.catchTags({ ApiKeyNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'API key not found' })) }))
       if (previousRole !== row.role) {
         yield* audit(session, {

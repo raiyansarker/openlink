@@ -64,7 +64,7 @@ const deleteLinks = mock((_input: unknown) => Effect.succeed(2))
 const activityRow = { id: 'evt-1', organizationId: org.id, actorType: 'member' as const, actorUserId: 'user-1', actorLabel: 'Ada', action: 'link.created', category: 'links' as const, targetType: 'link', targetId: 'link-1', targetLabel: 'hello', source: 'dashboard' as const, detailsJson: JSON.stringify({ changes: [{ label: 'Title', from: '—', to: 'Hi' }] }), ipAddress: '203.0.113.9', createdAt: now }
 const listActivity = mock((_input: unknown) => Effect.succeed({ items: [activityRow], nextCursor: undefined as string | undefined }))
 const audit = mock((_session: unknown, _event: unknown) => Effect.void)
-const keyRow = { id: 'key-1', organizationId: org.id, name: 'CI deploy', prefix: 'ol_live_8f3a', keyHash: 'h', role: 'member' as const, createdByUserId: 'user-1', createdAt: now, lastUsedAt: null }
+const keyRow = { id: 'key-1', organizationId: org.id, name: 'CI deploy', prefix: 'ol_live_8f3a', role: 'member' as const, createdAt: now, lastUsedAt: null }
 let keyPrincipal: { id: string; organizationId: string; role: 'admin' | 'member' | 'viewer'; name: string } | null = null
 const authenticateApiKey = mock((_secret: string) => Effect.succeed(keyPrincipal))
 const listApiKeys = mock((_organizationId: string) => Effect.succeed([keyRow]))
