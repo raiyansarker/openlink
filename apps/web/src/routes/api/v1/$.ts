@@ -33,6 +33,8 @@ export const Route = createFileRoute('/api/v1/$')({
       PATCH: serve,
       PUT: serve,
       DELETE: serve,
+      // Preflights are answered by the oRPC CORS plugin.
+      OPTIONS: serve,
     },
   },
 })
