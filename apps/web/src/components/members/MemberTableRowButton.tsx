@@ -15,6 +15,7 @@ export default function MemberTableRowButton({
 }: MemberTableRowButtonProps) {
   return (
     <button
+      className="ol-focus-ring"
       type="button"
       onClick={() => onOpen(member)}
       style={{

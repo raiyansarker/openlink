@@ -189,6 +189,7 @@ export default function ThemePreviewCard({
 }: ThemePreviewCardProps) {
   return (
     <button
+      className="ol-focus-ring"
       type="button"
       role="radio"
       aria-checked={isSelected}

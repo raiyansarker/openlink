@@ -284,11 +284,11 @@ elements-api {
 }
 
 /*
- * Our own buttons and links (sidebar items, workspace switcher, table row
- * buttons) get the same ring as Astryx controls instead of the browser's.
- * `:where` keeps this at zero specificity, so components still win.
+ * Our own buttons (sidebar items, workspace switcher, table row buttons) get
+ * the same ring as Astryx controls instead of the browser's. Opt-in by class:
+ * a blanket rule would also ring the inner buttons Astryx leaves to their row.
  */
-:where(a[href], button, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+.ol-focus-ring:focus-visible {
   outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
   outline-offset: var(--focus-outline-offset);
 }

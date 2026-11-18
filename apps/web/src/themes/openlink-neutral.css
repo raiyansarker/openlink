@@ -307,6 +307,7 @@
     --astryx-theme-neutral-color-status-fill-accent: light-dark(#0074e2, #6d9cfe);
     --openlink-brand: light-dark(#FF4602, #FF6B33);
     --openlink-brand-muted: light-dark(color-mix(in oklab, #FF4602 16%, transparent), color-mix(in oklab, #FF6B33 22%, transparent));
+    --openlink-field-focus: light-dark(#0074E2, #0074E2);
   }
 
   :scope {
@@ -557,7 +558,7 @@
 
   .astryx-text-input:focus-within {
     box-shadow: none;
-    border-color: var(--color-info);
+    border-color: var(--openlink-field-focus);
   }
 
   .astryx-text-area {
@@ -571,7 +572,7 @@
 
   .astryx-text-area:focus-within {
     box-shadow: none;
-    border-color: var(--color-info);
+    border-color: var(--openlink-field-focus);
   }
 
   .astryx-number-input {
@@ -585,7 +586,7 @@
 
   .astryx-number-input:focus-within {
     box-shadow: none;
-    border-color: var(--color-info);
+    border-color: var(--openlink-field-focus);
   }
 
   .astryx-selector[data-variant="input"] {
@@ -599,7 +600,7 @@
 
   .astryx-selector[data-variant="input"]:focus-within {
     box-shadow: none;
-    border-color: var(--color-info);
+    border-color: var(--openlink-field-focus);
   }
 
   .astryx-tokenizer {
@@ -613,7 +614,7 @@
 
   .astryx-tokenizer:focus-within {
     box-shadow: none;
-    border-color: var(--color-info);
+    border-color: var(--openlink-field-focus);
   }
 
   .astryx-date-time-input {
@@ -627,7 +628,7 @@
 
   .astryx-date-time-input:focus-within {
     box-shadow: none;
-    border-color: var(--color-info);
+    border-color: var(--openlink-field-focus);
   }
 
   .astryx-input-group {

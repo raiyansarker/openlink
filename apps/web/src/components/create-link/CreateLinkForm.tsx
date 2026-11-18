@@ -999,6 +999,7 @@ export default function CreateLinkForm({
                     return (
                       <button
                         key={option.page}
+                        className="ol-focus-ring"
                         type="button"
                         role="radio"
                         aria-checked={isSelected}

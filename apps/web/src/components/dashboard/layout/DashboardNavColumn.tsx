@@ -82,6 +82,7 @@ function NavLinkItem({
 
   return (
     <button
+      className="ol-focus-ring"
       type="button"
       aria-current={isSelected ? 'page' : undefined}
       onClick={() => void navigate({ to: item.href })}

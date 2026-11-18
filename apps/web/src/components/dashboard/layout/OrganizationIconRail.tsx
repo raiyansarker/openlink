@@ -75,6 +75,7 @@ function OrgSwitchButton({
   return (
     <Tooltip content={orgName} placement="end">
       <button
+        className="ol-focus-ring"
         type="button"
         aria-label={`Switch to ${orgName}`}
         aria-current={isActive ? 'true' : undefined}
@@ -114,6 +115,7 @@ function RailSettingsButton() {
   return (
     <Tooltip content="Settings" placement="end">
       <button
+        className="ol-focus-ring"
         type="button"
         aria-label="Settings"
         aria-current={isActive ? 'page' : undefined}
@@ -183,6 +185,7 @@ export default function OrganizationIconRail({
       >
         <Tooltip content="OpenLink" placement="end">
           <button
+            className="ol-focus-ring"
             type="button"
             aria-label="OpenLink home"
             onClick={() => void navigate({ to: '/w' })}
@@ -253,6 +256,7 @@ export default function OrganizationIconRail({
           >
             <Tooltip content="Create organization" placement="end">
               <button
+                className="ol-focus-ring"
                 type="button"
                 aria-label="Create organization"
                 onClick={handleCreateOrganization}

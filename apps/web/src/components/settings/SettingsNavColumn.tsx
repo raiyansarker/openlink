@@ -169,6 +169,7 @@ export default function SettingsNavColumn() {
       }}
     >
       <button
+        className="ol-focus-ring"
         type="button"
         aria-label="Back to dashboard"
         onClick={() => void navigate({ to: '/w' })}
@@ -231,6 +232,7 @@ export default function SettingsNavColumn() {
 
         <NavGroup label="Other">
           <button
+            className="ol-focus-ring"
             type="button"
             onClick={() => void signOut()}
             style={{
