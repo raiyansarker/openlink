@@ -46,16 +46,24 @@ beforeEach(() => {
     )
   }
   // SQLite proxy executes asynchronously like D1; only the adapter differs from OpenLinkDb.
+  const execute = (sql: string, params: unknown[], method: string) => {
+    if (failSql?.(sql)) throw ioFailure
+    const query = sqlite.query(sql)
+    if (method === 'run') {
+      query.run(...(params as never[]))
+      return { rows: [] }
+    }
+    return { rows: query.values(...(params as never[])) }
+  }
   db = drizzle(
     async (sql, params, method) => {
       await Promise.resolve()
-      if (failSql?.(sql)) throw ioFailure
-      const query = sqlite.query(sql)
-      if (method === 'run') {
-        query.run(...params)
-        return { rows: [] }
-      }
-      return { rows: query.values(...params) }
+      return execute(sql, params, method)
+    },
+    // Like D1, a batch is one transaction: a failing statement rolls back the rest.
+    async (queries) => {
+      await Promise.resolve()
+      return sqlite.transaction(() => queries.map((q) => execute(q.sql, q.params, q.method)))()
     },
     { schema },
   ) as unknown as OpenLinkDb
@@ -358,7 +366,7 @@ describe('Effect organization services with injected async SQLite', () => {
     expect(inviteRow().accepted_at).toBeNull()
   })
 
-  test('owner insertion failure preserves the existing partial-write behavior', async () => {
+  test('owner insertion failure rolls back the new organization', async () => {
     seedInvite({ kind: 'bootstrap', organizationId: null })
     failSql = (sql) => sql.startsWith('insert into "organization_member"')
     expect(
@@ -367,16 +375,16 @@ describe('Effect organization services with injected async SQLite', () => {
       ),
     ).toMatchObject({
       _tag: 'BackendError',
-      operation: 'org.createOwnerMembership',
+      operation: 'org.createOrganization',
     })
-    expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(2)
+    expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(1)
     expect(
       sqlite.query('SELECT id FROM organization_member').all(),
     ).toHaveLength(0)
     expect(inviteRow().accepted_at).toBeNull()
   })
 
-  test('bootstrap consumption failure leaves the organization and owner written', async () => {
+  test('bootstrap consumption failure rolls back the organization and owner', async () => {
     seedInvite({ kind: 'bootstrap', organizationId: null })
     failSql = (sql) => sql.startsWith('update "organization_invite"')
     expect(
@@ -385,16 +393,14 @@ describe('Effect organization services with injected async SQLite', () => {
       ),
     ).toMatchObject({
       _tag: 'BackendError',
-      operation: 'org.acceptBootstrapInvite',
+      operation: 'org.createOrganization',
     })
-    expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(2)
-    expect(sqlite.query('SELECT role FROM organization_member').all()).toEqual([
-      { role: 'owner' },
-    ])
+    expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(1)
+    expect(sqlite.query('SELECT role FROM organization_member').all()).toEqual([])
     expect(inviteRow().accepted_at).toBeNull()
   })
 
-  test('invite consumption failure leaves the new membership written and invite unconsumed', async () => {
+  test('invite consumption failure rolls back the new membership', async () => {
     seedInvite()
     failSql = (sql) => sql.startsWith('update "organization_invite"')
     expect(
@@ -403,9 +409,7 @@ describe('Effect organization services with injected async SQLite', () => {
       _tag: 'BackendError',
       operation: 'org.acceptMemberInvite',
     })
-    expect(await run(getMembership('user-1', 'org-1'))).toMatchObject({
-      role: 'admin',
-    })
+    expect(await run(getMembership('user-1', 'org-1'))).toBeNull()
     expect(inviteRow().accepted_at).toBeNull()
   })
 })

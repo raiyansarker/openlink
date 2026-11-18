@@ -2,6 +2,7 @@ import { link, linkFolder } from '@openlink/db/schema'
 import { and, eq, inArray } from 'drizzle-orm'
 import { Effect } from 'effect'
 
+import { writeBatch } from '#/server/effect/batch'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { FolderNameTaken, FolderNotFound, FolderRuleViolation } from './errors'
@@ -124,31 +125,32 @@ export function deleteFolder(input: {
     const folders = yield* listFolders(input.organizationId)
     const target = yield* requireFolder(folders, input.folderId)
 
+    // Each mode is one batch: the folder tree and its links change together, or not at all.
     if (input.mode === 'cascade') {
       const doomed = [target.id, ...descendantIds(folders, target.id)]
-      for (const ids of chunk(doomed)) {
-        yield* operation('folders.cascade.links', () => db.delete(link).where(inArray(link.folderId, ids)))
-      }
-      for (const ids of chunk(doomed)) {
-        yield* operation('folders.cascade.folders', () => db.delete(linkFolder).where(inArray(linkFolder.id, ids)))
-      }
+      yield* writeBatch('folders.deleteCascade', [
+        ...chunk(doomed).map((ids) => db.delete(link).where(inArray(link.folderId, ids))),
+        ...chunk(doomed).map((ids) => db.delete(linkFolder).where(inArray(linkFolder.id, ids))),
+      ])
       return target
     }
 
     const taken = new Set(
       folders.filter((f) => f.parentId === target.parentId && f.id !== target.id).map((f) => f.name.toLowerCase()),
     )
-    for (const child of folders.filter((f) => f.parentId === target.id)) {
-      const name = uniqueSiblingName(taken, child.name)
-      taken.add(name.toLowerCase())
-      yield* operation('folders.moveUp.child', () =>
-        db.update(linkFolder).set({ parentId: target.parentId, name, updatedAt: new Date() }).where(eq(linkFolder.id, child.id)),
-      )
-    }
-    yield* operation('folders.moveUp.links', () =>
+    const now = new Date()
+    const moveChildren = folders
+      .filter((f) => f.parentId === target.id)
+      .map((child) => {
+        const name = uniqueSiblingName(taken, child.name)
+        taken.add(name.toLowerCase())
+        return db.update(linkFolder).set({ parentId: target.parentId, name, updatedAt: now }).where(eq(linkFolder.id, child.id))
+      })
+    yield* writeBatch('folders.deleteMoveUp', [
+      ...moveChildren,
       db.update(link).set({ folderId: target.parentId }).where(eq(link.folderId, target.id)),
-    )
-    yield* operation('folders.delete', () => db.delete(linkFolder).where(eq(linkFolder.id, target.id)))
+      db.delete(linkFolder).where(eq(linkFolder.id, target.id)),
+    ])
     return target
   })
 }

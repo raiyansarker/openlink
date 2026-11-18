@@ -6,6 +6,7 @@ import {
   organizationMember,
   user,
 } from '@openlink/db/schema'
+import { writeBatch } from '#/server/effect/batch'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { Onboarding } from '#/server/auth/onboarding'
@@ -89,42 +90,27 @@ export function createOrganizationWithBootstrapInvite(input: {
     const db = yield* Db
     const id = crypto.randomUUID()
     const now = new Date()
-    const [org] = yield* operation('org.createOrganization', () =>
-      db
-        .insert(organization)
-        .values({
-          id,
-          name: input.name,
-          slug: input.slug,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning(),
-    ).pipe(
-      Effect.mapError((error) =>
-        isUniqueViolation(error.cause) ? new OrganizationConflict() : error,
-      ),
-    )
-
-    yield* operation('org.createOwnerMembership', () =>
+    const statements = [
+      db.insert(organization).values({ id, name: input.name, slug: input.slug, createdAt: now, updatedAt: now }).returning(),
       db.insert(organizationMember).values({
         id: crypto.randomUUID(),
-        organizationId: org!.id,
+        organizationId: id,
         userId: input.userId,
         role: 'owner',
         joinedAt: now,
       }),
+      ...(bootstrap
+        ? [db.update(organizationInvite).set({ acceptedAt: now }).where(eq(organizationInvite.id, bootstrap.id))]
+        : []),
+      Onboarding.markCompleteStatement(db, input.userId, now),
+    ]
+    // One batch: the workspace never exists without its owner, and onboarding completes with it.
+    const [created] = yield* writeBatch('org.createOrganization', statements).pipe(
+      Effect.mapError((error) =>
+        isUniqueViolation(error.cause) ? new OrganizationConflict() : error,
+      ),
     )
-    if (bootstrap) {
-      yield* operation('org.acceptBootstrapInvite', () =>
-        db
-          .update(organizationInvite)
-          .set({ acceptedAt: now })
-          .where(eq(organizationInvite.id, bootstrap.id)),
-      )
-    }
-    yield* Onboarding.markComplete(input.userId, now)
-    return org!
+    return (created as (typeof organization.$inferSelect)[])[0]!
   })
 }
 
@@ -294,25 +280,23 @@ function joinFromInvite(
         )
         .limit(1),
     )
-    if (!existingMember) {
-      yield* operation('org.createInvitedMembership', () =>
-        db.insert(organizationMember).values({
-          id: crypto.randomUUID(),
-          organizationId,
-          userId: input.userId,
-          role: invite.role,
-          joinedAt: now,
-        }),
-      )
-    }
-    yield* operation('org.acceptMemberInvite', () =>
-      db
-        .update(organizationInvite)
-        .set({ acceptedAt: now })
-        .where(eq(organizationInvite.id, invite.id)),
-    )
-    // Joining someone else's workspace also counts as finishing onboarding.
-    yield* Onboarding.markComplete(input.userId, now)
+    // One batch: the person joins, the invite is used up and onboarding completes, or none of it happens.
+    yield* writeBatch('org.acceptMemberInvite', [
+      ...(existingMember
+        ? []
+        : [
+            db.insert(organizationMember).values({
+              id: crypto.randomUUID(),
+              organizationId,
+              userId: input.userId,
+              role: invite.role,
+              joinedAt: now,
+            }),
+          ]),
+      db.update(organizationInvite).set({ acceptedAt: now }).where(eq(organizationInvite.id, invite.id)),
+      // Joining someone else's workspace also counts as finishing onboarding.
+      Onboarding.markCompleteStatement(db, input.userId, now),
+    ])
     const org = yield* getOrganizationById(organizationId)
     if (existingMember) {
       return { org: org!, member: existingMember }

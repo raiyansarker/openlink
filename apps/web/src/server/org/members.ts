@@ -6,6 +6,7 @@ import {
   organizationMember,
   user,
 } from '@openlink/db/schema'
+import { writeBatch } from '#/server/effect/batch'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { createInviteToken, hashInviteToken } from './invites'
@@ -146,20 +147,20 @@ export function transferOwnership(input: {
     if (!target) return yield* Effect.fail(new MemberNotFound())
     const db = yield* Db
     const setRole = (userId: string, role: OrganizationRole) =>
-      operation(`members.transfer.${role}`, () =>
-        db
-          .update(organizationMember)
-          .set({ role })
-          .where(
-            and(
-              eq(organizationMember.organizationId, input.organizationId),
-              eq(organizationMember.userId, userId),
-            ),
+      db
+        .update(organizationMember)
+        .set({ role })
+        .where(
+          and(
+            eq(organizationMember.organizationId, input.organizationId),
+            eq(organizationMember.userId, userId),
           ),
-      )
-    // Promote first: a failure between the steps leaves two owners, never none.
-    yield* setRole(input.targetUserId, 'owner')
-    yield* setRole(input.actorUserId, 'admin')
+        )
+    // One batch: the workspace always has exactly one owner.
+    yield* writeBatch('members.transferOwnership', [
+      setRole(input.targetUserId, 'owner'),
+      setRole(input.actorUserId, 'admin'),
+    ])
     return target
   })
 }
