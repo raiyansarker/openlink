@@ -73,15 +73,18 @@ export class PublicPage {
 
 /** The placeholder pages a link on hold serves, matching the editor's preview. */
 export class HoldPageView {
+  static readonly STATUS = 418
+
   static render(id: HoldPageId): Response {
     const page = HoldPages.get(id)
     const document = page.isServerStyle
       ? // Byte-for-byte the shape of nginx's own error pages, so it reads as a real outage.
         `<html>\r\n<head><title>${PublicPage.escape(page.heading)}</title></head>\r\n<body>\r\n<center><h1>${PublicPage.escape(page.heading)}</h1></center>\r\n<hr><center>${PublicPage.escape(page.footer ?? '')}</center>\r\n</body>\r\n</html>\r\n`
       : `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${PublicPage.escape(page.heading)}</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#fff;color:#111;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;text-align:center"><main style="padding:2rem;max-width:22rem"><h1 style="font-size:1.6rem;font-weight:650;letter-spacing:-0.01em;margin:0">${PublicPage.escape(page.heading)}</h1><p style="margin:.75rem 0 0;color:#555;line-height:1.5">${PublicPage.escape(page.body ?? '')}</p></main></body></html>`
-    // Served as 200 on purpose: Workers Issues records every 5xx the Worker returns, and a hold page
-    // is intended, not a failure. The page itself still reads as the outage the owner picked.
-    return PublicPage.html(200, document)
+    // 418 on purpose. Workers Issues records every 5xx the Worker returns, and a hold page is intended,
+    // not a failure. 418 is reserved and unused (RFC 9110 §15.5.19), so it never means anything else,
+    // and link checkers still see an error rather than a working page.
+    return PublicPage.html(HoldPageView.STATUS, document)
   }
 }
 

@@ -1035,7 +1035,7 @@ export default function CreateLinkForm({
                   url={shortUrl.replace(/^https?:\/\//, '')}
                 />
                 <Text type="supporting" color="secondary">
-                  Visitors see this page in place of the destination. It is served with a 200 status, so link checkers will not report an error.
+                  Visitors see this page in place of the destination. It is served with an error status, so link checkers report the link as down.
                 </Text>
               </VStack>
 

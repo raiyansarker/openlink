@@ -233,12 +233,12 @@ describe('RedirectResponses.for', () => {
     expect(await form.text()).toContain('Incorrect password')
   })
 
-  test('hold pages look like the real thing but are served as 200, so Workers Issues does not flag them', async () => {
+  test('hold pages look like the real thing but are served as 418, so Workers Issues does not flag them', async () => {
     const gateway = RedirectResponses.for({ type: 'hold', page: 'bad-gateway' })
-    expect(gateway.status).toBe(200)
+    expect(gateway.status).toBe(418)
     expect(await gateway.text()).toContain('<center><h1>502 Bad Gateway</h1></center>')
     const maintenance = RedirectResponses.for({ type: 'hold', page: 'maintenance' })
-    expect(maintenance.status).toBe(200)
+    expect(maintenance.status).toBe(418)
     expect(maintenance.headers.get('retry-after')).toBeNull()
     expect(maintenance.headers.get('cache-control')).toBe('no-store')
   })
