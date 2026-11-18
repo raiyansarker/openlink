@@ -24,6 +24,43 @@ type PreviewImageFieldProps = {
   onRemove: () => void
 }
 
+type ImageSize = { width: number; height: number }
+
+/** Big enough to stay sharp on a share card (below this it may look blurry). */
+const isSmallImage = (size: ImageSize) => size.width < 600 || size.height < 315
+
+/** The line under the image: an error, the upload state, or the image's size. */
+function imageCaption(error: string | null, isUploading: boolean, size: ImageSize | null): string {
+  if (error) return error
+  if (isUploading) return 'Uploading…'
+  if (!size) return 'Shown when the link is shared.'
+  return `${size.width} × ${size.height} px${isSmallImage(size) ? ' · may look blurry, 1200 × 630 is best' : ''}`
+}
+
+type ShareImageDropzoneProps = Pick<PreviewImageFieldProps, 'accept' | 'maxBytes'> & {
+  status: { type: 'error'; message: string } | undefined
+  onFile: (file: File | null) => void
+}
+
+/** The empty state: drop or browse for an image. */
+function ShareImageDropzone({ accept, maxBytes, status, onFile }: ShareImageDropzoneProps) {
+  return (
+    <FileInput
+      label="Image"
+      mode="dropzone"
+      accept={accept}
+      maxSize={maxBytes}
+      description="PNG, JPG, WebP or GIF up to 5 MB. 1200 × 630 px looks best everywhere."
+      placeholder="Drop an image here, or click to browse"
+      value={null}
+      onChange={(files) => onFile(Array.isArray(files) ? (files[0] ?? null) : files)}
+      status={status}
+      isOptional
+      width="100%"
+    />
+  )
+}
+
 /**
  * The share-card image: a dropzone while empty; once set, the image at card
  * proportions with Replace and Remove. While a new file uploads, its local
@@ -40,7 +77,7 @@ export default function PreviewImageField({
 }: PreviewImageFieldProps) {
   const replaceInput = useRef<HTMLInputElement>(null)
   const [localUrl, setLocalUrl] = useState<string | null>(null)
-  const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+  const [size, setSize] = useState<ImageSize | null>(null)
 
   // Free the local copy when it is replaced or the field goes away.
   useEffect(() => {
@@ -60,24 +97,8 @@ export default function PreviewImageField({
   const status = error ? { type: 'error' as const, message: error } : undefined
 
   if (!shown) {
-    return (
-      <FileInput
-        label="Image"
-        mode="dropzone"
-        accept={accept}
-        maxSize={maxBytes}
-        description="PNG, JPG, WebP or GIF up to 5 MB. 1200 × 630 px looks best everywhere."
-        placeholder="Drop an image here, or click to browse"
-        value={null}
-        onChange={(files) => choose(Array.isArray(files) ? (files[0] ?? null) : files)}
-        status={status}
-        isOptional
-        width="100%"
-      />
-    )
+    return <ShareImageDropzone accept={accept} maxBytes={maxBytes} status={status} onFile={choose} />
   }
-
-  const isSmall = size != null && (size.width < 600 || size.height < 315)
 
   return (
     <VStack gap={2} hAlign="stretch" width="100%">
@@ -113,12 +134,7 @@ export default function PreviewImageField({
           role={error ? 'alert' : undefined}
           style={error ? { color: 'var(--color-text-error)' } : undefined}
         >
-          {error ??
-            (isUploading
-              ? 'Uploading…'
-              : size
-                ? `${size.width} × ${size.height} px${isSmall ? ' · may look blurry, 1200 × 630 is best' : ''}`
-                : 'Shown when the link is shared.')}
+          {imageCaption(error, isUploading, size)}
         </Text>
         <HStack gap={2} vAlign="center">
           <Button
