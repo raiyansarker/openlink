@@ -2,6 +2,8 @@ import { env } from 'cloudflare:workers'
 import type { AnalyticsEngineDataset, D1Database } from '@cloudflare/workers-types'
 import type { OpenLinkDomainEnv } from '@openlink/domain'
 
+import type { EmailJob } from './email/job'
+
 export type WorkerBindings = OpenLinkDomainEnv & {
   DB: D1Database
   ANALYTICS: AnalyticsEngineDataset
@@ -9,6 +11,12 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   MEDIA: R2Bucket
   /** Caps password attempts on protected links (3 per minute per link and IP). */
   LINK_PASSWORD_LIMITER: RateLimit
+  /** Outgoing email. The producer enqueues here and the same Worker's `queue` handler sends. */
+  EMAIL_QUEUE?: Queue<EmailJob>
+  /** Resend API key (a Worker secret). Not needed under `vite dev`, which prints emails instead. */
+  RESEND_API_KEY?: string
+  /** Sender, e.g. `OpenLink <no-reply@example.com>`. Set in `wrangler.jsonc`; the domain must be verified with Resend. */
+  EMAIL_FROM?: string
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_URL: string
   /** Extra origins allowed to call the auth API (comma separated), e.g. previews. */

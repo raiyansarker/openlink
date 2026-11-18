@@ -23,3 +23,8 @@ CF_API_TOKEN=
 CF_ZONE_ID=
 CF_SAAS_CNAME_TARGET=
 CF_SAAS_CUSTOM_ORIGIN=
+
+# Email: `vite dev` prints emails (with their links) to the terminal, so nothing is needed here.
+# A built Worker sends through Resend: set RESEND_API_KEY as a Worker secret (`wrangler secret put RESEND_API_KEY`).
+# Uncomment to try real delivery with `vite preview`; EMAIL_FROM comes from wrangler.jsonc.
+# RESEND_API_KEY=

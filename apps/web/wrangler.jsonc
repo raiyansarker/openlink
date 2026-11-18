@@ -6,7 +6,8 @@
 		"nodejs_compat",
 		"enable_request_signal"
 	],
-	"main": "@tanstack/react-start/server-entry",
+	// Wraps the TanStack Start handler and adds the email queue consumer.
+	"main": "src/server.ts",
 	// Reachable only through the custom domain: no *.workers.dev URL, no per-version preview URLs.
 	// Set here because dashboard toggles are reset by the next deploy.
 	"workers_dev": false,
@@ -32,6 +33,28 @@
 			"dataset": "openlink"
 		}
 	],
+	"vars": {
+		// Sender for outgoing email (not a secret). The domain must be verified with Resend.
+		"EMAIL_FROM": "OpenLink <no-reply@raiyansarker.com>"
+	},
+	"queues": {
+		"producers": [
+			{
+				"binding": "EMAIL_QUEUE",
+				"queue": "openlink-email"
+			}
+		],
+		"consumers": [
+			{
+				"queue": "openlink-email",
+				"max_batch_size": 10,
+				"max_batch_timeout": 5,
+				// Failed sends are retried with backoff (see consumer.ts), then parked in the dead-letter queue.
+				"max_retries": 6,
+				"dead_letter_queue": "openlink-email-dlq"
+			}
+		]
+	},
 	"ratelimits": [
 		{
 			// Wrong-password attempts on protected links, per link and visitor IP.
