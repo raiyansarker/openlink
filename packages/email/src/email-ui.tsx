@@ -6,6 +6,7 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Row,
@@ -15,7 +16,7 @@ import {
 } from "@react-email/components";
 
 export const colors = {
-  background: "#f6f7f9",
+  background: "#ffffff",
   ink: "#111827",
   muted: "#667085",
   copy: "#344054",
@@ -46,7 +47,13 @@ export function EmailLayout({
           <Section style={styles.header}>
             <Row>
               <Column style={styles.logoColumn}>
-                <OpenLinkLogo />
+                <Img
+                  src="/logo-email.png"
+                  alt="OpenLink"
+                  height="40"
+                  width="40"
+                  style={styles.logo}
+                />
               </Column>
               <Column style={styles.wordmarkColumn}>
                 <Text style={styles.wordmark}>OpenLink</Text>
@@ -71,31 +78,6 @@ export function EmailLayout({
         </Container>
       </Body>
     </Html>
-  );
-}
-
-function OpenLinkLogo() {
-  return (
-    <svg
-      aria-label="OpenLink"
-      height="40"
-      role="img"
-      viewBox="0 0 96 96"
-      width="40"
-      xmlns="http://www.w3.org/2000/svg"
-      style={styles.logo}
-    >
-      <rect width="96" height="96" rx="24" fill="#F2541B" />
-      <g
-        transform="translate(9.842 9.842) scale(0.763158)"
-        strokeWidth="12"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M28 78L48 22" stroke="#FAFAF7" />
-        <path d="M52 78L72 22" stroke="#111418" />
-      </g>
-    </svg>
   );
 }
 
@@ -147,7 +129,7 @@ const styles = {
   container: {
     margin: "0 auto",
     maxWidth: "560px",
-    padding: "32px 24px",
+    padding: "64px 24px 72px",
   },
   header: {
     padding: "0 0 48px",
