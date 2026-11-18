@@ -30,6 +30,7 @@
     "@openlink/contracts": "workspace:*",
     "@openlink/db": "workspace:*",
     "@openlink/domain": "workspace:*",
+    "@openlink/email": "workspace:*",
     "@orpc/arktype": "2.0.0-beta.50",
     "@orpc/client": "2.0.0-beta.50",
     "@orpc/contract": "2.0.0-beta.50",
@@ -62,6 +63,7 @@
     "qrcode-generator": "1.4.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "resend": "^6.39.0",
     "tailwindcss": "^4.1.18",
     "tldts": "^7.4.24"
   },
