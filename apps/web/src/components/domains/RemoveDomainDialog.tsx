@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useForm } from '@tanstack/react-form'
 import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
@@ -10,6 +11,7 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import type { Domain } from '#/lib/api/types'
 import { exportLinks } from '#/lib/settings/export-links'
+import { firstError, submitWith } from '#/lib/forms/fields'
 
 type RemoveDomainDialogProps = {
   isOpen: boolean
@@ -26,34 +28,33 @@ type RemoveDomainDialogProps = {
  */
 export default function RemoveDomainDialog({ isOpen, onOpenChange, domain, onRemove }: RemoveDomainDialogProps) {
   const { activeOrg, links } = useOrganization()
-  const [confirmation, setConfirmation] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isRemoving, setIsRemoving] = useState(false)
-
-  useEffect(() => {
-    if (!isOpen) return
-    setConfirmation('')
-    setError(null)
-  }, [isOpen])
 
   const domainLinks = links.filter((l) => l.domainId === domain.id)
   const count = Math.max(domain.linkCount, domainLinks.length)
   const one = count === 1
   const linksLabel = `${count} short ${one ? 'link' : 'links'}`
-  const canConfirm = count === 0 || confirmation.trim().toLowerCase() === domain.hostname
+  const isConfirmed = (confirmation: string) => count === 0 || confirmation.trim().toLowerCase() === domain.hostname
 
-  const remove = async () => {
-    setIsRemoving(true)
-    setError(null)
-    try {
-      await onRemove()
-      onOpenChange(false)
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not remove the domain.')
-    } finally {
-      setIsRemoving(false)
-    }
-  }
+  const form = useForm({
+    defaultValues: { confirmation: '' },
+    validators: {
+      onSubmitAsync: async ({ value }) => {
+        if (!isConfirmed(value.confirmation)) return 'Type the domain name to confirm.'
+        try {
+          await onRemove()
+          return undefined
+        } catch (caught) {
+          return caught instanceof Error ? caught.message : 'Could not remove the domain.'
+        }
+      },
+    },
+    onSubmit: () => onOpenChange(false),
+  })
+
+  useEffect(() => {
+    if (isOpen) form.reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   return (
     <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={460}>
@@ -61,6 +62,7 @@ export default function RemoveDomainDialog({ isOpen, onOpenChange, domain, onRem
         header={<DialogHeader title={`Remove ${domain.hostname}?`} onOpenChange={onOpenChange} />}
         content={
           <LayoutContent>
+            <form noValidate onSubmit={submitWith(form)}>
             <VStack gap={4} hAlign="stretch" width="100%">
               {count === 0 ? (
                 <Text type="supporting" color="secondary">
@@ -85,33 +87,46 @@ export default function RemoveDomainDialog({ isOpen, onOpenChange, domain, onRem
                       onClick={() => exportLinks(domainLinks, 'csv', `${activeOrg.slug}-${domain.hostname}`)}
                     />
                   </HStack>
-                  <TextInput
-                    label={`Type ${domain.hostname} to confirm`}
-                    value={confirmation}
-                    onChange={setConfirmation}
-                    autoComplete="off"
-                    autoCapitalize="none"
-                    hasSpellCheck={false}
-                    width="100%"
-                  />
+                  <form.Field name="confirmation">
+                    {(field) => (
+                      <TextInput
+                        label={`Type ${domain.hostname} to confirm`}
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        autoComplete="off"
+                        autoCapitalize="none"
+                        hasSpellCheck={false}
+                        width="100%"
+                      />
+                    )}
+                  </form.Field>
                 </>
               )}
-              {error ? <Banner status="error" title={error} /> : null}
+              <form.Subscribe selector={(state) => firstError(state.errors)}>
+                {(error) => (error ? <Banner status="error" title={error} /> : null)}
+              </form.Subscribe>
             </VStack>
+            </form>
           </LayoutContent>
         }
         footer={
           <LayoutFooter hasDivider>
             <HStack gap={2} hAlign="end" width="100%">
-              <Button variant="ghost" size="sm" label="Cancel" isDisabled={isRemoving} onClick={() => onOpenChange(false)} />
-              <Button
-                variant="destructive"
-                size="sm"
-                label={count === 0 ? 'Remove domain' : `Remove and delete ${linksLabel}`}
-                isDisabled={!canConfirm}
-                isLoading={isRemoving}
-                onClick={() => void remove()}
-              />
+              <form.Subscribe selector={(state) => [state.isSubmitting, isConfirmed(state.values.confirmation)] as const}>
+                {([isRemoving, canConfirm]) => (
+                  <>
+                    <Button variant="ghost" size="sm" label="Cancel" isDisabled={isRemoving} onClick={() => onOpenChange(false)} />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      label={count === 0 ? 'Remove domain' : `Remove and delete ${linksLabel}`}
+                      isDisabled={!canConfirm}
+                      isLoading={isRemoving}
+                      onClick={() => void form.handleSubmit()}
+                    />
+                  </>
+                )}
+              </form.Subscribe>
             </HStack>
           </LayoutFooter>
         }

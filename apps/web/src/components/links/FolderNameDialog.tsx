@@ -7,9 +7,9 @@ import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
-import { FormFields } from '#/lib/forms/fields'
+import { fieldStatus, requiredText, submitWith } from '#/lib/forms/fields'
 
-const FolderNameSchema = type({ name: FormFields.required('Enter a folder name.') })
+const FolderNameSchema = type({ name: requiredText('Enter a folder name.') })
 
 type FolderNameDialogProps = {
   isOpen: boolean
@@ -75,11 +75,7 @@ export default function FolderNameDialog({
           <LayoutContent padding={FOLDER_DIALOG_PADDING}>
             <form
               noValidate
-              onSubmit={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                void form.handleSubmit()
-              }}
+              onSubmit={submitWith(form)}
             >
               <form.Field name="name">
                 {(field) => (
@@ -88,7 +84,7 @@ export default function FolderNameDialog({
                     placeholder="e.g. Q4 campaign"
                     value={field.state.value}
                     onChange={field.handleChange}
-                    status={FormFields.status(field.state.meta.errors)}
+                    status={fieldStatus(field.state.meta.errors)}
                     hasAutoFocus
                     isRequired
                     width="100%"

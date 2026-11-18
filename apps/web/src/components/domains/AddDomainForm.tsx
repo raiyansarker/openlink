@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useForm } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@astryxdesign/core/Button'
 import { Heading } from '@astryxdesign/core/Heading'
@@ -11,49 +11,38 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { isValidCustomHostname } from '#/lib/domains/hostname'
+import { checkedText, fieldStatus, submitWith } from '#/lib/forms/fields'
 import DomainIllustration from './DomainIllustration'
+
+const normalize = (hostname: string) => hostname.trim().toLowerCase()
+
+const HostnameField = checkedText((value) => {
+  const host = normalize(value)
+  if (!host) return 'Enter a hostname.'
+  return isValidCustomHostname(host) ? null : 'Use a valid hostname (e.g. links.example.com).'
+})
 
 export default function AddDomainForm() {
   const { activeOrg } = useOrganization()
   const { addDomain } = useDomainsWorkspace()
   const navigate = useNavigate()
 
-  const [hostname, setHostname] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
+  const backToDomains = () => void navigate({ to: '/w/$orgSlug/domains', params: { orgSlug: activeOrg.slug } })
 
-  const onHostnameChange = (value: string) => {
-    const stripped = value.replace(/^https?:\/\//i, '')
-    setHostname(stripped)
-    if (error) setError(null)
-  }
-
-  const submit = async () => {
-    if (isSaving) return
-    const normalized = hostname.trim().toLowerCase()
-    if (!normalized) {
-      setError('Enter a hostname.')
-      return
-    }
-    if (!isValidCustomHostname(normalized)) {
-      setError('Use a valid hostname (e.g. links.example.com).')
-      return
-    }
-
-    setIsSaving(true)
-    try {
-      await addDomain(normalized)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add the domain.')
-      return
-    } finally {
-      setIsSaving(false)
-    }
-    void navigate({
-      to: '/w/$orgSlug/domains',
-      params: { orgSlug: activeOrg.slug },
-    })
-  }
+  const form = useForm({
+    defaultValues: { hostname: '' },
+    validators: {
+      onSubmitAsync: async ({ value }) => {
+        try {
+          await addDomain(normalize(value.hostname))
+          return undefined
+        } catch (err) {
+          return { fields: { hostname: err instanceof Error ? err.message : 'Could not add the domain.' } }
+        }
+      },
+    },
+    onSubmit: backToDomains,
+  })
 
   return (
     <VStack gap={5} hAlign="stretch" width="100%">
@@ -65,34 +54,34 @@ export default function AddDomainForm() {
         </Text>
       </VStack>
 
-      <InputGroup label="Custom domain">
-        <InputGroupText>https://</InputGroupText>
-        <TextInput
-          label="Hostname"
-          isLabelHidden
-          placeholder="links.example.com"
-          value={hostname}
-          onChange={onHostnameChange}
-          description={
-            error ?? 'Hostname only — not a path or wildcard.'
-          }
-          hasAutoFocus
-        />
-      </InputGroup>
+      <form noValidate onSubmit={submitWith(form)}>
+        <VStack gap={5} hAlign="stretch" width="100%">
+          <form.Field name="hostname" validators={{ onSubmit: HostnameField }}>
+            {(field) => (
+              <InputGroup label="Custom domain" status={fieldStatus(field.state.meta.errors)}>
+                <InputGroupText>https://</InputGroupText>
+                <TextInput
+                  label="Hostname"
+                  isLabelHidden
+                  placeholder="links.example.com"
+                  value={field.state.value}
+                  // A pasted URL keeps only its host part.
+                  onChange={(value) => field.handleChange(value.replace(/^https?:\/\//i, ''))}
+                  description="Hostname only — not a path or wildcard."
+                  hasAutoFocus
+                />
+              </InputGroup>
+            )}
+          </form.Field>
 
-      <HStack gap={3} hAlign="end" width="100%" wrap="wrap">
-        <Button
-          variant="secondary"
-          label="Cancel"
-          onClick={() =>
-            void navigate({
-              to: '/w/$orgSlug/domains',
-              params: { orgSlug: activeOrg.slug },
-            })
-          }
-        />
-        <Button variant="primary" label="Continue" isLoading={isSaving} onClick={() => void submit()} />
-      </HStack>
+          <HStack gap={3} hAlign="end" width="100%" wrap="wrap">
+            <Button variant="secondary" label="Cancel" onClick={backToDomains} />
+            <form.Subscribe selector={(state) => state.isSubmitting}>
+              {(isSubmitting) => <Button variant="primary" type="submit" label="Continue" isLoading={isSubmitting} />}
+            </form.Subscribe>
+          </HStack>
+        </VStack>
+      </form>
     </VStack>
   )
 }

@@ -20,7 +20,7 @@ import { AuthSession } from '#/lib/auth/client'
 import { authCall } from '#/lib/auth/errors'
 import { SquareImage } from '#/lib/media/square-image'
 import { MediaUploads } from '#/lib/media/uploads'
-import { FormFields } from '#/lib/forms/fields'
+import { fieldStatus, submitWith } from '#/lib/forms/fields'
 import { ProfileRules } from '#/lib/profile/rules'
 
 const ProfileNameSchema = type({
@@ -220,11 +220,7 @@ export default function ProfileSettingsFields() {
         <form
           style={{ width: '100%' }}
           noValidate
-          onSubmit={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            void nameForm.handleSubmit()
-          }}
+          onSubmit={submitWith(nameForm)}
         >
           <VStack gap={2} hAlign="start" width="100%">
             <nameForm.Field name="name">
@@ -239,7 +235,7 @@ export default function ProfileSettingsFields() {
                     field.handleChange(value)
                   }}
                   autoComplete="name"
-                  status={FormFields.status(field.state.meta.errors)}
+                  status={fieldStatus(field.state.meta.errors)}
                 />
               )}
             </nameForm.Field>

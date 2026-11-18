@@ -10,15 +10,15 @@ import { VStack } from '@astryxdesign/core/VStack'
 import PasswordField from '#/components/common/PasswordField'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
-import { FormFields } from '#/lib/forms/fields'
+import { fieldStatus, requiredEmail, requiredExact, submitWith } from '#/lib/forms/fields'
 import AuthShell from './AuthShell'
 import ProviderButtons, { hasProviders } from './ProviderButtons'
 import { useAuthActions, type AuthProvider } from './use-auth-actions'
 
 const SignUpSchema = type({
   name: 'string',
-  email: FormFields.email({ required: 'Enter your email address.', invalid: 'Enter a valid email address.' }),
-  password: FormFields.requiredExact('Enter a password.'),
+  email: requiredEmail({ required: 'Enter your email address.', invalid: 'Enter a valid email address.' }),
+  password: requiredExact('Enter a password.'),
 })
 
 type SignUpPageProps = {
@@ -78,11 +78,7 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
           <form
             method="post"
             noValidate
-            onSubmit={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              void form.handleSubmit()
-            }}
+            onSubmit={submitWith(form)}
           >
             <VStack gap={4} hAlign="stretch">
               <form.Field name="name">
@@ -107,7 +103,7 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
                     placeholder="you@company.com"
                     value={field.state.value}
                     onChange={field.handleChange}
-                    status={FormFields.status(field.state.meta.errors)}
+                    status={fieldStatus(field.state.meta.errors)}
                     autoComplete="email"
                     autoCapitalize="none"
                     hasSpellCheck={false}
@@ -124,7 +120,7 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
                     placeholder="At least 8 characters"
                     value={field.state.value}
                     onChange={field.handleChange}
-                    status={FormFields.status(field.state.meta.errors)}
+                    status={fieldStatus(field.state.meta.errors)}
                     autoComplete="new-password"
                     htmlName="password"
                     isRequired

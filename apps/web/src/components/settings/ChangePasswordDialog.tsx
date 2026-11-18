@@ -9,13 +9,13 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 
-import { FormFields } from '#/lib/forms/fields'
+import { fieldStatus, firstError, requiredExact, submitWith } from '#/lib/forms/fields'
 import { AuthSession } from '#/lib/auth/client'
 import { authCall } from '#/lib/auth/errors'
 import { ProfileRules } from '#/lib/profile/rules'
 
 const ChangePasswordSchema = type({
-  current: FormFields.requiredExact('Enter your current password.'),
+  current: requiredExact('Enter your current password.'),
   next: 'string',
   confirm: 'string',
 })
@@ -65,11 +65,7 @@ export default function ChangePasswordDialog({ isOpen, onOpenChange, onChanged }
           <LayoutContent>
             <form
               noValidate
-              onSubmit={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                void form.handleSubmit()
-              }}
+              onSubmit={submitWith(form)}
             >
             <VStack gap={4} hAlign="stretch" width="100%">
               <form.Field name="current">
@@ -79,7 +75,7 @@ export default function ChangePasswordDialog({ isOpen, onOpenChange, onChanged }
                     type="password"
                     value={field.state.value}
                     onChange={field.handleChange}
-                    status={FormFields.status(field.state.meta.errors)}
+                    status={fieldStatus(field.state.meta.errors)}
                     autoComplete="current-password"
                     hasAutoFocus
                     width="100%"
@@ -114,7 +110,7 @@ export default function ChangePasswordDialog({ isOpen, onOpenChange, onChanged }
               <Text type="supporting" color="secondary">
                 You stay signed in here. Other devices are signed out.
               </Text>
-              <form.Subscribe selector={(state) => FormFields.firstError(state.errors)}>
+              <form.Subscribe selector={(state) => firstError(state.errors)}>
                 {(error) =>
                   error ? (
                     <Text type="supporting" weight="medium" role="alert">

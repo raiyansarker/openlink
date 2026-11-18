@@ -13,7 +13,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import type { Role } from '#/lib/api/types'
-import { FormFields } from '#/lib/forms/fields'
+import { fieldStatus, requiredEmail, submitWith } from '#/lib/forms/fields'
 import {
   ASSIGNABLE_WORKSPACE_ROLES,
   WORKSPACE_MEMBER_ROLE_HELP,
@@ -25,7 +25,7 @@ import {
 } from './floating-end-drawer'
 
 const InviteSchema = type({
-  email: FormFields.email({ required: 'Enter an email address.', invalid: 'Enter a valid email address.' }),
+  email: requiredEmail({ required: 'Enter an email address.', invalid: 'Enter a valid email address.' }),
   role: "'member' | 'admin' | 'owner'",
 })
 
@@ -87,11 +87,7 @@ export default function InviteMemberDrawer({
           <LayoutContent>
             <form
               noValidate
-              onSubmit={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                void form.handleSubmit()
-              }}
+              onSubmit={submitWith(form)}
             >
               <VStack gap={6} hAlign="stretch" width="100%">
                 <VStack gap={1} hAlign="start" width="100%">
@@ -110,7 +106,7 @@ export default function InviteMemberDrawer({
                       placeholder="colleague@company.com"
                       value={field.state.value}
                       onChange={field.handleChange}
-                      status={FormFields.status(field.state.meta.errors)}
+                      status={fieldStatus(field.state.meta.errors)}
                       isRequired
                       hasAutoFocus
                     />

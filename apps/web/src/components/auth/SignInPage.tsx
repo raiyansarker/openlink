@@ -13,15 +13,15 @@ import { VStack } from '@astryxdesign/core/VStack'
 import PasswordField from '#/components/common/PasswordField'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
-import { FormFields } from '#/lib/forms/fields'
+import { fieldStatus, requiredExact, requiredText, submitWith } from '#/lib/forms/fields'
 import { PasskeySupport } from './auth-icons'
 import AuthShell from './AuthShell'
 import ProviderButtons, { hasProviders } from './ProviderButtons'
 import { useAuthActions, type AuthProvider } from './use-auth-actions'
 
 const SignInSchema = type({
-  email: FormFields.required('Enter your email address.'),
-  password: FormFields.requiredExact('Enter your password.'),
+  email: requiredText('Enter your email address.'),
+  password: requiredExact('Enter your password.'),
 })
 
 type SignInPageProps = {
@@ -107,11 +107,7 @@ export default function SignInPage({ destination, redirect, oauthError, provider
           <form
             method="post"
             noValidate
-            onSubmit={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              void form.handleSubmit()
-            }}
+            onSubmit={submitWith(form)}
           >
             <VStack gap={4} hAlign="stretch">
               <form.Field name="email">
@@ -122,7 +118,7 @@ export default function SignInPage({ destination, redirect, oauthError, provider
                     placeholder="you@company.com"
                     value={field.state.value}
                     onChange={field.handleChange}
-                    status={FormFields.status(field.state.meta.errors)}
+                    status={fieldStatus(field.state.meta.errors)}
                     // "webauthn" lets the browser offer saved passkeys right here.
                     autoComplete="username webauthn"
                     autoCapitalize="none"
@@ -141,7 +137,7 @@ export default function SignInPage({ destination, redirect, oauthError, provider
                       placeholder="Enter your password"
                       value={field.state.value}
                       onChange={field.handleChange}
-                      status={FormFields.status(field.state.meta.errors)}
+                      status={fieldStatus(field.state.meta.errors)}
                       autoComplete="current-password webauthn"
                       htmlName="password"
                       isRequired
