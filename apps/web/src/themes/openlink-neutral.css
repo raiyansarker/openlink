@@ -557,7 +557,7 @@
 
   .astryx-text-input:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--color-info);
   }
 
   .astryx-text-area {
@@ -571,7 +571,7 @@
 
   .astryx-text-area:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--color-info);
   }
 
   .astryx-number-input {
@@ -585,7 +585,7 @@
 
   .astryx-number-input:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--color-info);
   }
 
   .astryx-selector[data-variant="input"] {
@@ -599,7 +599,7 @@
 
   .astryx-selector[data-variant="input"]:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--color-info);
   }
 
   .astryx-tokenizer {
@@ -613,7 +613,7 @@
 
   .astryx-tokenizer:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--color-info);
   }
 
   .astryx-date-time-input {
@@ -627,7 +627,7 @@
 
   .astryx-date-time-input:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--color-info);
   }
 
   .astryx-input-group {

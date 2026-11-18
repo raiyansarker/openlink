@@ -17,7 +17,7 @@ const OPENLINK_BG_POPOVER = ['#ffffff', '#1f1f24'] as const
 const INPUT_FIELD_RADIUS = 'var(--radius-element)'
 
 /**
- * Border-only focus in the neutral accent, no inset shadow rings on fields.
+ * Border-only focus in blue (the theme's info color), no inset shadow rings on fields.
  * Not brand orange: an orange border on a field reads as an error.
  * No `borderRadius` here: fields already use `--radius-element`, and setting it
  * in the theme layer would override InputGroup's square inner corners.
@@ -27,7 +27,7 @@ const INPUT_QUIET_FOCUS = {
   ':hover': { boxShadow: 'none' },
   ':focus-within': {
     boxShadow: 'none',
-    borderColor: 'var(--color-accent)',
+    borderColor: 'var(--color-info)',
   },
 } as const
 
