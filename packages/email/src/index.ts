@@ -8,3 +8,4 @@ export { default as PasswordResetEmail } from "../emails/password-reset";
 export type { PasswordResetEmailProps } from "../emails/password-reset";
 export { default as SecurityAlertEmail } from "../emails/security-alert";
 export type { SecurityAlertEmailProps } from "../emails/security-alert";
+export type { EmailLayoutProps } from "./email-ui";

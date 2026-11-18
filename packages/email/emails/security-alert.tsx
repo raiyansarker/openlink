@@ -15,6 +15,7 @@ export type SecurityAlertEmailProps = {
   location: string;
   occurredAt: string;
   securityUrl: string;
+  baseUrl?: string;
   logoUrl?: string;
 };
 
@@ -25,6 +26,7 @@ const defaultProps: SecurityAlertEmailProps = {
   location: "San Francisco, United States",
   occurredAt: "December 5, 2026 at 10:42 AM PST",
   securityUrl: "https://openlink.example/settings/devices",
+  baseUrl: "https://openlink.example",
   logoUrl: "/logo192.png",
 };
 
@@ -35,10 +37,12 @@ export default function SecurityAlertEmail({
   location,
   occurredAt,
   securityUrl,
+  baseUrl,
   logoUrl,
 }: SecurityAlertEmailProps = defaultProps) {
   return (
     <EmailLayout
+      baseUrl={baseUrl}
       logoUrl={logoUrl}
       preview={`New security activity on your OpenLink account`}
       footer="If you didn’t do this, secure your account immediately."

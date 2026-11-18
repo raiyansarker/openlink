@@ -29,17 +29,21 @@ export const colors = {
 
 const fontFamily = "Arial, Helvetica, sans-serif";
 
+export type EmailLayoutProps = {
+  preview: string;
+  children: ReactNode;
+  footer?: string;
+  baseUrl?: string;
+  logoUrl?: string;
+};
+
 export function EmailLayout({
   preview,
   children,
   footer = "You received this message from OpenLink.",
+  baseUrl = "https://openlink.example",
   logoUrl = "/logo192.png",
-}: {
-  preview: string;
-  children: ReactNode;
-  footer?: string;
-  logoUrl?: string;
-}) {
+}: EmailLayoutProps) {
   return (
     <Html>
       <Head />
@@ -66,14 +70,11 @@ export function EmailLayout({
           <Hr style={styles.rule} />
           <Text style={styles.footer}>{footer}</Text>
           <Text style={styles.footerLinks}>
-            <Link href="https://openlink.example" style={styles.footerLink}>
+            <Link href={baseUrl} style={styles.footerLink}>
               OpenLink
             </Link>
             {"  ·  "}
-            <Link
-              href="https://openlink.example/settings"
-              style={styles.footerLink}
-            >
+            <Link href={`${baseUrl}/settings`} style={styles.footerLink}>
               Account settings
             </Link>
           </Text>

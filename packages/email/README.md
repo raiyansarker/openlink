@@ -26,7 +26,7 @@ The preview server runs on port `3001`. Build all templates with `bun run build 
 
 The explicit demo previews are available at `/preview/demo-workspace-invite` and `/preview/demo-security-alert`.
 
-Each template accepts an optional `logoUrl` prop. It defaults to `/logo192.png` for previews; when sending an email, pass the absolute URL for the PNG hosted by the web application, for example `https://app.example.com/logo192.png`.
+Each template accepts optional `baseUrl` and `logoUrl` props. `baseUrl` is used for shared footer links, while `logoUrl` defaults to `/logo192.png` for previews. When sending an email, pass the application URL and the absolute URL for the hosted PNG, for example `baseUrl="https://app.example.com"` and `logoUrl="https://app.example.com/logo192.png"`.
 
 ## Integration note
 

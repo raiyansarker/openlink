@@ -9,22 +9,29 @@ import {
 export type WelcomeEmailProps = {
   name: string;
   dashboardUrl: string;
+  baseUrl?: string;
   logoUrl?: string;
 };
 
 const defaultProps: WelcomeEmailProps = {
   name: "Alex",
   dashboardUrl: "https://openlink.example/dashboard",
+  baseUrl: "https://openlink.example",
   logoUrl: "/logo192.png",
 };
 
 export function WelcomeEmail({
   name,
   dashboardUrl,
+  baseUrl,
   logoUrl,
 }: WelcomeEmailProps = defaultProps) {
   return (
-    <EmailLayout logoUrl={logoUrl} preview="Welcome to OpenLink">
+    <EmailLayout
+      baseUrl={baseUrl}
+      logoUrl={logoUrl}
+      preview="Welcome to OpenLink"
+    >
       <EmailHeading eyebrow="Welcome to OpenLink">
         Your workspace is ready
       </EmailHeading>

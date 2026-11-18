@@ -14,6 +14,7 @@ export type WorkspaceInviteEmailProps = {
   role: string;
   inviteUrl: string;
   expiresAt: string;
+  baseUrl?: string;
   logoUrl?: string;
 };
 
@@ -24,6 +25,7 @@ const defaultProps: WorkspaceInviteEmailProps = {
   role: "Member",
   inviteUrl: "https://openlink.example/invites/example-token",
   expiresAt: "December 12, 2026",
+  baseUrl: "https://openlink.example",
   logoUrl: "/logo192.png",
 };
 
@@ -34,10 +36,12 @@ export default function WorkspaceInviteEmail({
   role,
   inviteUrl,
   expiresAt,
+  baseUrl,
   logoUrl,
 }: WorkspaceInviteEmailProps = defaultProps) {
   return (
     <EmailLayout
+      baseUrl={baseUrl}
       logoUrl={logoUrl}
       preview={`${inviterName} invited you to ${workspaceName}`}
     >

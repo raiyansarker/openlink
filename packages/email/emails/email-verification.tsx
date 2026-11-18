@@ -10,6 +10,7 @@ export type EmailVerificationEmailProps = {
   name: string;
   verifyUrl: string;
   expiresIn: string;
+  baseUrl?: string;
   logoUrl?: string;
 };
 
@@ -17,6 +18,7 @@ const defaultProps: EmailVerificationEmailProps = {
   name: "Alex",
   verifyUrl: "https://openlink.example/verify/example-token",
   expiresIn: "24 hours",
+  baseUrl: "https://openlink.example",
   logoUrl: "/logo192.png",
 };
 
@@ -24,10 +26,15 @@ export default function EmailVerificationEmail({
   name,
   verifyUrl,
   expiresIn,
+  baseUrl,
   logoUrl,
 }: EmailVerificationEmailProps = defaultProps) {
   return (
-    <EmailLayout logoUrl={logoUrl} preview="Verify your OpenLink email address">
+    <EmailLayout
+      baseUrl={baseUrl}
+      logoUrl={logoUrl}
+      preview="Verify your OpenLink email address"
+    >
       <EmailHeading eyebrow="Account setup">Verify your email</EmailHeading>
       <Text style={emailStyles.text}>Hi {name},</Text>
       <Text style={emailStyles.text}>
