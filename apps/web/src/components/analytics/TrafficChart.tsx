@@ -14,10 +14,9 @@ import { d3Curve } from '@tanstack/charts/d3/shape'
 import { Chart } from '@tanstack/charts/react'
 import { scaleBand } from '@tanstack/charts/scales/band'
 import { scaleLinear } from '@tanstack/charts/scales/linear'
-import { tooltip } from '@tanstack/charts/tooltip'
 import { scaleTime } from 'd3-scale'
 import { curveMonotoneX } from 'd3-shape'
-import { CHANNEL_COLORS, NEUTRAL_SERIES, SERIES_COLORS, chartHostStyle } from '#/components/analytics/chart-theme'
+import { CHANNEL_COLORS, HOVER_TOOLTIP, NEUTRAL_SERIES, NO_CHART_FOCUS, SERIES_COLORS, chartHostStyle } from '#/components/analytics/chart-theme'
 import type { AnalyticsReport } from '#/lib/analytics/report'
 import { formatCompact, formatNumber } from '#/lib/analytics/format'
 import { BucketFormat } from '#/lib/analytics/traffic-summary'
@@ -114,8 +113,9 @@ function TotalChart({ report, isComparing, ...host }: ViewProps) {
         legend: colorLegend(),
       },
       focus: 'group-x',
+      ...NO_CHART_FOCUS,
       tooltip: {
-        use: tooltip,
+        ...HOVER_TOOLTIP,
         content: (points, context) =>
           TooltipRows.of(
             points.filter((point) => !(point.datum as TimePoint).isFill),
@@ -168,8 +168,9 @@ function ChannelChart({ report, isComparing, ...host }: ViewProps) {
         legend: colorLegend(),
       },
       focus: 'group-x',
+      ...NO_CHART_FOCUS,
       tooltip: {
-        use: tooltip,
+        ...HOVER_TOOLTIP,
         content: (points, context) =>
           TooltipRows.of(
             // Channels with no clicks in this bucket only add noise.

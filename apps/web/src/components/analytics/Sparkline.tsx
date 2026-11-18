@@ -4,6 +4,7 @@ import { d3Curve } from '@tanstack/charts/d3/shape'
 import { Chart } from '@tanstack/charts/react'
 import { scaleLinear } from '@tanstack/charts/scales/linear'
 import { scaleTime } from 'd3-scale'
+import { NO_CHART_FOCUS } from '#/components/analytics/chart-theme'
 import { curveMonotoneX } from 'd3-shape'
 
 type SparklinePoint = { time: Date; value: number }
@@ -43,6 +44,7 @@ export default function Sparkline({ points, color, label, height = 40 }: Sparkli
           y: { scale: scaleLinear, axis: false, nice: 5 },
         },
         margin: 0,
+        ...NO_CHART_FOCUS,
       }),
     [points, color],
   )

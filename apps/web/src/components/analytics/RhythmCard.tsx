@@ -3,10 +3,9 @@ import { barY, defineChart } from '@tanstack/charts'
 import { Chart } from '@tanstack/charts/react'
 import { scaleBand } from '@tanstack/charts/scales/band'
 import { scaleLinear } from '@tanstack/charts/scales/linear'
-import { tooltip } from '@tanstack/charts/tooltip'
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl'
 import AnalyticsCard from '#/components/analytics/AnalyticsCard'
-import { SERIES_COLORS, chartHostStyle } from '#/components/analytics/chart-theme'
+import { HOVER_TOOLTIP, NO_CHART_FOCUS, SERIES_COLORS, chartHostStyle } from '#/components/analytics/chart-theme'
 import { formatCompact, formatNumber, formatPercent } from '#/lib/analytics/format'
 import type { AnalyticsReport } from '#/lib/analytics/report'
 
@@ -70,8 +69,9 @@ export default function RhythmCard({ report }: { report: AnalyticsReport }) {
         },
         focus: 'nearest-x',
         focusRing: false,
+        ...NO_CHART_FOCUS,
         tooltip: {
-          use: tooltip,
+          ...HOVER_TOOLTIP,
           format: (point) => `${point.datum.label}\n${formatNumber(point.datum.clicks)} clicks · ${formatPercent(point.datum.share)}`,
         },
       }),
