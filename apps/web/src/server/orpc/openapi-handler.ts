@@ -1,5 +1,6 @@
 import { OpenAPIHandler } from '@orpc/openapi/fetch'
 import { COMMON_ERROR_STATUS_MAP, ORPCError, onError } from '@orpc/server'
+import { CORSPlugin } from '@orpc/server/plugins'
 import { mergeStandardHeaders } from '@standard-server/core'
 import { Effect } from 'effect'
 import { operation } from '#/server/effect/operations'
@@ -42,6 +43,14 @@ class ProcedureFailureLog {
 }
 
 export const openApiHandler = new OpenAPIHandler<ApiContext>(router, {
+  plugins: [
+    // Public API: any origin. Credentials stay off, so cross-origin callers use `Authorization: Bearer <api key>`.
+    new CORSPlugin<ApiContext>({
+      origin: '*',
+      maxAge: 60 * 60 * 24,
+      exposeHeaders: ['retry-after'],
+    }),
+  ],
   clientInterceptors: [
     onError((error, { path, context }) => ProcedureFailureLog.record(error, path, context.request)),
   ],
