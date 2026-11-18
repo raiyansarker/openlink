@@ -44,8 +44,8 @@
 		}
 	],
   "observability": {
-    // Only issue detection is on; logs and traces are not enabled.
-    "issue_detection": {
+    // Only Issues is on; logs and traces are not enabled.
+    "issues": {
       "enabled": true
     }
   },
