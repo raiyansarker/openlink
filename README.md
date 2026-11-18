@@ -98,6 +98,7 @@ Web-only or database:
 ```sh
 bun run dev --filter=web
 cd apps/web && bun run db:migrate:local
+cd apps/web && bun run db:studio      # browse the local D1 database in Drizzle Studio
 cd apps/web && bun run deploy    # build + wrangler deploy (Cloudflare auth required)
 ```
 
