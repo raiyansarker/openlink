@@ -54,15 +54,10 @@ export default function WorkspaceMembersPanel() {
   const [searchQuery, setSearchQuery] = useState('')
   const [detailMember, setDetailMember] = useState<WorkspaceMember | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<WorkspaceMemberRole>('member')
-  const [inviteError, setInviteError] = useState<string | null>(null)
 
   useEffect(() => {
     setSearchQuery('')
     setDetailMember(null)
-    setInviteEmail('')
-    setInviteError(null)
   }, [activeOrg.id])
 
   const filteredMembers = useMemo(
@@ -71,9 +66,6 @@ export default function WorkspaceMembersPanel() {
   )
 
   const openInvite = () => {
-    setInviteRole('member')
-    setInviteEmail('')
-    setInviteError(null)
     setInviteOpen(true)
   }
 
@@ -98,32 +90,18 @@ export default function WorkspaceMembersPanel() {
 
   const resendInvite = (memberId: string) => action.mutate(() => membersApi.resendInvite(activeOrg.id, memberId))
 
-  const submitInvite = () => {
-    const email = inviteEmail.trim().toLowerCase()
-    if (!email) {
-      setInviteError('Enter an email address.')
-      return
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setInviteError('Enter a valid email address.')
-      return
-    }
+  const submitInvite = async (email: string, role: WorkspaceMemberRole) => {
     if (members.some((m) => m.email.toLowerCase() === email)) {
-      setInviteError('This email is already in the workspace.')
-      return
+      throw new Error('This email is already in the workspace.')
     }
-
-    if (inviteRole === 'owner') return
-    const role: AssignableRole = inviteRole
-    setInviteError(null)
-    membersApi
-      .invite(activeOrg.id, email, role)
-      .then(async () => {
-        await queryClient.invalidateQueries({ queryKey: QueryKeys.members(activeOrg.id) })
-        setInviteOpen(false)
-        setInviteEmail('')
-      })
-      .catch((error) => setInviteError(ApiError.message(error, 'Could not send the invite.')))
+    if (role === 'owner') return
+    const assignable: AssignableRole = role
+    try {
+      await membersApi.invite(activeOrg.id, email, assignable)
+    } catch (error) {
+      throw new Error(ApiError.message(error, 'Could not send the invite.'))
+    }
+    await queryClient.invalidateQueries({ queryKey: QueryKeys.members(activeOrg.id) })
   }
 
   const rows = filteredMembers as MemberRow[]
@@ -260,11 +238,6 @@ export default function WorkspaceMembersPanel() {
         isOpen={inviteOpen}
         onOpenChange={setInviteOpen}
         workspaceName={activeOrg.name}
-        email={inviteEmail}
-        onEmailChange={setInviteEmail}
-        role={inviteRole}
-        onRoleChange={setInviteRole}
-        error={inviteError}
         onSubmit={submitInvite}
       />
     </VStack>
