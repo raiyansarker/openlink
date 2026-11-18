@@ -1,10 +1,10 @@
-import type { DragEvent } from 'react'
+import { useMemo, type DragEvent } from 'react'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Table, pixel, proportional } from '@astryxdesign/core/Table'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import Favicon from '#/components/create-link/Favicon'
-import { handleDomainsTableRowClick } from '#/components/domains/domains-table-row-click'
+import { clickableRows } from '#/lib/tables/clickable-rows'
 import ItemMenuButton from '#/components/links/ItemMenuButton'
 import {
   DRAG_MIME,
@@ -31,25 +31,23 @@ export default function LinksListView({
   onOpenLink,
 }: LinksListViewProps) {
   const rows = links as Row[]
+  const rowPlugins = useMemo(
+    () => ({ open: clickableRows<Row>((row) => onOpenLink(row), (row) => `Open ${linkTitle(row)}`) }),
+    [onOpenLink],
+  )
   const { shortUrlFor } = useOrganization()
 
   return (
     <VStack gap={3} hAlign="stretch" width="100%">
-      {/* Row click opens the link; nested controls keep their own behaviour. */}
-      <div
-        onClick={(event) =>
-          handleDomainsTableRowClick(event, rows.length, (index) =>
-            onOpenLink(links[index]!),
-          )
-        }
-        style={{ cursor: 'pointer' }}
-      >
+      {/* Each row opens its link; nested controls keep their own behaviour. */}
+      <VStack hAlign="stretch" width="100%">
         <Table<Row>
           data={rows}
           idKey="id"
           density="balanced"
           dividers="rows"
           hasHover
+          plugins={rowPlugins}
           columns={[
             {
               key: 'title',
@@ -151,7 +149,7 @@ export default function LinksListView({
             },
           ]}
         />
-      </div>
+      </VStack>
     </VStack>
   )
 }

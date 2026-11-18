@@ -18,8 +18,8 @@ import { useOrganization } from '#/contexts/OrganizationContext'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import InviteMemberDrawer from './InviteMemberDrawer'
 import MemberDetailDrawer from './MemberDetailDrawer'
+import { clickableRows } from '#/lib/tables/clickable-rows'
 import MemberRowMenu from './MemberRowMenu'
-import MemberTableRowButton from './MemberTableRowButton'
 
 type MemberRow = Person & Record<string, unknown>
 
@@ -104,6 +104,12 @@ export default function WorkspaceMembersPanel() {
   }
 
   const rows = filteredMembers as MemberRow[]
+  // The whole row opens the member; only the actions menu inside it is separate.
+  const rowPlugins = useMemo(
+    () => ({ open: clickableRows<MemberRow>(openMemberDetail, (row) => `Open ${row.name}`) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
 
   return (
     <VStack gap={5} hAlign="stretch" width="100%">
@@ -134,7 +140,7 @@ export default function WorkspaceMembersPanel() {
         onChange={setSearchQuery}
       />
 
-      <VStack className="members-table" width="100%" hAlign="stretch">
+      <VStack className="members-table members-table--clickable-rows" width="100%" hAlign="stretch">
         <Table<MemberRow>
           className="members-table__grid"
           data={rows}
@@ -142,13 +148,14 @@ export default function WorkspaceMembersPanel() {
           density="balanced"
           dividers="rows"
           textOverflow="wrap"
+          plugins={rowPlugins}
           columns={[
           {
             key: 'name',
             header: 'Name',
             width: proportional(1, { minWidth: 140 }),
             renderCell: (row) => (
-              <MemberTableRowButton member={row} onOpen={openMemberDetail}>
+              <HStack gap={3} vAlign="center">
                 <Avatar
                   src={row.image}
                   name={row.name}
@@ -158,7 +165,7 @@ export default function WorkspaceMembersPanel() {
                 <Text weight="semibold" maxLines={1}>
                   {row.name}
                 </Text>
-              </MemberTableRowButton>
+              </HStack>
             ),
           },
           {
@@ -166,11 +173,9 @@ export default function WorkspaceMembersPanel() {
             header: 'Email',
             width: proportional(1.2, { minWidth: 160 }),
             renderCell: (row) => (
-              <MemberTableRowButton member={row} onOpen={openMemberDetail}>
-                <Text type="supporting" color="secondary" maxLines={1}>
-                  {row.email}
-                </Text>
-              </MemberTableRowButton>
+              <Text type="supporting" color="secondary" maxLines={1}>
+                {row.email}
+              </Text>
             ),
           },
           {
@@ -178,12 +183,10 @@ export default function WorkspaceMembersPanel() {
             header: 'Role',
             width: pixel(220),
             renderCell: (row) => (
-              <MemberTableRowButton member={row} onOpen={openMemberDetail}>
-                <Text type="supporting" color="secondary">
-                  {workspaceMemberRoleLabel(row.role)}
-                  {row.kind === 'invite' ? ' (Pending)' : ''}
-                </Text>
-              </MemberTableRowButton>
+              <Text type="supporting" color="secondary">
+                {workspaceMemberRoleLabel(row.role)}
+                {row.kind === 'invite' ? ' (Pending)' : ''}
+              </Text>
             ),
           },
           {

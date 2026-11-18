@@ -16,7 +16,7 @@ import DomainDetailSheet, {
 } from '#/components/domains/DomainDetailSheet'
 import DomainIllustration from '#/components/domains/DomainIllustration'
 import DomainNameCell from '#/components/domains/DomainNameCell'
-import { handleDomainsTableRowClick } from '#/components/domains/domains-table-row-click'
+import { clickableRows } from '#/lib/tables/clickable-rows'
 import DomainRowMenu from '#/components/domains/DomainRowMenu'
 import DomainStatus from '#/components/domains/DomainStatus'
 import { PlusIcon } from '#/components/icons/IcnMcp'
@@ -88,10 +88,12 @@ export default function DashboardDomainsPanel() {
   const openCustomDomain = (domain: Domain) =>
     openDomain(domain.id)
 
-  const openRowAtIndex = (index: number) => {
-    const row = rows[index]
-    if (row) openDomain(row.id)
-  }
+  // Each row opens the domain's details.
+  const rowPlugins = useMemo(
+    () => ({ open: clickableRows<DomainRow>((row) => openDomain(row.id), (row) => `Open ${row.hostname}`) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
 
   return (
     <VStack
@@ -171,9 +173,6 @@ export default function DashboardDomainsPanel() {
             className="members-table members-table--clickable-rows"
             width="100%"
             hAlign="stretch"
-            onClick={(event) =>
-              handleDomainsTableRowClick(event, rows.length, openRowAtIndex)
-            }
           >
             <Table<DomainRow>
               className="members-table__grid"
@@ -182,6 +181,7 @@ export default function DashboardDomainsPanel() {
               density="balanced"
               dividers="rows"
               hasHover
+              plugins={rowPlugins}
               columns={[
                 {
                   key: 'hostname',

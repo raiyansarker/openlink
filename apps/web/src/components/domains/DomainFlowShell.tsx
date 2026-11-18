@@ -74,9 +74,11 @@ export default function DomainFlowShell({
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            padding: '2px 0',
+            padding: '4px 10px 4px 6px',
+            marginLeft: -6,
             border: 'none',
-            borderRadius: 0,
+            // Room and rounded corners, so the focus ring isn't a tight box on the text.
+            borderRadius: 'var(--radius-element)',
             cursor: 'pointer',
             backgroundColor: 'transparent',
             color: SHELL_NAV_TEXT_PRIMARY,

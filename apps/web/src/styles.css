@@ -293,6 +293,23 @@ elements-api {
   outline-offset: var(--focus-outline-offset);
 }
 
+/* Table rows that open something are one target (see `clickableRows`). */
+.ol-clickable-row {
+  cursor: pointer;
+}
+
+/*
+ * Appearance cards: the ring follows the rounded preview, not the square
+ * button that also holds the label.
+ */
+.ol-theme-card:focus-visible {
+  outline: none;
+}
+.ol-theme-card:focus-visible .ol-theme-card__frame {
+  outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+}
+
 /*
  * Rows that span a scrolling column or a list clip the sides of an outside
  * ring, so there the ring is drawn just inside the row instead.

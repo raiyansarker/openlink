@@ -154,10 +154,12 @@ function PreviewFrame({
   return (
     <VStack
       gap={0}
+      className="ol-theme-card__frame"
       style={{
         position: 'relative',
         width: OUTER_W,
         height: OUTER_H,
+        borderRadius: RADIUS_OUTER,
         flexShrink: 0,
       }}
     >
@@ -189,7 +191,7 @@ export default function ThemePreviewCard({
 }: ThemePreviewCardProps) {
   return (
     <button
-      className="ol-focus-ring"
+      className="ol-theme-card"
       type="button"
       role="radio"
       aria-checked={isSelected}
