@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { memo, useEffect, useId, useState, type ReactNode } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
@@ -11,20 +11,6 @@ import QrCode, {
 } from '#/components/create-link/QrCode'
 
 export type PreviewRule = { label: string; value: string }
-
-type LinkPreviewPanelProps = {
-  shortUrl: string
-  /** Final destination, UTM applied. Empty while the URL is missing/invalid. */
-  destination: string
-  title: string
-  statusLine: string
-  rules: PreviewRule[]
-  tags: string[]
-  /** Social card, when the custom preview is on. */
-  socialCard?: ReactNode
-  /** File name (no extension) for QR downloads. */
-  qrFileName: string
-}
 
 export function RuleList({ rules, tags }: { rules: PreviewRule[]; tags: string[] }) {
   return (
@@ -237,7 +223,7 @@ export function BlockTitle({ title, hint }: { title: string; hint?: string }) {
 }
 
 /** Favicon in a soft rounded tile, like an app icon. */
-export function SiteTile({ url }: { url: string }) {
+export const SiteTile = memo(function SiteTile({ url }: { url: string }) {
   return (
     <span
       style={{
@@ -255,10 +241,10 @@ export function SiteTile({ url }: { url: string }) {
       <Favicon url={url} size={22} />
     </span>
   )
-}
+})
 
 /** Small uppercase label that opens a section; spacing, not rules, separates them. */
-function Eyebrow({ title, hint }: { title: string; hint?: string }) {
+export const Eyebrow = memo(function Eyebrow({ title, hint }: { title: string; hint?: string }) {
   return (
     <HStack gap={3} hAlign="between" vAlign="center" width="100%">
       <Text
@@ -276,7 +262,7 @@ function Eyebrow({ title, hint }: { title: string; hint?: string }) {
       ) : null}
     </HStack>
   )
-}
+})
 
 const LASSO_ROPE =
   'M42 48 C 58 48, 64 34, 86 36 C 112 40, 126 56, 114 70 C 102 84, 82 66, 94 50 C 106 34, 140 14, 176 26 C 210 38, 204 70, 226 66 C 238 64, 240 50, 246 48'
@@ -322,7 +308,7 @@ function BrowserTile() {
  * loops through the space between, then closes in a ring around the
  * destination's icon. It redraws itself on a slow loop.
  */
-function RouteDiagram({ destination }: { destination: string }) {
+export const RouteDiagram = memo(function RouteDiagram({ destination }: { destination: string }) {
   const id = useId().replace(/[^a-zA-Z0-9]/g, '')
   return (
     <div className="ol-lasso" aria-hidden="true">
@@ -373,58 +359,86 @@ function RouteDiagram({ destination }: { destination: string }) {
       </div>
     </div>
   )
-}
+})
 
-/** The link itself, laid straight onto the panel: type, a route, and space. */
-function LinkHero({
-  title,
-  shortUrl,
-  destination,
-  statusLine,
-}: {
-  title: string
-  shortUrl: string
-  destination: string
-  statusLine: string
-}) {
+const HEADLINE_STYLE = { fontSize: 28, letterSpacing: '-0.03em', minWidth: 0 } as const
+const STATUS_STYLE = { marginTop: 6 } as const
+
+/** The short URL, big, with a Copy button. Changes only with the short URL. */
+export const ShortUrlHeadline = memo(function ShortUrlHeadline({ shortUrl }: { shortUrl: string }) {
   const { copy, isCopied } = useClipboard()
   return (
+    <HStack gap={3} vAlign="center" hAlign="between" width="100%">
+      <Text weight="semibold" maxLines={1} style={HEADLINE_STYLE}>
+        {shortUrl.replace(/^https?:\/\//, '')}
+      </Text>
+      <Button
+        variant="primary"
+        size="sm"
+        label={isCopied ? 'Copied' : 'Copy'}
+        onClick={() => void copy(shortUrl)}
+      />
+    </HStack>
+  )
+})
+
+export const HeroTitle = memo(function HeroTitle({ title }: { title: string }) {
+  return (
+    <Text weight="semibold" maxLines={1}>
+      {title}
+    </Text>
+  )
+})
+
+export const HeroDestination = memo(function HeroDestination({ destination }: { destination: string }) {
+  return (
+    <Text type="supporting" color="secondary" maxLines={1}>
+      {destination ? destination.replace(/^https?:\/\//, '') : 'Add a destination URL'}
+    </Text>
+  )
+})
+
+export const HeroStatus = memo(function HeroStatus({ statusLine }: { statusLine: string }) {
+  return (
+    <Text type="supporting" color="secondary" style={STATUS_STYLE}>
+      {statusLine}
+    </Text>
+  )
+})
+
+/**
+ * The link itself, laid straight onto the panel: type, a route, and space.
+ * Pass each line as its own (memoized) element so one changing value doesn't
+ * redraw the others.
+ */
+export function LinkHero({
+  headline,
+  route,
+  title,
+  destination,
+  status,
+}: {
+  headline: ReactNode
+  route: ReactNode
+  title: ReactNode
+  destination: ReactNode
+  status: ReactNode
+}) {
+  return (
     <VStack gap={5} hAlign="stretch" width="100%">
-      <HStack gap={3} vAlign="center" hAlign="between" width="100%">
-        <Text
-          weight="semibold"
-          maxLines={1}
-          style={{ fontSize: 28, letterSpacing: '-0.03em', minWidth: 0 }}
-        >
-          {shortUrl.replace(/^https?:\/\//, '')}
-        </Text>
-        <Button
-          variant="primary"
-          size="sm"
-          label={isCopied ? 'Copied' : 'Copy'}
-          onClick={() => void copy(shortUrl)}
-        />
-      </HStack>
-
-      <RouteDiagram destination={destination} />
-
+      {headline}
+      {route}
       <VStack gap={1} hAlign="stretch" width="100%">
-        <Text weight="semibold" maxLines={1}>
-          {title}
-        </Text>
-        <Text type="supporting" color="secondary" maxLines={1}>
-          {destination ? destination.replace(/^https?:\/\//, '') : 'Add a destination URL'}
-        </Text>
-        <Text type="supporting" color="secondary" style={{ marginTop: 6 }}>
-          {statusLine}
-        </Text>
+        {title}
+        {destination}
+        {status}
       </VStack>
     </VStack>
   )
 }
 
 /** QR code beside its explanation and downloads. */
-export function QrRow({ value, fileName }: { value: string; fileName: string }) {
+export const QrRow = memo(function QrRow({ value, fileName }: { value: string; fileName: string }) {
   return (
     <HStack gap={5} vAlign="center" width="100%" wrap="wrap">
       <span
@@ -467,10 +481,10 @@ export function QrRow({ value, fileName }: { value: string; fileName: string }) 
       </VStack>
     </HStack>
   )
-}
+})
 
 /** Settings as a divided label/value list; tags render as chips. */
-export function SettingsList({
+export const SettingsList = memo(function SettingsList({
   rules,
   tags,
   isFlat = false,
@@ -547,49 +561,4 @@ export function SettingsList({
       ) : null}
     </VStack>
   )
-}
-
-/** Live preview: the link, its QR code, the share card and its settings. */
-export default function LinkPreviewPanel({
-  shortUrl,
-  destination,
-  title,
-  statusLine,
-  rules,
-  tags,
-  socialCard,
-  qrFileName,
-}: LinkPreviewPanelProps) {
-  return (
-    <VStack gap={10} hAlign="stretch" width="100%">
-      <VStack gap={4} hAlign="stretch" width="100%">
-        <Eyebrow title="Preview" hint="Updates as you type" />
-        <LinkHero
-          title={title}
-          shortUrl={shortUrl}
-          destination={destination}
-          statusLine={statusLine}
-        />
-      </VStack>
-
-      <VStack gap={4} hAlign="stretch" width="100%">
-        <Eyebrow title="QR code" />
-        <QrRow value={shortUrl} fileName={qrFileName} />
-      </VStack>
-
-      {socialCard ? (
-        <VStack gap={4} hAlign="stretch" width="100%">
-          <Eyebrow title="When shared" hint="X, Slack, LinkedIn, iMessage" />
-          {socialCard}
-        </VStack>
-      ) : null}
-
-      {rules.length > 0 || tags.length > 0 ? (
-        <VStack gap={3} hAlign="stretch" width="100%">
-          <Eyebrow title="Settings" />
-          <SettingsList rules={rules} tags={tags} isFlat />
-        </VStack>
-      ) : null}
-    </VStack>
-  )
-}
+})
