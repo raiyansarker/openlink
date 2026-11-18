@@ -81,7 +81,7 @@ export default function DashboardAccountMenu({
         // Your name and email open your profile; shown as a normal row, not a disabled one.
         {
           id: 'profile',
-           label: user ? accountName : 'My Profile',
+          label: user ? accountName : 'My Profile',
           ...(user ? { description: user.email } : {}),
           onClick: goToProfile,
         },
