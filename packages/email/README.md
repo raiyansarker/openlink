@@ -24,6 +24,8 @@ bun run dev --filter=@openlink/email
 
 The preview server runs on port `3001`. Build all templates with `bun run build --filter=@openlink/email`.
 
+The explicit demo previews are available at `/preview/demo-workspace-invite` and `/preview/demo-security-alert`.
+
 Each template accepts an optional `logoUrl` prop. It defaults to `/logo192.png` for previews; when sending an email, pass the absolute URL for the PNG hosted by the web application, for example `https://app.example.com/logo192.png`.
 
 ## Integration note
