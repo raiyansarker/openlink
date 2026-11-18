@@ -158,7 +158,7 @@ export const openlinkNeutralTheme = {
     "--color-warning-muted": "light-dark(#fae19e, #e2b6233D)",
     "--color-border": "light-dark(rgba(0, 0, 0, 0.075), rgba(255, 255, 255, 0.1))",
     "--color-border-emphasized": "light-dark(#dfdfdf, #3f3f46)",
-    "--color-skeleton": "light-dark(#f1f1f1, #525252)",
+    "--color-skeleton": "light-dark(#dcdce0, #525252)",
     "--color-shadow": "light-dark(#0000001A, #0000004D)",
     "--color-tint-hover": "light-dark(#000000, #ffffff)",
     "--color-background-red": "light-dark(#ffc4be, #5b2b28)",

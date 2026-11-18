@@ -78,6 +78,8 @@ export const openlinkTheme = defineTheme({
     '--color-background-card': [...OPENLINK_BG_SURFACE],
     '--color-background-popover': [...OPENLINK_BG_POPOVER],
     '--color-background-gray': ['#ececec', '#232327'],
+    /** Loading placeholders: the neutral #f1f1f1 all but vanished on the white panel as it pulses. */
+    '--color-skeleton': ['#dcdce0', '#525252'],
     '--color-border': ['rgba(0, 0, 0, 0.075)', 'rgba(255, 255, 255, 0.1)'],
     '--color-border-emphasized': ['#dfdfdf', '#3f3f46'],
     '--color-overlay-hover': ['rgba(0, 0, 0, 0.05)', 'rgba(255, 255, 255, 0.06)'],
