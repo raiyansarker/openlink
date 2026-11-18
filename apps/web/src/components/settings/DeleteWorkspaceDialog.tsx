@@ -6,7 +6,6 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
-import { useOnChange } from '#/hooks/use-on-change'
 
 type DeleteWorkspaceDialogProps = {
   isOpen: boolean
@@ -16,8 +15,7 @@ type DeleteWorkspaceDialogProps = {
   onDelete: () => void
 }
 
-export default function DeleteWorkspaceDialog({
-  isOpen,
+function DeleteWorkspaceDialogBody({
   onOpenChange,
   workspaceName,
   linkCount,
@@ -25,62 +23,65 @@ export default function DeleteWorkspaceDialog({
 }: DeleteWorkspaceDialogProps) {
   const [confirmation, setConfirmation] = useState('')
 
-  useOnChange(isOpen, (open) => {
-    if (open) setConfirmation('')
-  })
-
   const isConfirmed = confirmation.trim() === workspaceName
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={440}>
-      <Layout
-        header={
-          <DialogHeader
-            title={`Delete ${workspaceName}?`}
-            onOpenChange={onOpenChange}
-          />
-        }
-        content={
-          <LayoutContent>
-            <VStack gap={4} hAlign="stretch" width="100%">
-              <Text type="supporting" color="secondary">
-                All {linkCount} short links stop redirecting and every member
-                loses access. This cannot be undone.
-              </Text>
-              <TextInput
-                label={`Type ${workspaceName} to confirm`}
-                value={confirmation}
-                onChange={setConfirmation}
-                autoComplete="off"
-                hasAutoFocus
-                width="100%"
-              />
-            </VStack>
-          </LayoutContent>
-        }
-        footer={
-          <LayoutFooter hasDivider>
-            <HStack gap={2} hAlign="end" width="100%">
-              <Button
-                variant="ghost"
-                size="sm"
-                label="Cancel"
-                onClick={() => onOpenChange(false)}
-              />
-              <Button
-                variant="destructive"
-                size="sm"
-                label="Delete workspace"
-                isDisabled={!isConfirmed}
-                onClick={() => {
-                  onDelete()
-                  onOpenChange(false)
-                }}
-              />
-            </HStack>
-          </LayoutFooter>
-        }
-      />
+    <Layout
+      header={
+        <DialogHeader
+          title={`Delete ${workspaceName}?`}
+          onOpenChange={onOpenChange}
+        />
+      }
+      content={
+        <LayoutContent>
+          <VStack gap={4} hAlign="stretch" width="100%">
+            <Text type="supporting" color="secondary">
+              All {linkCount} short links stop redirecting and every member
+              loses access. This cannot be undone.
+            </Text>
+            <TextInput
+              label={`Type ${workspaceName} to confirm`}
+              value={confirmation}
+              onChange={setConfirmation}
+              autoComplete="off"
+              hasAutoFocus
+              width="100%"
+            />
+          </VStack>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter hasDivider>
+          <HStack gap={2} hAlign="end" width="100%">
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Cancel"
+              onClick={() => onOpenChange(false)}
+            />
+            <Button
+              variant="destructive"
+              size="sm"
+              label="Delete workspace"
+              isDisabled={!isConfirmed}
+              onClick={() => {
+                onDelete()
+                onOpenChange(false)
+              }}
+            />
+          </HStack>
+        </LayoutFooter>
+      }
+    />
+  )
+}
+
+export default function DeleteWorkspaceDialog(props: DeleteWorkspaceDialogProps) {
+  const { onOpenChange } = props
+  return (
+    <Dialog isOpen={props.isOpen} onOpenChange={onOpenChange} purpose="form" width={440}>
+      {props.isOpen ? <DeleteWorkspaceDialogBody {...props} /> : null}
     </Dialog>
   )
 }

@@ -10,7 +10,6 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
 import { exportLinks } from '#/lib/settings/export-links'
-import { useOnChange } from '#/hooks/use-on-change'
 
 type RemoveDomainDialogProps = {
   isOpen: boolean
@@ -25,17 +24,11 @@ type RemoveDomainDialogProps = {
  * dialog says how many, offers a CSV of them (to import onto another domain),
  * and asks for the domain name before deleting any.
  */
-export default function RemoveDomainDialog({ isOpen, onOpenChange, domain, onRemove }: RemoveDomainDialogProps) {
+function RemoveDomainDialogBody({ onOpenChange, domain, onRemove }: RemoveDomainDialogProps) {
   const { activeOrg, links } = useOrganization()
   const [confirmation, setConfirmation] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isRemoving, setIsRemoving] = useState(false)
-
-  useOnChange(isOpen, (open) => {
-    if (!open) return
-    setConfirmation('')
-    setError(null)
-  })
 
   const domainLinks = links.filter((l) => l.domainId === domain.id)
   const count = Math.max(domain.linkCount, domainLinks.length)
@@ -57,66 +50,73 @@ export default function RemoveDomainDialog({ isOpen, onOpenChange, domain, onRem
   }
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={460}>
-      <Layout
-        header={<DialogHeader title={`Remove ${domain.hostname}?`} onOpenChange={onOpenChange} />}
-        content={
-          <LayoutContent>
-            <VStack gap={4} hAlign="stretch" width="100%">
-              {count === 0 ? (
-                <Text type="supporting" color="secondary">
-                  No short links use this domain. It stops serving links right away, and you can add it again later.
-                </Text>
-              ) : (
-                <>
-                  <Banner
-                    status="error"
-                    title={`${linksLabel} will be deleted`}
-                    description={`Removing ${domain.hostname} deletes every link on it, with ${one ? 'its' : 'their'} click history. This cannot be undone.`}
+    <Layout
+      header={<DialogHeader title={`Remove ${domain.hostname}?`} onOpenChange={onOpenChange} />}
+      content={
+        <LayoutContent>
+          <VStack gap={4} hAlign="stretch" width="100%">
+            {count === 0 ? (
+              <Text type="supporting" color="secondary">
+                No short links use this domain. It stops serving links right away, and you can add it again later.
+              </Text>
+            ) : (
+              <>
+                <Banner
+                  status="error"
+                  title={`${linksLabel} will be deleted`}
+                  description={`Removing ${domain.hostname} deletes every link on it, with ${one ? 'its' : 'their'} click history. This cannot be undone.`}
+                />
+                <HStack gap={3} hAlign="between" vAlign="center" width="100%" wrap="wrap">
+                  <Text type="supporting" color="secondary" style={{ flex: '1 1 14rem' }}>
+                    Want to keep {one ? 'it' : 'them'}? Download a CSV, then import it onto another domain from Links.
+                  </Text>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    label={`Export ${one ? 'link' : 'links'} (CSV)`}
+                    isDisabled={domainLinks.length === 0}
+                    onClick={() => exportLinks(domainLinks, 'csv', `${activeOrg.slug}-${domain.hostname}`)}
                   />
-                  <HStack gap={3} hAlign="between" vAlign="center" width="100%" wrap="wrap">
-                    <Text type="supporting" color="secondary" style={{ flex: '1 1 14rem' }}>
-                      Want to keep {one ? 'it' : 'them'}? Download a CSV, then import it onto another domain from Links.
-                    </Text>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      label={`Export ${one ? 'link' : 'links'} (CSV)`}
-                      isDisabled={domainLinks.length === 0}
-                      onClick={() => exportLinks(domainLinks, 'csv', `${activeOrg.slug}-${domain.hostname}`)}
-                    />
-                  </HStack>
-                  <TextInput
-                    label={`Type ${domain.hostname} to confirm`}
-                    value={confirmation}
-                    onChange={setConfirmation}
-                    autoComplete="off"
-                    autoCapitalize="none"
-                    hasSpellCheck={false}
-                    width="100%"
-                  />
-                </>
-              )}
-              {error ? <Banner status="error" title={error} /> : null}
-            </VStack>
-          </LayoutContent>
-        }
-        footer={
-          <LayoutFooter hasDivider>
-            <HStack gap={2} hAlign="end" width="100%">
-              <Button variant="ghost" size="sm" label="Cancel" isDisabled={isRemoving} onClick={() => onOpenChange(false)} />
-              <Button
-                variant="destructive"
-                size="sm"
-                label={count === 0 ? 'Remove domain' : `Remove and delete ${linksLabel}`}
-                isDisabled={!canConfirm}
-                isLoading={isRemoving}
-                onClick={() => void remove()}
-              />
-            </HStack>
-          </LayoutFooter>
-        }
-      />
+                </HStack>
+                <TextInput
+                  label={`Type ${domain.hostname} to confirm`}
+                  value={confirmation}
+                  onChange={setConfirmation}
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  hasSpellCheck={false}
+                  width="100%"
+                />
+              </>
+            )}
+            {error ? <Banner status="error" title={error} /> : null}
+          </VStack>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter hasDivider>
+          <HStack gap={2} hAlign="end" width="100%">
+            <Button variant="ghost" size="sm" label="Cancel" isDisabled={isRemoving} onClick={() => onOpenChange(false)} />
+            <Button
+              variant="destructive"
+              size="sm"
+              label={count === 0 ? 'Remove domain' : `Remove and delete ${linksLabel}`}
+              isDisabled={!canConfirm}
+              isLoading={isRemoving}
+              onClick={() => void remove()}
+            />
+          </HStack>
+        </LayoutFooter>
+      }
+    />
+  )
+}
+
+export default function RemoveDomainDialog(props: RemoveDomainDialogProps) {
+  const { onOpenChange } = props
+  return (
+    <Dialog isOpen={props.isOpen} onOpenChange={onOpenChange} purpose="form" width={460}>
+      {props.isOpen ? <RemoveDomainDialogBody {...props} /> : null}
     </Dialog>
   )
 }

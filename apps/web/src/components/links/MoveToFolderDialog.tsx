@@ -9,7 +9,6 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
 import type { LinkFolder } from '#/data/demo/types'
 import { canMoveFolder, folderPathLabel } from '#/lib/links/folder-tree'
-import { useOnChange } from '#/hooks/use-on-change'
 
 const ROOT_VALUE = '__root__'
 
@@ -27,7 +26,7 @@ type MoveToFolderDialogProps = {
   onMove: (subject: MoveSubject, destinationId: string | null) => void | Promise<void>
 }
 
-export default function MoveToFolderDialog({
+function MoveToFolderDialogBody({
   subject,
   folders,
   onOpenChange,
@@ -41,13 +40,6 @@ export default function MoveToFolderDialog({
         : subject.folderId
   const [selected, setSelected] = useState(currentId ?? ROOT_VALUE)
   const [error, setError] = useState<string | null>(null)
-
-  useOnChange(subject, (next) => {
-    if (next) {
-      setSelected(currentId ?? ROOT_VALUE)
-      setError(null)
-    }
-  })
 
   const options = useMemo(() => {
     const rows = folders
@@ -82,52 +74,59 @@ export default function MoveToFolderDialog({
   }
 
   return (
+    <Layout
+      header={<DialogHeader title="Move to…" onOpenChange={onOpenChange} />}
+      content={
+        <LayoutContent padding={FOLDER_DIALOG_PADDING}>
+          <VStack gap={4} hAlign="stretch" width="100%">
+            <Text type="supporting" color="secondary">
+              Choose a destination for “{subject?.name}”.
+            </Text>
+            <Selector
+              label="Destination folder"
+              options={options}
+              value={selected}
+              onChange={(value) => {
+                setSelected(value)
+                setError(null)
+              }}
+              status={error ? { type: 'error', message: error } : undefined}
+              width="100%"
+            />
+          </VStack>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter hasDivider padding={FOLDER_DIALOG_PADDING}>
+          <HStack gap={2} hAlign="end" width="100%" wrap="wrap">
+            <Button
+              variant="ghost"
+              label="Cancel"
+              onClick={() => onOpenChange(false)}
+            />
+            <Button
+              variant="primary"
+              label={unchanged ? 'Done' : 'Move here'}
+              onClick={() => void submit()}
+            />
+          </HStack>
+        </LayoutFooter>
+      }
+    />
+  )
+}
+
+export default function MoveToFolderDialog(props: MoveToFolderDialogProps) {
+  const { onOpenChange } = props
+  return (
     <Dialog
-      isOpen={subject != null}
+      isOpen={props.subject != null}
       onOpenChange={onOpenChange}
       purpose="form"
       width={460}
       padding={FOLDER_DIALOG_PADDING}
     >
-      <Layout
-        header={<DialogHeader title="Move to…" onOpenChange={onOpenChange} />}
-        content={
-          <LayoutContent padding={FOLDER_DIALOG_PADDING}>
-            <VStack gap={4} hAlign="stretch" width="100%">
-              <Text type="supporting" color="secondary">
-                Choose a destination for “{subject?.name}”.
-              </Text>
-              <Selector
-                label="Destination folder"
-                options={options}
-                value={selected}
-                onChange={(value) => {
-                  setSelected(value)
-                  setError(null)
-                }}
-                status={error ? { type: 'error', message: error } : undefined}
-                width="100%"
-              />
-            </VStack>
-          </LayoutContent>
-        }
-        footer={
-          <LayoutFooter hasDivider padding={FOLDER_DIALOG_PADDING}>
-            <HStack gap={2} hAlign="end" width="100%" wrap="wrap">
-              <Button
-                variant="ghost"
-                label="Cancel"
-                onClick={() => onOpenChange(false)}
-              />
-              <Button
-                variant="primary"
-                label={unchanged ? 'Done' : 'Move here'}
-                onClick={() => void submit()}
-              />
-            </HStack>
-          </LayoutFooter>
-        }
-      />
+      {props.subject != null ? <MoveToFolderDialogBody {...props} /> : null}
     </Dialog>
   )
 }

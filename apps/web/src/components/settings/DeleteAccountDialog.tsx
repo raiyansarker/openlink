@@ -8,7 +8,6 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 
 import { ProfileApi, ProfileError } from '#/lib/profile/api'
-import { useOnChange } from '#/hooks/use-on-change'
 
 type DeleteAccountDialogProps = {
   isOpen: boolean
@@ -19,18 +18,11 @@ type DeleteAccountDialogProps = {
   onDeleted: () => void
 }
 
-export default function DeleteAccountDialog({ isOpen, onOpenChange, email, hasPassword, onDeleted }: DeleteAccountDialogProps) {
+function DeleteAccountDialogBody({ onOpenChange, email, hasPassword, onDeleted }: DeleteAccountDialogProps) {
   const [confirmation, setConfirmation] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-
-  useOnChange(isOpen, (open) => {
-    if (!open) return
-    setConfirmation('')
-    setPassword('')
-    setError(null)
-  })
 
   const isConfirmed =
     confirmation.trim().toLowerCase() === email.toLowerCase() && (!hasPassword || password.length > 0)
@@ -49,58 +41,65 @@ export default function DeleteAccountDialog({ isOpen, onOpenChange, email, hasPa
   }
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={440}>
-      <Layout
-        header={<DialogHeader title="Delete your account?" onOpenChange={onOpenChange} />}
-        content={
-          <LayoutContent>
-            <VStack gap={4} hAlign="stretch" width="100%">
-              <Text type="supporting" color="secondary">
-                Your profile and sign-in methods are removed and you leave every workspace. Links you
-                made stay with their workspace. This cannot be undone.
-              </Text>
+    <Layout
+      header={<DialogHeader title="Delete your account?" onOpenChange={onOpenChange} />}
+      content={
+        <LayoutContent>
+          <VStack gap={4} hAlign="stretch" width="100%">
+            <Text type="supporting" color="secondary">
+              Your profile and sign-in methods are removed and you leave every workspace. Links you
+              made stay with their workspace. This cannot be undone.
+            </Text>
+            <TextInput
+              label={`Type ${email} to confirm`}
+              value={confirmation}
+              onChange={setConfirmation}
+              autoComplete="off"
+              hasAutoFocus
+              width="100%"
+            />
+            {hasPassword ? (
               <TextInput
-                label={`Type ${email} to confirm`}
-                value={confirmation}
-                onChange={setConfirmation}
-                autoComplete="off"
-                hasAutoFocus
+                label="Password"
+                type="password"
+                value={password}
+                onChange={setPassword}
+                autoComplete="current-password"
                 width="100%"
               />
-              {hasPassword ? (
-                <TextInput
-                  label="Password"
-                  type="password"
-                  value={password}
-                  onChange={setPassword}
-                  autoComplete="current-password"
-                  width="100%"
-                />
-              ) : null}
-              {error ? (
-                <Text type="supporting" weight="medium" role="alert">
-                  {error}
-                </Text>
-              ) : null}
-            </VStack>
-          </LayoutContent>
-        }
-        footer={
-          <LayoutFooter hasDivider>
-            <HStack gap={2} hAlign="end" width="100%">
-              <Button variant="ghost" size="sm" label="Cancel" onClick={() => onOpenChange(false)} />
-              <Button
-                variant="destructive"
-                size="sm"
-                label="Delete account"
-                isDisabled={!isConfirmed}
-                isLoading={isDeleting}
-                onClick={() => void submit()}
-              />
-            </HStack>
-          </LayoutFooter>
-        }
-      />
+            ) : null}
+            {error ? (
+              <Text type="supporting" weight="medium" role="alert">
+                {error}
+              </Text>
+            ) : null}
+          </VStack>
+        </LayoutContent>
+      }
+      footer={
+        <LayoutFooter hasDivider>
+          <HStack gap={2} hAlign="end" width="100%">
+            <Button variant="ghost" size="sm" label="Cancel" onClick={() => onOpenChange(false)} />
+            <Button
+              variant="destructive"
+              size="sm"
+              label="Delete account"
+              isDisabled={!isConfirmed}
+              isLoading={isDeleting}
+              onClick={() => void submit()}
+            />
+          </HStack>
+        </LayoutFooter>
+      }
+    />
+  )
+}
+
+export default function DeleteAccountDialog(props: DeleteAccountDialogProps) {
+  const { onOpenChange } = props
+  return (
+    <Dialog isOpen={props.isOpen} onOpenChange={onOpenChange} purpose="form" width={440}>
+      {props.isOpen ? <DeleteAccountDialogBody {...props} /> : null}
     </Dialog>
   )
 }
