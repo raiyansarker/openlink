@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Effect } from 'effect'
-import { Cors } from '#/server/http/cors'
 import { operation } from '#/server/effect/operations'
 import { effectRuntime } from '#/server/effect/runtime'
 import { handleOpenApiRequest } from '#/server/orpc/openapi-handler'
@@ -11,7 +10,7 @@ const failed = () =>
     { status: 500, headers: { 'cache-control': 'no-store' } },
   )
 
-const handle = ({ request }: { request: Request }) =>
+const serve = ({ request }: { request: Request }) =>
   effectRuntime.runPromise(
     Effect.gen(function* () {
       const { matched, response } = yield* operation('api.handle', () =>
@@ -26,10 +25,6 @@ const handle = ({ request }: { request: Request }) =>
     ),
   )
 
-const serve = async (ctx: { request: Request }) => Cors.apply(await handle(ctx))
-
-const preflight = ({ request }: { request: Request }) => Cors.preflight(request)
-
 export const Route = createFileRoute('/api/v1/$')({
   server: {
     handlers: {
@@ -38,7 +33,8 @@ export const Route = createFileRoute('/api/v1/$')({
       PATCH: serve,
       PUT: serve,
       DELETE: serve,
-      OPTIONS: preflight,
+      // Preflights are answered by the oRPC CORS plugin.
+      OPTIONS: serve,
     },
   },
 })
