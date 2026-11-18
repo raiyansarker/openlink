@@ -2,7 +2,6 @@ import {
   HeadContent,
   Scripts,
   createRootRoute,
-  useRouterState,
 } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import AppDevtools from '#/components/AppDevtools'
@@ -64,25 +63,17 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: ReactNode }) {
-  const isApiDocs = useRouterState({
-    select: (state) => state.location.pathname === '/api/docs',
-  })
-
   return (
-    <html lang="en" className={isApiDocs ? 'api-docs-page' : undefined}>
+    <html lang="en">
       <head>
         <script dangerouslySetInnerHTML={{ __html: COLOR_MODE_BOOTSTRAP_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className={isApiDocs ? 'api-docs-page' : undefined}>
-        {isApiDocs ? (
-          children
-        ) : (
-          <AstryxProviders>
-            {children}
-            <AppDevtools />
-          </AstryxProviders>
-        )}
+      <body>
+        <AstryxProviders>
+          {children}
+          <AppDevtools />
+        </AstryxProviders>
         <Scripts />
       </body>
     </html>
