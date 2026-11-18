@@ -2,12 +2,11 @@ import { useMemo } from 'react'
 import { cell, defineChart } from '@tanstack/charts'
 import { Chart } from '@tanstack/charts/react'
 import { scaleBand } from '@tanstack/charts/scales/band'
-import { tooltip } from '@tanstack/charts/tooltip'
 import { scaleQuantize } from 'd3-scale'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import { BLUE_RAMP, chartHostStyle } from '#/components/analytics/chart-theme'
+import { BLUE_RAMP, HOVER_TOOLTIP, NO_CHART_FOCUS, chartHostStyle } from '#/components/analytics/chart-theme'
 import type { AnalyticsReport } from '#/lib/analytics/report'
 import { formatCompact, formatNumber } from '#/lib/analytics/format'
 
@@ -62,8 +61,9 @@ export default function HourHeatmap({ report }: HourHeatmapProps) {
         color: {
           scale: () => scaleQuantize<string>().domain([0, max]).range([...BLUE_RAMP]),
         },
+        ...NO_CHART_FOCUS,
         tooltip: {
-          use: tooltip,
+          ...HOVER_TOOLTIP,
           format: (point) =>
             `${point.datum.day} ${hourLabel(point.datum.hour)}–${hourLabel(
               String((Number(point.datum.hour) + 1) % 24).padStart(2, '0'),
