@@ -14,7 +14,6 @@ type LinkDetailSearch = Omit<AnalyticsSearch, 'link'> & {
 }
 
 export const Route = createFileRoute('/w/$orgSlug/links/$linkId')({
-  head: createPageHead('Link'),
   validateSearch: (search: Record<string, unknown>): LinkDetailSearch => ({
     tab:
       typeof search.tab === 'string' &&
@@ -26,6 +25,7 @@ export const Route = createFileRoute('/w/$orgSlug/links/$linkId')({
     // The Analytics tab's period, comparison and chart view.
     ...AnalyticsSearchParams.parse(search, { withLink: false }),
   }),
+  head: createPageHead('Link'),
   component: LinkDetailRoute,
 })
 

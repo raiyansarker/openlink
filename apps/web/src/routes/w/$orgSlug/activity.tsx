@@ -7,7 +7,6 @@ import { createPageHead } from '#/lib/page-title'
 type ActivitySearch = { category?: ActivityCategory; q?: string }
 
 export const Route = createFileRoute('/w/$orgSlug/activity')({
-  head: createPageHead('Activity'),
   // Every key is set so raw values from parent routes can't leak through.
   validateSearch: (search: Record<string, unknown>): ActivitySearch => ({
     category:
@@ -16,6 +15,7 @@ export const Route = createFileRoute('/w/$orgSlug/activity')({
         : undefined,
     q: typeof search.q === 'string' && search.q.trim() ? search.q.slice(0, 100) : undefined,
   }),
+  head: createPageHead('Activity'),
   component: DashboardActivityPage,
 })
 

@@ -4,9 +4,9 @@ import { AnalyticsSearchParams, type AnalyticsSearch, type AnalyticsView } from 
 import { createPageHead } from '#/lib/page-title'
 
 export const Route = createFileRoute('/w/$orgSlug/analytics')({
-  head: createPageHead('Analytics'),
   validateSearch: (search: Record<string, unknown>): AnalyticsSearch =>
     AnalyticsSearchParams.parse(search, { withLink: true }),
+  head: createPageHead('Analytics'),
   component: DashboardAnalyticsPage,
 })
 
