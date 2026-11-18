@@ -27,6 +27,6 @@ describe('FormOrigin', () => {
   test('JSON, reads and API-key requests are not checked', () => {
     expect(FormOrigin.needsCheck(request({ type: 'application/json' }))).toBe(false)
     expect(FormOrigin.needsCheck(request({ method: 'GET' }))).toBe(false)
-    expect(FormOrigin.needsCheck(request({ type: 'multipart/form-data', authorization: 'Bearer ol_live_abc' }))).toBe(false)
+    expect(FormOrigin.needsCheck(request({ type: 'multipart/form-data', authorization: 'Bearer sk_abc' }))).toBe(false)
   })
 })

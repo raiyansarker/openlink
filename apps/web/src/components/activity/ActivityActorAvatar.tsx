@@ -2,10 +2,10 @@ import { Avatar } from '@astryxdesign/core/Avatar'
 import { Card } from '@astryxdesign/core/Card'
 import { HStack } from '@astryxdesign/core/HStack'
 import { CodeWindowIcon, SettingsIcon } from '#/components/icons/IcnMcp'
-import type { ActivityActor } from '#/data/demo/workspace-activity'
+import type { ActivityEvent } from '#/lib/api/types'
 
 type ActivityActorAvatarProps = {
-  actor: ActivityActor
+  actor: ActivityEvent['actor']
   size?: 32 | 40
 }
 
@@ -14,14 +14,14 @@ export default function ActivityActorAvatar({
   actor,
   size = 32,
 }: ActivityActorAvatarProps) {
-  if (actor.kind === 'member') {
+  if (actor.type === 'member') {
     return (
-      <Avatar src={actor.avatarUrl} name={actor.name} size={size} tooltip={false} />
+      <Avatar src={actor.imageUrl} name={actor.label} size={size} tooltip={false} />
     )
   }
 
   const icon =
-    actor.kind === 'api-key' ? (
+    actor.type === 'api_key' ? (
       <CodeWindowIcon size={size / 2} strokeWidth={1.4} />
     ) : (
       <SettingsIcon size={size / 2} strokeWidth={1.4} />

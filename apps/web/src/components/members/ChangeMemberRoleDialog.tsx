@@ -9,7 +9,8 @@ import {
 } from '@astryxdesign/core/SegmentedControl'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
+import type { Role } from '#/lib/api/types'
+import type { Person } from '#/lib/members/people'
 import {
   ASSIGNABLE_WORKSPACE_ROLES,
   WORKSPACE_MEMBER_ROLE_HELP,
@@ -17,13 +18,13 @@ import {
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 
 type ChangeMemberRoleDialogProps = {
-  member: WorkspaceMember
+  member: Person
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: (memberId: string, role: WorkspaceMemberRole) => void
+  onConfirm: (member: Person, role: Role) => void
 }
 
-function defaultAssignableRole(member: WorkspaceMember): WorkspaceMemberRole {
+function defaultAssignableRole(member: Person): Role {
   if (member.role === 'owner') return 'admin'
   if (ASSIGNABLE_WORKSPACE_ROLES.includes(member.role)) return member.role
   return 'member'
@@ -35,7 +36,7 @@ export default function ChangeMemberRoleDialog({
   onOpenChange,
   onConfirm,
 }: ChangeMemberRoleDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<WorkspaceMemberRole>(
+  const [selectedRole, setSelectedRole] = useState<Role>(
     defaultAssignableRole(member),
   )
 
@@ -49,7 +50,7 @@ export default function ChangeMemberRoleDialog({
 
   const handleSave = () => {
     if (!unchanged) {
-      onConfirm(member.id, selectedRole)
+      onConfirm(member, selectedRole)
     }
     onOpenChange(false)
   }
@@ -77,7 +78,7 @@ export default function ChangeMemberRoleDialog({
                   label="Workspace role"
                   value={selectedRole}
                   onChange={(value) =>
-                    setSelectedRole(value as WorkspaceMemberRole)
+                    setSelectedRole(value as Role)
                   }
                   layout="fill"
                 >

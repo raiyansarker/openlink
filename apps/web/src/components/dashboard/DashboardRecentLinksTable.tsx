@@ -3,7 +3,7 @@ import { EmptyState } from '@astryxdesign/core/EmptyState'
 import LinksListView from '#/components/links/LinksListView'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { ShortLink } from '#/data/demo/types'
+import type { ShortLink } from '#/lib/api/types'
 
 export default function DashboardRecentLinksTable() {
   const { links, activeOrg } = useOrganization()

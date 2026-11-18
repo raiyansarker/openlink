@@ -10,54 +10,6 @@ body {
   min-height: 100dvh;
 }
 
-/* Stoplight Elements API reference — fill the viewport on every internal view */
-html.api-docs-page,
-html.api-docs-page body {
-  height: 100%;
-  min-height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-}
-
-body.api-docs-page {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-body.api-docs-page > * {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  width: 100%;
-}
-
-.api-docs-root {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
-  background-color: #fff;
-}
-
-.api-docs-root elements-api {
-  display: block;
-  flex: 1 1 auto;
-  width: 100%;
-  min-height: 0;
-  height: 100%;
-}
-
-elements-api {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
 /* Settings main panel — scrollbar hidden until hover or scroll */
 .settings-content-scroll {
   scrollbar-gutter: stable;
@@ -272,13 +224,108 @@ elements-api {
 /*
  * Charts are focusable so keyboard users can step through points. A mouse
  * click shouldn't draw the browser's focus box around the whole chart; the
- * keyboard still gets a ring.
+ * keyboard gets the same ring as every other control.
  */
 .ts-chart:focus:not(:focus-visible) {
   outline: none;
 }
 .ts-chart:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
   border-radius: var(--radius-inner);
+}
+
+/*
+ * Our own buttons (sidebar items, workspace switcher, table row buttons) get
+ * the same ring as Astryx controls instead of the browser's. Opt-in by class:
+ * a blanket rule would also ring the inner buttons Astryx leaves to their row.
+ */
+.ol-focus-ring:focus-visible {
+  outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+}
+
+/* Table rows that open something are one target (see `clickableRows`). */
+.ol-clickable-row {
+  cursor: pointer;
+}
+
+/*
+ * A table row can't round an outline, so its focus ring is drawn on the cells:
+ * top and bottom on every cell, the sides on the first and last, with the
+ * same 9px corners as the row hover.
+ */
+.ol-clickable-row:focus-visible {
+  outline: none;
+}
+.ol-clickable-row:focus-visible > .astryx-table-cell {
+  box-shadow:
+    inset 0 var(--focus-outline-width) 0 var(--focus-outline-color),
+    inset 0 calc(-1 * var(--focus-outline-width)) 0 var(--focus-outline-color);
+}
+.ol-clickable-row:focus-visible > .astryx-table-cell:first-child {
+  border-start-start-radius: 9px;
+  border-end-start-radius: 9px;
+  box-shadow:
+    inset var(--focus-outline-width) 0 0 var(--focus-outline-color),
+    inset 0 var(--focus-outline-width) 0 var(--focus-outline-color),
+    inset 0 calc(-1 * var(--focus-outline-width)) 0 var(--focus-outline-color);
+}
+.ol-clickable-row:focus-visible > .astryx-table-cell:last-child {
+  border-start-end-radius: 9px;
+  border-end-end-radius: 9px;
+  box-shadow:
+    inset calc(-1 * var(--focus-outline-width)) 0 0 var(--focus-outline-color),
+    inset 0 var(--focus-outline-width) 0 var(--focus-outline-color),
+    inset 0 calc(-1 * var(--focus-outline-width)) 0 var(--focus-outline-color);
+}
+
+/*
+ * Click-to-copy values (DNS record names and targets) pad themselves (inline
+ * style), so the ring sits right on that padded, rounded box.
+ */
+.ol-copy-value {
+  --focus-outline-offset: 0px;
+}
+
+/* Member activity events: a plain button around the event, with a rounded hover like activity rows. */
+.ol-timeline-event {
+  display: block;
+  margin: 0;
+  padding: var(--spacing-2);
+  margin-block-start: calc(-1 * var(--spacing-2));
+  margin-inline: calc(-1 * var(--spacing-2));
+  width: calc(100% + 2 * var(--spacing-2));
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.ol-timeline-event:hover {
+  background-color: var(--color-overlay-hover);
+}
+
+/*
+ * Appearance cards: the ring follows the rounded preview, not the square
+ * button that also holds the label.
+ */
+.ol-theme-card:focus-visible {
+  outline: none;
+}
+.ol-theme-card:focus-visible .ol-theme-card__frame {
+  outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
+}
+
+/*
+ * Rows that span a scrolling column or a list clip the sides of an outside
+ * ring, so there the ring is drawn just inside the row instead.
+ */
+.focus-inset,
+.astryx-list,
+.astryx-table {
+  --focus-outline-offset: calc(-1 * var(--focus-outline-width));
 }

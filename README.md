@@ -73,7 +73,7 @@ Contracts live under `packages/contracts/src/` and are composed in `contract.ts`
 | `links`         | CRUD per domain, workspace search, bulk move/tag/delete, history |
 | `comments`      | Link comment threads and reactions                |
 | `activity`      | Workspace audit feed (also powers link history)   |
-| `apiKeys`       | Workspace API keys (`Authorization: Bearer ol_live_…`) |
+| `apiKeys`       | Workspace API keys (`Authorization: Bearer sk_…`) |
 
 Short links resolve at `/{slug}` on any active custom domain (redirect, password gate, expiry/fallback, click limits).
 
@@ -134,6 +134,71 @@ without an admin are left unchanged and require manual ownership recovery.
 The role enum expansion itself needs no SQLite column change: roles are stored as
 text. Members can no longer add domains or refresh domain verification; those
 operations now require an owner or admin.
+
+### API keys
+
+Workspace API keys use the Better Auth [API key plugin](https://www.better-auth.com/docs/plugins/api-key)
+(`@better-auth/api-key`), configured in `apps/web/src/server/auth/api-keys.ts`.
+Clients send `Authorization: Bearer sk_…`; `requirePrincipal` verifies the key with
+`auth.api.verifyApiKey`. The dashboard and the `apiKeys` oRPC routes call `auth.api.*`
+through `apps/web/src/server/apikeys/service.ts`.
+
+**Keys belong to workspaces.** The plugin runs with `references: 'organization'`, so a
+key's `referenceId` is the workspace id. Deleting a workspace deletes its keys.
+
+**Adapting the plugin to OpenLink workspaces.** For organization-owned keys, the plugin
+expects Better Auth's organization plugin: it reads members from a `member` model and
+checks roles against that plugin's access-control options. OpenLink has its own
+`organization` and `organization_member` tables instead, so `api-keys.ts` adds a small
+companion plugin (`openlink-workspace-members`). It makes three adaptations:
+
+- It declares a `member` model, and `instance.ts` maps that model to
+  `schema.organizationMember`. The plugin's membership lookups therefore read
+  `organization_member`. Better Auth never writes to this model; `joinedAt` is declared
+  only so its schema check accepts the table.
+- Its `init` puts `orgOptions` on the auth context with the roles below. The plugin uses
+  them for list, create, update and delete. `owner` is the creator role and has every
+  permission.
+- It does not install Better Auth's organization plugin. Workspaces, members and invites
+  stay with OpenLink's own code.
+
+| Workspace role | Manage API keys |
+| -------------- | --------------- |
+| Owner          | Yes             |
+| Admin          | Yes             |
+| Member         | No              |
+| Viewer         | No              |
+
+The oRPC routes also require a signed-in owner or admin (`requireOrgAdminUserEffect`)
+before calling the plugin, and a request made with an API key can never manage keys.
+
+This adaptation relies on plugin internals: it looks for `orgOptions` on the auth
+context and for a `member` model. Both packages are pinned to the same version
+(1.7.22). Run `bun test src/server/apikeys` after upgrading either one. Those tests use
+a real Better Auth instance, so they fail if the plugin stops finding members or roles.
+
+**Key role.** A key's workspace role (`admin`, `member` or `viewer`; never `owner`) is
+stored in the plugin's `permissions` field as `{ "workspace": ["<role>"] }`. The plugin
+only lets the server set `permissions`. For that reason the service creates keys and
+changes roles with server calls that pass the acting user's `userId`, not the request
+headers. A key without a valid role, for example one made by calling
+`/api/auth/api-key/create` directly, is hidden from the list and rejected when used.
+
+**Other settings:**
+
+- Secrets start with `sk_`. Only a hash is stored; the list shows the first 9
+  characters (`start`).
+- The plugin's per-key rate limit is off. Its default is 10 requests per day.
+- `lastRequest` (shown as "last used") is updated on every authenticated request.
+- Names are required, up to 80 characters.
+
+**Plugin endpoints.** The plugin also serves `/api/auth/api-key/*`. Those endpoints apply
+the same owner/admin check but skip OpenLink's activity log. The dashboard uses the
+`apiKeys` oRPC routes, which do write to it.
+
+**Migration.** `0014_better_auth_api_keys.sql` drops the old `api_key` table and creates
+the plugin's `apikey` table. Existing keys are not carried over: after the migration
+they stop working, and workspaces need to create new ones.
 
 ### Changing the API
 

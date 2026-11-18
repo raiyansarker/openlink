@@ -1,19 +1,31 @@
 import { useMemo } from 'react'
 import qrcode from 'qrcode-generator'
 
+import { useResolvedColorScheme } from '#/hooks/use-resolved-color-scheme'
+
 /**
- * Styled QR code: soft rounded-square data dots, rounded "eyes" (finder patterns) and a
- * link badge in the middle. The badge covers modules, so we encode with the
- * highest error correction (H, ~30% recoverable) and keep the badge small.
+ * Styled QR code: soft rounded-square data dots, rounded "eyes" (finder patterns) and the
+ * OpenLink mark in the middle. The mark covers modules, so we encode with the
+ * highest error correction (H, ~30% recoverable) and keep the mark small.
  *
  * Colors are literal (not theme tokens) so exported files look identical
- * everywhere and scanners always get dark-on-light.
+ * everywhere. Downloads are always dark-on-light, which every scanner reads.
  */
 
+type QrPalette = { paper: string; ink: string }
+
+/** Brand orange, from the logo. */
+const ACCENT = '#F2541B'
+/** The logo's light stroke. */
+const MARK_STROKE = '#FAFAF7'
+const LIGHT: QrPalette = { paper: '#ffffff', ink: '#111113' }
+/**
+ * On screen in dark mode the code sits on the dark surface with light dots.
+ * Phone camera apps read inverted codes; files you download stay `LIGHT`.
+ */
+const DARK: QrPalette = { paper: '#18181b', ink: '#FAFAF7' }
+
 const QUIET_ZONE = 3
-const INK = '#111113'
-const ACCENT = '#0061FE'
-const PAPER = '#ffffff'
 
 /**
  * Data modules are full-size rounded squares. Tested with jsQR across sizes
@@ -89,12 +101,18 @@ function buildModel(shortUrl: string): QrModel {
   }
 }
 
-/** Chain-link glyph, drawn in a 24-unit box. */
-const LINK_GLYPH =
-  'M10 14a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5M14 10a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5'
+/**
+ * The OpenLink mark (`public/logo-*.svg`): two slanted strokes in a rounded
+ * square, drawn here on brand orange. In the logo's 96-unit box.
+ */
+const MARK_BOX = 96
+const MARK_RADIUS = 24
+const MARK_TRANSFORM = 'translate(9.842 9.842) scale(0.763158)'
+const MARK_STROKES = ['M28 78L48 22', 'M52 78L72 22']
+const MARK_STROKE_WIDTH = 12
 
-/** Standalone SVG markup for downloads (same drawing as the component). */
-export function qrSvgMarkup(value: string, size = 1024): string {
+/** Standalone SVG markup for downloads (same drawing as the component, always light). */
+export function qrSvgMarkup(value: string, size = 1024, palette: QrPalette = LIGHT): string {
   const { box, dots, eyes, badge } = buildModel(value)
   const dotMarkup = dots
     .map(
@@ -109,13 +127,16 @@ export function qrSvgMarkup(value: string, size = 1024): string {
         `<rect x="${x + 2}" y="${y + 2}" width="3" height="3" rx="1" fill="${ACCENT}"/>`,
     )
     .join('')
-  const g = badge.size / 24
+  const markMarkup =
+    `<g transform="translate(${badge.x} ${badge.x}) scale(${badge.size / MARK_BOX})">` +
+    `<rect width="${MARK_BOX}" height="${MARK_BOX}" rx="${MARK_RADIUS}" fill="${ACCENT}"/>` +
+    `<g transform="${MARK_TRANSFORM}" fill="none" stroke="${MARK_STROKE}" stroke-width="${MARK_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round">` +
+    MARK_STROKES.map((d) => `<path d="${d}"/>`).join('') +
+    `</g></g>`
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${box} ${box}">` +
-    `<rect width="${box}" height="${box}" rx="${box * 0.06}" fill="${PAPER}"/>` +
-    `<g fill="${INK}">${dotMarkup}</g>${eyeMarkup}` +
-    `<rect x="${badge.x}" y="${badge.x}" width="${badge.size}" height="${badge.size}" rx="${badge.size * 0.28}" fill="${ACCENT}"/>` +
-    `<g transform="translate(${badge.x + badge.size * 0.2} ${badge.x + badge.size * 0.2}) scale(${g * 0.6})" fill="none" stroke="${PAPER}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${LINK_GLYPH}"/></g>` +
+    `<rect width="${box}" height="${box}" rx="${box * 0.06}" fill="${palette.paper}"/>` +
+    `<g fill="${palette.ink}">${dotMarkup}</g>${eyeMarkup}${markMarkup}` +
     `</svg>`
   )
 }
@@ -164,9 +185,10 @@ type QrCodeProps = {
   label: string
 }
 
+/** The on-screen code, in the current color scheme. */
 export default function QrCode({ value, size = 180, label }: QrCodeProps) {
   const { box, dots, eyes, badge } = useMemo(() => buildModel(value), [value])
-  const g = badge.size / 24
+  const palette = useResolvedColorScheme() === 'dark' ? DARK : LIGHT
 
   return (
     <svg
@@ -178,8 +200,8 @@ export default function QrCode({ value, size = 180, label }: QrCodeProps) {
       aria-label={label}
       style={{ display: 'block', flexShrink: 0 }}
     >
-      <rect width={box} height={box} rx={box * 0.06} fill={PAPER} />
-      <g fill={INK}>
+      <rect width={box} height={box} rx={box * 0.06} fill={palette.paper} />
+      <g fill={palette.ink}>
         {dots.map(([x, y]) => (
           <rect
             key={`${x}-${y}`}
@@ -206,23 +228,20 @@ export default function QrCode({ value, size = 180, label }: QrCodeProps) {
           <rect x={x + 2} y={y + 2} width={3} height={3} rx={1} fill={ACCENT} />
         </g>
       ))}
-      <rect
-        x={badge.x}
-        y={badge.x}
-        width={badge.size}
-        height={badge.size}
-        rx={badge.size * 0.28}
-        fill={ACCENT}
-      />
-      <g
-        transform={`translate(${badge.x + badge.size * 0.2} ${badge.x + badge.size * 0.2}) scale(${g * 0.6})`}
-        fill="none"
-        stroke={PAPER}
-        strokeWidth={2.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d={LINK_GLYPH} />
+      <g transform={`translate(${badge.x} ${badge.x}) scale(${badge.size / MARK_BOX})`}>
+        <rect width={MARK_BOX} height={MARK_BOX} rx={MARK_RADIUS} fill={ACCENT} />
+        <g
+          transform={MARK_TRANSFORM}
+          fill="none"
+          stroke={MARK_STROKE}
+          strokeWidth={MARK_STROKE_WIDTH}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {MARK_STROKES.map((d) => (
+            <path key={d} d={d} />
+          ))}
+        </g>
       </g>
     </svg>
   )

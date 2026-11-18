@@ -1,62 +1,30 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect } from 'react'
 
-const ELEMENTS_SCRIPT =
-  'https://unpkg.com/@stoplight/elements/web-components.min.js'
-const ELEMENTS_STYLES =
-  'https://unpkg.com/@stoplight/elements/styles.min.css'
+const SCALAR_VERSION = '1.81.0'
 
-function useStoplightElementsScript() {
-  useEffect(() => {
-    if (document.querySelector(`script[src="${ELEMENTS_SCRIPT}"]`)) return
-    const script = document.createElement('script')
-    script.src = ELEMENTS_SCRIPT
-    script.async = true
-    document.body.appendChild(script)
-  }, [])
-}
+const CONFIGURATION = JSON.stringify({ theme: 'halloween' })
 
-/** Ensure the Elements host re-measures when the web component boots. */
-function useStoplightElementsFullHeight() {
-  useEffect(() => {
-    const resize = () => {
-      const host = document.querySelector('elements-api')
-      if (!(host instanceof HTMLElement)) return
-      const parent = host.closest('.api-docs-root')
-      if (!(parent instanceof HTMLElement)) return
-      host.style.height = `${parent.clientHeight}px`
-    }
-    resize()
-    const t = window.setTimeout(resize, 0)
-    const t2 = window.setTimeout(resize, 300)
-    window.addEventListener('resize', resize)
-    return () => {
-      window.clearTimeout(t)
-      window.clearTimeout(t2)
-      window.removeEventListener('resize', resize)
-    }
-  }, [])
-}
+const escapeAttribute = (value: string) => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+
+/** A standalone page: Scalar draws the whole thing, so none of the app's layout or CSS applies. */
+const PAGE = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenLink API</title>
+  </head>
+  <body>
+    <script id="api-reference" data-url="/api/v1/openapi.json" data-configuration="${escapeAttribute(CONFIGURATION)}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@${SCALAR_VERSION}"></script>
+  </body>
+</html>
+`
 
 export const Route = createFileRoute('/api/docs')({
-  head: () => ({
-    meta: [{ title: 'OpenLink API' }],
-    links: [{ rel: 'stylesheet', href: ELEMENTS_STYLES }],
-  }),
-  component: ApiDocsPage,
+  server: {
+    handlers: {
+      GET: () => new Response(PAGE, { headers: { 'content-type': 'text/html; charset=utf-8' } }),
+    },
+  },
 })
-
-function ApiDocsPage() {
-  useStoplightElementsScript()
-  useStoplightElementsFullHeight()
-
-  return (
-    <main className="api-docs-root">
-      <elements-api
-        apiDescriptionUrl="/api/v1/openapi.json"
-        router="hash"
-        layout="sidebar"
-      />
-    </main>
-  )
-}

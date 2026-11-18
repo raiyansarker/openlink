@@ -22,6 +22,9 @@ export default function CopyValueButton({
   return (
     <Link
       color="primary"
+      className="ol-copy-value"
+      // Room and rounded corners for the focus ring; negative margins keep the text in place.
+      style={{ display: 'inline-block', padding: '2px 6px', margin: '-2px -6px', borderRadius: 'var(--radius-element)' }}
       tooltip={isCopied ? 'Copied' : 'Click to copy'}
       onClick={() => void copy(copyValue)}
     >

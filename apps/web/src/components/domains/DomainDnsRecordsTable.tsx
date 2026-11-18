@@ -3,13 +3,13 @@ import { Divider } from '@astryxdesign/core/Divider'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { DomainDnsRecord } from '#/data/demo/domains'
-import { purposeLabel } from '#/lib/domains/demo-dns'
+import type { DnsRecord } from '#/lib/api/types'
+import { purposeLabel } from '#/lib/domains/hostname'
 import DomainDnsRecordRoute from './DomainDnsRecordRoute'
 
 type DomainDnsRecordsTableProps = {
   domainHostname: string
-  records: DomainDnsRecord[]
+  records: DnsRecord[]
 }
 
 export default function DomainDnsRecordsTable({

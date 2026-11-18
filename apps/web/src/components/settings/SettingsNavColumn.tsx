@@ -75,6 +75,7 @@ function SettingsNavLink({
   return (
     <Link
       to={to}
+      className="ol-focus-ring"
       style={{ ...navLinkBaseStyle, fontWeight: 400, color: SHELL_NAV_TEXT_SECONDARY, backgroundColor: navItemBackground(false, hovered) }}
       activeProps={{
         style: { ...navLinkBaseStyle, fontWeight: 600, color: SHELL_NAV_TEXT_PRIMARY, backgroundColor: navItemBackground(true, hovered) },
@@ -169,6 +170,7 @@ export default function SettingsNavColumn() {
       }}
     >
       <button
+        className="ol-focus-ring"
         type="button"
         aria-label="Back to dashboard"
         onClick={() => void navigate({ to: '/w' })}
@@ -176,12 +178,13 @@ export default function SettingsNavColumn() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
-          padding: '2px 0',
-          marginBottom: 18,
-          marginLeft: -3,
+          padding: '4px 10px 4px 6px',
+          marginBottom: 14,
+          marginLeft: -9,
           alignSelf: 'flex-start',
           border: 'none',
-          borderRadius: 0,
+          // Room and rounded corners, so the focus ring isn't a tight box on the text.
+          borderRadius: 'var(--radius-element)',
           cursor: 'pointer',
           backgroundColor: 'transparent',
           color: SHELL_NAV_TEXT_PRIMARY,
@@ -196,6 +199,7 @@ export default function SettingsNavColumn() {
       </button>
 
       <nav
+        className="focus-inset"
         style={{
           flex: 1,
           display: 'flex',
@@ -230,6 +234,7 @@ export default function SettingsNavColumn() {
 
         <NavGroup label="Other">
           <button
+            className="ol-focus-ring"
             type="button"
             onClick={() => void signOut()}
             style={{

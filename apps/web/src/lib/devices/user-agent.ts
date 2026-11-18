@@ -1,4 +1,4 @@
-import type { DeviceKind } from '#/data/demo/active-sessions'
+export type DeviceKind = 'all-in-one' | 'laptop' | 'smartphone'
 
 export type DeviceDescription = { client: string; os: string; kind: DeviceKind }
 

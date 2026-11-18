@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Tooltip } from '@astryxdesign/core/Tooltip'
-import type { Organization } from '#/data/demo/types'
-import { getOrganizationBrand } from '#/data/demo/organization-branding'
+import type { Workspace } from '#/lib/api/types'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
 import OpenLinkAppMark from '#/components/dashboard/icons/OpenLinkAppMark'
@@ -30,7 +29,7 @@ const ORG_CONTROL_RADIUS = 9
 const ORG_LOGO_RADIUS = ORG_CONTROL_RADIUS - (ORG_CONTROL_SIZE - ORG_LOGO_SIZE) / 2
 
 type OrganizationIconRailProps = {
-  organizations: Organization[]
+  organizations: Workspace[]
   activeOrgSlug: string
 }
 
@@ -76,6 +75,7 @@ function OrgSwitchButton({
   return (
     <Tooltip content={orgName} placement="end">
       <button
+        className="ol-focus-ring"
         type="button"
         aria-label={`Switch to ${orgName}`}
         aria-current={isActive ? 'true' : undefined}
@@ -115,6 +115,7 @@ function RailSettingsButton() {
   return (
     <Tooltip content="Settings" placement="end">
       <button
+        className="ol-focus-ring"
         type="button"
         aria-label="Settings"
         aria-current={isActive ? 'page' : undefined}
@@ -184,6 +185,7 @@ export default function OrganizationIconRail({
       >
         <Tooltip content="OpenLink" placement="end">
           <button
+            className="ol-focus-ring"
             type="button"
             aria-label="OpenLink home"
             onClick={() => void navigate({ to: '/w' })}
@@ -204,6 +206,7 @@ export default function OrganizationIconRail({
         />
 
         <div
+          className="focus-inset"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -217,7 +220,6 @@ export default function OrganizationIconRail({
           }}
         >
           {organizations.map((org) => {
-            const brand = getOrganizationBrand(org.id)
             const target = WorkspaceUrl.replaceOrg(pathname, org.slug)
             const isActive = org.slug === activeOrgSlug
 
@@ -230,7 +232,6 @@ export default function OrganizationIconRail({
               >
                 <OrganizationLogo
                   name={org.name}
-                  brand={brand}
                   size={ORG_LOGO_SIZE}
                   radius={ORG_LOGO_RADIUS}
                   customImageUrl={org.logoUrl}
@@ -255,6 +256,7 @@ export default function OrganizationIconRail({
           >
             <Tooltip content="Create organization" placement="end">
               <button
+                className="ol-focus-ring"
                 type="button"
                 aria-label="Create organization"
                 onClick={handleCreateOrganization}

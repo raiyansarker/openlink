@@ -4,11 +4,11 @@ import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { BarChartIcon } from '#/components/icons/IcnMcp'
-import type { OrgDashboardStats } from '#/data/demo/types'
+import type { WorkspaceStats } from '#/contexts/OrganizationContext'
 import { formatCompactNumber } from '#/lib/format/compact-number'
 
 type DashboardOverviewMetricsProps = {
-  stats: OrgDashboardStats
+  stats: WorkspaceStats
 }
 
 export default function DashboardOverviewMetrics({

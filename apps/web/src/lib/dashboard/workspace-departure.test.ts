@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { Organization } from '#/data/demo/types'
+import type { Workspace } from '#/lib/api/types'
 import { WorkspaceDeparture } from './workspace-departure'
 
-const org = (id: string, slug: string) => ({ id, slug, name: slug }) as Organization
+const org = (id: string, slug: string) => ({ id, slug, name: slug }) as Workspace
 
 describe('WorkspaceDeparture', () => {
   test('a workspace that left your list is lost; one with a new slug was renamed', () => {

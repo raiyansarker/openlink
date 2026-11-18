@@ -7,29 +7,26 @@ import {
   type ReactNode,
 } from 'react'
 import { stableContext } from '#/lib/react/stable-context'
-import { useQueryClient } from '@tanstack/react-query'
-import { useOrganization } from '#/contexts/OrganizationContext'
-import type { WorkspaceCustomDomain } from '#/data/demo/domains'
-import { DomainsApi } from '#/lib/api/domains'
-import { LinksApi } from '#/lib/api/links'
-import { QueryKeys } from '#/lib/api/query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { MAX_LINKS, useOrganization } from '#/contexts/OrganizationContext'
+import { apiErrorMessage } from '#/lib/api/errors'
+import { orpc } from '#/lib/api/orpc'
+import type { Domain } from '#/lib/api/types'
 
 type DomainsWorkspaceContextValue = {
-  customDomains: WorkspaceCustomDomain[]
+  customDomains: Domain[]
   detailRequestDomainId: string | null
   /** Registers a hostname; rejects with a user-facing message. Opens its details once added. */
-  addDomain: (hostname: string) => Promise<WorkspaceCustomDomain>
+  addDomain: (hostname: string) => Promise<Domain>
   /** Re-checks DNS and certificate state on the server. */
   verifyDomain: (domainId: string) => Promise<void>
   /** Removes the domain and deletes every short link on it. */
   removeDomain: (domainId: string) => Promise<void>
-  getDomainById: (domainId: string) => WorkspaceCustomDomain | undefined
+  getDomainById: (domainId: string) => Domain | undefined
   consumeDetailRequest: () => string | null
 }
 
 const DomainsWorkspaceContext = stableContext<DomainsWorkspaceContextValue | null>('DomainsWorkspace', null)
-
-const domainsApi = new DomainsApi()
 
 /** Custom domains of the active workspace, from the API (shared with the create-link form). */
 export function DomainsWorkspaceProvider({ children }: { children: ReactNode }) {
@@ -43,44 +40,58 @@ export function DomainsWorkspaceProvider({ children }: { children: ReactNode }) 
   // Counted from the loaded links so it follows edits at once; past the list's cap, trust the server's count.
   const customDomains = useMemo(
     () =>
-      links.length >= LinksApi.MAX_LINKS
+      links.length >= MAX_LINKS
         ? domains
         : domains.map((d) => ({ ...d, linkCount: links.filter((l) => l.domainId === d.id).length })),
     [domains, links],
   )
 
-  const setDomains = useCallback(
-    (update: (prev: WorkspaceCustomDomain[]) => WorkspaceCustomDomain[]) =>
-      queryClient.setQueryData<WorkspaceCustomDomain[]>(QueryKeys.domains(orgId), (prev) => update(prev ?? [])),
-    [queryClient, orgId],
-  )
+  const input = { params: { organizationId: orgId } }
+  const refreshDomains = () => queryClient.invalidateQueries({ queryKey: orpc.domains.listDomains.queryKey({ input }) })
+  // Removing a domain deletes its links on the server, so the links list is refreshed too.
+  const refreshDomainsAndLinks = () =>
+    Promise.all([refreshDomains(), queryClient.invalidateQueries({ queryKey: orpc.links.listOrganizationLinks.key() })])
+
+  const addMutation = useMutation(orpc.domains.addDomain.mutationOptions({ onSuccess: refreshDomains }))
+  const refreshMutation = useMutation(orpc.domains.refreshDomainStatus.mutationOptions({ onSuccess: refreshDomains }))
+  const removeMutation = useMutation(orpc.domains.removeDomain.mutationOptions({ onSuccess: refreshDomainsAndLinks }))
 
   const addDomain = useCallback(
     async (hostname: string) => {
-      const domain = await domainsApi.add(orgId, hostname)
-      setDomains((prev) => [domain, ...prev.filter((d) => d.id !== domain.id)])
-      setDetailRequestDomainId(domain.id)
-      return domain
+      try {
+        const domain = await addMutation.mutateAsync({ ...input, body: { hostname } })
+        setDetailRequestDomainId(domain.id)
+        return domain
+      } catch (error) {
+        throw new Error(apiErrorMessage(error, 'Could not add the domain.'))
+      }
     },
-    [orgId, setDomains],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orgId],
   )
 
   const verifyDomain = useCallback(
     async (domainId: string) => {
-      const next = await domainsApi.refresh(orgId, domainId)
-      setDomains((prev) => prev.map((d) => (d.id === domainId ? next : d)))
+      try {
+        await refreshMutation.mutateAsync({ params: { organizationId: orgId, domainId } })
+      } catch (error) {
+        throw new Error(apiErrorMessage(error, 'Could not check the domain.'))
+      }
     },
-    [orgId, setDomains],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orgId],
   )
 
   const removeDomain = useCallback(
     async (domainId: string) => {
-      await domainsApi.remove(orgId, domainId)
-      setDomains((prev) => prev.filter((d) => d.id !== domainId))
-      // Its links were deleted on the server.
-      await queryClient.invalidateQueries({ queryKey: QueryKeys.links(orgId) })
+      try {
+        await removeMutation.mutateAsync({ params: { organizationId: orgId, domainId } })
+      } catch (error) {
+        throw new Error(apiErrorMessage(error, 'Could not remove the domain.'))
+      }
     },
-    [orgId, setDomains, queryClient],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orgId],
   )
 
   const consumeDetailRequest = useCallback(() => {
