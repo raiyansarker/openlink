@@ -1,39 +1,29 @@
-import { useMemo, useState, type DragEvent } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Banner } from '@astryxdesign/core/Banner'
-import { BreadcrumbItem, Breadcrumbs } from '@astryxdesign/core/Breadcrumbs'
 import { Button } from '@astryxdesign/core/Button'
-import { EmptyState } from '@astryxdesign/core/EmptyState'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Heading } from '@astryxdesign/core/Heading'
 import { VStack } from '@astryxdesign/core/VStack'
-import DeleteFolderDialog from '#/components/links/DeleteFolderDialog'
-import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
-import EmptyFolderIllustration from '#/components/links/EmptyFolderIllustration'
-import FolderNameDialog from '#/components/links/FolderNameDialog'
+import FolderBreadcrumbs from '#/components/links/FolderBreadcrumbs'
 import FolderTiles, { type FolderTile } from '#/components/links/FolderTiles'
-import ImportLinksDialog from '#/components/links/ImportLinksDialog'
+import LinksBrowserDialogs from '#/components/links/LinksBrowserDialogs'
+import LinksBrowserEmpty from '#/components/links/LinksBrowserEmpty'
 import LinksListView from '#/components/links/LinksListView'
-import MoveToFolderDialog, {
-  type MoveSubject,
-} from '#/components/links/MoveToFolderDialog'
+import { folderMenuItems, linkMenuItems } from '#/components/links/links-browser-menus'
+import { useLinksBrowserDialogs } from '#/components/links/use-links-browser-dialogs'
 import { ShortcutChip } from '#/components/dashboard/CreateLinkChromeButton'
-import { DRAG_MIME } from '#/components/links/links-browser-types'
-import { FolderIcon, PlusIcon } from '#/components/icons/IcnMcp'
+import { PlusIcon } from '#/components/icons/IcnMcp'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { useShortcut } from '#/hooks/use-shortcut'
 import type { LinkFolder, ShortLink } from '#/lib/api/types'
 import {
   canCreateFolderIn,
   canMoveFolder,
-  countFolderContents,
-  folderPathLabel,
   getChildFolders,
   getFolderPath,
   getLinksInFolder,
 } from '#/lib/links/folder-tree'
-import { isOnHold } from '#/lib/links/create-link'
 import { linkTitle } from '#/lib/links/link-summary'
 
 type LinksBrowserProps = {
@@ -50,19 +40,14 @@ export default function LinksBrowser({
     activeOrg,
     links,
     folders,
-    domains,
-    createFolder,
-    renameFolder,
     moveFolder,
-    deleteFolder,
     moveLink,
     setLinkHold,
-    deleteLink,
-    createLink,
     duplicateLink,
-    moveLinks,
   } = useOrganization()
   const navigate = useNavigate()
+  const dialogs = useLinksBrowserDialogs()
+  const { setNewFolderOpen, setIsImportOpen } = dialogs
 
   const currentFolder = folders.find((f) => f.id === folderId) ?? null
   const currentId = currentFolder?.id ?? null
@@ -76,13 +61,7 @@ export default function LinksBrowser({
   const selectedFolderId = selection?.inFolder === currentId ? selection.id : null
   const setSelectedFolderId = (id: string | null) =>
     setSelection(id == null ? null : { id, inFolder: currentId })
-  const [breadcrumbDropKey, setBreadcrumbDropKey] = useState<string | null>(null)
-  const [newFolderOpen, setNewFolderOpen] = useState(false)
-  const [renaming, setRenaming] = useState<LinkFolder | null>(null)
-  const [moving, setMoving] = useState<MoveSubject | null>(null)
-  const [deletingFolder, setDeletingFolder] = useState<LinkFolder | null>(null)
-  const [deletingLink, setDeletingLink] = useState<ShortLink | null>(null)
-  const [isImportOpen, setIsImportOpen] = useState(false)
+
   const [actionError, setActionError] = useState<string | null>(null)
   /** Runs an action from a menu or drop, showing its failure above the list. */
   const run = (action: () => Promise<unknown>) => {
@@ -139,122 +118,34 @@ export default function LinksBrowser({
     }
   }
 
-  const folderMenu = (folder: LinkFolder) => [
-    { id: 'open', label: 'Open', onClick: () => onOpenFolder(folder.id) },
-    { id: 'rename', label: 'Rename', onClick: () => setRenaming(folder) },
-    {
-      id: 'move',
-      label: 'Move to…',
-      onClick: () =>
-        setMoving({
-          kind: 'folder',
-          id: folder.id,
-          name: folder.name,
-          parentId: folder.parentId ?? null,
-        }),
-    },
-    { type: 'divider' as const },
-    {
-      id: 'delete',
-      label: 'Delete folder',
-      variant: 'destructive' as const,
-      onClick: () => setDeletingFolder(folder),
-    },
-  ]
+  const folderMenu = (folder: LinkFolder) =>
+    folderMenuItems(folder, {
+      onOpen: (f) => onOpenFolder(f.id),
+      onRename: dialogs.setRenaming,
+      onMove: (f) =>
+        dialogs.setMoving({ kind: 'folder', id: f.id, name: f.name, parentId: f.parentId ?? null }),
+      onDelete: dialogs.setDeletingFolder,
+    })
 
-  const linkMenu = (link: ShortLink) => [
-    { id: 'open', label: 'Open details', onClick: () => openLink(link.id) },
-    { id: 'edit', label: 'Edit', onClick: () => editLink(link.id) },
-    {
-      id: 'duplicate',
-      label: 'Duplicate',
-      onClick: () => run(async () => editLink((await duplicateLink(link.id)).id)),
-    },
-    { type: 'divider' as const },
-    isOnHold(link)
-      ? {
-          id: 'release',
-          label: 'Release hold',
-          onClick: () => run(() => setLinkHold(link.id, null)),
-        }
-      : {
-          id: 'hold',
-          label: 'Put on hold',
-          onClick: () =>
-            run(() => setLinkHold(link.id, { page: link.hold?.page ?? 'bad-gateway' })),
-        },
-    {
-      id: 'move',
-      label: 'Move to…',
-      onClick: () =>
-        setMoving({
-          kind: 'link',
-          id: link.id,
-          name: linkTitle(link),
-          folderId: link.folderId ?? null,
-        }),
-    },
-    { type: 'divider' as const },
-    {
-      id: 'delete',
-      label: 'Delete link',
-      variant: 'destructive' as const,
-      onClick: () => setDeletingLink(link),
-    },
-  ]
-
-  const breadcrumbDrop = (key: string, destinationId: string | null) => ({
-    onDragOver: (e: DragEvent) => {
-      if (e.dataTransfer.types.includes(DRAG_MIME)) {
-        e.preventDefault()
-        setBreadcrumbDropKey(key)
-      }
-    },
-    onDragLeave: () => setBreadcrumbDropKey(null),
-    onDrop: (e: DragEvent) => {
-      e.preventDefault()
-      setBreadcrumbDropKey(null)
-      const dragged = e.dataTransfer.getData(DRAG_MIME)
-      if (dragged) dropItem(dragged, destinationId)
-    },
-    style:
-      breadcrumbDropKey === key
-        ? { outline: '2px solid var(--color-accent)', borderRadius: 6 }
-        : undefined,
-  })
-
-  const deletingContents = deletingFolder
-    ? countFolderContents(folders, links, deletingFolder.id)
-    : { folders: 0, links: 0 }
+  const linkMenu = (link: ShortLink) =>
+    linkMenuItems(link, {
+      onOpen: (l) => openLink(l.id),
+      onEdit: (l) => editLink(l.id),
+      onDuplicate: (l) => run(async () => editLink((await duplicateLink(l.id)).id)),
+      onSetHold: (l, isOnHold) =>
+        run(() =>
+          setLinkHold(l.id, isOnHold ? null : { page: l.hold?.page ?? 'bad-gateway' }),
+        ),
+      onMove: (l) =>
+        dialogs.setMoving({ kind: 'link', id: l.id, name: linkTitle(l), folderId: l.folderId ?? null }),
+      onDelete: dialogs.setDeletingLink,
+    })
 
   return (
     <VStack gap={5} hAlign="stretch" width="100%">
       {actionError ? <Banner status="error" title={actionError} /> : null}
       <HStack hAlign="between" vAlign="center" gap={4} wrap="wrap">
-        <Breadcrumbs label="Folder path">
-          <BreadcrumbItem
-            startIcon={<FolderIcon size={14} />}
-            onClick={path.length > 0 ? () => onOpenFolder(null) : undefined}
-            isCurrent={path.length === 0}
-            {...breadcrumbDrop('root', null)}
-          >
-            All links
-          </BreadcrumbItem>
-          {path.map((folder, index) => (
-            <BreadcrumbItem
-              key={folder.id}
-              onClick={
-                index < path.length - 1
-                  ? () => onOpenFolder(folder.id)
-                  : undefined
-              }
-              isCurrent={index === path.length - 1}
-              {...breadcrumbDrop(folder.id, folder.id)}
-            >
-              {folder.name}
-            </BreadcrumbItem>
-          ))}
-        </Breadcrumbs>
+        <FolderBreadcrumbs path={path} onOpenFolder={onOpenFolder} onDropItem={dropItem} />
         <HStack gap={2} vAlign="center">
           <Button
             variant="ghost"
@@ -276,35 +167,10 @@ export default function LinksBrowser({
       </HStack>
 
       {folderTiles.length === 0 && folderLinks.length === 0 ? (
-        <EmptyState
-          title={currentFolder ? 'This folder is empty' : 'No links yet'}
-          description={
-            currentFolder
-              ? 'Drag links or folders here, or create a subfolder to keep things tidy.'
-              : 'Create a folder to start organizing your links.'
-          }
-          icon={
-            currentFolder ? (
-              <EmptyFolderIllustration variant="folder" />
-            ) : (
-              <EmptyLinksIllustration />
-            )
-          }
-          actions={
-            <HStack gap={2}>
-              <Button
-                variant="secondary"
-                label="Import CSV"
-                onClick={() => setIsImportOpen(true)}
-              />
-              <Button
-                variant="primary"
-                label="New folder"
-                icon={<PlusIcon size={14} />}
-                onClick={() => setNewFolderOpen(true)}
-              />
-            </HStack>
-          }
+        <LinksBrowserEmpty
+          isInFolder={currentFolder != null}
+          onImport={() => setIsImportOpen(true)}
+          onNewFolder={() => setNewFolderOpen(true)}
         />
       ) : (
         <VStack gap={6} hAlign="stretch" width="100%">
@@ -335,84 +201,12 @@ export default function LinksBrowser({
         </VStack>
       )}
 
-      <FolderNameDialog
-        isOpen={newFolderOpen}
-        onOpenChange={setNewFolderOpen}
-        title="New folder"
-        subtitle={`Inside ${folderPathLabel(folders, currentId)}`}
-        submitLabel="Create folder"
-        onSubmit={async (name) => {
-          await createFolder(name, currentId)
-        }}
-      />
-      <FolderNameDialog
-        isOpen={renaming != null}
-        onOpenChange={(open) => {
-          if (!open) setRenaming(null)
-        }}
-        title="Rename folder"
-        submitLabel="Save name"
-        initialName={renaming?.name}
-        onSubmit={(name) => {
-          if (renaming) return renameFolder(renaming.id, name)
-        }}
-      />
-      <MoveToFolderDialog
-        subject={moving}
-        folders={folders}
-        onOpenChange={(open) => {
-          if (!open) setMoving(null)
-        }}
-        onMove={(subject, destinationId) => {
-          if (subject.kind === 'folder') return moveFolder(subject.id, destinationId)
-          if (subject.kind === 'links') return moveLinks(subject.ids, destinationId)
-          return moveLink(subject.id, destinationId)
-        }}
-      />
-      <DeleteFolderDialog
-        folder={deletingFolder}
-        contents={deletingContents}
-        parentLabel={folderPathLabel(folders, deletingFolder?.parentId ?? null)}
-        onOpenChange={(open) => {
-          if (!open) setDeletingFolder(null)
-        }}
-        onConfirm={(id, mode) => {
-          const wasInside = path.some((f) => f.id === id)
-          const parentId = deletingFolder?.parentId ?? null
-          run(async () => {
-            await deleteFolder(id, mode)
-            // Leave a folder that no longer exists (or moved its contents up).
-            if (wasInside) onOpenFolder(parentId)
-          })
-        }}
-      />
-      <ImportLinksDialog
-        isOpen={isImportOpen}
-        onOpenChange={setIsImportOpen}
-        links={links}
-        folders={folders}
-        defaultFolderId={currentId}
-        domains={domains.filter((d) => d.readiness === 'active')}
-        onCreate={async (draft) => {
-          await createLink(draft)
-        }}
-      />
-      <AlertDialog
-        isOpen={deletingLink != null}
-        onOpenChange={(open) => {
-          if (!open) setDeletingLink(null)
-        }}
-        title={`Delete ${deletingLink?.title ?? 'link'}?`}
-        description="The short URL stops working immediately. This cannot be undone."
-        actionLabel="Delete link"
-        actionVariant="destructive"
-        onAction={() => {
-          if (deletingLink) {
-            const id = deletingLink.id
-            run(() => deleteLink(id))
-          }
-          setDeletingLink(null)
-        }}
+      <LinksBrowserDialogs
+        dialogs={dialogs}
+        currentId={currentId}
+        path={path}
+        onOpenFolder={onOpenFolder}
+        run={run}
       />
     </VStack>
   )
