@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Selector } from '@astryxdesign/core/Selector'
 import { ShortUrl } from '#/lib/links/short-url'
 import { Banner } from '@astryxdesign/core/Banner'
@@ -24,6 +24,7 @@ import {
   type ImportRow,
 } from '#/lib/links/import-links'
 import { downloadFile } from '#/lib/settings/export-links'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type ImportLinksDialogProps = {
   isOpen: boolean
@@ -58,15 +59,15 @@ export default function ImportLinksDialog({
   const [tooLarge, setTooLarge] = useState(false)
   const [result, setResult] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (isOpen) {
+  useOnChange(isOpen, (open) => {
+    if (open) {
       setFile(null)
       setText(null)
       setTooLarge(false)
       setDomainChoice(APP_HOST)
       setResult(null)
     }
-  }, [isOpen])
+  })
 
   const domainId = domainChoice === APP_HOST ? null : domainChoice
   // Re-checked whenever the file or the domain changes: back-halves must be free on that domain.

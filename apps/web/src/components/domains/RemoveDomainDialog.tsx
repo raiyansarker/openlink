@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Banner } from '@astryxdesign/core/Banner'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
@@ -10,6 +10,7 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
 import { exportLinks } from '#/lib/settings/export-links'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type RemoveDomainDialogProps = {
   isOpen: boolean
@@ -30,11 +31,11 @@ export default function RemoveDomainDialog({ isOpen, onOpenChange, domain, onRem
   const [error, setError] = useState<string | null>(null)
   const [isRemoving, setIsRemoving] = useState(false)
 
-  useEffect(() => {
-    if (!isOpen) return
+  useOnChange(isOpen, (open) => {
+    if (!open) return
     setConfirmation('')
     setError(null)
-  }, [isOpen])
+  })
 
   const domainLinks = links.filter((l) => l.domainId === domain.id)
   const count = Math.max(domain.linkCount, domainLinks.length)

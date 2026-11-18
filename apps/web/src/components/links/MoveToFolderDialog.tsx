@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -9,6 +9,7 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
 import type { LinkFolder } from '#/data/demo/types'
 import { canMoveFolder, folderPathLabel } from '#/lib/links/folder-tree'
+import { useOnChange } from '#/hooks/use-on-change'
 
 const ROOT_VALUE = '__root__'
 
@@ -41,12 +42,12 @@ export default function MoveToFolderDialog({
   const [selected, setSelected] = useState(currentId ?? ROOT_VALUE)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (subject) {
+  useOnChange(subject, (next) => {
+    if (next) {
       setSelected(currentId ?? ROOT_VALUE)
       setError(null)
     }
-  }, [subject, currentId])
+  })
 
   const options = useMemo(() => {
     const rows = folders

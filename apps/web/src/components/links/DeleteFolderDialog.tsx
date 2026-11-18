@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -12,6 +12,7 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
 import type { LinkFolder } from '#/data/demo/types'
 import type { DeleteFolderMode } from '#/lib/links/folder-tree'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type DeleteFolderDialogProps = {
   folder: LinkFolder | null
@@ -36,9 +37,9 @@ export default function DeleteFolderDialog({
   const [mode, setMode] = useState<DeleteFolderMode>('move-up')
   const isEmpty = contents.folders === 0 && contents.links === 0
 
-  useEffect(() => {
-    if (folder) setMode('move-up')
-  }, [folder])
+  useOnChange(folder, (next) => {
+    if (next) setMode('move-up')
+  })
 
   const summary = `${plural(contents.links, 'link', 'links')} and ${plural(
     contents.folders,

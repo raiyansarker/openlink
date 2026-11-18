@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -15,6 +15,7 @@ import {
   WORKSPACE_MEMBER_ROLE_HELP,
 } from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type ChangeMemberRoleDialogProps = {
   member: WorkspaceMember
@@ -39,11 +40,11 @@ export default function ChangeMemberRoleDialog({
     defaultAssignableRole(member),
   )
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedRole(defaultAssignableRole(member))
-    }
-  }, [isOpen, member])
+  const resetRole = () => {
+    if (isOpen) setSelectedRole(defaultAssignableRole(member))
+  }
+  useOnChange(isOpen, resetRole)
+  useOnChange(member, resetRole)
 
   const unchanged = selectedRole === member.role
 

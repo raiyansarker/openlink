@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -19,6 +19,7 @@ import { API_KEY_ASSIGNABLE_ROLES } from '#/data/demo/api-keys'
 import type { WorkspaceMemberRole } from '#/data/demo/types'
 import { WORKSPACE_MEMBER_ROLE_HELP } from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type CreateApiKeyDrawerProps = {
   isOpen: boolean
@@ -36,13 +37,13 @@ export default function CreateApiKeyDrawer({
   const [role, setRole] = useState<WorkspaceMemberRole>('member')
   const [createdSecret, setCreatedSecret] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (isOpen) {
+  useOnChange(isOpen, (open) => {
+    if (open) {
       setName('')
       setRole('member')
       setCreatedSecret(null)
     }
-  }, [isOpen])
+  })
 
   const revealMode = createdSecret != null
 

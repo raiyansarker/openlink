@@ -30,6 +30,7 @@ import {
   type DomainStatusFilter,
 } from '#/lib/domains/filter-options'
 import { formatShortDate } from '#/lib/format/short-date'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type DomainRow = WorkspaceCustomDomain & Record<string, unknown>
 
@@ -54,11 +55,11 @@ export default function DashboardDomainsPanel() {
     )
   }
 
-  useEffect(() => {
+  useOnChange(activeOrg.id, () => {
     setSearchQuery('')
     setStatusFilter('all')
     setSheetTarget(null)
-  }, [activeOrg.id])
+  })
 
   useEffect(() => {
     if (!detailRequestDomainId) return

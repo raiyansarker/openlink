@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -6,6 +6,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Tokenizer } from '@astryxdesign/core/Tokenizer'
 import { createStaticSource } from '@astryxdesign/core/Typeahead'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type AddTagsDialogProps = {
   /** Number of links the tags go on; 0 closes the dialog. */
@@ -23,9 +24,9 @@ export default function AddTagsDialog({
   onAdd,
 }: AddTagsDialogProps) {
   const [tags, setTags] = useState<string[]>([])
-  useEffect(() => {
-    if (count > 0) setTags([])
-  }, [count])
+  useOnChange(count, (next) => {
+    if (next > 0) setTags([])
+  })
   const source = useMemo(
     () => createStaticSource(existingTags.map((t) => ({ id: t, label: t }))),
     [existingTags],

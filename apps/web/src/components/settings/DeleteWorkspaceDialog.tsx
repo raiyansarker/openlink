@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -6,6 +6,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type DeleteWorkspaceDialogProps = {
   isOpen: boolean
@@ -24,9 +25,9 @@ export default function DeleteWorkspaceDialog({
 }: DeleteWorkspaceDialogProps) {
   const [confirmation, setConfirmation] = useState('')
 
-  useEffect(() => {
-    if (isOpen) setConfirmation('')
-  }, [isOpen])
+  useOnChange(isOpen, (open) => {
+    if (open) setConfirmation('')
+  })
 
   const isConfirmed = confirmation.trim() === workspaceName
 

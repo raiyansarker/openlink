@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { Button } from '@astryxdesign/core/Button'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
@@ -26,6 +26,7 @@ import {
   slugifyOrganizationSlug,
 } from '#/lib/organization/slugify'
 import { exportLinks, type LinkExportFormat } from '#/lib/settings/export-links'
+import { useOnChange } from '#/hooks/use-on-change'
 
 const FIELDS_MAX_WIDTH = 560
 const LOGO_ACCEPT = SquareImage.ACCEPT
@@ -107,15 +108,13 @@ export default function GeneralSettingsFields() {
   const notify = useNotify()
 
   // Follow the saved values (they change after a save or a refresh)...
-  useEffect(() => {
-    setSaved(initial)
-    setForm(initial)
-  }, [initial])
+  useOnChange(initial, (next) => {
+    setSaved(next)
+    setForm(next)
+  })
 
   // ...but only reset the transfer result when switching to a different workspace.
-  useEffect(() => {
-    setOwnerName(null)
-  }, [activeOrg.id])
+  useOnChange(activeOrg.id, () => setOwnerName(null))
 
   const navigate = useNavigate()
   const isOwner = activeOrg.role === 'owner'

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -8,6 +8,7 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 
 import { ProfileApi, ProfileError } from '#/lib/profile/api'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type DeleteAccountDialogProps = {
   isOpen: boolean
@@ -24,12 +25,12 @@ export default function DeleteAccountDialog({ isOpen, onOpenChange, email, hasPa
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  useEffect(() => {
-    if (!isOpen) return
+  useOnChange(isOpen, (open) => {
+    if (!open) return
     setConfirmation('')
     setPassword('')
     setError(null)
-  }, [isOpen])
+  })
 
   const isConfirmed =
     confirmation.trim().toLowerCase() === email.toLowerCase() && (!hasPassword || password.length > 0)

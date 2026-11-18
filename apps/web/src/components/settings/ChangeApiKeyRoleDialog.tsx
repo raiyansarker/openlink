@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -13,6 +13,7 @@ import { API_KEY_ASSIGNABLE_ROLES, type WorkspaceApiKey } from '#/data/demo/api-
 import type { WorkspaceMemberRole } from '#/data/demo/types'
 import { WORKSPACE_MEMBER_ROLE_HELP } from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type ChangeApiKeyRoleDialogProps = {
   apiKey: WorkspaceApiKey
@@ -36,11 +37,11 @@ export default function ChangeApiKeyRoleDialog({
     defaultAssignableRole(apiKey),
   )
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedRole(defaultAssignableRole(apiKey))
-    }
-  }, [isOpen, apiKey])
+  const resetRole = () => {
+    if (isOpen) setSelectedRole(defaultAssignableRole(apiKey))
+  }
+  useOnChange(isOpen, resetRole)
+  useOnChange(apiKey, resetRole)
 
   const unchanged = selectedRole === apiKey.role
 

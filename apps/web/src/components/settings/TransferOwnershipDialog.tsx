@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -7,6 +7,7 @@ import { Selector } from '@astryxdesign/core/Selector'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import type { WorkspaceMember } from '#/data/demo/types'
+import { useOnChange } from '#/hooks/use-on-change'
 
 type TransferOwnershipDialogProps = {
   isOpen: boolean
@@ -25,9 +26,9 @@ export default function TransferOwnershipDialog({
 }: TransferOwnershipDialogProps) {
   const [memberId, setMemberId] = useState('')
 
-  useEffect(() => {
-    if (isOpen) setMemberId('')
-  }, [isOpen])
+  useOnChange(isOpen, (open) => {
+    if (open) setMemberId('')
+  })
 
   const options = candidates.map((member) => ({
     value: member.id,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { CodeBlock } from '@astryxdesign/core/CodeBlock'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
@@ -24,6 +24,7 @@ import {
   buildFullWebhookSecret,
   randomWebhookPrefix,
 } from '#/lib/integrations/webhook-secret'
+import { useOnChange } from '#/hooks/use-on-change'
 
 const DEFAULT_EVENTS: WebhookEvent[] = ['link.created', 'link.updated']
 
@@ -45,14 +46,14 @@ export default function CreateWebhookDrawer({
   const [signingSecret, setSigningSecret] = useState<string | null>(null)
   const [createdName, setCreatedName] = useState('')
 
-  useEffect(() => {
-    if (!isOpen) return
+  useOnChange(isOpen, (open) => {
+    if (!open) return
     setHostAndPath('')
     setName('')
     setEvents(DEFAULT_EVENTS)
     setIsTouched(false)
     setSigningSecret(null)
-  }, [isOpen])
+  })
 
   const endpoint = useMemo(() => checkEndpoint(hostAndPath), [hostAndPath])
   const urlStatus =
