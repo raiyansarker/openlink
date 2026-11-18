@@ -6,7 +6,6 @@ import {
   Heading,
   Hr,
   Html,
-  Img,
   Link,
   Preview,
   Section,
@@ -43,13 +42,6 @@ export function EmailLayout({
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={styles.header}>
-            <Img
-              src="/logo192.png"
-              alt="OpenLink"
-              width="28"
-              height="28"
-              style={styles.logo}
-            />
             <Text style={styles.wordmark}>OpenLink</Text>
           </Section>
           {children}
@@ -119,29 +111,19 @@ const styles = {
     padding: "0",
   },
   container: {
-    backgroundColor: "#ffffff",
-    margin: "40px auto",
+    margin: "0 auto",
     maxWidth: "560px",
-    padding: "0 40px 32px",
+    padding: "32px 24px",
   },
   header: {
-    borderBottom: `1px solid ${colors.border}`,
-    padding: "24px 0 20px",
-  },
-  logo: {
-    borderRadius: "7px",
-    display: "inline-block",
-    margin: "0 8px 0 0",
-    verticalAlign: "middle",
+    padding: "0 0 48px",
   },
   wordmark: {
     color: colors.ink,
-    display: "inline-block",
-    fontSize: "17px",
+    fontSize: "18px",
     fontWeight: "700",
     letterSpacing: "-0.04em",
     margin: "0",
-    verticalAlign: "middle",
   },
   eyebrow: {
     color: colors.muted,
