@@ -53,10 +53,13 @@ type OrganizationContextValue = {
   shortHostFor: (domainId: string | null | undefined) => string
   shortUrlFor: (slug: string, domainId: string | null | undefined) => string
   /**
-   * Creates a link from the create-link form. Rejects with an Error carrying a
-   * user-facing message when the draft is invalid or the API refuses it.
+   * Creates a link from the create-link form, with its share-card image in the same request.
+   * Rejects with an Error carrying a user-facing message when the draft is invalid or the
+   * API refuses it; then nothing was created.
    */
-  createLink: (draft: CreateLinkDraft) => Promise<ShortLink>
+  createLink: (draft: CreateLinkDraft, previewImage?: File | null) => Promise<ShortLink>
+  /** Replaces a saved link's share-card image (a PATCH carrying only the image); resolves to the updated link. */
+  setLinkPreviewImage: (linkId: string, image: File) => Promise<ShortLink>
   /** Folder actions reject with an Error carrying a user-facing message. */
   createFolder: (name: string, parentId: string | null) => Promise<LinkFolder>
   renameFolder: (folderId: string, name: string) => Promise<void>
@@ -296,7 +299,7 @@ function OrganizationScope({
   )
 
   const createLink = useCallback(
-    async (draft: CreateLinkDraft) => {
+    async (draft: CreateLinkDraft, previewImage?: File | null) => {
       const first = Object.values(validateDraft(draft, { links }))[0]
       if (first) throw new Error(first)
       requireFolder(draft.folderId)
@@ -304,7 +307,9 @@ function OrganizationScope({
       let slug = draft.slug.trim()
       while (!slug || isSlugTaken(links, draft.domainId, slug)) slug = generateSlug()
 
-      return createLinkMutation.mutateAsync({ params: { organizationId: orgId }, body: draftToCreateBody(draft, slug) })
+      const body = draftToCreateBody(draft, slug)
+      // A file makes the client send multipart; the server stores it as the card's image.
+      return createLinkMutation.mutateAsync({ params: { organizationId: orgId }, body: previewImage ? { ...body, previewImage } : body })
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [links, orgId, requireFolder],
@@ -324,6 +329,13 @@ function OrganizationScope({
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [links, orgId, requireFolder],
+  )
+
+  const setLinkPreviewImage = useCallback(
+    // Only the image: a form body can't carry the nulls a full save uses to clear settings.
+    (linkId: string, image: File) => updateLink$(linkId, { previewImage: image }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orgId],
   )
 
   const duplicateLink = useCallback(
@@ -469,7 +481,8 @@ function OrganizationScope({
       stats,
       shortHostFor,
       shortUrlFor,
-      createLink: (draft) => friendly(() => createLink(draft), 'Could not create the link.'),
+      createLink: (draft, previewImage) => friendly(() => createLink(draft, previewImage), 'Could not create the link.'),
+      setLinkPreviewImage: (id, image) => friendly(() => setLinkPreviewImage(id, image), 'Could not save the share image.'),
       createFolder: (name, parentId) => friendly(() => createFolder(name, parentId), 'Could not create the folder.'),
       renameFolder: (id, name) => friendly(() => renameFolder(id, name), 'Could not rename the folder.'),
       moveFolder: (id, parentId) => friendly(() => moveFolder(id, parentId), 'Could not move the folder.'),
@@ -495,6 +508,7 @@ function OrganizationScope({
       shortHostFor,
       shortUrlFor,
       createLink,
+      setLinkPreviewImage,
       createFolder,
       renameFolder,
       moveFolder,

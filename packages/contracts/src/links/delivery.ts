@@ -33,6 +33,12 @@ export type LinkTargeting = typeof LinkTargeting.infer
 /** An image we host (uploaded through the app) or any public HTTPS image. */
 export const PreviewImageUrl = HttpUrl.or(/^\/api\/media\/previews\/[A-Za-z0-9_-]+\/[A-Za-z0-9-]+\.(png|jpg|gif|webp)$/)
 
+/**
+ * A share-card image file: a PNG, JPEG, WebP or GIF of at most 5 MB, sent as a file field
+ * in a `multipart/form-data` body. 1200 × 630 px looks best.
+ */
+export const LinkPreviewImage = type.instanceOf(Blob)
+
 export const SocialPreview = type({
   'title?': 'string <= 120',
   'description?': 'string <= 300',

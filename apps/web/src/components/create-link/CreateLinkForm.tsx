@@ -44,7 +44,6 @@ import LinkPreviewPanel, {
 import SocialPreviewCard from '#/components/create-link/SocialPreviewCard'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { ShortUrl } from '#/lib/links/short-url'
-import { MediaUploads } from '#/lib/media/uploads'
 import type { HoldPageId, RedirectStatus, ShortLink } from '#/lib/api/types'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatCompactNumber } from '#/lib/format/compact-number'
@@ -197,12 +196,19 @@ export default function CreateLinkForm({
     shortUrlFor,
     createLink,
     updateLink,
+    setLinkPreviewImage,
     createFolder,
   } = useOrganization()
 
   const [created, setCreated] = useState<ShortLink | null>(null)
   const [previewFileError, setPreviewFileError] = useState<string | null>(null)
   const [isUploadingPreview, setIsUploadingPreview] = useState(false)
+  // A new link's share image waits here and goes in the create request.
+  const [pendingPreview, setPendingPreview] = useState<File | null>(null)
+  const pendingPreviewUrl = useMemo(() => (pendingPreview ? URL.createObjectURL(pendingPreview) : ''), [pendingPreview])
+  useEffect(() => () => {
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl)
+  }, [pendingPreviewUrl])
 
   const validationContext = {
     links,
@@ -225,7 +231,7 @@ export default function CreateLinkForm({
           if (editLink) {
             await updateLink(editLink.id, value)
           } else {
-            const link = await createLink(value)
+            const link = await createLink(value, value.previewEnabled ? pendingPreview : null)
             // The new link is now in `links`; stop validating so its own
             // back-half isn't flagged as taken while we navigate away.
             setCreated(link)
@@ -255,10 +261,14 @@ export default function CreateLinkForm({
     }
   }
 
-  /** Uploads a social image; the link keeps its URL. */
+  /**
+   * A new link keeps the file and sends it with the create request. A saved link stores it at
+   * once (a PATCH with only the image) and keeps the URL that comes back.
+   */
   const choosePreviewImage = (file: File | null) => {
     setPreviewFileError(null)
     if (!file) {
+      setPendingPreview(null)
       update('previewImage', '')
       return
     }
@@ -270,11 +280,16 @@ export default function CreateLinkForm({
       setPreviewFileError('Images must be 5 MB or smaller.')
       return
     }
+    if (!editLink) {
+      setPendingPreview(file)
+      update('previewImage', '')
+      return
+    }
     setIsUploadingPreview(true)
-    MediaUploads.setLinkPreview(activeOrg.id, file)
-      .then((url) => update('previewImage', url))
+    setLinkPreviewImage(editLink.id, file)
+      .then((link) => update('previewImage', link.socialPreview?.imageUrl ?? ''))
       .catch((err: unknown) => {
-        setPreviewFileError(err instanceof Error ? err.message : 'The upload failed. Please try again.')
+        setPreviewFileError(err instanceof Error ? err.message : 'The image could not be saved. Please try again.')
       })
       .finally(() => setIsUploadingPreview(false))
   }
@@ -369,7 +384,8 @@ export default function CreateLinkForm({
     !!(
       draft.previewTitle.trim() ||
       draft.previewDescription.trim() ||
-      draft.previewImage.trim()
+      draft.previewImage.trim() ||
+      pendingPreview
     )
 
   const rules: PreviewRule[] = [
@@ -872,16 +888,14 @@ export default function CreateLinkForm({
                 />
               </WithCounter>
               <PreviewImageField
-                imageUrl={draft.previewImage}
+                imageUrl={pendingPreviewUrl || draft.previewImage}
                 isUploading={isUploadingPreview}
                 error={previewFileError ?? visibleError('previewImage') ?? null}
                 accept={PREVIEW_IMAGE_ACCEPT}
                 maxBytes={MAX_PREVIEW_IMAGE_BYTES}
                 onChoose={choosePreviewImage}
-                onRemove={() => {
-                  setPreviewFileError(null)
-                  update('previewImage', '')
-                }}
+                // Removing takes effect when the link is saved (the saved card drops its image).
+                onRemove={() => choosePreviewImage(null)}
               />
             </FormSection>
 
@@ -1225,7 +1239,7 @@ export default function CreateLinkForm({
                 host={shortHost}
                 title={draft.previewTitle.trim() || displayTitle}
                 description={draft.previewDescription.trim()}
-                imageUrl={draft.previewImage}
+                imageUrl={pendingPreviewUrl || draft.previewImage}
               />
             ) : undefined
           }

@@ -2,7 +2,7 @@ import { type } from 'arktype'
 
 import { HttpUrl } from '../schema-utils'
 import { DomainIdPath, RedirectStatus } from '../domains/schema'
-import { LinkHold, LinkTargeting, SocialPreview } from './delivery'
+import { LinkHold, LinkPreviewImage, LinkTargeting, SocialPreview } from './delivery'
 import { OrganizationIdPath } from '../organizations/schema'
 
 /** Team notes on a link (stored as its `description`). */
@@ -78,6 +78,12 @@ export const CreateLinkRequest = type({
   'targeting?': LinkTargeting,
   'cloaked?': 'boolean',
   'socialPreview?': SocialPreview,
+  /**
+   * A share-card image stored with the link in the same request (send the body as
+   * `multipart/form-data`). It becomes `socialPreview.imageUrl`; if the link is not
+   * created, nothing is stored.
+   */
+  'previewImage?': LinkPreviewImage,
 })
 
 export const UpdateLinkRequest = type({
@@ -104,6 +110,11 @@ export const UpdateLinkRequest = type({
   'targeting?': LinkTargeting.or('null'),
   'cloaked?': 'boolean',
   'socialPreview?': SocialPreview.or('null'),
+  /**
+   * A file replaces the share-card image (send the body as `multipart/form-data`); null
+   * removes it. A form body can't carry null or empty lists, so clear settings with JSON.
+   */
+  'previewImage?': LinkPreviewImage.or('null'),
 })
 
 export const LinkIdPath = type({

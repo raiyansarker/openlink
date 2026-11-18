@@ -7,10 +7,10 @@ import {
   ListDeviceSessionsResponse,
   ListMyInvitesResponse,
   MyInviteIdPath,
-  MyPicture,
+  MyProfile,
   RevokeOtherSessionsResponse,
   SessionIdPath,
-  UpdateMyPictureRequest,
+  UpdateMyProfileRequest,
 } from './schema'
 
 export const listDeviceSessions = oc
@@ -77,32 +77,19 @@ export const declineMyInvite = oc
   .input(type({ params: MyInviteIdPath }))
   .output(EmptyResponse)
 
-export const updateMyPicture = oc
+export const updateMyProfile = oc
   .meta(
     openapi({
-      method: 'PUT',
-      operationId: 'updateMyPicture',
-      path: '/me/picture',
-      summary: 'Replace your profile picture',
+      method: 'PATCH',
+      operationId: 'updateMyProfile',
+      path: '/me',
+      summary: 'Change your name or picture',
       inputStructure: 'detailed',
       tags: ['Account'],
     }),
   )
-  .input(type({ body: UpdateMyPictureRequest }))
-  .output(MyPicture)
-
-export const removeMyPicture = oc
-  .meta(
-    openapi({
-      method: 'DELETE',
-      operationId: 'removeMyPicture',
-      path: '/me/picture',
-      successStatus: 204,
-      summary: 'Remove your profile picture',
-      tags: ['Account'],
-    }),
-  )
-  .output(EmptyResponse)
+  .input(type({ body: UpdateMyProfileRequest }))
+  .output(MyProfile)
 
 export const contract = {
   listDeviceSessions,
@@ -111,6 +98,5 @@ export const contract = {
   listMyInvites,
   acceptMyInvite,
   declineMyInvite,
-  updateMyPicture,
-  removeMyPicture,
+  updateMyProfile,
 } as const

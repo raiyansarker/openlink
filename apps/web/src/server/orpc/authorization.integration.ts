@@ -143,9 +143,22 @@ mock.module('#/server/activity/audit', () => ({ audit }))
 mock.module('#/server/apikeys/service', () => ({
   authenticateApiKey, listApiKeys, createApiKey, updateApiKeyRole, rotateApiKey, revokeApiKey,
 }))
-const replacePicture = mock((_userId: string, _image: Blob) => Effect.succeed('/api/media/avatars/user-1/new.webp'))
-const removePicture = mock((_userId: string) => Effect.void)
-mock.module('#/server/account/picture', () => ({ ProfilePicture: { replace: replacePicture, remove: removePicture } }))
+const updateProfile = mock((_userId: string, _input: unknown) => Effect.succeed({ name: 'User', imageUrl: '/api/media/avatars/user-1/new.webp' as string | null }))
+mock.module('#/server/account/profile', () => ({ Profile: { update: updateProfile } }))
+// Share-card image storage is tested in links/preview-images.test.ts; here it only has to stay out of the way.
+const storePreviewImage = mock((_organizationId: string, _file: Blob) => Effect.succeed('/api/media/previews/org-1/card.png'))
+mock.module('#/server/links/preview-images', () => ({
+  LinkPreviewImages: {
+    store: storePreviewImage,
+    discard: () => Effect.void,
+    checkOwned: () => Effect.void,
+    withImage: (requested: unknown, _current: unknown, image: string | null | undefined) =>
+      image ? { ...(requested as object), imageUrl: image } : requested,
+    urlOf: () => null,
+    urlsOf: () => Effect.succeed([]),
+    releaseIfUnused: () => Effect.void,
+  },
+}))
 mock.module('#/server/devices/sessions', () => ({
   DeviceSessions: { list: listDeviceSessions, revoke: revokeDeviceSession, revokeOthers: revokeOtherDeviceSessions },
 }))
@@ -183,7 +196,7 @@ const sideEffects = [
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
   moveLinks, addTagsToLinks, deleteLinks,
   createApiKey, updateApiKeyRole, rotateApiKey, revokeApiKey, revokeDeviceSession, revokeOtherDeviceSessions,
-  acceptInviteById, declineInviteForEmail, replacePicture, removePicture,
+  acceptInviteById, declineInviteForEmail, updateProfile, storePreviewImage,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
@@ -967,38 +980,96 @@ describe('your invites (notifications)', () => {
   })
 })
 
-describe('your profile picture', () => {
-  const pictureForm = (origin = 'http://localhost') => {
+describe('links with a share-card image in the same request', () => {
+  const sendForm = (method: string, path: string, fields: Record<string, string | Blob>, origin = 'http://localhost') => {
     const form = new FormData()
-    form.append('image', new Blob([new Uint8Array([0x52, 0x49, 0x46, 0x46])], { type: 'image/webp' }), 'p.webp')
-    return { method: 'PUT', body: form, headers: { origin } }
+    for (const [key, value] of Object.entries(fields)) form.append(key, value)
+    return handleOpenApiRequest(new Request(`http://localhost/api/v1${path}`, { method, body: form, headers: { origin } })).then((result) => result.response!)
   }
-  const send = (init: { method: string; body?: FormData; headers?: Record<string, string> }) =>
-    handleOpenApiRequest(new Request('http://localhost/api/v1/me/picture', init)).then((result) => result.response!)
+  const card = () => new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' })
 
-  test('a picture sent as a file replaces yours, in one request', async () => {
-    const response = await send(pictureForm())
-    expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ imageUrl: '/api/media/avatars/user-1/new.webp' })
-    expect(replacePicture).toHaveBeenCalledWith('user-1', expect.any(Blob))
+  test('creating stores the image and saves it as the card, with form fields typed by the contract', async () => {
+    role = 'member'
+    const response = await sendForm('POST', `${orgPath}/links`, {
+      destinationUrl: 'https://example.com', slug: 'launch', redirectStatus: '301', maxClicks: '5', cloaked: 'false',
+      'tags[0]': 'spring', 'socialPreview[title]': 'Launch', previewImage: card(),
+    })
+    expect(response.status).toBe(201)
+    expect(storePreviewImage).toHaveBeenCalledWith(org.id, expect.any(Blob))
+    expect(createLinkRecord).toHaveBeenCalledWith(expect.objectContaining({
+      slug: 'launch', redirectStatus: 301, maxClicks: 5, cloaked: false, tags: ['spring'],
+      socialPreview: { title: 'Launch', imageUrl: '/api/media/previews/org-1/card.png' },
+    }))
   })
 
-  test('removing it answers 204', async () => {
-    expect((await request('DELETE', '/me/picture')).status).toBe(204)
-    expect(removePicture).toHaveBeenCalledWith('user-1')
+  test('updating with a file replaces the image in the same PATCH', async () => {
+    role = 'member'
+    const response = await sendForm('PATCH', `${orgPath}/links/${linkRow.id}`, { title: 'New title', previewImage: card() })
+    expect(response.status).toBe(200)
+    expect(updateLinkRecord).toHaveBeenCalledWith(linkRow, expect.objectContaining({
+      title: 'New title', socialPreview: { imageUrl: '/api/media/previews/org-1/card.png' },
+    }))
+  })
+
+  test('JSON bodies keep strict types: a number sent as text is refused', async () => {
+    role = 'member'
+    const response = await request('POST', `${orgPath}/links`, { destinationUrl: 'https://example.com', maxClicks: '5' })
+    expect(response.status).toBe(400)
+    expect(createLinkRecord).not.toHaveBeenCalled()
+  })
+
+  test('viewers cannot store images, and a form from another site is blocked', async () => {
+    role = 'viewer'
+    expect((await sendForm('POST', `${orgPath}/links`, { destinationUrl: 'https://example.com', previewImage: card() })).status).toBe(403)
+    role = 'member'
+    expect((await sendForm('POST', `${orgPath}/links`, { destinationUrl: 'https://example.com', previewImage: card() }, 'https://evil.example')).status).toBe(403)
+    expect(storePreviewImage).not.toHaveBeenCalled()
+  })
+})
+
+describe('your profile (PATCH /me)', () => {
+  const profileForm = (origin = 'http://localhost') => {
+    const form = new FormData()
+    form.append('name', 'Ada Lovelace')
+    form.append('image', new Blob([new Uint8Array([0x52, 0x49, 0x46, 0x46])], { type: 'image/webp' }), 'p.webp')
+    return { method: 'PATCH', body: form, headers: { origin } }
+  }
+  const send = (init: { method: string; body?: FormData; headers?: Record<string, string> }) =>
+    handleOpenApiRequest(new Request('http://localhost/api/v1/me', init)).then((result) => result.response!)
+
+  test('name and picture arrive together in one multipart request', async () => {
+    const response = await send(profileForm())
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ name: 'User', imageUrl: '/api/media/avatars/user-1/new.webp' })
+    expect(updateProfile).toHaveBeenCalledWith('user-1', { name: 'Ada Lovelace', image: expect.any(Blob) })
+  })
+
+  test('null removes the picture over JSON', async () => {
+    updateProfile.mockImplementationOnce(() => Effect.succeed({ name: 'User', imageUrl: null }))
+    const response = await request('PATCH', '/me', { image: null })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ name: 'User' })
+    expect(updateProfile).toHaveBeenCalledWith('user-1', { image: null })
+  })
+
+  test('a refused name or image is a 400', async () => {
+    updateProfile.mockImplementationOnce(() => Effect.fail({ _tag: 'ProfileFieldRejected', message: 'Enter your name.' }) as never)
+    const response = await request('PATCH', '/me', { name: ' ' })
+    expect(response.status).toBe(400)
+    expect(((await response.json()) as { message: string }).message).toBe('Enter your name.')
   })
 
   test('a form posted from another site is blocked before anything runs', async () => {
-    expect((await send(pictureForm('https://evil.example'))).status).toBe(403)
-    expect(replacePicture).not.toHaveBeenCalled()
+    expect((await send(profileForm('https://evil.example'))).status).toBe(403)
+    expect(updateProfile).not.toHaveBeenCalled()
   })
 
-  test('signed-out callers and API keys cannot change a picture', async () => {
+  test('signed-out callers and API keys cannot change a profile', async () => {
     authenticated = false
-    expect((await request('DELETE', '/me/picture')).status).toBe(401)
+    expect((await request('PATCH', '/me', { name: 'X' })).status).toBe(401)
     keyPrincipal = { id: 'key-1', organizationId: org.id, role: 'admin', name: 'CI' }
-    expect((await request('DELETE', '/me/picture', undefined, { authorization: 'Bearer sk_x' })).status).toBe(401)
-    expect(removePicture).not.toHaveBeenCalled()
+    expect((await request('PATCH', '/me', { name: 'X' }, { authorization: 'Bearer sk_x' })).status).toBe(401)
+    expect(updateProfile).not.toHaveBeenCalled()
   })
 })
 

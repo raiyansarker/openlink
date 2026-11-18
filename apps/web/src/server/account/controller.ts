@@ -7,7 +7,7 @@ import { DeviceSessions } from '#/server/devices/sessions'
 import { acceptInviteById, declineInviteForEmail, listInvitesForEmail } from '#/server/org/service'
 import { os } from '#/server/orpc/implement'
 
-import { ProfilePicture } from './picture'
+import { Profile } from './profile'
 
 export const accountController = {
   // Cookie sessions only: an API key is not a device and must not sign people out.
@@ -82,17 +82,14 @@ export const accountController = {
   }),
 
   // Cookie sessions only: an API key acts for a workspace, not for a person's profile.
-  updateMyPicture: os.account.updateMyPicture.effect(function* ({ input, errors }) {
+  updateMyProfile: os.account.updateMyProfile.effect(function* ({ input, errors }) {
     const session = yield* requireAuthSession
-    const imageUrl = yield* ProfilePicture.replace(session.session.user.id, input.body.image).pipe(
-      Effect.catchTag('UploadRejected', (error) => Effect.fail(errors.BAD_REQUEST({ message: error.message }))),
+    const profile = yield* Profile.update(session.session.user.id, input.body).pipe(
+      Effect.catchTags({
+        UploadRejected: (error) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
+        ProfileFieldRejected: (error) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
+      }),
     )
-    return { imageUrl }
-  }),
-
-  removeMyPicture: os.account.removeMyPicture.effect(function* () {
-    const session = yield* requireAuthSession
-    yield* ProfilePicture.remove(session.session.user.id)
-    return {}
+    return { name: profile.name, ...(profile.imageUrl ? { imageUrl: profile.imageUrl } : {}) }
   }),
 }
