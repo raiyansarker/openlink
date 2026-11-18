@@ -115,7 +115,8 @@ export function QrBlock({
           display: 'inline-flex',
           padding: 10,
           borderRadius: 16,
-          background: '#fff',
+          // Same surface as the code itself, so the frame and code read as one card in both themes.
+          background: 'var(--color-background-surface)',
           boxShadow:
             '0 1px 2px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06)',
           border: '1px solid var(--color-border)',
@@ -432,7 +433,8 @@ export function QrRow({ value, fileName }: { value: string; fileName: string }) 
           flexShrink: 0,
           padding: 10,
           borderRadius: 14,
-          background: '#fff',
+          // Same surface as the code itself, so the frame and code read as one card in both themes.
+          background: 'var(--color-background-surface)',
           border: '1px solid var(--color-border)',
           boxShadow: '0 1px 2px rgba(0,0,0,0.05), 0 6px 18px rgba(0,0,0,0.05)',
         }}
