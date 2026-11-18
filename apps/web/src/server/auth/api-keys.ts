@@ -54,6 +54,19 @@ const workspaceMembers = () =>
     init: () => ({ context: { orgOptions: workspaceKeyAccess } as Record<string, unknown> }),
   }) satisfies BetterAuthPlugin
 
+/**
+ * The plugin's own HTTP endpoints. The dashboard and API use the `apiKeys` oRPC routes, which
+ * add the workspace admin check and the activity log, so these are switched off. Server code
+ * still reaches the same operations through `auth.api.*`, which `disabledPaths` doesn't affect.
+ */
+export const API_KEY_DISABLED_PATHS = [
+  '/api-key/create',
+  '/api-key/delete',
+  '/api-key/get',
+  '/api-key/list',
+  '/api-key/update',
+]
+
 export const apiKeyPlugins = () => [
   workspaceMembers(),
   apiKey({

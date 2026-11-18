@@ -147,6 +147,25 @@ describe('rotateApiKey', () => {
   })
 })
 
+describe('the plugin\'s own HTTP endpoints', () => {
+  test('are not reachable from a browser, while the service still works', async () => {
+    const t = await setup()
+    const { row } = await t.create()
+    const auth = createTestAuth(t.adapter)
+    for (const [method, path] of [['POST', 'create'], ['POST', 'delete'], ['GET', 'get'], ['GET', 'list'], ['POST', 'update']] as const) {
+      const response = await auth.handler(
+        new Request(`http://localhost/api/auth/api-key/${path}`, {
+          method,
+          headers: { ...t.admin.headers, 'content-type': 'application/json', origin: 'http://localhost' },
+          body: method === 'POST' ? JSON.stringify({ keyId: row.id, organizationId: 'o1', name: 'x' }) : undefined,
+        }),
+      )
+      expect(response.status).toBe(404)
+    }
+    expect(await t.run(listApiKeys('o1'))).toHaveLength(1)
+  })
+})
+
 describe('authenticateApiKey', () => {
   test('resolves a valid secret to its workspace principal and records its use', async () => {
     const t = await setup()

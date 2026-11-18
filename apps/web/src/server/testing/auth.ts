@@ -2,7 +2,7 @@ import * as schema from '@openlink/db/schema'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 
-import { apiKeyPlugins } from '#/server/auth/api-keys'
+import { API_KEY_DISABLED_PATHS, apiKeyPlugins } from '#/server/auth/api-keys'
 
 /**
  * A real Better Auth instance with the production API key setup, backed by a test
@@ -23,6 +23,7 @@ export function createTestAuth(db: unknown) {
         member: schema.organizationMember,
       },
     }),
+    disabledPaths: API_KEY_DISABLED_PATHS,
     emailAndPassword: { enabled: true },
     plugins: [...apiKeyPlugins()],
     logger: { disabled: true },
