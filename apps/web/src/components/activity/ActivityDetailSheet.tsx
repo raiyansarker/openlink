@@ -9,14 +9,12 @@ import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
-import {
-  ACTIVITY_CATEGORY_LABELS,
-  type WorkspaceActivityEvent,
-} from '#/data/demo/workspace-activity'
+import { ACTIVITY_CATEGORY_LABELS, ACTIVITY_SOURCE_LABELS, changeSummary } from '#/lib/activity/labels'
+import type { ActivityEvent } from '#/lib/api/types'
 import { formatSessionDate } from '#/lib/settings/session-time'
 
 type ActivityDetailSheetProps = {
-  event: WorkspaceActivityEvent | null
+  event: ActivityEvent | null
   onOpenChange: (open: boolean) => void
 }
 
@@ -35,7 +33,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 
 const ACTOR_KIND_LABEL = {
   member: 'Member',
-  'api-key': 'API key',
+  api_key: 'API key',
   system: 'System',
 } as const
 
@@ -72,8 +70,8 @@ export default function ActivityDetailSheet({
                 <ActivityActorAvatar actor={event.actor} size={40} />
                 <VStack gap={0.5} hAlign="start">
                   <Text>
-                    <Text weight="semibold">{event.actor.name}</Text>{' '}
-                    {event.action} <Text weight="semibold">{event.target}</Text>
+                    <Text weight="semibold">{event.actor.label}</Text>{' '}
+                    {event.phrase} <Text weight="semibold">{event.target.label}</Text>
                   </Text>
                   <Text type="supporting" color="secondary">
                     {formatSessionDate(event.occurredAt)}
@@ -81,11 +79,11 @@ export default function ActivityDetailSheet({
                 </VStack>
               </HStack>
 
-              {event.details?.length ? (
+              {event.changes?.length ? (
                 <VStack gap={3} hAlign="stretch" width="100%">
-                  {event.details.map((detail) => (
-                    <DetailRow key={detail.label} label={detail.label}>
-                      {detail.value}
+                  {event.changes.map((change) => (
+                    <DetailRow key={change.label} label={change.label}>
+                      {changeSummary(change)}
                     </DetailRow>
                   ))}
                 </VStack>
@@ -93,9 +91,9 @@ export default function ActivityDetailSheet({
 
               <VStack gap={3} hAlign="stretch" width="100%">
                 <DetailRow label="Done by">
-                  {ACTOR_KIND_LABEL[event.actor.kind]}
+                  {ACTOR_KIND_LABEL[event.actor.type]}
                 </DetailRow>
-                <DetailRow label="Source">{event.source}</DetailRow>
+                <DetailRow label="Source">{ACTIVITY_SOURCE_LABELS[event.source]}</DetailRow>
                 {event.ipAddress ? (
                   <DetailRow label="IP address">{event.ipAddress}</DetailRow>
                 ) : null}

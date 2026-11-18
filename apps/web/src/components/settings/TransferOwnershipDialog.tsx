@@ -6,14 +6,15 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Selector } from '@astryxdesign/core/Selector'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { WorkspaceMember } from '#/data/demo/types'
+import type { Member } from '#/lib/api/types'
 
 type TransferOwnershipDialogProps = {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   workspaceName: string
-  candidates: WorkspaceMember[]
-  onTransfer: (memberId: string) => void
+  candidates: Member[]
+  /** The new owner's user id. */
+  onTransfer: (userId: string) => void
 }
 
 export default function TransferOwnershipDialog({
@@ -30,7 +31,7 @@ export default function TransferOwnershipDialog({
   }, [isOpen])
 
   const options = candidates.map((member) => ({
-    value: member.id,
+    value: member.userId,
     label: member.name,
     description: member.email,
   }))

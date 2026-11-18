@@ -15,14 +15,11 @@ import { VStack } from '@astryxdesign/core/VStack'
 import ActivityActorAvatar from '#/components/activity/ActivityActorAvatar'
 import ActivityDetailSheet from '#/components/activity/ActivityDetailSheet'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import {
-  ACTIVITY_CATEGORY_LABELS,
-  type ActivityCategory,
-  type WorkspaceActivityEvent,
-} from '#/data/demo/workspace-activity'
+import { ACTIVITY_CATEGORY_LABELS, ACTIVITY_SOURCE_LABELS } from '#/lib/activity/labels'
+import type { ActivityCategory, ActivityEvent } from '#/lib/api/types'
 import { useActivityFeed, useDebouncedValue } from '#/hooks/use-activity'
 import { formatEventTime, groupByDay } from '#/lib/activity/group-by-day'
-import { ApiError } from '#/lib/api/error'
+import { apiErrorMessage } from '#/lib/api/errors'
 
 export type CategoryFilter = 'all' | ActivityCategory
 
@@ -42,11 +39,11 @@ type DashboardActivityPanelProps = {
 }
 
 /** "Camille Laurent created link launch" with the people and things in bold. */
-function ActivitySentence({ event }: { event: WorkspaceActivityEvent }) {
+function ActivitySentence({ event }: { event: ActivityEvent }) {
   return (
     <Text maxLines={1}>
-      <Text weight="semibold">{event.actor.name}</Text> {event.action}{' '}
-      <Text weight="semibold">{event.target}</Text>
+      <Text weight="semibold">{event.actor.label}</Text> {event.phrase}{' '}
+      <Text weight="semibold">{event.target.label}</Text>
     </Text>
   )
 }
@@ -132,7 +129,7 @@ export default function DashboardActivityPanel({ filters, onFiltersChange }: Das
         ) : feed.isError && events.length === 0 ? (
           <Banner
             status="error"
-            title={ApiError.message(feed.error, 'Activity could not be loaded.')}
+            title={apiErrorMessage(feed.error, 'Activity could not be loaded.')}
             endContent={<Button variant="secondary" size="sm" label="Try again" onClick={() => void feed.refetch()} />}
           />
         ) : events.length === 0 ? (
@@ -163,7 +160,7 @@ export default function DashboardActivityPanel({ filters, onFiltersChange }: Das
                       onClick={() => setSelectedId(event.id)}
                       startContent={<ActivityActorAvatar actor={event.actor} />}
                       label={<ActivitySentence event={event} />}
-                      description={`${ACTIVITY_CATEGORY_LABELS[event.category]} · ${event.source}`}
+                      description={`${ACTIVITY_CATEGORY_LABELS[event.category]} · ${ACTIVITY_SOURCE_LABELS[event.source]}`}
                       endContent={
                         <HStack gap={2} vAlign="center">
                           <Text type="supporting" color="secondary">

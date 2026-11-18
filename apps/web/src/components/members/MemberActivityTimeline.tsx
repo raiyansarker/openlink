@@ -2,12 +2,12 @@ import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { MemberActivityEvent } from '#/data/demo/types'
+import type { ActivityEvent } from '#/lib/api/types'
 import { formatShortDate } from '#/lib/format/short-date'
 
 type ActivityDayGroup = {
   dayLabel: string
-  events: MemberActivityEvent[]
+  events: ActivityEvent[]
 }
 
 const TRACK_COLOR = 'var(--color-border-emphasized)'
@@ -32,7 +32,7 @@ function dayGroupLabel(iso: string): string {
 }
 
 function groupActivitiesByDay(
-  events: MemberActivityEvent[],
+  events: ActivityEvent[],
 ): ActivityDayGroup[] {
   const sorted = [...events].sort(
     (a, b) =>
@@ -40,7 +40,7 @@ function groupActivitiesByDay(
   )
 
   const order: string[] = []
-  const buckets = new Map<string, MemberActivityEvent[]>()
+  const buckets = new Map<string, ActivityEvent[]>()
 
   for (const event of sorted) {
     const label = dayGroupLabel(event.occurredAt)
@@ -57,6 +57,11 @@ function groupActivitiesByDay(
   }))
 }
 
+/** "Created link go/launch", from the event's phrase and target. */
+function eventTitle(event: ActivityEvent): string {
+  return `${event.phrase[0]!.toUpperCase()}${event.phrase.slice(1)} ${event.target.label}`
+}
+
 function formatEventTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: 'numeric',
@@ -65,7 +70,7 @@ function formatEventTime(iso: string): string {
 }
 
 type TimelineEventNodeProps = {
-  event: MemberActivityEvent
+  event: ActivityEvent
   showConnector: boolean
 }
 
@@ -114,14 +119,14 @@ function TimelineEventNode({ event, showConnector }: TimelineEventNodeProps) {
           width="100%"
           wrap="wrap"
         >
-          <Text weight="semibold">{event.title}</Text>
+          <Text weight="semibold">{eventTitle(event)}</Text>
           <Text type="supporting" color="secondary">
             {formatEventTime(event.occurredAt)}
           </Text>
         </HStack>
-        {event.description ? (
+        {event.changes?.[0] ? (
           <Text type="supporting" color="secondary">
-            {event.description}
+            {`${event.changes[0].label}: ${event.changes[0].from || '—'} → ${event.changes[0].to || '—'}`}
           </Text>
         ) : null}
       </VStack>
@@ -130,7 +135,7 @@ function TimelineEventNode({ event, showConnector }: TimelineEventNodeProps) {
 }
 
 type MemberActivityTimelineProps = {
-  events: MemberActivityEvent[]
+  events: ActivityEvent[]
 }
 
 export default function MemberActivityTimeline({

@@ -3,14 +3,14 @@ import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { IconButton } from '@astryxdesign/core/IconButton'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import type { Role } from '#/lib/api/types'
-import type { WorkspaceMember } from '#/data/demo/types'
+import type { Person } from '#/lib/members/people'
 import ChangeMemberRoleDialog from '#/components/members/ChangeMemberRoleDialog'
 
 type MemberRowMenuProps = {
-  member: WorkspaceMember
-  onChangeRole: (memberId: string, role: Role) => void
-  onResendInvite: (memberId: string) => void
-  onRemove: (memberId: string) => void
+  member: Person
+  onChangeRole: (member: Person, role: Role) => void
+  onResendInvite: (member: Person) => void
+  onRemove: (member: Person) => void
 }
 
 export default function MemberRowMenu({
@@ -21,7 +21,7 @@ export default function MemberRowMenu({
 }: MemberRowMenuProps) {
   const [roleDialogOpen, setRoleDialogOpen] = useState(false)
   const isOwner = member.role === 'owner'
-  const isPending = member.status === 'pending'
+  const isPending = member.kind === 'invite'
 
   const items = [
     ...(isPending
@@ -29,7 +29,7 @@ export default function MemberRowMenu({
           {
             id: 'resend',
             label: 'Resend invite',
-            onClick: () => onResendInvite(member.id),
+            onClick: () => onResendInvite(member),
           },
         ]
       : []),
@@ -43,7 +43,7 @@ export default function MemberRowMenu({
     {
       id: 'remove',
       label: isPending ? 'Cancel invite' : 'Remove member',
-      onClick: () => onRemove(member.id),
+      onClick: () => onRemove(member),
       isDisabled: isOwner,
     },
   ]

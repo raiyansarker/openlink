@@ -7,10 +7,9 @@ import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { MemberActivityEvent } from '#/data/demo/types'
 import { useMemberActivity } from '#/hooks/use-activity'
-import { MemberId } from '#/lib/api/members'
-import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
+import type { Role } from '#/lib/api/types'
+import type { Person } from '#/lib/members/people'
 import { formatShortDate } from '#/lib/format/short-date'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import {
@@ -21,21 +20,11 @@ import MemberActivityTimeline from './MemberActivityTimeline'
 import MemberRowMenu from './MemberRowMenu'
 
 type MemberDetailDrawerProps = {
-  member: WorkspaceMember | null
+  member: Person | null
   onOpenChange: (open: boolean) => void
-  onChangeRole: (memberId: string, role: WorkspaceMemberRole) => void
-  onRemove: (memberId: string) => void
-  onResendInvite: (memberId: string) => void
-}
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+  onChangeRole: (member: Person, role: Role) => void
+  onRemove: (member: Person) => void
+  onResendInvite: (member: Person) => void
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -61,26 +50,16 @@ export default function MemberDetailDrawer({
   const isOpen = member != null
   const { activeOrg } = useOrganization()
   const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
-  const userId = member ? MemberId.parse(member.id) : null
+  const userId = member?.kind === 'member' ? member.userId : null
   // What this person did most recently: their last 20 actions, filtered on the server.
-  const activityQuery = useMemberActivity(activeOrg.id, isOpen && userId?.kind === 'user' ? userId.id : null)
-  const activities: MemberActivityEvent[] =
-    userId?.kind === 'user'
-      ? (activityQuery.data?.items ?? []).map((event) => ({
-          id: event.id,
-          memberId: member!.id,
-          title: `${event.action[0]!.toUpperCase()}${event.action.slice(1)} ${event.target}`,
-          ...(event.details?.[0] ? { description: `${event.details[0].label}: ${event.details[0].value}` } : {}),
-          occurredAt: event.occurredAt,
-        }))
-      : []
+  const activityQuery = useMemberActivity(activeOrg.id, isOpen ? userId : null)
+  const activities = userId ? (activityQuery.data?.items ?? []) : []
 
   const isOwner = member?.role === 'owner'
-  const isPending = member?.status === 'pending'
-  const lastActive = member?.lastActiveAt ?? member?.lastLoginAt
+  const isPending = member?.kind === 'invite'
 
-  const handleRemove = (memberId: string) => {
-    onRemove(memberId)
+  const handleRemove = (person: Person) => {
+    onRemove(person)
     onOpenChange(false)
   }
 
@@ -115,7 +94,7 @@ export default function MemberDetailDrawer({
                 >
                   <HStack gap={3} vAlign="start">
                     <Avatar
-                      src={member.avatarUrl}
+                      src={member.image}
                       name={member.name}
                       size={72}
                       tooltip={false}
@@ -149,18 +128,8 @@ export default function MemberDetailDrawer({
 
                 <VStack gap={3} hAlign="stretch" width="100%">
                   <DetailRow
-                    label="Last active"
-                    value={
-                      lastActive
-                        ? formatDateTime(lastActive)
-                        : isPending
-                          ? '—'
-                          : 'Not recorded'
-                    }
-                  />
-                  <DetailRow
-                    label="Joined workspace"
-                    value={isPending ? '—' : formatShortDate(member.joinedAt)}
+                    label={isPending ? 'Invited' : 'Joined workspace'}
+                    value={formatShortDate(member.since)}
                   />
                 </VStack>
 

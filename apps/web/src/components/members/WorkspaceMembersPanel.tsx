@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { Spinner } from '@astryxdesign/core/Spinner'
 import { Avatar } from '@astryxdesign/core/Avatar'
@@ -10,11 +10,10 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import { PlusIcon } from '#/components/icons/IcnMcp'
-import { ApiError } from '#/lib/api/error'
-import { WorkspaceMembersApi, type AssignableRole } from '#/lib/api/members'
-import { QueryKeys } from '#/lib/api/query'
+import { apiErrorMessage } from '#/lib/api/errors'
 import type { Role } from '#/lib/api/types'
-import type { WorkspaceMember } from '#/data/demo/types'
+import { usePeopleMutations, useWorkspacePeople } from '#/hooks/use-members'
+import type { Person } from '#/lib/members/people'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import InviteMemberDrawer from './InviteMemberDrawer'
@@ -22,38 +21,31 @@ import MemberDetailDrawer from './MemberDetailDrawer'
 import MemberRowMenu from './MemberRowMenu'
 import MemberTableRowButton from './MemberTableRowButton'
 
-type MemberRow = WorkspaceMember & Record<string, unknown>
+type MemberRow = Person & Record<string, unknown>
 
-function matchesSearch(member: WorkspaceMember, query: string): boolean {
+function matchesSearch(person: Person, query: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true
-  return (
-    member.name.toLowerCase().includes(q) ||
-    member.email.toLowerCase().includes(q)
-  )
+  return person.name.toLowerCase().includes(q) || person.email.toLowerCase().includes(q)
 }
-
-const membersApi = new WorkspaceMembersApi()
 
 export default function WorkspaceMembersPanel() {
   const { activeOrg } = useOrganization()
-  const queryClient = useQueryClient()
+  const organizationId = activeOrg.id
   // Owners and admins manage people and see pending invites; everyone else gets a read-only list.
   const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
-  const query = useQuery({
-    queryKey: [...QueryKeys.members(activeOrg.id), canManage],
-    queryFn: () => membersApi.list(activeOrg.id, { includeInvites: canManage }),
-  })
-  const members = query.data ?? []
+  const query = useWorkspacePeople(organizationId, { includeInvites: canManage })
+  const members = query.people
+  const mutations = usePeopleMutations(organizationId)
   const [actionError, setActionError] = useState<string | null>(null)
+  /** Row actions share one error line. */
   const action = useMutation({
-    mutationFn: (run: () => Promise<void>) => run(),
+    mutationFn: (run: () => Promise<unknown>) => run(),
     onMutate: () => setActionError(null),
-    onError: (error) => setActionError(ApiError.message(error)),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: QueryKeys.members(activeOrg.id) }),
+    onError: (error) => setActionError(apiErrorMessage(error)),
   })
   const [searchQuery, setSearchQuery] = useState('')
-  const [detailMember, setDetailMember] = useState<WorkspaceMember | null>(null)
+  const [detailMember, setDetailMember] = useState<Person | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
 
   useEffect(() => {
@@ -70,39 +62,45 @@ export default function WorkspaceMembersPanel() {
     setInviteOpen(true)
   }
 
-  const openMemberDetail = (member: WorkspaceMember) => {
+  const openMemberDetail = (member: Person) => {
     setDetailMember(member)
   }
 
-  const changeRole = (memberId: string, role: Role) => {
-    if (role === 'owner') return
+  const changeRole = (person: Person, role: Role) => {
+    if (role === 'owner' || person.kind !== 'member') return
     action.mutate(async () => {
-      await membersApi.changeRole(activeOrg.id, memberId, role)
-      setDetailMember((prev) => (prev?.id === memberId ? { ...prev, role } : prev))
+      await mutations.changeRole.mutateAsync({ params: { organizationId, userId: person.userId }, body: { role } })
+      setDetailMember((prev) => (prev?.key === person.key ? { ...prev, role } : prev))
     })
   }
 
-  const removeMember = (memberId: string) => {
+  /** Removes a person, or cancels a pending invite. */
+  const removeMember = (person: Person) => {
     action.mutate(async () => {
-      await membersApi.remove(activeOrg.id, memberId)
-      setDetailMember((prev) => (prev?.id === memberId ? null : prev))
+      if (person.kind === 'invite') {
+        await mutations.revokeInvite.mutateAsync({ params: { organizationId, inviteId: person.inviteId } })
+      } else {
+        await mutations.remove.mutateAsync({ params: { organizationId, userId: person.userId } })
+      }
+      setDetailMember((prev) => (prev?.key === person.key ? null : prev))
     })
   }
 
-  const resendInvite = (memberId: string) => action.mutate(() => membersApi.resendInvite(activeOrg.id, memberId))
+  const resendInvite = (person: Person) => {
+    if (person.kind !== 'invite') return
+    action.mutate(() => mutations.resendInvite.mutateAsync({ params: { organizationId, inviteId: person.inviteId } }))
+  }
 
   const submitInvite = async (email: string, role: Role) => {
     if (members.some((m) => m.email.toLowerCase() === email)) {
       throw new Error('This email is already in the workspace.')
     }
     if (role === 'owner') return
-    const assignable: AssignableRole = role
     try {
-      await membersApi.invite(activeOrg.id, email, assignable)
+      await mutations.invite.mutateAsync({ params: { organizationId }, body: { email, role } })
     } catch (error) {
-      throw new Error(ApiError.message(error, 'Could not send the invite.'))
+      throw new Error(apiErrorMessage(error, 'Could not send the invite.'))
     }
-    await queryClient.invalidateQueries({ queryKey: QueryKeys.members(activeOrg.id) })
   }
 
   const rows = filteredMembers as MemberRow[]
@@ -140,7 +138,7 @@ export default function WorkspaceMembersPanel() {
         <Table<MemberRow>
           className="members-table__grid"
           data={rows}
-          idKey="id"
+          idKey="key"
           density="balanced"
           dividers="rows"
           textOverflow="wrap"
@@ -152,7 +150,7 @@ export default function WorkspaceMembersPanel() {
             renderCell: (row) => (
               <MemberTableRowButton member={row} onOpen={openMemberDetail}>
                 <Avatar
-                  src={row.avatarUrl}
+                  src={row.image}
                   name={row.name}
                   size={32}
                   tooltip={false}
@@ -183,7 +181,7 @@ export default function WorkspaceMembersPanel() {
               <MemberTableRowButton member={row} onOpen={openMemberDetail}>
                 <Text type="supporting" color="secondary">
                   {workspaceMemberRoleLabel(row.role)}
-                  {row.status === 'pending' ? ' (Pending)' : ''}
+                  {row.kind === 'invite' ? ' (Pending)' : ''}
                 </Text>
               </MemberTableRowButton>
             ),
@@ -207,9 +205,9 @@ export default function WorkspaceMembersPanel() {
       </VStack>
 
       {query.isPending ? <Spinner size="md" label="Loading members…" /> : null}
-      {query.isError ? (
+      {query.error ? (
         <VStack gap={2} hAlign="start" role="alert">
-          <Text>{ApiError.message(query.error, 'Could not load members.')}</Text>
+          <Text>{apiErrorMessage(query.error, 'Could not load members.')}</Text>
           <Button size="sm" variant="secondary" label="Try again" onClick={() => void query.refetch()} />
         </VStack>
       ) : null}

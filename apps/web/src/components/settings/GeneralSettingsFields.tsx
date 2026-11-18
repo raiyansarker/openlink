@@ -13,13 +13,12 @@ import { useOrganization } from '#/contexts/OrganizationContext'
 import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { SquareImage } from '#/lib/media/square-image'
 import { MediaUploads } from '#/lib/media/uploads'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { ApiError } from '#/lib/api/error'
-import { WorkspaceMembersApi } from '#/lib/api/members'
-import { QueryKeys } from '#/lib/api/query'
+import { apiErrorMessage } from '#/lib/api/errors'
+import { orpc } from '#/lib/api/orpc'
 import { useNotify } from '#/hooks/use-notify'
-import { WorkspaceApi } from '#/lib/api/workspaces'
+import { usePeopleMutations } from '#/hooks/use-members'
 import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 import {
   isValidOrganizationSlug,
@@ -121,15 +120,16 @@ export default function GeneralSettingsFields() {
   const isOwner = activeOrg.role === 'owner'
   const canEdit = isOwner || activeOrg.role === 'admin'
   const [isSaving, setIsSaving] = useState(false)
-  const membersQuery = useQuery({
-    queryKey: [...QueryKeys.members(activeOrg.id), canEdit],
-    queryFn: () => new WorkspaceMembersApi().list(activeOrg.id, { includeInvites: canEdit }),
-    enabled: isOwner,
-  })
+  const input = { params: { organizationId: activeOrg.id } }
+  // Only the owner can hand the workspace over, to one of its admins.
+  const membersQuery = useQuery(orpc.organizations.listMembers.queryOptions({ input, enabled: isOwner }))
   const adminCandidates = useMemo(
-    () => (membersQuery.data ?? []).filter((member) => member.role === 'admin' && member.status === 'active'),
+    () => (membersQuery.data?.items ?? []).filter((member) => member.role === 'admin'),
     [membersQuery.data],
   )
+  const updateWorkspace = useMutation(orpc.organizations.updateOrganization.mutationOptions({ onSuccess: refreshWorkspaces }))
+  const deleteWorkspace = useMutation(orpc.organizations.deleteOrganization.mutationOptions({ onSuccess: refreshWorkspaces }))
+  const { transferOwnership } = usePeopleMutations(activeOrg.id)
 
   const save = async () => {
     setIsSaving(true)
@@ -139,37 +139,34 @@ export default function GeneralSettingsFields() {
         ...(next.name !== saved.name ? { name: next.name } : {}),
         ...(next.slug !== saved.slug ? { slug: next.slug } : {}),
       }
-      await new WorkspaceApi().update(activeOrg.id, changes)
+      await updateWorkspace.mutateAsync({ ...input, body: changes })
       if (changes.slug) ActiveWorkspace.remember(changes.slug)
-      await refreshWorkspaces()
       setForm(next)
       setSaved(next)
       notify.info('Workspace settings saved.')
     } catch (e) {
-      notify.error(ApiError.message(e, 'Could not save the workspace.'))
+      notify.error(apiErrorMessage(e, 'Could not save the workspace.'))
     } finally {
       setIsSaving(false)
     }
   }
 
-  const transfer = async (memberId: string) => {
+  const transfer = async (userId: string) => {
     try {
-      await new WorkspaceMembersApi().transferOwnership(activeOrg.id, memberId)
-      const member = adminCandidates.find((m) => m.id === memberId)
+      await transferOwnership.mutateAsync({ ...input, body: { userId } })
+      const member = adminCandidates.find((m) => m.userId === userId)
       setOwnerName(member?.name ?? null)
-      await refreshWorkspaces()
     } catch (e) {
-      notify.error(ApiError.message(e, 'Could not transfer ownership.'))
+      notify.error(apiErrorMessage(e, 'Could not transfer ownership.'))
     }
   }
 
   const remove = async () => {
     try {
-      await new WorkspaceApi().delete(activeOrg.id)
-      await refreshWorkspaces()
+      await deleteWorkspace.mutateAsync(input)
       await navigate({ to: '/w', replace: true })
     } catch (e) {
-      notify.error(ApiError.message(e, 'Could not delete the workspace.'))
+      notify.error(apiErrorMessage(e, 'Could not delete the workspace.'))
     }
   }
 

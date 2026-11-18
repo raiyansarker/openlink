@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
-import type { WorkspaceMember } from '#/data/demo/types'
+import type { Person } from '#/lib/members/people'
 
 type MemberTableRowButtonProps = {
-  member: WorkspaceMember
-  onOpen: (member: WorkspaceMember) => void
+  member: Person
+  onOpen: (member: Person) => void
   children: ReactNode
 }
 
