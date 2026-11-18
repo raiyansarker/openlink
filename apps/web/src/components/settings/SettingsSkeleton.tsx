@@ -16,6 +16,11 @@ type SettingsSkeletonProps = {
   count?: number
   /** Read by screen readers instead of the shapes. */
   label?: string
+  /**
+   * Widest the placeholder gets, matching the content it stands in for.
+   * `fields` defaults to the 560px field width; lists default to the full width.
+   */
+  maxWidth?: number
 }
 
 /** Rows with an avatar or icon, a title and a detail line. */
@@ -37,10 +42,10 @@ function SkeletonRows({ count }: { count: number }) {
 }
 
 /** Loading placeholder shaped like the settings page it stands in for. */
-export default function SettingsSkeleton({ variant = 'fields', count = 3, label = 'Loading…' }: SettingsSkeletonProps) {
+export default function SettingsSkeleton({ variant = 'fields', count = 3, label = 'Loading…', maxWidth }: SettingsSkeletonProps) {
   if (variant === 'rows') {
     return (
-      <VStack gap={3} hAlign="stretch" width="100%" role="status" aria-label={label} aria-busy>
+      <VStack gap={3} hAlign="stretch" width="100%" role="status" aria-label={label} aria-busy style={{ maxWidth }}>
         <SkeletonRows count={count} />
       </VStack>
     )
@@ -48,7 +53,7 @@ export default function SettingsSkeleton({ variant = 'fields', count = 3, label 
 
   if (variant === 'list') {
     return (
-      <VStack gap={4} hAlign="stretch" width="100%" role="status" aria-label={label} aria-busy>
+      <VStack gap={4} hAlign="stretch" width="100%" role="status" aria-label={label} aria-busy style={{ maxWidth }}>
         <Skeleton width="40%" height={28} radius={2} />
         <Skeleton width="100%" height={36} radius={2} index={1} />
         <VStack gap={3} hAlign="stretch" width="100%">
@@ -66,7 +71,7 @@ export default function SettingsSkeleton({ variant = 'fields', count = 3, label 
       role="status"
       aria-label={label}
       aria-busy
-      style={{ maxWidth: FIELDS_MAX_WIDTH }}
+      style={{ maxWidth: maxWidth ?? FIELDS_MAX_WIDTH }}
     >
       {Array.from({ length: count }, (_, i) => (
         <VStack key={i} gap={3} hAlign="stretch" width="100%">

@@ -63,7 +63,7 @@ export default function DevicesSettingsFields() {
     }),
   )
 
-  if (query.isPending) return <SettingsSkeleton variant="rows" count={3} label="Loading your devices…" />
+  if (query.isPending) return <SettingsSkeleton variant="rows" count={3} maxWidth={FIELDS_MAX_WIDTH} label="Loading your devices…" />
   if (query.isError) {
     return (
       <VStack gap={2} hAlign="start" role="alert">
