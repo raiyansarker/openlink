@@ -79,8 +79,9 @@ export class HoldPageView {
       ? // Byte-for-byte the shape of nginx's own error pages, so it reads as a real outage.
         `<html>\r\n<head><title>${PublicPage.escape(page.heading)}</title></head>\r\n<body>\r\n<center><h1>${PublicPage.escape(page.heading)}</h1></center>\r\n<hr><center>${PublicPage.escape(page.footer ?? '')}</center>\r\n</body>\r\n</html>\r\n`
       : `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${PublicPage.escape(page.heading)}</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#fff;color:#111;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;text-align:center"><main style="padding:2rem;max-width:22rem"><h1 style="font-size:1.6rem;font-weight:650;letter-spacing:-0.01em;margin:0">${PublicPage.escape(page.heading)}</h1><p style="margin:.75rem 0 0;color:#555;line-height:1.5">${PublicPage.escape(page.body ?? '')}</p></main></body></html>`
-    // A 503 tells crawlers the outage is temporary.
-    return PublicPage.html(page.status, document, page.status === 503 ? { 'retry-after': '3600' } : {})
+    // Served as 200 on purpose: Workers Issues records every 5xx the Worker returns, and a hold page
+    // is intended, not a failure. The page itself still reads as the outage the owner picked.
+    return PublicPage.html(200, document)
   }
 }
 
