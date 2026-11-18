@@ -17,7 +17,8 @@ const OPENLINK_BG_POPOVER = ['#ffffff', '#1f1f24'] as const
 const INPUT_FIELD_RADIUS = 'var(--radius-element)'
 
 /**
- * Border-only focus — semantic accent (blue), no inset shadow rings on fields.
+ * Border-only focus in brand orange (the same color as the focus outline), no
+ * inset shadow rings on fields.
  * No `borderRadius` here: fields already use `--radius-element`, and setting it
  * in the theme layer would override InputGroup's square inner corners.
  */
@@ -26,7 +27,7 @@ const INPUT_QUIET_FOCUS = {
   ':hover': { boxShadow: 'none' },
   ':focus-within': {
     boxShadow: 'none',
-    borderColor: 'var(--color-accent)',
+    borderColor: 'var(--openlink-brand)',
   },
 } as const
 
@@ -67,7 +68,8 @@ export const openlinkTheme = defineTheme({
   tokens: {
     '--shadow-inset-hover': 'none',
     '--shadow-inset-selected': 'none',
-    '--focus-outline-color': OPENLINK_BRAND,
+    // Keyboard focus rings use brand orange, a touch lighter in dark mode.
+    '--focus-outline-color': [OPENLINK_BRAND, OPENLINK_BRAND_DARK],
     '--color-background-body': [...OPENLINK_BG_BODY],
     '--color-background-surface': [...OPENLINK_BG_SURFACE],
     '--color-background-muted': [...OPENLINK_BG_MUTED],

@@ -294,7 +294,7 @@
     --shadow-inset-success: inset 0px 0px 0px 2px #2f7d334D;
     --shadow-inset-warning: inset 0px 0px 0px 2px #f8d36a4D;
     --shadow-inset-error: inset 0px 0px 0px 2px #de47454D;
-    --focus-outline-color: #FF4602;
+    --focus-outline-color: light-dark(#FF4602, #FF6B33);
     --color-icon-info: var(--color-text-info);
     --color-icon-success: var(--color-text-success);
     --color-icon-warning: var(--color-text-warning);
@@ -557,7 +557,7 @@
 
   .astryx-text-input:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--openlink-brand);
   }
 
   .astryx-text-area {
@@ -571,7 +571,7 @@
 
   .astryx-text-area:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--openlink-brand);
   }
 
   .astryx-number-input {
@@ -585,7 +585,7 @@
 
   .astryx-number-input:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--openlink-brand);
   }
 
   .astryx-selector[data-variant="input"] {
@@ -599,7 +599,7 @@
 
   .astryx-selector[data-variant="input"]:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--openlink-brand);
   }
 
   .astryx-tokenizer {
@@ -613,7 +613,7 @@
 
   .astryx-tokenizer:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--openlink-brand);
   }
 
   .astryx-date-time-input {
@@ -627,7 +627,7 @@
 
   .astryx-date-time-input:focus-within {
     box-shadow: none;
-    border-color: var(--color-accent);
+    border-color: var(--openlink-brand);
   }
 
   .astryx-input-group {

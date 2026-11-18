@@ -215,7 +215,7 @@ export const openlinkNeutralTheme = {
     "--shadow-inset-success": "inset 0px 0px 0px 2px #2f7d334D",
     "--shadow-inset-warning": "inset 0px 0px 0px 2px #f8d36a4D",
     "--shadow-inset-error": "inset 0px 0px 0px 2px #de47454D",
-    "--focus-outline-color": "#FF4602"
+    "--focus-outline-color": "light-dark(#FF4602, #FF6B33)"
   },
   localTokens: {
     "--astryx-theme-neutral-color-status-fill-accent": "light-dark(#0074e2, #6d9cfe)",
@@ -452,7 +452,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-brand)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -465,7 +465,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-brand)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -478,7 +478,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-brand)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -491,7 +491,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-brand)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -504,7 +504,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-brand)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -517,7 +517,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-brand)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
