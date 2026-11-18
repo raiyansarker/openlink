@@ -452,7 +452,6 @@ export function draftToLink(
     targetUrl: applyUtm(destination, utm),
     destinationUrl: destination,
     clicks: 0,
-    uniqueClicks: 0,
     createdAt: now.toISOString(),
     status: initialStatus(draft, now),
     tags: [...new Set(draft.tags.map((t) => t.trim()).filter(Boolean))],

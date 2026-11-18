@@ -22,6 +22,3 @@ export type WorkspaceCustomDomain = {
   activeAt?: string
   dnsRecords: DomainDnsRecord[]
 }
-
-/** No custom domains ship with the demo; workspaces start on the default host. */
-export const demoCustomDomains: WorkspaceCustomDomain[] = []

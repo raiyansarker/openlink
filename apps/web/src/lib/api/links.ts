@@ -29,7 +29,6 @@ export class LinkMapper {
       targetUrl: LinkMapper.withUtm(row.destinationUrl, utm),
       destinationUrl: row.destinationUrl,
       clicks: row.clickCount,
-      uniqueClicks: 0,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       status: LinkMapper.status(row.status),

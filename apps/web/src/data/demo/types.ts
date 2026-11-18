@@ -34,7 +34,6 @@ export type ShortLink = {
   title: string
   targetUrl: string
   clicks: number
-  uniqueClicks: number
   createdAt: string
   status: ShortLinkStatus
   tags: string[]
@@ -68,22 +67,8 @@ export type ShortLink = {
   /** Destination as entered, before UTM parameters are applied. */
   destinationUrl?: string
   updatedAt?: string
-  /** Latest destination health check (run by the backend). */
-  health?: LinkHealth
   /** Newest first. */
   history?: LinkHistoryEvent[]
-}
-
-export type LinkHealthStatus = 'healthy' | 'redirects' | 'slow' | 'broken'
-
-export type LinkHealth = {
-  status: LinkHealthStatus
-  /** HTTP status of the final response. */
-  statusCode: number
-  responseMs: number
-  checkedAt: string
-  /** Where the destination ended up after its own redirects, if elsewhere. */
-  finalUrl?: string
 }
 
 export type LinkHistoryChange = {
@@ -106,8 +91,6 @@ export type LinkHistoryEvent = {
     | 'moved'
     | 'duplicated'
     | 'tagged'
-    /** A destination health check ran. */
-    | 'checked'
   /** Human summary, e.g. "Moved to Docs / Guides". */
   summary: string
   changes?: LinkHistoryChange[]

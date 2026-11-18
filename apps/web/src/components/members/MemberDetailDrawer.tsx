@@ -12,10 +12,6 @@ import { useMemberActivity } from '#/hooks/use-activity'
 import { MemberId } from '#/lib/api/members'
 import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
 import { formatShortDate } from '#/lib/format/short-date'
-import {
-  demoLinksCreatedCount,
-  demoSignInMethod,
-} from '#/lib/members/member-detail-demo'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import {
   FLOATING_END_DRAWER_PADDING,
@@ -166,18 +162,6 @@ export default function MemberDetailDrawer({
                     label="Joined workspace"
                     value={isPending ? '—' : formatShortDate(member.joinedAt)}
                   />
-                  {!isPending ? (
-                    <>
-                      <DetailRow
-                        label="Links created"
-                        value={String(demoLinksCreatedCount(member.id))}
-                      />
-                      <DetailRow
-                        label="Sign-in method"
-                        value={demoSignInMethod(member)}
-                      />
-                    </>
-                  ) : null}
                 </VStack>
 
                 <Divider variant="subtle" />

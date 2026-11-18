@@ -10,7 +10,6 @@ import {
   type ReactNode,
 } from 'react'
 import { useToast } from '@astryxdesign/core/Toast'
-import { use$ } from '@legendapp/state/react'
 import { MAX_LINK_NOTES_LENGTH } from '@openlink/contracts'
 import { useAnalyticsSummary } from '#/hooks/use-analytics'
 import type { WorkspaceCustomDomain } from '#/data/demo/domains'
@@ -38,10 +37,8 @@ import {
   validateDraft,
   type CreateLinkDraft,
 } from '#/lib/links/create-link'
-import { demoCheckHealth } from '#/lib/links/demo-health'
 import { ShortUrl } from '#/lib/links/short-url'
 import { LinkLiveStatus } from '#/lib/links/link-summary'
-import { linksWorkspace$, type LinkLocalExtras } from '#/state/links-workspace.state'
 import NotFoundPage from '#/components/not-found/NotFoundPage'
 import WorkspaceStatusScreen, { type StatusPresentation } from '#/components/workspace/WorkspaceStatusScreen'
 import {
@@ -87,8 +84,6 @@ type OrganizationContextValue = {
   setLinksHold: (linkIds: string[], hold: LinkHold | null) => Promise<void>
   addTagsToLinks: (linkIds: string[], tags: string[]) => Promise<void>
   deleteLinks: (linkIds: string[]) => Promise<void>
-  /** Runs (demo) destination health checks; resolves when results are in. */
-  checkLinksHealth: (linkIds: string[]) => Promise<void>
   deleteLink: (linkId: string) => Promise<void>
 }
 
@@ -223,18 +218,9 @@ function OrganizationScope({
   // Domains never block the workspace; without them links fall back to the app host.
   const domainsQuery = useQuery({ queryKey: QueryKeys.domains(orgId), queryFn: () => domainsApi.list(orgId) })
 
-  // Health checks have no API yet; their results live for the session.
-  const localExtras = use$(linksWorkspace$.extrasByLink)
-
   const domains = useMemo(() => domainsQuery.data ?? [], [domainsQuery.data])
   const folders = useMemo(() => foldersQuery.data ?? [], [foldersQuery.data])
-  const links = useMemo(
-    () => (linksQuery.data ?? []).map((link) => {
-      const extras = localExtras[link.id]
-      return extras ? { ...link, ...extras } : link
-    }),
-    [linksQuery.data, localExtras],
-  )
+  const links = useMemo(() => linksQuery.data ?? [], [linksQuery.data])
 
   const setLinksCache = useCallback(
     (update: (prev: ShortLink[]) => ShortLink[]) =>
@@ -466,30 +452,6 @@ function OrganizationScope({
     [orgId, queryClient],
   )
 
-  /** Applies a session-only change (health checks) to links. */
-  const updateLocal = useCallback(
-    (linkIds: string[], change: (link: ShortLink) => ShortLink | null) => {
-      for (const id of linkIds) {
-        const current = links.find((l) => l.id === id)
-        if (!current) continue
-        const next = change(current)
-        if (!next) continue
-        const extras: LinkLocalExtras = { health: next.health }
-        linksWorkspace$.extrasByLink[id].set(extras)
-      }
-    },
-    [links],
-  )
-
-  const checkLinksHealth = useCallback(
-    async (linkIds: string[]) => {
-      // Demo: the backend runs real checks; simulate its latency.
-      await new Promise((resolve) => setTimeout(resolve, 900))
-      updateLocal(linkIds, (l) => ({ ...l, health: demoCheckHealth(l) }))
-    },
-    [updateLocal],
-  )
-
   const value = useMemo<OrganizationContextValue>(
     () => ({
       organizations,
@@ -515,7 +477,6 @@ function OrganizationScope({
       setLinksHold: (ids, hold) => friendly(() => setLinksHold(ids, hold), 'Could not update the hold.'),
       addTagsToLinks: (ids, tags) => friendly(() => addTagsToLinks(ids, tags), 'Could not add tags.'),
       deleteLinks: (ids) => friendly(() => deleteLinks(ids), 'Could not delete the links.'),
-      checkLinksHealth,
       deleteLink: (id) => friendly(() => deleteLink(id), 'Could not delete the link.'),
     }),
     [
@@ -541,7 +502,6 @@ function OrganizationScope({
       setLinksHold,
       addTagsToLinks,
       deleteLinks,
-      checkLinksHealth,
       deleteLink,
     ],
   )

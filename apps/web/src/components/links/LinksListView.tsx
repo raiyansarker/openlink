@@ -14,7 +14,6 @@ import { useOrganization } from '#/contexts/OrganizationContext'
 import type { ShortLink } from '#/data/demo/types'
 import { formatCompactNumber } from '#/lib/format/compact-number'
 import { formatShortDate } from '#/lib/format/short-date'
-import { healthNeedsAttention } from '#/lib/links/demo-health'
 import { linkStatusLabel } from '#/lib/links/link-summary'
 import { stripUrlScheme } from '#/lib/links/strip-url-scheme'
 
@@ -127,14 +126,7 @@ export default function LinksListView({
               header: 'Status',
               width: pixel(140),
               renderCell: (row) => (
-                <VStack gap={0}>
-                  <Text>{linkStatusLabel(row)}</Text>
-                  {healthNeedsAttention(row.health) ? (
-                    <Text type="supporting" color="secondary">
-                      Destination broken
-                    </Text>
-                  ) : null}
-                </VStack>
+                <Text>{linkStatusLabel(row)}</Text>
               ),
             },
             {

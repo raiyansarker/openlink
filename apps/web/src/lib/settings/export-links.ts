@@ -9,7 +9,6 @@ const CSV_COLUMNS = [
   'targetUrl',
   'status',
   'clicks',
-  'uniqueClicks',
   'tags',
   'createdAt',
 ] as const

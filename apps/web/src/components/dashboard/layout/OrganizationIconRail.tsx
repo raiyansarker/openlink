@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Tooltip } from '@astryxdesign/core/Tooltip'
 import type { Organization } from '#/data/demo/types'
-import { getOrganizationBrand } from '#/data/demo/organization-branding'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
 import OpenLinkAppMark from '#/components/dashboard/icons/OpenLinkAppMark'
@@ -217,7 +216,6 @@ export default function OrganizationIconRail({
           }}
         >
           {organizations.map((org) => {
-            const brand = getOrganizationBrand(org.id)
             const target = WorkspaceUrl.replaceOrg(pathname, org.slug)
             const isActive = org.slug === activeOrgSlug
 
@@ -230,7 +228,6 @@ export default function OrganizationIconRail({
               >
                 <OrganizationLogo
                   name={org.name}
-                  brand={brand}
                   size={ORG_LOGO_SIZE}
                   radius={ORG_LOGO_RADIUS}
                   customImageUrl={org.logoUrl}
