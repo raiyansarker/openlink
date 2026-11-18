@@ -1,4 +1,4 @@
-/** Uploads images to the Worker, which stores them in R2. */
+/** Uploads share-card images to the Worker, which stores them in R2. */
 export class MediaUploads {
   private static async send(method: 'PUT' | 'DELETE', path: string, body?: Blob): Promise<{ url?: string }> {
     let response: Response
@@ -18,35 +18,11 @@ export class MediaUploads {
     return payload ?? {}
   }
 
-  static async setAvatar(image: Blob): Promise<string> {
-    const { url } = await MediaUploads.send('PUT', '/api/uploads/avatar', image)
-    if (!url) throw new Error('The upload failed. Please try again.')
-    return url
-  }
-
-  static async clearAvatar(): Promise<void> {
-    await MediaUploads.send('DELETE', '/api/uploads/avatar')
-  }
-
-  static async setLogo(organizationId: string, image: Blob): Promise<string> {
-    const { url } = await MediaUploads.send('PUT', MediaUploads.logoPath(organizationId), image)
-    if (!url) throw new Error('The upload failed. Please try again.')
-    return url
-  }
-
-  static async clearLogo(organizationId: string): Promise<void> {
-    await MediaUploads.send('DELETE', MediaUploads.logoPath(organizationId))
-  }
-
   /** Store a share-card image; resolves to the URL to save on the link. */
   static async setLinkPreview(organizationId: string, image: Blob): Promise<string> {
     const path = `/api/uploads/organizations/${encodeURIComponent(organizationId)}/link-preview`
     const { url } = await MediaUploads.send('PUT', path, image)
     if (!url) throw new Error('The upload failed. Please try again.')
     return url
-  }
-
-  private static logoPath(organizationId: string) {
-    return `/api/uploads/organizations/${encodeURIComponent(organizationId)}/logo`
   }
 }

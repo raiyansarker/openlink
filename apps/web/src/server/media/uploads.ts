@@ -1,24 +1,22 @@
-import { organization, user } from '@openlink/db/schema'
 import { ORPCError } from '@orpc/server'
-import { eq } from 'drizzle-orm'
 import { Cause, Data, Effect } from 'effect'
 
-import { audit } from '../activity/audit'
 import { AuthOrigins } from '../auth/origins'
-import { requireLinkWriterEffect, requireOrgAdminEffect } from '../effect/access'
+import { requireLinkWriterEffect } from '../effect/access'
 import { operation } from '../effect/operations'
 import { Bindings } from '../effect/services/bindings'
-import { Db } from '../effect/services/db'
 import { WorkerRequest } from '../effect/services/request'
-import { requireAuthSession } from '../effect/session'
 import { ImageFormat } from './image-format'
-import { MediaKey } from './media-key'
+import { MediaKey, type MediaKind } from './media-key'
 import { MediaStore } from './media-store'
 
 /** An upload was refused; `message` is safe to show. */
 export class UploadRejected extends Data.TaggedError('UploadRejected')<{ status: number; message: string }> {}
 
-/** Image uploads for profile pictures and workspace logos. */
+/**
+ * Image checks and storage. Profile pictures and workspace logos arrive through the API
+ * (`storeImage`); share cards still use their own upload route (`setLinkPreview`).
+ */
 export class MediaUploads {
   /** Already resized in the browser (256px WebP is ~20 KB); this only stops abuse. */
   static readonly MAX_BYTES = 1024 * 1024
@@ -38,26 +36,50 @@ export class MediaUploads {
     }
   })
 
-  /** Read the body as an image, checking size and the real format. */
-  static readonly readImage = MediaUploads.readImageUpTo(MediaUploads.MAX_BYTES)
-
   static readImageUpTo(maxBytes: number) {
     return Effect.gen(function* () {
       const request = yield* WorkerRequest
-      const tooLarge = () => new UploadRejected({ status: 413, message: 'That picture is too large.' })
+      const tooLarge = MediaUploads.tooLarge
       const declared = Number(request.headers.get('content-length') ?? NaN)
       if (Number.isFinite(declared) && declared > maxBytes) return yield* Effect.fail(tooLarge())
       const buffer = yield* operation('media.readBody', () => request.arrayBuffer()).pipe(
         Effect.mapError(() => new UploadRejected({ status: 400, message: 'The upload could not be read.' })),
       )
-      if (buffer.byteLength > maxBytes) return yield* Effect.fail(tooLarge())
-      const bytes = new Uint8Array(buffer)
+      return yield* MediaUploads.checkImage(new Uint8Array(buffer), maxBytes)
+    })
+  }
+
+  /**
+   * Check an image that arrived as a file field (multipart API requests) and store it
+   * under a new key. Resolves to the key; nothing is stored if the image is refused.
+   */
+  static storeImage(kind: MediaKind, ownerId: string, file: Blob, maxBytes = MediaUploads.MAX_BYTES) {
+    return Effect.gen(function* () {
+      if (file.size > maxBytes) return yield* Effect.fail(MediaUploads.tooLarge())
+      const buffer = yield* operation('media.readFile', () => file.arrayBuffer()).pipe(
+        Effect.mapError(() => new UploadRejected({ status: 400, message: 'The upload could not be read.' })),
+      )
+      const image = yield* MediaUploads.checkImage(new Uint8Array(buffer), maxBytes)
+      const key = MediaKey.create(kind, ownerId, image.extension)
+      yield* MediaStore.put(key, image.bytes, image.mime)
+      return key
+    })
+  }
+
+  /** Size and real format (from the file's first bytes, not its name or declared type). */
+  private static checkImage(bytes: Uint8Array, maxBytes: number) {
+    return Effect.gen(function* () {
+      if (bytes.byteLength > maxBytes) return yield* Effect.fail(MediaUploads.tooLarge())
       const format = ImageFormat.detect(bytes)
       if (!format) {
         return yield* Effect.fail(new UploadRejected({ status: 415, message: 'Use a PNG, JPG, WebP, or GIF picture.' }))
       }
       return { bytes, ...format }
     })
+  }
+
+  private static tooLarge() {
+    return new UploadRejected({ status: 413, message: 'That picture is too large.' })
   }
 
   /**
@@ -72,90 +94,6 @@ export class MediaUploads {
       const key = MediaKey.create('previews', organizationId, image.extension)
       yield* MediaStore.put(key, image.bytes, image.mime)
       return { url: MediaKey.toUrl(key) }
-    })
-  }
-
-  /** Replace the signed-in person's picture. API keys cannot change a person's profile. */
-  static readonly setAvatar = Effect.gen(function* () {
-    yield* MediaUploads.requireTrustedOrigin
-    const session = yield* requireAuthSession
-    const image = yield* MediaUploads.readImage
-    const userId = session.session.user.id
-    const key = MediaKey.create('avatars', userId, image.extension)
-    yield* MediaStore.put(key, image.bytes, image.mime)
-
-    const db = yield* Db
-    const [previous] = yield* operation('media.avatar.read', () =>
-      db.select({ image: user.image }).from(user).where(eq(user.id, userId)).limit(1),
-    )
-    const url = MediaKey.toUrl(key)
-    yield* operation('media.avatar.save', () =>
-      db.update(user).set({ image: url, updatedAt: new Date() }).where(eq(user.id, userId)),
-    ).pipe(Effect.tapError(() => MediaStore.removeQuietly(key)))
-    yield* MediaStore.removeQuietly(MediaKey.fromUrl(previous?.image))
-    return { url }
-  })
-
-  static readonly clearAvatar = Effect.gen(function* () {
-    yield* MediaUploads.requireTrustedOrigin
-    const session = yield* requireAuthSession
-    const userId = session.session.user.id
-    const db = yield* Db
-    const [previous] = yield* operation('media.avatar.read', () =>
-      db.select({ image: user.image }).from(user).where(eq(user.id, userId)).limit(1),
-    )
-    yield* operation('media.avatar.clear', () =>
-      db.update(user).set({ image: null, updatedAt: new Date() }).where(eq(user.id, userId)),
-    )
-    yield* MediaStore.removeQuietly(MediaKey.fromUrl(previous?.image))
-  })
-
-  /** Replace a workspace logo; owners and admins only. */
-  static setLogo(organizationId: string) {
-    return Effect.gen(function* () {
-      yield* MediaUploads.requireTrustedOrigin
-      const { session } = yield* requireOrgAdminEffect(organizationId)
-      const image = yield* MediaUploads.readImage
-      const key = MediaKey.create('logos', organizationId, image.extension)
-      yield* MediaStore.put(key, image.bytes, image.mime)
-
-      const db = yield* Db
-      const [previous] = yield* operation('media.logo.read', () =>
-        db.select({ logoKey: organization.logoKey, name: organization.name }).from(organization).where(eq(organization.id, organizationId)).limit(1),
-      )
-      yield* operation('media.logo.save', () =>
-        db.update(organization).set({ logoKey: key, updatedAt: new Date() }).where(eq(organization.id, organizationId)),
-      ).pipe(Effect.tapError(() => MediaStore.removeQuietly(key)))
-      yield* MediaStore.removeQuietly(previous?.logoKey)
-      yield* audit(session, {
-        organizationId,
-        action: 'workspace.updated',
-        target: { type: 'workspace', id: organizationId, label: previous?.name ?? organizationId },
-        changes: [{ label: 'Logo', from: previous?.logoKey ? 'set' : 'none', to: 'updated' }],
-      })
-      return { url: MediaKey.toUrl(key) }
-    })
-  }
-
-  static clearLogo(organizationId: string) {
-    return Effect.gen(function* () {
-      yield* MediaUploads.requireTrustedOrigin
-      const { session } = yield* requireOrgAdminEffect(organizationId)
-      const db = yield* Db
-      const [previous] = yield* operation('media.logo.read', () =>
-        db.select({ logoKey: organization.logoKey, name: organization.name }).from(organization).where(eq(organization.id, organizationId)).limit(1),
-      )
-      if (!previous?.logoKey) return
-      yield* operation('media.logo.clear', () =>
-        db.update(organization).set({ logoKey: null, updatedAt: new Date() }).where(eq(organization.id, organizationId)),
-      )
-      yield* MediaStore.removeQuietly(previous.logoKey)
-      yield* audit(session, {
-        organizationId,
-        action: 'workspace.updated',
-        target: { type: 'workspace', id: organizationId, label: previous.name },
-        changes: [{ label: 'Logo', from: 'set', to: 'none' }],
-      })
     })
   }
 

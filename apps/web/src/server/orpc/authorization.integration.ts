@@ -100,15 +100,16 @@ const acceptInviteById = mock((_input: unknown) =>
   Effect.succeed({ org: { ...org, id: 'org-other', name: 'Other Co', slug: 'other' }, member: { id: 'm-9', organizationId: 'org-other', userId: 'user-1', role: 'admin' as const, joinedAt: now } }),
 )
 const declineInviteForEmail = mock((_input: unknown) => Effect.succeed({ id: 'invite-9', email: 'user@example.com', organizationId: 'org-other' }))
-const createOrganizationWithBootstrapInvite = mock((_input: unknown) => Effect.die(new Error('Unexpected organization creation')))
+const createOrganizationForUser = mock((_input: unknown) => Effect.die(new Error('Unexpected organization creation')))
 const signIn = mock((_input: unknown) => Effect.die(new Error('Unexpected sign in')))
 const signUp = mock((_input: unknown) => Effect.die(new Error('Unexpected sign up')))
 const signOut = mock((_request: Request) => Effect.die(new Error('Unexpected sign out')))
 const runHealthChecks = mock(() => Effect.die(new Error('Unexpected health check')))
 // Boundary workflows are mocked, so infrastructure bindings are intentionally absent.
-const requestEffectContext = Effect.succeed(Context.make(Bindings, {
-  DOMAIN_PROVIDER: 'memory', EXPOSE_INVITE_TOKENS_IN_API: 'false',
-} as WorkerBindings))
+const testBindings = {
+  DOMAIN_PROVIDER: 'memory', EXPOSE_INVITE_TOKENS_IN_API: 'false', BETTER_AUTH_URL: 'http://localhost',
+} as WorkerBindings
+const requestEffectContext = Effect.succeed(Context.make(Bindings, testBindings))
 
 mock.module('#/server/auth/session', () => ({ requireSession }))
 mock.module('#/server/auth/service', () => ({ signIn, signUp, signOut }))
@@ -122,7 +123,7 @@ mock.module('#/server/domain/domain-links', () => ({
 mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, getLinkInOrganization, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
 mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
-  acceptMemberInvite, createOrganizationWithBootstrapInvite,
+  acceptMemberInvite, createOrganizationForUser,
   listInvitesForEmail, acceptInviteById, declineInviteForEmail,
 }))
 mock.module('#/server/org/members', () => ({
@@ -142,6 +143,9 @@ mock.module('#/server/activity/audit', () => ({ audit }))
 mock.module('#/server/apikeys/service', () => ({
   authenticateApiKey, listApiKeys, createApiKey, updateApiKeyRole, rotateApiKey, revokeApiKey,
 }))
+const replacePicture = mock((_userId: string, _image: Blob) => Effect.succeed('/api/media/avatars/user-1/new.webp'))
+const removePicture = mock((_userId: string) => Effect.void)
+mock.module('#/server/account/picture', () => ({ ProfilePicture: { replace: replacePicture, remove: removePicture } }))
 mock.module('#/server/devices/sessions', () => ({
   DeviceSessions: { list: listDeviceSessions, revoke: revokeDeviceSession, revokeOthers: revokeOtherDeviceSessions },
 }))
@@ -162,7 +166,10 @@ mock.module('#/server/analytics/report', () => ({
   AnalyticsSummaries: { build: buildSummary },
   RecentClicks: { list: listRecent },
 }))
-mock.module('#/server/effect/runtime', () => ({ requestEffectContext, effectRuntime: { runPromise: Effect.runPromise } }))
+mock.module('#/server/effect/runtime', () => ({
+  requestEffectContext,
+  effectRuntime: { runPromise: <A, E>(effect: Effect.Effect<A, E, Bindings>) => Effect.runPromise(effect.pipe(Effect.provideService(Bindings, testBindings))) },
+}))
 
 const { handleOpenApiRequest } = await import('./openapi-handler')
 const { createApiClient } = await import('#/lib/api/orpc')
@@ -171,12 +178,12 @@ const { apiFailure, isRetryable } = await import('#/lib/api/errors')
 const sideEffects = [
   createMemberInvite, registerCustomDomain, removeCustomDomain, refreshCustomDomain,
   createLinkRecord, updateLinkRecord, deleteLinkRecord,
-  acceptMemberInvite, createOrganizationWithBootstrapInvite, signIn, signUp, signOut, runHealthChecks,
+  acceptMemberInvite, createOrganizationForUser, signIn, signUp, signOut, runHealthChecks,
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
   moveLinks, addTagsToLinks, deleteLinks,
   createApiKey, updateApiKeyRole, rotateApiKey, revokeApiKey, revokeDeviceSession, revokeOtherDeviceSessions,
-  acceptInviteById, declineInviteForEmail,
+  acceptInviteById, declineInviteForEmail, replacePicture, removePicture,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
@@ -960,6 +967,41 @@ describe('your invites (notifications)', () => {
   })
 })
 
+describe('your profile picture', () => {
+  const pictureForm = (origin = 'http://localhost') => {
+    const form = new FormData()
+    form.append('image', new Blob([new Uint8Array([0x52, 0x49, 0x46, 0x46])], { type: 'image/webp' }), 'p.webp')
+    return { method: 'PUT', body: form, headers: { origin } }
+  }
+  const send = (init: { method: string; body?: FormData; headers?: Record<string, string> }) =>
+    handleOpenApiRequest(new Request('http://localhost/api/v1/me/picture', init)).then((result) => result.response!)
+
+  test('a picture sent as a file replaces yours, in one request', async () => {
+    const response = await send(pictureForm())
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ imageUrl: '/api/media/avatars/user-1/new.webp' })
+    expect(replacePicture).toHaveBeenCalledWith('user-1', expect.any(Blob))
+  })
+
+  test('removing it answers 204', async () => {
+    expect((await request('DELETE', '/me/picture')).status).toBe(204)
+    expect(removePicture).toHaveBeenCalledWith('user-1')
+  })
+
+  test('a form posted from another site is blocked before anything runs', async () => {
+    expect((await send(pictureForm('https://evil.example'))).status).toBe(403)
+    expect(replacePicture).not.toHaveBeenCalled()
+  })
+
+  test('signed-out callers and API keys cannot change a picture', async () => {
+    authenticated = false
+    expect((await request('DELETE', '/me/picture')).status).toBe(401)
+    keyPrincipal = { id: 'key-1', organizationId: org.id, role: 'admin', name: 'CI' }
+    expect((await request('DELETE', '/me/picture', undefined, { authorization: 'Bearer sk_x' })).status).toBe(401)
+    expect(removePicture).not.toHaveBeenCalled()
+  })
+})
+
 describe('device sessions', () => {
   test('lists your sessions, marks this one, and never includes tokens', async () => {
     const response = await request('GET', '/me/sessions')
@@ -1077,18 +1119,13 @@ describe('workspace links (app host by default)', () => {
 // catchTags matches structural tags; do not load real service modules just for error constructors.
 const typedFailures = [
   {
-    name: 'invalid bootstrap invite', workflow: createOrganizationWithBootstrapInvite,
-    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invalid-token' },
-    tag: 'InvalidBootstrapInvite', status: 403, code: 'FORBIDDEN', message: 'Invalid or expired bootstrap invite token',
-  },
-  {
-    name: 'organization conflict', workflow: createOrganizationWithBootstrapInvite,
-    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invite-token' },
+    name: 'organization conflict', workflow: createOrganizationForUser,
+    path: '/organizations', body: { name: org.name, slug: org.slug },
     tag: 'OrganizationConflict', status: 409, code: 'CONFLICT', message: 'Unable to create organization',
   },
   {
-    name: 'organization backend failure', workflow: createOrganizationWithBootstrapInvite,
-    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invite-token' },
+    name: 'organization backend failure', workflow: createOrganizationForUser,
+    path: '/organizations', body: { name: org.name, slug: org.slug },
     tag: 'BackendError', status: 409, code: 'CONFLICT', message: 'Unable to create organization',
   },
   {

@@ -7,7 +7,9 @@ import { operation } from '#/server/effect/operations'
 import { effectRuntime } from '#/server/effect/runtime'
 import { ServerLog } from '#/server/observability'
 import { createApiContext, type ApiContext } from './context'
+import { FormOrigin } from './form-origin'
 import { router } from './router'
+import { Bindings } from '#/server/effect/services/bindings'
 
 function withSetCookieHeaders(
   headers: Parameters<typeof mergeStandardHeaders>[0],
@@ -84,8 +86,13 @@ export const openApiHandler = new OpenAPIHandler<ApiContext>(router, {
 })
 
 /** Edge adapter: the HTTP framework consumes a Promise. */
-export const handleOpenApiRequest = (request: Request) =>
-  openApiHandler.handle(request, {
+export const handleOpenApiRequest = async (request: Request) => {
+  if (FormOrigin.needsCheck(request)) {
+    const bindings = await effectRuntime.runPromise(Effect.gen(function* () { return yield* Bindings }))
+    if (!FormOrigin.isTrusted(request, bindings)) return { matched: true as const, response: FormOrigin.response() }
+  }
+  return openApiHandler.handle(request, {
     prefix: '/api/v1',
     context: () => createApiContext(request),
   })
+}

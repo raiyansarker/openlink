@@ -8,12 +8,11 @@ import type { OrganizationMembership, Workspace } from '#/lib/api/types'
 import { AuthSession } from '#/lib/auth/client'
 import { isValidOrganizationSlug } from '#/lib/organization/slugify'
 import { SquareImage } from '#/lib/media/square-image'
-import { MediaUploads } from '#/lib/media/uploads'
 
 export type CreateOrganizationInput = {
   name: string
   slug: string
-  /** Uploaded to R2 after the workspace exists. */
+  /** Sent in the same request; if the server refuses it, no workspace is created. */
   logo?: File | null
 }
 
@@ -26,10 +25,10 @@ type WorkspaceDirectoryContextValue = {
   errorMessage: string | null
   refetch: () => void
   /**
-   * Rejects with an Error carrying a user-facing message. A logo that fails to
-   * upload does not undo the workspace; `logoError` explains what happened.
+   * Creates the workspace and its logo in one request. Rejects with an Error carrying a
+   * user-facing message; when it rejects, nothing was created.
    */
-  createOrganization: (input: CreateOrganizationInput) => Promise<{ organization: Workspace; logoError: string | null }>
+  createOrganization: (input: CreateOrganizationInput) => Promise<{ organization: Workspace }>
   /** Refresh after changing a workspace (for example its logo). */
   invalidate: () => Promise<void>
 }
@@ -72,9 +71,11 @@ export function WorkspaceDirectoryProvider({ children }: { children: ReactNode }
       if (!isValidOrganizationSlug(input.slug)) {
         throw new Error('Use a slug with lowercase letters, numbers, and hyphens (min. 2 characters).')
       }
+      // Cropped and shrunk in the browser first; a picture that can't be used stops here.
+      const logo = input.logo ? await SquareImage.fromFile(input.logo) : undefined
       let organization: Workspace
       try {
-        const created = await create.mutateAsync({ body: { name, slug: input.slug } })
+        const created = await create.mutateAsync({ body: { name, slug: input.slug, ...(logo ? { logo } : {}) } })
         // The creator becomes the owner.
         organization = { ...created, role: 'owner' }
       } catch (error) {
@@ -86,17 +87,7 @@ export function WorkspaceDirectoryProvider({ children }: { children: ReactNode }
       }
       // The first workspace completes onboarding; re-read the session so the guard sees it.
       AuthSession.invalidate()
-      let logoError: string | null = null
-      if (input.logo) {
-        try {
-          const logoUrl = await MediaUploads.setLogo(organization.id, await SquareImage.fromFile(input.logo))
-          organization = { ...organization, logoUrl }
-          await queryClient.invalidateQueries({ queryKey: workspacesKey })
-        } catch (error) {
-          logoError = error instanceof Error ? error.message : 'The logo could not be uploaded.'
-        }
-      }
-      return { organization, logoError }
+      return { organization }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [create, queryClient],
