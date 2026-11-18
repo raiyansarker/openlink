@@ -4,6 +4,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import * as schema from '@openlink/db/schema'
 import { getBindings } from '../env'
 import { getDb } from '../db'
+import { apiKeyPlugins } from './api-keys'
 import { AuthLog } from './auth-log'
 import { AuthHooks } from './hooks'
 import { AuthOrigins } from './origins'
@@ -28,6 +29,9 @@ function createAuth() {
         account: schema.account,
         verification: schema.verification,
         passkey: schema.passkey,
+        apikey: schema.apikey,
+        // Read by the API key plugin to authorize workspace-owned keys (see api-keys.ts).
+        member: schema.organizationMember,
       },
     }),
     socialProviders: SocialProviders.config(bindings),
@@ -81,6 +85,7 @@ function createAuth() {
           },
         },
       }),
+      ...apiKeyPlugins(),
     ],
     advanced: {
       cookiePrefix: 'openlink',

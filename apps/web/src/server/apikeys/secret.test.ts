@@ -1,22 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { API_KEY_PREFIX, generateApiKey, hashApiKey, readBearerApiKey } from './secret'
-
-describe('generateApiKey', () => {
-  test('produces a prefixed secret whose display prefix and hash match it', () => {
-    const { secret, prefix, hash } = generateApiKey()
-    expect(secret.startsWith(API_KEY_PREFIX)).toBe(true)
-    expect(secret.length).toBeGreaterThanOrEqual(API_KEY_PREFIX.length + 32)
-    expect(prefix).toBe(secret.slice(0, API_KEY_PREFIX.length + 4))
-    expect(hash).toBe(hashApiKey(secret))
-    expect(hash).toMatch(/^[0-9a-f]{64}$/)
-    expect(hash).not.toContain(secret)
-  })
-
-  test('never repeats', () => {
-    const secrets = new Set(Array.from({ length: 200 }, () => generateApiKey().secret))
-    expect(secrets.size).toBe(200)
-  })
-})
+import { readBearerApiKey } from './secret'
 
 describe('readBearerApiKey', () => {
   test('accepts only bearer tokens carrying the OpenLink prefix', () => {

@@ -1,7 +1,6 @@
 import { LinkDelivery } from '#/server/links/delivery'
 import type {
   activityEvent,
-  apiKey,
   customDomain,
   link,
   linkFolder,
@@ -12,6 +11,7 @@ import type {
 
 import { ACTION_DEFINITIONS, isKnownAction, type Change } from '#/server/activity/actions'
 import { MediaKey } from '#/server/media/media-key'
+import type { ApiKeyRecord } from '#/server/apikeys/service'
 import { deriveLinkStatus } from '#/server/links/rules'
 
 type DeviceSessionRow = {
@@ -238,7 +238,7 @@ export function toActivityDto(
   }
 }
 
-export function toApiKeyDto(row: typeof apiKey.$inferSelect) {
+export function toApiKeyDto(row: ApiKeyRecord) {
   return {
     id: row.id,
     organizationId: row.organizationId,
