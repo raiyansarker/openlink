@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useForm, useStore } from '@tanstack/react-form'
+import { firstError } from '#/lib/forms/fields'
 import { MAX_LINK_NOTES_LENGTH } from '@openlink/contracts'
 import PasswordField from '#/components/common/PasswordField'
 import { useNavigate } from '@tanstack/react-router'
@@ -199,16 +201,57 @@ export default function CreateLinkForm({
     updateLink,
   } = useOrganization()
 
-  const [draft, setDraft] = useState<CreateLinkDraft>(() =>
-    editLink ? linkToDraft(editLink) : emptyDraft(initialFolderId),
-  )
-  const [showErrors, setShowErrors] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
   const [created, setCreated] = useState<ShortLink | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [previewFileError, setPreviewFileError] = useState<string | null>(null)
-
   const [isUploadingPreview, setIsUploadingPreview] = useState(false)
+
+  const validationContext = {
+    links,
+    editing: editLink ? { linkId: editLink.id, hasPassword: !!editLink.passwordProtected } : undefined,
+  }
+
+  // The whole draft is the form's value; the inputs below set it through `update`.
+  const form = useForm({
+    defaultValues: editLink ? linkToDraft(editLink) : emptyDraft(initialFolderId),
+    validators: {
+      onSubmit: ({ value }) => {
+        if (isUploadingPreview) return 'Wait for the preview image to finish uploading.'
+        const fields = validateDraft(value, validationContext)
+        return Object.keys(fields).length > 0
+          ? { form: 'Fix the highlighted fields to save the link.', fields }
+          : undefined
+      },
+      onSubmitAsync: async ({ value }) => {
+        try {
+          if (editLink) {
+            await updateLink(editLink.id, value)
+          } else {
+            setCreated(await createLink(value))
+            window.scrollTo({ top: 0 })
+          }
+          return undefined
+        } catch (err) {
+          return err instanceof Error ? err.message : 'Something went wrong.'
+        }
+      },
+    },
+    onSubmit: () => {
+      if (editLink) goToDetail(editLink.id)
+    },
+  })
+  const draft = useStore(form.store, (state) => state.values)
+  const isSubmitting = useStore(form.store, (state) => state.isSubmitting)
+  // Field problems show once you try to save; until then only the back-half is checked as you type.
+  const showErrors = useStore(form.store, (state) => state.submissionAttempts > 0)
+  const submitError = useStore(form.store, (state) => firstError(state.errors) ?? null)
+
+  /** Applies a change computed from the current draft, field by field. */
+  const patchDraft = (change: (prev: CreateLinkDraft) => Partial<CreateLinkDraft>) => {
+    const next = change(form.state.values)
+    for (const key of Object.keys(next) as (keyof CreateLinkDraft)[]) {
+      form.setFieldValue(key, next[key] as never)
+    }
+  }
 
   /** Uploads a social image; the link keeps its URL. */
   const choosePreviewImage = (file: File | null) => {
@@ -238,16 +281,14 @@ export default function CreateLinkForm({
     key: K,
     value: CreateLinkDraft[K],
   ) => {
-    setDraft((prev) => ({ ...prev, [key]: value }))
-    setSubmitError(null)
+    form.setFieldValue(key, value as never)
   }
 
   // Suggest a random back-half after mount (not during SSR, to keep
   // hydration deterministic). An unknown ?folder= falls back to the top level.
   useEffect(() => {
     if (isEditing) return
-    setDraft((prev) => ({
-      ...prev,
+    patchDraft((prev) => ({
       slug: prev.slug || generateSlug(),
       folderId:
         prev.folderId && folders.some((f) => f.id === prev.folderId)
@@ -295,13 +336,8 @@ export default function CreateLinkForm({
   const countries = useMemo(() => getCountries(), [])
 
   const errors: DraftErrors = useMemo(
-    () =>
-      validateDraft(draft, {
-        links,
-        editing: editLink
-          ? { linkId: editLink.id, hasPassword: !!editLink.passwordProtected }
-          : undefined,
-      }),
+    () => validateDraft(draft, validationContext),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [draft, links, editLink],
   )
   // Slug conflicts are worth flagging while typing; the rest after submit.
@@ -428,31 +464,9 @@ export default function CreateLinkForm({
     '-',
   )
 
-  const submit = async () => {
+  const submit = () => {
     if (created || isSubmitting) return
-    if (isUploadingPreview) {
-      setSubmitError('Wait for the preview image to finish uploading.')
-      return
-    }
-    setShowErrors(true)
-    if (Object.keys(errors).length > 0) {
-      setSubmitError('Fix the highlighted fields to create the link.')
-      return
-    }
-    setIsSubmitting(true)
-    try {
-      if (editLink) {
-        await updateLink(editLink.id, draft)
-        goToDetail(editLink.id)
-        return
-      }
-      setCreated(await createLink(draft))
-      window.scrollTo({ top: 0 })
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Something went wrong.')
-    } finally {
-      setIsSubmitting(false)
-    }
+    void form.handleSubmit()
   }
 
   const goToDetail = (linkId: string) => {
@@ -467,7 +481,7 @@ export default function CreateLinkForm({
   }
 
   // ⌘/Ctrl + Enter submits from anywhere on the page.
-  useKeyPress('mod+Enter', () => void submit(), { allowInInputs: true, allowInOverlays: true })
+  useKeyPress('mod+Enter', submit, { allowInInputs: true, allowInOverlays: true })
 
   const setUtmField = (key: UtmKey, value: string) =>
     update('utm', { ...draft.utm, [key]: value })
@@ -475,8 +489,7 @@ export default function CreateLinkForm({
   const toggleUtm = (on: boolean) => {
     // Turning UTM on pulls in any utm_* params already in the URL.
     if (on && !cleanUtm(draft.utm)) {
-      setDraft((prev) => ({
-        ...prev,
+      patchDraft((prev) => ({
         utmEnabled: true,
         utm: readUtmFromUrl(prev.destination),
       }))
@@ -498,8 +511,7 @@ export default function CreateLinkForm({
     )
 
   const toggleTargeting = (on: boolean) => {
-    setDraft((prev) => ({
-      ...prev,
+    patchDraft((prev) => ({
       targetingEnabled: on,
       // Start with one empty country row so the list isn't blank.
       geoRules:
@@ -530,9 +542,8 @@ export default function CreateLinkForm({
             onViewLinks={() => goToLinks(created.folderId ?? null)}
             onCreateAnother={() => {
               setCreated(null)
-              setShowErrors(false)
               setPreviewFileError(null)
-              setDraft({ ...emptyDraft(created.folderId ?? null), slug: generateSlug() })
+              form.reset({ ...emptyDraft(created.folderId ?? null), slug: generateSlug() })
             }}
           />
         }
@@ -540,7 +551,7 @@ export default function CreateLinkForm({
     )
   }
 
-  const form = (
+  const formBody = (
     <VStack gap={8} hAlign="stretch" width="100%">
       <VStack gap={1}>
         <Heading level={1}>{isEditing ? 'Edit link' : 'Create link'}</Heading>
@@ -1232,7 +1243,7 @@ export default function CreateLinkForm({
       }
       backLabel={editLink ? editLink.title : 'Links'}
       backSearch={editLink ? undefined : { folder: initialFolderId ?? undefined }}
-      main={form}
+      main={formBody}
       aside={
         <LinkPreviewPanel
           shortUrl={shortUrl}
@@ -1257,7 +1268,7 @@ export default function CreateLinkForm({
       asideFooter={
         <CreateLinkActions
           submitLabel={isEditing ? 'Save changes' : 'Create link'}
-          onSubmit={() => void submit()}
+          onSubmit={submit}
           isSubmitting={isSubmitting}
           onCancel={() =>
             editLink ? goToDetail(editLink.id) : goToLinks(initialFolderId)
