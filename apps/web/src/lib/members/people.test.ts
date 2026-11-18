@@ -18,4 +18,9 @@ describe('toPeople', () => {
     const [a, b] = toPeople([{ ...member, userId: 'x' }], [{ ...invite, id: 'x' }])
     expect(a!.key).not.toBe(b!.key)
   })
+
+  test('uses the email when a member has no display name for avatar initials', () => {
+    const [person] = toPeople([{ ...member, name: '   ' }], [])
+    expect(person?.name).toBe(member.email)
+  })
 })

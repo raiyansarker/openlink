@@ -21,7 +21,7 @@ export function toPeople(members: readonly Member[], invites: readonly PendingIn
       kind: 'member',
       key: `member:${m.userId}`,
       userId: m.userId,
-      name: m.name,
+      name: m.name.trim() || m.email,
       email: m.email,
       role: m.role,
       ...(m.image ? { image: m.image } : {}),
