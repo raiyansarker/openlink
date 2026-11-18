@@ -1,5 +1,6 @@
 import { tracing } from 'cloudflare:workers'
 import { Cause, Exit, Layer, Option, Tracer } from 'effect'
+import type { Fiber } from 'effect'
 
 import { ErrorReport } from './error-report'
 
@@ -71,9 +72,19 @@ class CloudflareSpan extends Tracer.NativeSpan {
   }
 }
 
+/** Effect's internal key for running one primitive (not exported by `effect`). */
+const EVALUATE = '~effect/Effect/evaluate'
+
 export class CloudflareTracer {
   static readonly tracer = Tracer.make({
     span: (options) => new CloudflareSpan(options),
+    // Runs every step of a fiber with its current span active in Workers tracing, so the automatic
+    // D1, R2, KV and fetch spans nest under the Effect span that issued them instead of the request root.
+    context: <X>(primitive: Tracer.EffectPrimitive<X>, fiber: Fiber.Fiber<any, any>): X => {
+      const run = () => (primitive as unknown as Record<string, (fiber: unknown) => X>)[EVALUATE]!(fiber)
+      const span = fiber.cache.span
+      return span instanceof CloudflareSpan && span.handle ? tracing.withActiveSpan(span.handle, run) : run()
+    },
   })
 
   /** Uses Workers tracing when the runtime has it; otherwise keeps Effect's default tracer. */
