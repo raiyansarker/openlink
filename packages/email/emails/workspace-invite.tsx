@@ -29,16 +29,20 @@ const defaultProps: WorkspaceInviteEmailProps = {
   logoUrl: "/logo192.png",
 };
 
-export default function WorkspaceInviteEmail({
-  recipientName,
-  workspaceName,
-  inviterName,
-  role,
-  inviteUrl,
-  expiresAt,
-  baseUrl,
-  logoUrl,
-}: WorkspaceInviteEmailProps = defaultProps) {
+export default function WorkspaceInviteEmail(
+  props: WorkspaceInviteEmailProps = defaultProps,
+) {
+  const {
+    recipientName,
+    workspaceName,
+    inviterName,
+    role,
+    inviteUrl,
+    expiresAt,
+    baseUrl,
+    logoUrl,
+  } = { ...defaultProps, ...props };
+
   return (
     <EmailLayout
       baseUrl={baseUrl}

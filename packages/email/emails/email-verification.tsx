@@ -22,13 +22,14 @@ const defaultProps: EmailVerificationEmailProps = {
   logoUrl: "/logo192.png",
 };
 
-export default function EmailVerificationEmail({
-  name,
-  verifyUrl,
-  expiresIn,
-  baseUrl,
-  logoUrl,
-}: EmailVerificationEmailProps = defaultProps) {
+export default function EmailVerificationEmail(
+  props: EmailVerificationEmailProps = defaultProps,
+) {
+  const { name, verifyUrl, expiresIn, baseUrl, logoUrl } = {
+    ...defaultProps,
+    ...props,
+  };
+
   return (
     <EmailLayout
       baseUrl={baseUrl}

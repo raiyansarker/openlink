@@ -20,12 +20,12 @@ const defaultProps: WelcomeEmailProps = {
   logoUrl: "/logo192.png",
 };
 
-export function WelcomeEmail({
-  name,
-  dashboardUrl,
-  baseUrl,
-  logoUrl,
-}: WelcomeEmailProps = defaultProps) {
+export function WelcomeEmail(props: WelcomeEmailProps = defaultProps) {
+  const { name, dashboardUrl, baseUrl, logoUrl } = {
+    ...defaultProps,
+    ...props,
+  };
+
   return (
     <EmailLayout
       baseUrl={baseUrl}

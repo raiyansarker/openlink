@@ -22,13 +22,14 @@ const defaultProps: PasswordResetEmailProps = {
   logoUrl: "/logo192.png",
 };
 
-export default function PasswordResetEmail({
-  name,
-  resetUrl,
-  expiresIn,
-  baseUrl,
-  logoUrl,
-}: PasswordResetEmailProps = defaultProps) {
+export default function PasswordResetEmail(
+  props: PasswordResetEmailProps = defaultProps,
+) {
+  const { name, resetUrl, expiresIn, baseUrl, logoUrl } = {
+    ...defaultProps,
+    ...props,
+  };
+
   return (
     <EmailLayout
       baseUrl={baseUrl}

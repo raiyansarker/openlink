@@ -30,16 +30,20 @@ const defaultProps: SecurityAlertEmailProps = {
   logoUrl: "/logo192.png",
 };
 
-export default function SecurityAlertEmail({
-  name,
-  event,
-  device,
-  location,
-  occurredAt,
-  securityUrl,
-  baseUrl,
-  logoUrl,
-}: SecurityAlertEmailProps = defaultProps) {
+export default function SecurityAlertEmail(
+  props: SecurityAlertEmailProps = defaultProps,
+) {
+  const {
+    name,
+    event,
+    device,
+    location,
+    occurredAt,
+    securityUrl,
+    baseUrl,
+    logoUrl,
+  } = { ...defaultProps, ...props };
+
   return (
     <EmailLayout
       baseUrl={baseUrl}
