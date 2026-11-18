@@ -2,7 +2,7 @@ import { apiKey } from '@better-auth/api-key'
 import type { BetterAuthPlugin } from 'better-auth'
 import { createAccessControl } from 'better-auth/plugins/access'
 
-export const API_KEY_PREFIX = 'ol_live_'
+export const API_KEY_PREFIX = 'sk_'
 
 /** Roles a key can be issued with. Keys can never be owners. */
 export const API_KEY_ROLES = ['admin', 'member', 'viewer'] as const
@@ -54,13 +54,26 @@ const workspaceMembers = () =>
     init: () => ({ context: { orgOptions: workspaceKeyAccess } as Record<string, unknown> }),
   }) satisfies BetterAuthPlugin
 
+/**
+ * The plugin's own HTTP endpoints. The dashboard and API use the `apiKeys` oRPC routes, which
+ * add the workspace admin check and the activity log, so these are switched off. Server code
+ * still reaches the same operations through `auth.api.*`, which `disabledPaths` doesn't affect.
+ */
+export const API_KEY_DISABLED_PATHS = [
+  '/api-key/create',
+  '/api-key/delete',
+  '/api-key/get',
+  '/api-key/list',
+  '/api-key/update',
+]
+
 export const apiKeyPlugins = () => [
   workspaceMembers(),
   apiKey({
     references: 'organization',
     defaultPrefix: API_KEY_PREFIX,
-    // The prefix plus four characters, enough to tell keys apart in the list.
-    startingCharactersConfig: { shouldStore: true, charactersLength: API_KEY_PREFIX.length + 4 },
+    // The prefix plus six characters, enough to tell keys apart in the list.
+    startingCharactersConfig: { shouldStore: true, charactersLength: API_KEY_PREFIX.length + 6 },
     maximumNameLength: 80,
     requireName: true,
     // Per-key request limits are not a product feature; the plugin default is 10 a day.

@@ -94,7 +94,7 @@ describe('requirePrincipal', () => {
   test('an invalid key is rejected and never falls back to the cookie session', async () => {
     const t = await setup()
     t.signIn()
-    expect(code(await t.fail(requirePrincipal, { authorization: 'Bearer ol_live_forged' }))).toBe('UNAUTHORIZED')
+    expect(code(await t.fail(requirePrincipal, { authorization: 'Bearer sk_forged' }))).toBe('UNAUTHORIZED')
   })
 
   test('other bearer tokens are ignored in favour of the cookie session', async () => {

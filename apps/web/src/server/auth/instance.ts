@@ -4,7 +4,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import * as schema from '@openlink/db/schema'
 import { getBindings } from '../env'
 import { getDb } from '../db'
-import { apiKeyPlugins } from './api-keys'
+import { API_KEY_DISABLED_PATHS, apiKeyPlugins } from './api-keys'
 import { AuthLog } from './auth-log'
 import { AuthHooks } from './hooks'
 import { AuthOrigins } from './origins'
@@ -40,6 +40,7 @@ function createAuth() {
       accountLinking: { enabled: true },
     },
     trustedOrigins: AuthOrigins.trusted(bindings),
+    disabledPaths: API_KEY_DISABLED_PATHS,
     user: {
       // Blocked while the account still owns a workspace (see AccountPolicy).
       deleteUser: {

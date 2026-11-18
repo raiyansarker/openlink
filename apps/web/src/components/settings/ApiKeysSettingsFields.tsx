@@ -36,6 +36,7 @@ export default function ApiKeysSettingsFields() {
   const refresh = () => queryClient.invalidateQueries({ queryKey })
   const createKey = useMutation(orpc.apiKeys.createApiKey.mutationOptions({ onSuccess: refresh }))
   const updateKey = useMutation(orpc.apiKeys.updateApiKey.mutationOptions({ onSuccess: refresh }))
+  const rotateKeyMutation = useMutation(orpc.apiKeys.rotateApiKey.mutationOptions({ onSuccess: refresh }))
   const revokeKeyMutation = useMutation(orpc.apiKeys.revokeApiKey.mutationOptions({ onSuccess: refresh }))
   /** Returns the full secret, which the server never shows again. */
   const create = async (body: { name: string; role: AssignableRole }) =>
@@ -77,22 +78,12 @@ export default function ApiKeysSettingsFields() {
   )
 
   const rotateKey = useCallback(
-    (keyId: string) => {
-      const key = apiKeys.find((k) => k.id === keyId)
-      if (!key) return Promise.reject(new Error('Unknown key'))
-      const role: AssignableRole = key.role
-      // A new key with the same name and role is made first, then the old one is
-      // revoked, so there is never a moment with no working key.
-      return run(async () => {
-        const secret = await create({ name: key.name, role })
-        await revokeKeyMutation.mutateAsync({ params: { organizationId, keyId: key.id } })
-        return secret
-      })
+    (keyId: string) =>
+      run(async () => (await rotateKeyMutation.mutateAsync({ params: { organizationId, keyId } })).secret)
         .then(setRotatedSecret)
-        .catch(() => {})
-    },
+        .catch(() => {}),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [run, apiKeys, organizationId],
+    [run, organizationId],
   )
 
   const keyColumns: TableColumn<ApiKeyRow>[] = useMemo(

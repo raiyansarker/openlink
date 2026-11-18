@@ -116,6 +116,25 @@ export function createApiKey(input: {
   })
 }
 
+/**
+ * Replaces a key with a new one of the same name and role, and returns the new secret.
+ * The new key is created before the old one is revoked, so a failure never leaves the
+ * workspace without a working key.
+ */
+export function rotateApiKey(input: { organizationId: string; keyId: string; createdByUserId: string }) {
+  return Effect.gen(function* () {
+    const existing = yield* findKey(input.organizationId, input.keyId)
+    const created = yield* createApiKey({
+      organizationId: input.organizationId,
+      name: existing.name,
+      role: existing.role,
+      createdByUserId: input.createdByUserId,
+    })
+    yield* revokeApiKey(input.organizationId, existing.id)
+    return { ...created, previous: existing }
+  })
+}
+
 export function updateApiKeyRole(input: { organizationId: string; keyId: string; role: ApiKeyRole; userId: string }) {
   return Effect.gen(function* () {
     const auth = yield* useAuth
