@@ -12,10 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WRouteRouteImport } from './routes/w/route'
 import { Route as ApiDocsRouteImport } from './routes/api/docs'
 import { Route as CreateLinkRouteImport } from './routes/create/link'
@@ -67,6 +70,11 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -77,6 +85,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -85,6 +98,11 @@ const SettingsRouteRoute = SettingsRouteRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WRouteRoute = WRouteRouteImport.update({
@@ -272,9 +290,12 @@ export interface FileRoutesByFullPath {
   '/w': typeof WRouteRouteWithChildren
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/w/$orgSlug': typeof WOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
@@ -313,9 +334,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/settings': typeof SettingsIndexRoute
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
@@ -354,9 +378,12 @@ export interface FileRoutesById {
   '/w': typeof WRouteRouteWithChildren
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/settings/_workspace': typeof SettingsWorkspaceRouteRouteWithChildren
   '/w/$orgSlug': typeof WOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
@@ -400,9 +427,12 @@ export interface FileRouteTypes {
     | '/w'
     | '/$slug'
     | '/about'
+    | '/forgot-password'
     | '/login'
     | '/onboarding'
+    | '/reset-password'
     | '/signup'
+    | '/verify-email'
     | '/w/$orgSlug'
     | '/api/docs'
     | '/create/link'
@@ -441,9 +471,12 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/about'
+    | '/forgot-password'
     | '/login'
     | '/onboarding'
+    | '/reset-password'
     | '/signup'
+    | '/verify-email'
     | '/settings'
     | '/api/docs'
     | '/create/link'
@@ -481,9 +514,12 @@ export interface FileRouteTypes {
     | '/w'
     | '/$slug'
     | '/about'
+    | '/forgot-password'
     | '/login'
     | '/onboarding'
+    | '/reset-password'
     | '/signup'
+    | '/verify-email'
     | '/settings/_workspace'
     | '/w/$orgSlug'
     | '/api/docs'
@@ -526,9 +562,12 @@ export interface RootRouteChildren {
   WRouteRoute: typeof WRouteRouteWithChildren
   SlugRoute: typeof SlugRoute
   AboutRoute: typeof AboutRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   ApiDocsRoute: typeof ApiDocsRoute
   CreateLinkRoute: typeof CreateLinkRoute
   CreateOrganizationRoute: typeof CreateOrganizationRoute
@@ -563,6 +602,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -577,6 +623,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -589,6 +642,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/w': {
@@ -956,9 +1016,12 @@ const rootRouteChildren: RootRouteChildren = {
   WRouteRoute: WRouteRouteWithChildren,
   SlugRoute: SlugRoute,
   AboutRoute: AboutRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   ApiDocsRoute: ApiDocsRoute,
   CreateLinkRoute: CreateLinkRoute,
   CreateOrganizationRoute: CreateOrganizationRoute,

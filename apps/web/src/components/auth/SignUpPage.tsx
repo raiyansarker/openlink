@@ -40,13 +40,16 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
       auth.run('email', async () => {
         try {
           const email = value.email.trim()
-          const { error } = await AuthSession.client.signUp.email({
+          const { data, error } = await AuthSession.client.signUp.email({
             // Left blank, the name starts as the part of the email before the @.
             name: value.name.trim() || email.split('@')[0]!,
             email,
             password: value.password,
+            callbackURL: '/verify-email',
           })
           if (error) return AuthErrorMessages.emailSignUp(error)
+          // Email accounts have no session until the address is verified.
+          if (!data?.token) return void auth.setNotice(`Check ${email} for a link to verify your account, then sign in.`)
           await auth.finish()
         } catch {
           return AuthErrorMessages.emailSignUp(undefined)

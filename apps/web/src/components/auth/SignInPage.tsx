@@ -43,7 +43,7 @@ export default function SignInPage({ destination, redirect, oauthError, provider
     onSubmit: ({ value }) =>
       auth.run('email', async () => {
         try {
-          const { error } = await AuthSession.client.signIn.email({ email: value.email.trim(), password: value.password })
+          const { error } = await AuthSession.client.signIn.email({ email: value.email.trim(), password: value.password, callbackURL: '/verify-email' })
           if (error) return AuthErrorMessages.emailSignIn(error)
           await auth.finish()
         } catch {
@@ -147,14 +147,13 @@ export default function SignInPage({ destination, redirect, oauthError, provider
                 </form.Field>
                 <HStack hAlign="end">
                   <Link
-                    href="#"
+                    href="/forgot-password"
                     size="xsm"
                     color="secondary"
                     onClick={(event) => {
+                      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
                       event.preventDefault()
-                      auth.setNotice(
-                        'Password recovery needs an email service, which is not set up yet. Ask a workspace admin for help.',
-                      )
+                      void navigate({ to: '/forgot-password' })
                     }}
                   >
                     Forgot password?
