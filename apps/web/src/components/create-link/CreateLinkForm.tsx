@@ -1035,7 +1035,7 @@ export default function CreateLinkForm({
                   url={shortUrl.replace(/^https?:\/\//, '')}
                 />
                 <Text type="supporting" color="secondary">
-                  Served with a real HTTP {holdPageMeta(draft.holdPage).status} status, so it looks the same to browsers and link checkers.
+                  Visitors see this page in place of the destination. It is served with an error status, so link checkers report the link as down.
                 </Text>
               </VStack>
 
