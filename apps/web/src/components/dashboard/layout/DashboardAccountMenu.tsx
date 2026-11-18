@@ -1,4 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
+import type { CSSProperties } from 'react'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { useCurrentUser } from '#/hooks/use-current-user'
@@ -74,6 +75,10 @@ export default function DashboardAccountMenu({
             size={36}
             shape="rounded"
             tooltip={false}
+            style={{
+              '--color-text-primary': '#f4f4f5',
+              '--color-neutral': 'rgba(255, 255, 255, 0.12)',
+            } as CSSProperties}
           />
         </button>
       )}
