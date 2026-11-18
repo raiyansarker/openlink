@@ -73,11 +73,11 @@ import {
   type UtmKey,
 } from '#/lib/links/create-link'
 import { folderPathLabel } from '#/lib/links/folder-tree'
+import FolderPicker from '#/components/links/FolderPicker'
 import { linkTargetUrl, linkTitle } from '#/lib/links/link-summary'
 import { HOLD_PAGES, holdPageMeta } from '#/lib/links/hold-pages'
 
 const DEFAULT_DOMAIN_VALUE = '__default__'
-const ROOT_FOLDER_VALUE = '__root__'
 
 const REDIRECT_OPTIONS: {
   value: RedirectStatus
@@ -316,16 +316,6 @@ export default function CreateLinkForm({
       })),
     ],
     [domains],
-  )
-
-  const folderOptions = useMemo(
-    () => [
-      { value: ROOT_FOLDER_VALUE, label: 'All links (top level)' },
-      ...folders
-        .map((f) => ({ value: f.id, label: folderPathLabel(folders, f.id) }))
-        .sort((a, b) => a.label.localeCompare(b.label)),
-    ],
-    [folders],
   )
 
   const tagSource = useMemo(() => {
@@ -637,14 +627,10 @@ export default function CreateLinkForm({
                 ) : null}
               </VStack>
               <FieldRow>
-                <Selector
-                  label="Folder"
-                  options={folderOptions}
-                  value={draft.folderId ?? ROOT_FOLDER_VALUE}
-                  onChange={(value) =>
-                    update('folderId', value === ROOT_FOLDER_VALUE ? null : value)
-                  }
-                  width="100%"
+                <FolderPicker
+                  folders={folders}
+                  value={draft.folderId}
+                  onChange={(folderId) => update('folderId', folderId)}
                 />
                 <Tokenizer
                   label="Tags"
