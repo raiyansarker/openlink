@@ -44,9 +44,7 @@
 		}
 	],
   "observability": {
-    // Logs and traces are off; issue detection stays on.
-    "logs": { "enabled": false },
-    "traces": { "enabled": false },
+    // Only issue detection is on; logs and traces are not enabled.
     "issue_detection": {
       "enabled": true
     }
