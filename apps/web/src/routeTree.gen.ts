@@ -34,7 +34,6 @@ import { Route as WIndexRouteImport } from './routes/w/index'
 import { Route as WOrgSlugRouteRouteImport } from './routes/w/$orgSlug/route'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
-import { Route as ApiUploadsAvatarRouteImport } from './routes/api/uploads/avatar'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
 import { Route as SettingsWorkspaceApiKeysRouteImport } from './routes/settings/_workspace/api-keys'
 import { Route as SettingsWorkspaceGeneralRouteImport } from './routes/settings/_workspace/general'
@@ -178,11 +177,6 @@ const ApiMediaSplatRoute = ApiMediaSplatRouteImport.update({
   path: '/api/media/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiUploadsAvatarRoute = ApiUploadsAvatarRouteImport.update({
-  id: '/api/uploads/avatar',
-  path: '/api/uploads/avatar',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
   id: '/api/v1/$',
   path: '/api/v1/$',
@@ -306,7 +300,6 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
-  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/settings/api-keys': typeof SettingsWorkspaceApiKeysRoute
   '/settings/general': typeof SettingsWorkspaceGeneralRoute
@@ -346,7 +339,6 @@ export interface FileRoutesByTo {
   '/w': typeof WIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
-  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/settings/api-keys': typeof SettingsWorkspaceApiKeysRoute
   '/settings/general': typeof SettingsWorkspaceGeneralRoute
@@ -393,7 +385,6 @@ export interface FileRoutesById {
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
-  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/settings/_workspace/api-keys': typeof SettingsWorkspaceApiKeysRoute
   '/settings/_workspace/general': typeof SettingsWorkspaceGeneralRoute
@@ -440,7 +431,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/settings'
     | '/api/auth/$'
     | '/api/media/$'
-    | '/api/uploads/avatar'
     | '/api/v1/$'
     | '/settings/api-keys'
     | '/settings/general'
@@ -480,7 +470,6 @@ export interface FileRouteTypes {
     | '/w'
     | '/api/auth/$'
     | '/api/media/$'
-    | '/api/uploads/avatar'
     | '/api/v1/$'
     | '/settings/api-keys'
     | '/settings/general'
@@ -526,7 +515,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/settings'
     | '/api/auth/$'
     | '/api/media/$'
-    | '/api/uploads/avatar'
     | '/api/v1/$'
     | '/settings/_workspace/api-keys'
     | '/settings/_workspace/general'
@@ -562,7 +550,6 @@ export interface RootRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiMediaSplatRoute: typeof ApiMediaSplatRoute
-  ApiUploadsAvatarRoute: typeof ApiUploadsAvatarRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
   ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute: typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
 }
@@ -742,13 +729,6 @@ declare module '@tanstack/react-router' {
       path: '/api/media/$'
       fullPath: '/api/media/$'
       preLoaderRoute: typeof ApiMediaSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/uploads/avatar': {
-      id: '/api/uploads/avatar'
-      path: '/api/uploads/avatar'
-      fullPath: '/api/uploads/avatar'
-      preLoaderRoute: typeof ApiUploadsAvatarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/$': {
@@ -1008,7 +988,6 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiMediaSplatRoute: ApiMediaSplatRoute,
-  ApiUploadsAvatarRoute: ApiUploadsAvatarRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
   ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute:
     ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute,

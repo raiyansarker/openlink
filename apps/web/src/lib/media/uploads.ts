@@ -1,4 +1,4 @@
-/** Uploads images to the Worker, which stores them in R2. */
+/** Uploads share-card images to the Worker, which stores them in R2. */
 export class MediaUploads {
   private static async send(method: 'PUT' | 'DELETE', path: string, body?: Blob): Promise<{ url?: string }> {
     let response: Response
@@ -16,16 +16,6 @@ export class MediaUploads {
     const payload = (await response.json().catch(() => null)) as { url?: string; message?: string } | null
     if (!response.ok) throw new Error(payload?.message ?? 'The upload failed. Please try again.')
     return payload ?? {}
-  }
-
-  static async setAvatar(image: Blob): Promise<string> {
-    const { url } = await MediaUploads.send('PUT', '/api/uploads/avatar', image)
-    if (!url) throw new Error('The upload failed. Please try again.')
-    return url
-  }
-
-  static async clearAvatar(): Promise<void> {
-    await MediaUploads.send('DELETE', '/api/uploads/avatar')
   }
 
   /** Store a share-card image; resolves to the URL to save on the link. */
