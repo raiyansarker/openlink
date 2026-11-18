@@ -25,7 +25,7 @@ export function clickableRows<T extends Record<string, unknown>>(
       htmlProps: {
         ...props.htmlProps,
         tabIndex: 0,
-        className: [props.htmlProps.className, 'ol-clickable-row', 'ol-focus-ring'].filter(Boolean).join(' '),
+        className: [props.htmlProps.className, 'ol-clickable-row'].filter(Boolean).join(' '),
         ...(label ? { 'aria-label': label(item) } : {}),
         onClick: (event: MouseEvent<HTMLTableRowElement>) => {
           props.htmlProps.onClick?.(event)

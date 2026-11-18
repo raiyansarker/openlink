@@ -299,6 +299,44 @@ elements-api {
 }
 
 /*
+ * A table row can't round an outline, so its focus ring is drawn on the cells:
+ * top and bottom on every cell, the sides on the first and last, with the
+ * same 9px corners as the row hover.
+ */
+.ol-clickable-row:focus-visible {
+  outline: none;
+}
+.ol-clickable-row:focus-visible > .astryx-table-cell {
+  box-shadow:
+    inset 0 var(--focus-outline-width) 0 var(--focus-outline-color),
+    inset 0 calc(-1 * var(--focus-outline-width)) 0 var(--focus-outline-color);
+}
+.ol-clickable-row:focus-visible > .astryx-table-cell:first-child {
+  border-start-start-radius: 9px;
+  border-end-start-radius: 9px;
+  box-shadow:
+    inset var(--focus-outline-width) 0 0 var(--focus-outline-color),
+    inset 0 var(--focus-outline-width) 0 var(--focus-outline-color),
+    inset 0 calc(-1 * var(--focus-outline-width)) 0 var(--focus-outline-color);
+}
+.ol-clickable-row:focus-visible > .astryx-table-cell:last-child {
+  border-start-end-radius: 9px;
+  border-end-end-radius: 9px;
+  box-shadow:
+    inset calc(-1 * var(--focus-outline-width)) 0 0 var(--focus-outline-color),
+    inset 0 var(--focus-outline-width) 0 var(--focus-outline-color),
+    inset 0 calc(-1 * var(--focus-outline-width)) 0 var(--focus-outline-color);
+}
+
+/*
+ * Click-to-copy values (DNS record names and targets) pad themselves (inline
+ * style), so the ring sits right on that padded, rounded box.
+ */
+.ol-copy-value {
+  --focus-outline-offset: 0px;
+}
+
+/*
  * Appearance cards: the ring follows the rounded preview, not the square
  * button that also holds the label.
  */
