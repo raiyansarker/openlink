@@ -327,11 +327,14 @@ export default function CreateLinkForm({
 
   const countries = useMemo(() => getCountries(), [])
 
-  const errors: DraftErrors = useMemo(
-    () => (created ? {} : validateDraft(draft, validationContext)),
+  const errors: DraftErrors = useMemo(() => {
+    const found = validateDraft(draft, validationContext)
+    // While saving (and until we navigate away) `links` already contains the
+    // link being created, so its own back-half would be flagged as taken.
+    if (!isEditing && (isSubmitting || created)) delete found.slug
+    return found
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [draft, links, editLink, created],
-  )
+  }, [draft, links, editLink, created, isSubmitting])
   // Slug conflicts are worth flagging while typing; the rest after submit.
   const visibleError = (field: keyof DraftErrors) =>
     showErrors || (field === 'slug' && draft.slug) ? errors[field] : undefined
