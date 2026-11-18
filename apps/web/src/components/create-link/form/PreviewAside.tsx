@@ -30,6 +30,7 @@ import {
   useDraftSelect,
   useDraftValue,
   useLinkForm,
+  usePendingPreviewUrl,
   useShortHost,
   useShortUrl,
 } from '#/components/create-link/form/LinkFormContext'
@@ -218,7 +219,9 @@ const SocialCard = memo(function SocialCard() {
   const shortHost = useShortHost()
   const title = useDraftSelect((d) => d.previewTitle.trim() || titleOf(d))
   const description = useDraftSelect((d) => d.previewDescription.trim())
-  const imageUrl = useDraftValue('previewImage')
+  const savedUrl = useDraftValue('previewImage')
+  const pendingUrl = usePendingPreviewUrl()
+  const imageUrl = pendingUrl || savedUrl
   return (
     <SocialPreviewCard
       host={shortHost}

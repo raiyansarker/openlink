@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react'
+import { createContext, useContext, useMemo, useSyncExternalStore } from 'react'
 import { useStore, type ReactFormExtendedApi } from '@tanstack/react-form'
 import type {
   CreateLinkDraft,
@@ -31,13 +31,52 @@ export type LinkFormContextValue = {
   form: LinkForm
   validate: ValidateFn
   isEditing: boolean
+  /** The saved link being edited; absent when creating. */
+  editingLinkId: string | undefined
   /** Editing a link that already has a password (its value is never sent to the browser). */
   hasSavedPassword: boolean
   /** True while a preview image is uploading; read when submitting. */
   uploadingRef: { current: boolean }
+  /** A new link's share image: kept here and sent with the create request. */
+  pendingPreview: PendingPreview
   set: <K extends keyof CreateLinkDraft>(key: K, value: CreateLinkDraft[K]) => void
   /** Applies a change computed from the draft as it is right now. */
   patch: (change: (prev: CreateLinkDraft) => Partial<CreateLinkDraft>) => void
+}
+
+/**
+ * The file picked for a new link's share card, with a local URL to show it. Its own small
+ * store, so picking one re-renders the image field and the preview card, nothing else.
+ */
+export class PendingPreview {
+  private file: File | null = null
+  private url = ''
+  private readonly listeners = new Set<() => void>()
+
+  get current(): File | null {
+    return this.file
+  }
+
+  set(file: File | null) {
+    if (this.url) URL.revokeObjectURL(this.url)
+    this.file = file
+    this.url = file ? URL.createObjectURL(file) : ''
+    for (const listener of this.listeners) listener()
+  }
+
+  readonly subscribe = (listener: () => void) => {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  }
+
+  readonly getUrl = () => this.url
+  readonly getServerUrl = () => ''
+}
+
+/** The local URL of a new link's picked share image; empty when none. */
+export function usePendingPreviewUrl(): string {
+  const { pendingPreview } = useLinkForm()
+  return useSyncExternalStore(pendingPreview.subscribe, pendingPreview.getUrl, pendingPreview.getServerUrl)
 }
 
 export const LinkFormContext = createContext<LinkFormContextValue | null>(null)

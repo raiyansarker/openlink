@@ -22,6 +22,7 @@ import {
 import {
   LinkFormContext,
   useLinkForm,
+  PendingPreview,
   type LinkFormContextValue,
   type ValidateFn,
 } from '#/components/create-link/form/LinkFormContext'
@@ -120,6 +121,7 @@ export default function CreateLinkForm({
 
   const [created, setCreated] = useState<ShortLink | null>(null)
   const uploadingRef = useRef(false)
+  const [pendingPreview] = useState(() => new PendingPreview())
 
   const editing = useMemo(
     () => (editLink ? { linkId: editLink.id, hasPassword: !!editLink.passwordProtected } : undefined),
@@ -149,7 +151,7 @@ export default function CreateLinkForm({
           if (editLink) {
             await updateLink(editLink.id, value)
           } else {
-            const link = await createLink(value)
+            const link = await createLink(value, value.previewEnabled ? pendingPreview.current : null)
             // The new link is now in `links`; stop validating so its own
             // back-half isn't flagged as taken while we navigate away.
             setCreated(link)
@@ -235,8 +237,8 @@ export default function CreateLinkForm({
   }, [editLink, linksPath, initialFolderId, navigate])
 
   const context = useMemo<LinkFormContextValue>(
-    () => ({ form, validate, isEditing, hasSavedPassword, uploadingRef, set, patch }),
-    [form, validate, isEditing, hasSavedPassword, set, patch],
+    () => ({ form, validate, isEditing, editingLinkId: editLink?.id, hasSavedPassword, uploadingRef, pendingPreview, set, patch }),
+    [form, validate, isEditing, editLink?.id, hasSavedPassword, pendingPreview, set, patch],
   )
 
   return (

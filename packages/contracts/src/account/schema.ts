@@ -43,7 +43,11 @@ export const MyInviteIdPath = type({ inviteId: 'string' })
  */
 export const ProfilePicture = type.instanceOf(Blob)
 
-export const UpdateMyPictureRequest = type({ image: ProfilePicture })
+/** Every field is optional: absent keeps it. `image` as a file replaces the picture (multipart); null removes it (JSON). */
+export const UpdateMyProfileRequest = type({
+  'name?': 'string',
+  'image?': ProfilePicture.or('null'),
+})
 
-/** Where the stored picture is served from. */
-export const MyPicture = type({ imageUrl: 'string' })
+/** Your profile after a change. `imageUrl` is absent when you have no picture. */
+export const MyProfile = type({ name: 'string', 'imageUrl?': 'string' })

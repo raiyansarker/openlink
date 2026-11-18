@@ -17,8 +17,6 @@ import ChangePasswordDialog from '#/components/settings/ChangePasswordDialog'
 import PasskeysSettingsBlock from '#/components/settings/PasskeysSettingsBlock'
 import DeleteAccountDialog from '#/components/settings/DeleteAccountDialog'
 import { useCurrentUser, useLinkedAccounts, useRefreshCurrentUser } from '#/hooks/use-current-user'
-import { AuthSession } from '#/lib/auth/client'
-import { authCall } from '#/lib/auth/errors'
 import { SquareImage } from '#/lib/media/square-image'
 import { apiErrorMessage } from '#/lib/api/errors'
 import { orpc } from '#/lib/api/orpc'
@@ -95,8 +93,8 @@ export default function ProfileSettingsFields() {
   const { user, isLoading } = useCurrentUser()
   const refresh = useRefreshCurrentUser()
   const accounts = useLinkedAccounts()
-  const updatePicture = useMutation(orpc.account.updateMyPicture.mutationOptions())
-  const removePicture = useMutation(orpc.account.removeMyPicture.mutationOptions())
+  // Name and picture both go through PATCH /me.
+  const updateProfile = useMutation(orpc.account.updateMyProfile.mutationOptions())
 
   const [nameSaved, setNameSaved] = useState(false)
   const [pictureStatus, setPictureStatus] = useState<string | null>(null)
@@ -113,12 +111,12 @@ export default function ProfileSettingsFields() {
         const check = ProfileRules.name(value.name)
         if (!check.ok) return { fields: { name: check.message } }
         try {
-          await authCall(AuthSession.client.updateUser({ name: check.value }), 'Could not save your name.')
+          await updateProfile.mutateAsync({ body: { name: check.value } })
           await refresh()
           setNameSaved(true)
           return undefined
         } catch (e) {
-          return { fields: { name: e instanceof Error ? e.message : 'Could not save your name.' } }
+          return { fields: { name: apiErrorMessage(e, 'Could not save your name.') } }
         }
       },
     },
@@ -138,8 +136,7 @@ export default function ProfileSettingsFields() {
     setIsSavingPicture(true)
     setPictureStatus(null)
     try {
-      if (image) await updatePicture.mutateAsync({ body: { image } })
-      else await removePicture.mutateAsync()
+      await updateProfile.mutateAsync({ body: { image } })
       await refresh()
     } catch (e) {
       setPictureStatus(apiErrorMessage(e, 'Could not update your picture.'))

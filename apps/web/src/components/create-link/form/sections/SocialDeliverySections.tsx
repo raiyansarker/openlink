@@ -14,7 +14,6 @@ import FormSection, {
 import PreviewImageField from '#/components/create-link/PreviewImageField'
 import { useFrameCheck } from '#/hooks/use-frame-check'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { MediaUploads } from '#/lib/media/uploads'
 import type { RedirectStatus } from '#/lib/api/types'
 import {
   MAX_PREVIEW_DESCRIPTION,
@@ -29,6 +28,7 @@ import {
   useDraftValue,
   useFieldError,
   useLinkForm,
+  usePendingPreviewUrl,
   useShortHost,
   useShortUrl,
 } from '#/components/create-link/form/LinkFormContext'
@@ -68,11 +68,16 @@ const PreviewDescriptionField = memo(function PreviewDescriptionField() {
   )
 })
 
-/** Owns the upload state, so an upload re-renders this field and nothing else. */
+/**
+ * Owns the upload state, so an upload re-renders this field and nothing else. A new link keeps
+ * the picked file and sends it with the create request; a saved link stores it at once (a PATCH
+ * with only the image) and keeps the URL that comes back.
+ */
 const SocialImageField = memo(function SocialImageField() {
-  const { set, uploadingRef } = useLinkForm()
-  const { activeOrg } = useOrganization()
-  const imageUrl = useDraftValue('previewImage')
+  const { set, uploadingRef, pendingPreview, editingLinkId: editingId } = useLinkForm()
+  const { setLinkPreviewImage } = useOrganization()
+  const savedUrl = useDraftValue('previewImage')
+  const pendingUrl = usePendingPreviewUrl()
   const fieldError = useFieldError('previewImage')
   const [fileError, setFileError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
@@ -81,6 +86,7 @@ const SocialImageField = memo(function SocialImageField() {
     (file: File | null) => {
       setFileError(null)
       if (!file) {
+        pendingPreview.set(null)
         set('previewImage', '')
         return
       }
@@ -92,13 +98,18 @@ const SocialImageField = memo(function SocialImageField() {
         setFileError('Images must be 5 MB or smaller.')
         return
       }
+      if (!editingId) {
+        pendingPreview.set(file)
+        set('previewImage', '')
+        return
+      }
       uploadingRef.current = true
       setIsUploading(true)
-      MediaUploads.setLinkPreview(activeOrg.id, file)
-        .then((url) => set('previewImage', url))
+      setLinkPreviewImage(editingId, file)
+        .then((link) => set('previewImage', link.socialPreview?.imageUrl ?? ''))
         .catch((err: unknown) => {
           setFileError(
-            err instanceof Error ? err.message : 'The upload failed. Please try again.',
+            err instanceof Error ? err.message : 'The image could not be saved. Please try again.',
           )
         })
         .finally(() => {
@@ -106,16 +117,14 @@ const SocialImageField = memo(function SocialImageField() {
           setIsUploading(false)
         })
     },
-    [activeOrg.id, set, uploadingRef],
+    [editingId, pendingPreview, set, setLinkPreviewImage, uploadingRef],
   )
-  const onRemove = useCallback(() => {
-    setFileError(null)
-    set('previewImage', '')
-  }, [set])
+  // Removing takes effect when the link is saved (the saved card drops its image).
+  const onRemove = useCallback(() => onChoose(null), [onChoose])
 
   return (
     <PreviewImageField
-      imageUrl={imageUrl}
+      imageUrl={pendingUrl || savedUrl}
       isUploading={isUploading}
       error={fileError ?? fieldError ?? null}
       accept={PREVIEW_IMAGE_ACCEPT}
