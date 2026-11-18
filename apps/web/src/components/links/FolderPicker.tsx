@@ -4,7 +4,7 @@ import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { Field } from '@astryxdesign/core/Field'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Icon } from '@astryxdesign/core/Icon'
-import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
+import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { TreeList } from '@astryxdesign/core/TreeList'
@@ -29,19 +29,28 @@ type FolderPickerProps = {
 
 /**
  * A folder field that opens a sheet with the folder tree, so deeply nested
- * folders stay readable. Searching shows matches with their full path.
+ * folders stay readable. Clicking a folder highlights it; "Use folder"
+ * confirms it. Searching shows matches with their full path.
  */
 export default function FolderPicker({ label = 'Folder', folders, value, onChange, width = '100%' }: FolderPickerProps) {
   const inputID = useId()
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
+  /** The folder highlighted in the sheet; it only becomes the value on confirm. */
+  const [pending, setPending] = useState<string | null>(value)
 
-  const choose = (folderId: string | null) => {
-    onChange(folderId)
+  const open = () => {
+    setQuery('')
+    setPending(value)
+    setIsOpen(true)
+  }
+
+  const confirm = () => {
+    onChange(pending)
     setIsOpen(false)
   }
 
-  // Everything on the way to the chosen folder starts open, so it is in view.
+  // Everything on the way to the current folder starts open, so it is in view.
   const openIds = useMemo(() => new Set(getFolderPath(folders, value).map((f) => f.id)), [folders, value])
 
   const tree = useMemo<TreeListItemData[]>(() => {
@@ -52,9 +61,9 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
           id: folder.id,
           label: folder.name,
           startContent: <FolderIcon size={16} />,
-          isSelected: folder.id === value,
+          isSelected: folder.id === pending,
           ...(children.length > 0 ? { children, isExpanded: openIds.has(folder.id) } : {}),
-          onClick: () => choose(folder.id),
+          onClick: () => setPending(folder.id),
         }
       })
     return [
@@ -62,13 +71,12 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
         id: ROOT_ID,
         label: ROOT_LABEL,
         startContent: <FolderIcon size={16} />,
-        isSelected: value === null,
-        onClick: () => choose(null),
+        isSelected: pending === null,
+        onClick: () => setPending(null),
       },
       ...branch(null),
     ]
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [folders, value, openIds])
+  }, [folders, pending, openIds])
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -87,10 +95,7 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
           variant="secondary"
           label={value ? folderPathLabel(folders, value) : ROOT_LABEL}
           width="100%"
-          onClick={() => {
-            setQuery('')
-            setIsOpen(true)
-          }}
+          onClick={open}
         >
           <HStack gap={2} vAlign="center" hAlign="between" width="100%">
             <HStack gap={2} vAlign="center" style={{ minWidth: 0 }}>
@@ -138,8 +143,8 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
                         label: folder.name,
                         description: path,
                         startContent: <FolderIcon size={16} />,
-                        isSelected: folder.id === value,
-                        onClick: () => choose(folder.id),
+                        isSelected: folder.id === pending,
+                        onClick: () => setPending(folder.id),
                       }))}
                     />
                   ) : (
@@ -152,6 +157,26 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
                 )}
               </VStack>
             </LayoutContent>
+          }
+          footer={
+            <LayoutFooter hasDivider>
+              <VStack gap={3} hAlign="stretch" width="100%">
+                {/* The full path, so a folder picked from search or deep in the tree is unambiguous. */}
+                <Text type="supporting" color="secondary" maxLines={2}>
+                  Selected: {pending ? folderPathLabel(folders, pending) : ROOT_LABEL}
+                </Text>
+                <HStack gap={2} hAlign="end" width="100%">
+                  <Button variant="ghost" size="sm" label="Cancel" onClick={() => setIsOpen(false)} />
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    label="Use folder"
+                    isDisabled={pending === value}
+                    onClick={confirm}
+                  />
+                </HStack>
+              </VStack>
+            </LayoutFooter>
           }
         />
       </Drawer>
