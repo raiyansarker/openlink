@@ -42,6 +42,7 @@ export function EmailLayout({
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={styles.header}>
+            <OpenLinkLogo />
             <Text style={styles.wordmark}>OpenLink</Text>
           </Section>
           {children}
@@ -62,6 +63,31 @@ export function EmailLayout({
         </Container>
       </Body>
     </Html>
+  );
+}
+
+function OpenLinkLogo() {
+  return (
+    <svg
+      aria-label="OpenLink"
+      height="40"
+      role="img"
+      viewBox="0 0 96 96"
+      width="40"
+      xmlns="http://www.w3.org/2000/svg"
+      style={styles.logo}
+    >
+      <rect width="96" height="96" rx="24" fill={colors.ink} />
+      <g
+        transform="translate(9.842 9.842) scale(0.763158)"
+        strokeWidth="12"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M28 78L48 22" stroke="#FAFAF7" />
+        <path d="M52 78L72 22" stroke="#F2541B" />
+      </g>
+    </svg>
   );
 }
 
@@ -117,6 +143,10 @@ const styles = {
   },
   header: {
     padding: "0 0 48px",
+  },
+  logo: {
+    display: "block",
+    margin: "0 0 12px",
   },
   wordmark: {
     color: colors.ink,
