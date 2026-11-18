@@ -1,15 +1,20 @@
 import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { Avatar } from '@astryxdesign/core/Avatar'
+import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
+import { Spinner } from '@astryxdesign/core/Spinner'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import ActivityDetailSheet from '#/components/activity/ActivityDetailSheet'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { useMemberActivity } from '#/hooks/use-activity'
-import type { Role } from '#/lib/api/types'
+import { apiErrorMessage } from '#/lib/api/errors'
+import type { ActivityEvent, Role } from '#/lib/api/types'
 import type { Person } from '#/lib/members/people'
 import { formatShortDate } from '#/lib/format/short-date'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
@@ -27,6 +32,9 @@ type MemberDetailDrawerProps = {
   onRemove: (member: Person) => void
   onResendInvite: (member: Person) => void
 }
+
+/** How many of a member's latest actions the drawer shows; "See all" opens the rest. */
+const ACTIVITY_LIMIT = 20
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -55,9 +63,11 @@ export default function MemberDetailDrawer({
   const { activeOrg } = useOrganization()
   const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
   const userId = member?.kind === 'member' ? member.userId : null
-  // What this person did most recently: their last 20 actions, filtered on the server.
-  const activityQuery = useMemberActivity(activeOrg.id, userId)
+  // What this person did most recently: their latest actions, filtered on the server.
+  const activityQuery = useMemberActivity(activeOrg.id, userId, ACTIVITY_LIMIT)
   const activities = userId ? (activityQuery.data?.items ?? []) : []
+  const [openEvent, setOpenEvent] = useState<ActivityEvent | null>(null)
+  const navigate = useNavigate()
 
   const isOwner = member?.role === 'owner'
   const isPending = member?.kind === 'invite'
@@ -68,6 +78,7 @@ export default function MemberDetailDrawer({
   }
 
   return (
+    <>
     <Drawer
       isOpen={isOpen}
       onOpenChange={onOpenChange}
@@ -140,10 +151,47 @@ export default function MemberDetailDrawer({
                 <Divider variant="subtle" />
 
                 <VStack gap={4} hAlign="stretch" width="100%">
-                  <Heading level={4} weight="bold">
-                    Activity
-                  </Heading>
-                  <MemberActivityTimeline events={activities} />
+                  <HStack hAlign="between" vAlign="center" gap={2} width="100%">
+                    <Heading level={4} weight="bold">
+                      Activity
+                    </Heading>
+                    {activities.length > 0 ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        label="See all"
+                        tooltip={`All of ${member.name}'s activity`}
+                        onClick={() =>
+                          void navigate({
+                            to: '/w/$orgSlug/activity',
+                            params: { orgSlug: activeOrg.slug },
+                            search: { q: member.name },
+                          })
+                        }
+                      />
+                    ) : null}
+                  </HStack>
+                  {isPending ? (
+                    <Text type="supporting" color="secondary">
+                      Activity shows up once they accept the invite.
+                    </Text>
+                  ) : activityQuery.isPending ? (
+                    <Spinner size="md" label="Loading activity…" />
+                  ) : activityQuery.isError ? (
+                    <VStack gap={2} hAlign="start" role="alert">
+                      <Text type="supporting">{apiErrorMessage(activityQuery.error, 'Could not load their activity.')}</Text>
+                      <Button size="sm" variant="secondary" label="Try again" onClick={() => void activityQuery.refetch()} />
+                    </VStack>
+                  ) : (
+                    <>
+                      <MemberActivityTimeline events={activities} onOpenEvent={setOpenEvent} />
+                      {activities.length >= ACTIVITY_LIMIT ? (
+                        <Text type="supporting" color="secondary">
+                          {`Showing the latest ${ACTIVITY_LIMIT}. See all for the rest.`}
+                        </Text>
+                      ) : null}
+                    </>
+                  )}
                 </VStack>
               </VStack>
             </LayoutContent>
@@ -153,5 +201,8 @@ export default function MemberDetailDrawer({
         <Layout content={<LayoutContent>{null}</LayoutContent>} />
       )}
     </Drawer>
+    {/* An event's full details open over the member drawer. */}
+    <ActivityDetailSheet event={openEvent} onOpenChange={(open) => !open && setOpenEvent(null)} />
+    </>
   )
 }

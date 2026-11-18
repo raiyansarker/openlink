@@ -336,6 +336,26 @@ elements-api {
   --focus-outline-offset: 0px;
 }
 
+/* Member activity events: a plain button around the event, with a rounded hover like activity rows. */
+.ol-timeline-event {
+  display: block;
+  margin: 0;
+  padding: var(--spacing-2);
+  margin-block-start: calc(-1 * var(--spacing-2));
+  margin-inline: calc(-1 * var(--spacing-2));
+  width: calc(100% + 2 * var(--spacing-2));
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.ol-timeline-event:hover {
+  background-color: var(--color-overlay-hover);
+}
+
 /*
  * Appearance cards: the ring follows the rounded preview, not the square
  * button that also holds the label.
