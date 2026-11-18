@@ -4,7 +4,7 @@ import {
   DASHBOARD_SURFACE_BG,
   SHELL_NAV_TEXT_PRIMARY,
 } from '#/components/dashboard/layout/dashboard-shell-colors'
-import { useKeyPress } from '#/hooks/use-key-press'
+import { useShortcut } from '#/hooks/use-shortcut'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 
 /** Match create-organization (~24rem). */
@@ -41,7 +41,7 @@ export default function DomainFlowShell({
   const domainsPath = WorkspaceUrl.build(orgSlug, 'domains')
   const navigate = useNavigate()
   // Escape goes back to Domains, like the back link; open menus/dialogs get it first.
-  useKeyPress('Escape', () => void navigate({ to: domainsPath }), { allowInInputs: true })
+  useShortcut('Escape', () => void navigate({ to: domainsPath }))
 
   return (
     <div
