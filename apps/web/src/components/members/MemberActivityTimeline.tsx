@@ -2,6 +2,7 @@ import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import { ACTIVITY_CATEGORY_LABELS, ACTIVITY_SOURCE_LABELS } from '#/lib/activity/labels'
 import type { ActivityEvent } from '#/lib/api/types'
 import { formatShortDate } from '#/lib/format/short-date'
 
@@ -58,8 +59,57 @@ function groupActivitiesByDay(
 }
 
 /** "Created link go/launch", from the event's phrase and target. */
-function eventTitle(event: ActivityEvent): string {
-  return `${event.phrase[0]!.toUpperCase()}${event.phrase.slice(1)} ${event.target.label}`
+/** Changes listed under an event before the rest are summarised. */
+const MAX_CHANGES = 3
+
+/** "Moved link **google.com**": the action as a sentence, the item in bold. */
+function EventSentence({ event }: { event: ActivityEvent }) {
+  return (
+    <Text>
+      {`${event.phrase[0]!.toUpperCase()}${event.phrase.slice(1)} `}
+      <Text weight="semibold">{event.target.label}</Text>
+    </Text>
+  )
+}
+
+/** What changed, one row per setting: old value struck through, new value after it. */
+function EventChanges({ changes }: { changes: NonNullable<ActivityEvent['changes']> }) {
+  const shown = changes.slice(0, MAX_CHANGES)
+  const hidden = changes.length - shown.length
+  return (
+    <VStack
+      gap={1.5}
+      hAlign="stretch"
+      width="100%"
+      style={{
+        padding: 'var(--spacing-2) var(--spacing-3)',
+        borderRadius: 'var(--radius-element)',
+        backgroundColor: 'var(--color-background-muted)',
+      }}
+    >
+      {shown.map((change) => (
+        <HStack key={change.label} gap={3} vAlign="start" width="100%">
+          <Text type="supporting" color="secondary" maxLines={1} style={{ width: 88, flexShrink: 0 }}>
+            {change.label}
+          </Text>
+          <Text type="supporting" maxLines={2} style={{ minWidth: 0 }}>
+            {change.from ? (
+              <Text type="supporting" color="secondary" style={{ textDecoration: 'line-through' }}>
+                {change.from}
+              </Text>
+            ) : null}
+            {change.from ? ' → ' : ''}
+            {change.to || '—'}
+          </Text>
+        </HStack>
+      ))}
+      {hidden > 0 ? (
+        <Text type="supporting" color="secondary">
+          {`+${hidden} more ${hidden === 1 ? 'change' : 'changes'}`}
+        </Text>
+      ) : null}
+    </VStack>
+  )
 }
 
 function formatEventTime(iso: string): string {
@@ -111,24 +161,23 @@ function TimelineEventNode({ event, showConnector }: TimelineEventNodeProps) {
           />
         ) : null}
       </VStack>
-      <VStack gap={0.5} hAlign="start" paddingBlockEnd={showConnector ? 4 : 0}>
-        <HStack
-          hAlign="between"
-          vAlign="start"
-          gap={2}
-          width="100%"
-          wrap="wrap"
-        >
-          <Text weight="semibold">{eventTitle(event)}</Text>
+      <VStack
+        gap={1.5}
+        hAlign="stretch"
+        paddingBlockEnd={showConnector ? 5 : 0}
+        style={{ flex: 1, minWidth: 0 }}
+      >
+        <VStack gap={0.5} hAlign="start" width="100%">
+          <EventSentence event={event} />
           <Text type="supporting" color="secondary">
-            {formatEventTime(event.occurredAt)}
+            {[
+              ACTIVITY_CATEGORY_LABELS[event.category],
+              ACTIVITY_SOURCE_LABELS[event.source],
+              formatEventTime(event.occurredAt),
+            ].join(' · ')}
           </Text>
-        </HStack>
-        {event.changes?.[0] ? (
-          <Text type="supporting" color="secondary">
-            {`${event.changes[0].label}: ${event.changes[0].from || '—'} → ${event.changes[0].to || '—'}`}
-          </Text>
-        ) : null}
+        </VStack>
+        {event.changes?.length ? <EventChanges changes={event.changes} /> : null}
       </VStack>
     </HStack>
   )
