@@ -17,6 +17,15 @@ export type SecurityAlertEmailProps = {
   securityUrl: string;
 };
 
+const defaultProps: SecurityAlertEmailProps = {
+  name: "Alex",
+  event: "New sign-in from a new device",
+  device: "Safari on macOS",
+  location: "San Francisco, United States",
+  occurredAt: "December 5, 2026 at 10:42 AM PST",
+  securityUrl: "https://openlink.example/settings/devices",
+};
+
 export default function SecurityAlertEmail({
   name,
   event,
@@ -24,7 +33,7 @@ export default function SecurityAlertEmail({
   location,
   occurredAt,
   securityUrl,
-}: SecurityAlertEmailProps) {
+}: SecurityAlertEmailProps = defaultProps) {
   return (
     <EmailLayout
       preview={`New security activity on your OpenLink account`}

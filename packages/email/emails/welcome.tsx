@@ -11,7 +11,15 @@ export type WelcomeEmailProps = {
   dashboardUrl: string;
 };
 
-export function WelcomeEmail({ name, dashboardUrl }: WelcomeEmailProps) {
+const defaultProps: WelcomeEmailProps = {
+  name: "Alex",
+  dashboardUrl: "https://openlink.example/dashboard",
+};
+
+export function WelcomeEmail({
+  name,
+  dashboardUrl,
+}: WelcomeEmailProps = defaultProps) {
   return (
     <EmailLayout preview="Welcome to OpenLink">
       <EmailHeading eyebrow="Welcome to OpenLink">

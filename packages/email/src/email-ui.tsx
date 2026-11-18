@@ -8,6 +8,8 @@ import {
   Html,
   Link,
   Preview,
+  Row,
+  Column,
   Section,
   Text,
 } from "@react-email/components";
@@ -42,8 +44,14 @@ export function EmailLayout({
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={styles.header}>
-            <OpenLinkLogo />
-            <Text style={styles.wordmark}>OpenLink</Text>
+            <Row>
+              <Column style={styles.logoColumn}>
+                <OpenLinkLogo />
+              </Column>
+              <Column style={styles.wordmarkColumn}>
+                <Text style={styles.wordmark}>OpenLink</Text>
+              </Column>
+            </Row>
           </Section>
           {children}
           <Hr style={styles.rule} />
@@ -77,7 +85,7 @@ function OpenLinkLogo() {
       xmlns="http://www.w3.org/2000/svg"
       style={styles.logo}
     >
-      <rect width="96" height="96" rx="24" fill={colors.ink} />
+      <rect width="96" height="96" rx="24" fill="#F2541B" />
       <g
         transform="translate(9.842 9.842) scale(0.763158)"
         strokeWidth="12"
@@ -85,7 +93,7 @@ function OpenLinkLogo() {
         strokeLinejoin="round"
       >
         <path d="M28 78L48 22" stroke="#FAFAF7" />
-        <path d="M52 78L72 22" stroke="#F2541B" />
+        <path d="M52 78L72 22" stroke="#111418" />
       </g>
     </svg>
   );
@@ -146,7 +154,12 @@ const styles = {
   },
   logo: {
     display: "block",
-    margin: "0 0 12px",
+  },
+  logoColumn: {
+    width: "40px",
+  },
+  wordmarkColumn: {
+    paddingLeft: "12px",
   },
   wordmark: {
     color: colors.ink,
@@ -154,6 +167,7 @@ const styles = {
     fontWeight: "700",
     letterSpacing: "-0.04em",
     margin: "0",
+    verticalAlign: "middle",
   },
   eyebrow: {
     color: colors.muted,

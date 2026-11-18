@@ -16,6 +16,15 @@ export type WorkspaceInviteEmailProps = {
   expiresAt: string;
 };
 
+const defaultProps: WorkspaceInviteEmailProps = {
+  recipientName: "Alex",
+  workspaceName: "Northstar Studio",
+  inviterName: "Maya Chen",
+  role: "Member",
+  inviteUrl: "https://openlink.example/invites/example-token",
+  expiresAt: "December 12, 2026",
+};
+
 export default function WorkspaceInviteEmail({
   recipientName,
   workspaceName,
@@ -23,7 +32,7 @@ export default function WorkspaceInviteEmail({
   role,
   inviteUrl,
   expiresAt,
-}: WorkspaceInviteEmailProps) {
+}: WorkspaceInviteEmailProps = defaultProps) {
   return (
     <EmailLayout preview={`${inviterName} invited you to ${workspaceName}`}>
       <EmailHeading eyebrow="Workspace invitation">
