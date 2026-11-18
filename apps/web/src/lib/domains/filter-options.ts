@@ -12,7 +12,6 @@ export const DOMAIN_STATUS_FILTER_OPTIONS: {
   { value: 'pending', label: 'Pending DNS' },
   { value: 'failed', label: 'Misconfigured' },
   { value: 'removing', label: 'Removing' },
-  { value: 'removing', label: 'Removing' },
 ]
 
 export function matchesDomainSearch(hostname: string, query: string): boolean {
