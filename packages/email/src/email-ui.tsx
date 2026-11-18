@@ -48,7 +48,7 @@ export function EmailLayout({
             <Row>
               <Column style={styles.logoColumn}>
                 <Img
-                  src="/logo-email.png"
+                  src="/logo192.png"
                   alt="OpenLink"
                   height="40"
                   width="40"
