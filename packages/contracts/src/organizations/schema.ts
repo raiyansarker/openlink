@@ -20,11 +20,17 @@ export const OrganizationMembership = type({
   joinedAt: 'string',
 })
 
+/**
+ * A workspace logo: a PNG, JPEG, WebP or GIF of at most 1 MB, sent as a file
+ * field in a `multipart/form-data` body. The browser app sends a 256px WebP.
+ */
+export const OrganizationLogo = type.instanceOf(Blob)
+
 export const CreateOrganizationRequest = type({
   name: 'string',
   slug: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-  /** Optional; a bootstrap invite is consumed when one is given. */
-  'inviteToken?': 'string',
+  /** Stored with the workspace in the same request; a bad image creates nothing. */
+  'logo?': OrganizationLogo,
 })
 
 export const CreateOrganizationInviteRequest = type({
@@ -94,6 +100,8 @@ export const UpdateMemberRoleRequest = type({
 export const UpdateOrganizationRequest = type({
   'name?': 'string>=1',
   'slug?': /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+  /** A file replaces the logo; `null` (in a JSON body) removes it; leave it out to keep it. */
+  'logo?': OrganizationLogo.or('null'),
 })
 
 export const TransferOwnershipRequest = type({

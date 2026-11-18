@@ -53,7 +53,6 @@ import { Route as WOrgSlugLinksLinkIdRouteImport } from './routes/w/$orgSlug/lin
 import { Route as WOrgSlugSettingsIndexRouteImport } from './routes/w/$orgSlug/settings/index'
 import { Route as WOrgSlugSettingsSplatRouteImport } from './routes/w/$orgSlug/settings/$'
 import { Route as ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport } from './routes/api/uploads/organizations/$organizationId/link-preview'
-import { Route as ApiUploadsOrganizationsOrganizationIdLogoRouteImport } from './routes/api/uploads/organizations/$organizationId/logo'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -279,12 +278,6 @@ const ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute =
     path: '/api/uploads/organizations/$organizationId/link-preview',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiUploadsOrganizationsOrganizationIdLogoRoute =
-  ApiUploadsOrganizationsOrganizationIdLogoRouteImport.update({
-    id: '/api/uploads/organizations/$organizationId/logo',
-    path: '/api/uploads/organizations/$organizationId/logo',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -330,7 +323,6 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
   '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
-  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -371,7 +363,6 @@ export interface FileRoutesByTo {
   '/w/$orgSlug/links': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsIndexRoute
   '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
-  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -419,7 +410,6 @@ export interface FileRoutesById {
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
   '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
-  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -467,7 +457,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
     | '/api/uploads/organizations/$organizationId/link-preview'
-    | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -508,7 +497,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/links'
     | '/w/$orgSlug/settings'
     | '/api/uploads/organizations/$organizationId/link-preview'
-    | '/api/uploads/organizations/$organizationId/logo'
   id:
     | '__root__'
     | '/'
@@ -555,7 +543,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
     | '/api/uploads/organizations/$organizationId/link-preview'
-    | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -578,7 +565,6 @@ export interface RootRouteChildren {
   ApiUploadsAvatarRoute: typeof ApiUploadsAvatarRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
   ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute: typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
-  ApiUploadsOrganizationsOrganizationIdLogoRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -891,13 +877,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/uploads/organizations/$organizationId/logo': {
-      id: '/api/uploads/organizations/$organizationId/logo'
-      path: '/api/uploads/organizations/$organizationId/logo'
-      fullPath: '/api/uploads/organizations/$organizationId/logo'
-      preLoaderRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -1033,8 +1012,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1SplatRoute: ApiV1SplatRoute,
   ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute:
     ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute,
-  ApiUploadsOrganizationsOrganizationIdLogoRoute:
-    ApiUploadsOrganizationsOrganizationIdLogoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

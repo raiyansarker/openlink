@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { Database } from 'bun:sqlite'
-import { activityEvent, organization, organizationMember, user } from '@openlink/db/schema'
+import { organization, organizationMember, user } from '@openlink/db/schema'
 import { eq } from 'drizzle-orm'
 import { Effect } from 'effect'
 
@@ -57,8 +57,7 @@ function setup(options: { signedIn?: string | null; role?: 'owner' | 'admin' | '
       ),
     )
   const imageOf = () => adapter.select().from(user).where(eq(user.id, 'u1')).get()?.image
-  const logoOf = () => adapter.select().from(organization).where(eq(organization.id, 'o1')).get()?.logoKey
-  return { run, serve, bucket, imageOf, logoOf, adapter }
+  return { run, serve, bucket, imageOf, adapter }
 }
 
 const json = async (response: Response) => ({ status: response.status, body: response.status === 204 ? null : await response.json() })
@@ -119,39 +118,6 @@ describe('avatar uploads', () => {
     expect((await t.run(MediaUploads.setAvatar as never, { body: IMAGES.png, origin: null })).status).toBe(403)
     expect((await t.run(MediaUploads.clearAvatar as never, { method: 'DELETE', origin: 'https://evil.example' })).status).toBe(403)
     expect(t.imageOf()).toBe('https://avatars.githubusercontent.com/u/1')
-  })
-})
-
-describe('logo uploads', () => {
-  test('owners and admins can set and clear the logo, and it is audited', async () => {
-    for (const role of ['owner', 'admin'] as const) {
-      const t = setup({ role })
-      const { status, body } = await json(await t.run(MediaUploads.setLogo('o1') as never, { body: IMAGES.png }))
-      expect(status).toBe(200)
-      expect(t.logoOf()).toBe(MediaKey.fromUrl(body.url))
-      expect((await t.run(MediaUploads.clearLogo('o1') as never, { method: 'DELETE' })).status).toBe(204)
-      expect(t.logoOf()).toBeNull()
-      expect(t.bucket.objects.size).toBe(0)
-      const events = t.adapter.select().from(activityEvent).all()
-      expect(events.map((e) => e.action)).toEqual(['workspace.updated', 'workspace.updated'])
-    }
-  })
-
-  test('members, viewers and outsiders cannot change the logo', async () => {
-    for (const role of ['member', 'viewer', undefined] as const) {
-      const t = setup({ role })
-      const response = await t.run(MediaUploads.setLogo('o1') as never, { body: IMAGES.png })
-      expect(response.status).toBe(403)
-      expect(t.bucket.objects.size).toBe(0)
-      expect(t.logoOf()).toBeNull()
-    }
-  })
-
-  test('replacing a logo deletes the old one', async () => {
-    const t = setup({ role: 'owner' })
-    await t.run(MediaUploads.setLogo('o1') as never, { body: IMAGES.png })
-    await t.run(MediaUploads.setLogo('o1') as never, { body: IMAGES.webp })
-    expect([...t.bucket.objects.keys()]).toEqual([t.logoOf()])
   })
 })
 

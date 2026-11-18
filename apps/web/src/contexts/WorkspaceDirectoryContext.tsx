@@ -6,15 +6,14 @@ import type { Organization } from '#/data/demo/types'
 import { ApiError } from '#/lib/api/error'
 import { AuthSession } from '#/lib/auth/client'
 import { QueryKeys } from '#/lib/api/query'
-import { WorkspaceApi } from '#/lib/api/workspaces'
+import { WorkspaceApi, type CreateOrganizationRequest } from '#/lib/api/workspaces'
 import { isValidOrganizationSlug } from '#/lib/organization/slugify'
 import { SquareImage } from '#/lib/media/square-image'
-import { MediaUploads } from '#/lib/media/uploads'
 
 export type CreateOrganizationInput = {
   name: string
   slug: string
-  /** Uploaded to R2 after the workspace exists. */
+  /** Sent in the same request; if it is refused, no workspace is created. */
   logo?: File | null
 }
 
@@ -27,10 +26,10 @@ type WorkspaceDirectoryContextValue = {
   errorMessage: string | null
   refetch: () => void
   /**
-   * Rejects with an Error carrying a user-facing message. A logo that fails to
-   * upload does not undo the workspace; `logoError` explains what happened.
+   * Creates the workspace and its logo in one request. Rejects with an Error carrying
+   * a user-facing message; when it rejects, nothing was created.
    */
-  createOrganization: (input: CreateOrganizationInput) => Promise<{ organization: Organization; logoError: string | null }>
+  createOrganization: (input: CreateOrganizationInput) => Promise<{ organization: Organization }>
   /** Refresh after changing a workspace (for example its logo). */
   invalidate: () => Promise<void>
 }
@@ -54,7 +53,7 @@ export function WorkspaceDirectoryProvider({ children }: { children: ReactNode }
   })
 
   const create = useMutation({
-    mutationFn: (input: CreateOrganizationInput) => WorkspaceApi.shared.createOrganization(input),
+    mutationFn: (input: CreateOrganizationRequest) => WorkspaceApi.shared.createOrganization(input),
     onSuccess: (created) => {
       queryClient.setQueryData<Organization[]>(QueryKeys.organizations, (prev) => [...(prev ?? []), created])
     },
@@ -67,29 +66,19 @@ export function WorkspaceDirectoryProvider({ children }: { children: ReactNode }
       if (!isValidOrganizationSlug(input.slug)) {
         throw new Error('Use a slug with lowercase letters, numbers, and hyphens (min. 2 characters).')
       }
+      // Crop and shrink in the browser first; a picture that can't be used stops here.
+      const logo = input.logo ? await SquareImage.fromFile(input.logo) : undefined
       let organization: Organization
       try {
-        organization = await create.mutateAsync({ ...input, name })
+        organization = await create.mutateAsync({ name, slug: input.slug, ...(logo ? { logo } : {}) })
       } catch (error) {
         throw new Error(ApiError.message(error, 'Could not create the workspace.'))
       }
       // The first workspace completes onboarding; re-read the session so the guard sees it.
       AuthSession.invalidate()
-      let logoError: string | null = null
-      if (input.logo) {
-        try {
-          const logoUrl = await MediaUploads.setLogo(organization.id, await SquareImage.fromFile(input.logo))
-          organization = { ...organization, logoUrl }
-          queryClient.setQueryData<Organization[]>(QueryKeys.organizations, (prev) =>
-            (prev ?? []).map((org) => (org.id === organization.id ? organization : org)),
-          )
-        } catch (error) {
-          logoError = error instanceof Error ? error.message : 'The logo could not be uploaded.'
-        }
-      }
-      return { organization, logoError }
+      return { organization }
     },
-    [create, queryClient],
+    [create],
   )
 
   const refetch = useCallback(() => void query.refetch(), [query])

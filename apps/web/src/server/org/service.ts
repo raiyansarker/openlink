@@ -12,19 +12,16 @@ import { Db } from '#/server/effect/services/db'
 import { Onboarding } from '#/server/auth/onboarding'
 import {
   createInviteToken,
-  findBootstrapInviteByToken,
   hashInviteToken,
   inviteEmailMatches,
 } from './invites'
 
 export {
-  InvalidBootstrapInvite,
   InvalidInvite,
   InviteEmailMismatch,
   OrganizationConflict,
 } from './errors'
 import {
-  InvalidBootstrapInvite,
   InvalidInvite,
   InviteEmailMismatch,
   OrganizationConflict,
@@ -71,37 +68,39 @@ export function getOrganizationById(organizationId: string) {
 }
 
 /**
- * Create a workspace owned by `userId`, completing their onboarding. An invite
- * token is optional; when one is given it must be a valid bootstrap invite and
- * is consumed.
+ * Create a workspace owned by `userId`, completing their onboarding. `id` is
+ * chosen by the caller so a logo can be stored under it first; `logoKey` is
+ * saved with the row.
  */
-export function createOrganizationWithBootstrapInvite(input: {
+export function createOrganizationForUser(input: {
+  id: string
   userId: string
   name: string
   slug: string
-  inviteToken?: string
+  logoKey?: string | null
 }) {
   return Effect.gen(function* () {
-    const bootstrap = input.inviteToken ? yield* findBootstrapInviteByToken(input.inviteToken) : null
-    if (input.inviteToken && !bootstrap) {
-      return yield* Effect.fail(new InvalidBootstrapInvite())
-    }
-
     const db = yield* Db
-    const id = crypto.randomUUID()
     const now = new Date()
     const statements = [
-      db.insert(organization).values({ id, name: input.name, slug: input.slug, createdAt: now, updatedAt: now }).returning(),
+      db
+        .insert(organization)
+        .values({
+          id: input.id,
+          name: input.name,
+          slug: input.slug,
+          logoKey: input.logoKey ?? null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning(),
       db.insert(organizationMember).values({
         id: crypto.randomUUID(),
-        organizationId: id,
+        organizationId: input.id,
         userId: input.userId,
         role: 'owner',
         joinedAt: now,
       }),
-      ...(bootstrap
-        ? [db.update(organizationInvite).set({ acceptedAt: now }).where(eq(organizationInvite.id, bootstrap.id))]
-        : []),
       Onboarding.markCompleteStatement(db, input.userId, now),
     ]
     // One batch: the workspace never exists without its owner, and onboarding completes with it.

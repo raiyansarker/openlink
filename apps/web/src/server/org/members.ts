@@ -179,6 +179,8 @@ export function updateOrganization(input: {
   organizationId: string
   name?: string
   slug?: string
+  /** A stored image's key, or null to remove the logo; leave it out to keep the current one. */
+  logoKey?: string | null
 }) {
   return Effect.gen(function* () {
     const db = yield* Db
@@ -188,6 +190,7 @@ export function updateOrganization(input: {
         .set({
           ...(input.name !== undefined ? { name: input.name } : {}),
           ...(input.slug !== undefined ? { slug: input.slug } : {}),
+          ...(input.logoKey !== undefined ? { logoKey: input.logoKey } : {}),
           updatedAt: new Date(),
         })
         .where(eq(organization.id, input.organizationId))

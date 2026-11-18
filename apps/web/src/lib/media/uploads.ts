@@ -28,25 +28,11 @@ export class MediaUploads {
     await MediaUploads.send('DELETE', '/api/uploads/avatar')
   }
 
-  static async setLogo(organizationId: string, image: Blob): Promise<string> {
-    const { url } = await MediaUploads.send('PUT', MediaUploads.logoPath(organizationId), image)
-    if (!url) throw new Error('The upload failed. Please try again.')
-    return url
-  }
-
-  static async clearLogo(organizationId: string): Promise<void> {
-    await MediaUploads.send('DELETE', MediaUploads.logoPath(organizationId))
-  }
-
   /** Store a share-card image; resolves to the URL to save on the link. */
   static async setLinkPreview(organizationId: string, image: Blob): Promise<string> {
     const path = `/api/uploads/organizations/${encodeURIComponent(organizationId)}/link-preview`
     const { url } = await MediaUploads.send('PUT', path, image)
     if (!url) throw new Error('The upload failed. Please try again.')
     return url
-  }
-
-  private static logoPath(organizationId: string) {
-    return `/api/uploads/organizations/${encodeURIComponent(organizationId)}/logo`
   }
 }

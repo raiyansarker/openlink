@@ -99,7 +99,7 @@ const acceptInviteById = mock((_input: unknown) =>
   Effect.succeed({ org: { ...org, id: 'org-other', name: 'Other Co', slug: 'other' }, member: { id: 'm-9', organizationId: 'org-other', userId: 'user-1', role: 'admin' as const, joinedAt: now } }),
 )
 const declineInviteForEmail = mock((_input: unknown) => Effect.succeed({ id: 'invite-9', email: 'user@example.com', organizationId: 'org-other' }))
-const createOrganizationWithBootstrapInvite = mock((_input: unknown) => Effect.die(new Error('Unexpected organization creation')))
+const createOrganizationForUser = mock((_input: unknown) => Effect.die(new Error('Unexpected organization creation')))
 const signIn = mock((_input: unknown) => Effect.die(new Error('Unexpected sign in')))
 const signUp = mock((_input: unknown) => Effect.die(new Error('Unexpected sign up')))
 const signOut = mock((_request: Request) => Effect.die(new Error('Unexpected sign out')))
@@ -121,7 +121,7 @@ mock.module('#/server/domain/domain-links', () => ({
 mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, getLinkInOrganization, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
 mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
-  acceptMemberInvite, createOrganizationWithBootstrapInvite,
+  acceptMemberInvite, createOrganizationForUser,
   listInvitesForEmail, acceptInviteById, declineInviteForEmail,
 }))
 mock.module('#/server/org/members', () => ({
@@ -170,7 +170,7 @@ const { ApiError } = await import('#/lib/api/error')
 const sideEffects = [
   createMemberInvite, registerCustomDomain, removeCustomDomain, refreshCustomDomain,
   createLinkRecord, updateLinkRecord, deleteLinkRecord,
-  acceptMemberInvite, createOrganizationWithBootstrapInvite, signIn, signUp, signOut, runHealthChecks,
+  acceptMemberInvite, createOrganizationForUser, signIn, signUp, signOut, runHealthChecks,
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
   moveLinks, addTagsToLinks, deleteLinks,
@@ -1060,18 +1060,13 @@ describe('workspace links (app host by default)', () => {
 // catchTags matches structural tags; do not load real service modules just for error constructors.
 const typedFailures = [
   {
-    name: 'invalid bootstrap invite', workflow: createOrganizationWithBootstrapInvite,
-    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invalid-token' },
-    tag: 'InvalidBootstrapInvite', status: 403, code: 'FORBIDDEN', message: 'Invalid or expired bootstrap invite token',
-  },
-  {
-    name: 'organization conflict', workflow: createOrganizationWithBootstrapInvite,
-    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invite-token' },
+    name: 'organization conflict', workflow: createOrganizationForUser,
+    path: '/organizations', body: { name: org.name, slug: org.slug },
     tag: 'OrganizationConflict', status: 409, code: 'CONFLICT', message: 'Unable to create organization',
   },
   {
-    name: 'organization backend failure', workflow: createOrganizationWithBootstrapInvite,
-    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invite-token' },
+    name: 'organization backend failure', workflow: createOrganizationForUser,
+    path: '/organizations', body: { name: org.name, slug: org.slug },
     tag: 'BackendError', status: 409, code: 'CONFLICT', message: 'Unable to create organization',
   },
   {

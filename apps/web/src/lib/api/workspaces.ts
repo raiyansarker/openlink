@@ -30,7 +30,11 @@ export class OrganizationMapper {
   }
 }
 
-export type CreateOrganizationRequest = { name: string; slug: string }
+/** A logo goes in the same request (as multipart); the server creates both or neither. */
+export type CreateOrganizationRequest = { name: string; slug: string; logo?: Blob }
+
+/** `logo`: an image replaces it, `null` removes it, absent keeps it. */
+export type UpdateOrganizationRequest = { name?: string; slug?: string; logo?: Blob | null }
 
 /** Workspace (organization) calls, expressed in UI types. */
 export class WorkspaceApi {
@@ -66,7 +70,7 @@ export class WorkspaceApi {
   }
 
   /** Callers refresh the workspace list afterwards, which also carries their role. */
-  async update(organizationId: string, changes: { name?: string; slug?: string }): Promise<void> {
+  async update(organizationId: string, changes: UpdateOrganizationRequest): Promise<void> {
     try {
       await this.client.organizations.updateOrganization({ params: { organizationId }, body: changes })
     } catch (error) {

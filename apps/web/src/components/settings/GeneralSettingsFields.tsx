@@ -12,7 +12,6 @@ import TransferOwnershipDialog from '#/components/settings/TransferOwnershipDial
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { SquareImage } from '#/lib/media/square-image'
-import { MediaUploads } from '#/lib/media/uploads'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { ApiError } from '#/lib/api/error'
@@ -187,14 +186,13 @@ export default function GeneralSettingsFields() {
     slugChanged
   const canSave = isDirty && !nameError && !slugError
 
-  /** Upload (or clear, with null) the logo in R2, then refresh the workspace everywhere. */
+  /** Replace (or remove, with null) the logo through the workspace API, then refresh the workspace everywhere. */
   const saveLogo = async (file: File | null) => {
     if (fileRef.current) fileRef.current.value = ''
     setLogoError(null)
     setIsSavingLogo(true)
     try {
-      if (file) await MediaUploads.setLogo(activeOrg.id, await SquareImage.fromFile(file))
-      else await MediaUploads.clearLogo(activeOrg.id)
+      await new WorkspaceApi().update(activeOrg.id, { logo: file ? await SquareImage.fromFile(file) : null })
       await refreshWorkspaces()
     } catch (error) {
       setLogoError(error instanceof Error ? error.message : 'The logo could not be saved.')

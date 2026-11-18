@@ -35,12 +35,11 @@ cp apps/web/.dev.vars.example apps/web/.dev.vars   # set BETTER_AUTH_SECRET
 cd apps/web
 bun run check-types                                  # wrangler types + tsc
 bun run db:migrate:local
-bun run db:seed:bootstrap-invite
 cd ../..
 bun run dev --filter=web
 ```
 
-The web app listens on **port 3000**. After bootstrap, create your first organization using invite token `local-bootstrap-invite-token` (see `apps/web/scripts/seed-bootstrap-invite.sql`).
+The web app listens on **port 3000**. Sign up, then create your first workspace.
 
 | Resource            | URL                          |
 |---------------------|------------------------------|

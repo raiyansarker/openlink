@@ -135,7 +135,7 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
     setFormError(null)
     setIsSubmitting(true)
     try {
-      // The logo is uploaded once the workspace exists; a failed upload keeps the workspace.
+      // Name, URL and logo go in one request: either the workspace exists with all of them, or not at all.
       const { organization: org } = await createOrganization({
         name,
         slug,

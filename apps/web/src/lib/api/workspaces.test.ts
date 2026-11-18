@@ -41,23 +41,19 @@ describe('WorkspaceApi', () => {
     expect(orgs.map((o) => [o.slug, o.role])).toEqual([['acme', 'owner'], ['other', 'viewer']])
   })
 
-  test('creates a workspace with the invite token and returns it as owner', async () => {
+  test('creates a workspace and returns it as owner', async () => {
     const { workspaces, calls } = api(() =>
       json(201, { id: 'o9', name: 'New', slug: 'new', createdAt: '2026-01-01T00:00:00.000Z' }),
     )
-    const org = await workspaces.createOrganization({ name: 'New', slug: 'new', inviteToken: 'tok' })
+    const org = await workspaces.createOrganization({ name: 'New', slug: 'new' })
     expect(org).toMatchObject({ id: 'o9', slug: 'new', role: 'owner' })
-    expect(calls[0]).toMatchObject({ method: 'POST', body: { name: 'New', slug: 'new', inviteToken: 'tok' } })
+    expect(calls[0]).toMatchObject({ method: 'POST', body: { name: 'New', slug: 'new' } })
   })
 
-  test('explains a taken slug and a bad invite token', async () => {
+  test('explains a taken slug', async () => {
     const conflict = api(() => json(409, { defined: false, code: 'CONFLICT', message: 'Unable to create organization' }))
-    const taken = await conflict.workspaces.createOrganization({ name: 'x', slug: 'x', inviteToken: 't' }).catch((e) => e)
+    const taken = await conflict.workspaces.createOrganization({ name: 'x', slug: 'x' }).catch((e) => e)
     expect(taken).toBeInstanceOf(ApiError)
     expect(taken.message).toContain('already taken')
-
-    const forbidden = api(() => json(403, { defined: true, code: 'FORBIDDEN', message: 'Invalid or expired bootstrap invite token' }))
-    const bad = await forbidden.workspaces.createOrganization({ name: 'x', slug: 'x', inviteToken: 'nope' }).catch((e) => e)
-    expect(bad).toMatchObject({ code: 'FORBIDDEN', message: 'Invalid or expired bootstrap invite token' })
   })
 })
