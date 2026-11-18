@@ -75,6 +75,7 @@ function SettingsNavLink({
   return (
     <Link
       to={to}
+      className="ol-focus-ring"
       style={{ ...navLinkBaseStyle, fontWeight: 400, color: SHELL_NAV_TEXT_SECONDARY, backgroundColor: navItemBackground(false, hovered) }}
       activeProps={{
         style: { ...navLinkBaseStyle, fontWeight: 600, color: SHELL_NAV_TEXT_PRIMARY, backgroundColor: navItemBackground(true, hovered) },

@@ -91,6 +91,7 @@ export default function CreateOrganizationShell({
         ) : (
           <Link
             to="/w"
+            className="ol-focus-ring"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

@@ -157,6 +157,7 @@ export default function CreateLinkShell({
           <Link
             to={backTo}
             search={backSearch}
+            className="ol-focus-ring"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

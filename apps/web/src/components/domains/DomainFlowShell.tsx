@@ -69,6 +69,7 @@ export default function DomainFlowShell({
       >
         <Link
           to={domainsPath}
+          className="ol-focus-ring"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
