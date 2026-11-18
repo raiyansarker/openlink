@@ -20,6 +20,7 @@ import { curveMonotoneX } from 'd3-shape'
 import { CHANNEL_COLORS, NEUTRAL_SERIES, SERIES_COLORS, chartHostStyle } from '#/components/analytics/chart-theme'
 import type { AnalyticsReport } from '#/lib/analytics/report'
 import { formatCompact, formatNumber } from '#/lib/analytics/format'
+import { BucketFormat } from '#/lib/analytics/traffic-summary'
 
 import type { TrafficView } from '#/lib/analytics/search'
 
@@ -36,23 +37,6 @@ type TrafficChartProps = {
 const smooth = d3Curve(curveMonotoneX)
 
 const SERIES = { clicks: 'Clicks', unique: 'Unique visitors', previous: 'Previous period' } as const
-
-/** How a bucket is named on the axis and in the tooltip. */
-class BucketFormat {
-  constructor(private readonly report: AnalyticsReport) {}
-
-  tick = (value: Date) =>
-    this.report.range === '24h'
-      ? value.toLocaleTimeString(undefined, { hour: 'numeric' })
-      : value.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-
-  heading = (value: unknown) => {
-    if (!(value instanceof Date)) return String(value ?? '')
-    return this.report.bucket === 'hour'
-      ? value.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric' })
-      : value.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-  }
-}
 
 /** `isFill` marks the fill under the clicks line, which the tooltip skips. */
 type TimePoint = { time: Date; value: number; series: string; isFill?: boolean }
@@ -198,21 +182,4 @@ function ChannelChart({ report, isComparing, ...host }: ViewProps) {
   }, [report, isComparing])
 
   return <Chart definition={definition} ariaLabel="Clicks over time by channel" {...host} />
-}
-
-/** One line under the chart title: the busiest bucket, the average, and the leading channel. */
-export function trafficSummary(report: AnalyticsReport): string {
-  const series = report.totalsSeries
-  if (series.length === 0) return ''
-  const peak = series.reduce((best, point) => (point.clicks > best.clicks ? point : best), series[0]!)
-  const average = report.totals.clicks / series.length
-  const format = new BucketFormat(report)
-  const top = report.channels[0]
-  return [
-    `Peak ${formatNumber(peak.clicks)} on ${format.heading(peak.time)}`,
-    `${formatCompact(average)} a ${report.bucket} on average`,
-    top ? `${top.label} leads with ${Math.round(top.share * 100)}%` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
 }

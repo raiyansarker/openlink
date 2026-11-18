@@ -12,7 +12,8 @@ import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
 import { fieldStatus, requiredEmail, requiredExact, submitWith } from '#/lib/forms/fields'
 import AuthShell from './AuthShell'
-import ProviderButtons, { hasProviders } from './ProviderButtons'
+import ProviderButtons from './ProviderButtons'
+import { hasProviders } from './auth-providers'
 import { useAuthActions, type AuthProvider } from './use-auth-actions'
 
 const SignUpSchema = type({

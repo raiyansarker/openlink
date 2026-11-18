@@ -5,10 +5,8 @@ import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useClipboard } from '@astryxdesign/core/hooks'
 import Favicon from '#/components/create-link/Favicon'
-import QrCode, {
-  downloadQrPng,
-  downloadQrSvg,
-} from '#/components/create-link/QrCode'
+import QrCode from '#/components/create-link/QrCode'
+import { downloadQrPng, downloadQrSvg } from '#/lib/links/qr-code'
 
 export type PreviewRule = { label: string; value: string }
 
@@ -202,7 +200,7 @@ export function CreateLinkActions({
   )
 }
 
-export const PANEL_CARD_STYLE = {
+const PANEL_CARD_STYLE = {
   borderRadius: 16,
   border: '1px solid var(--color-border-emphasized)',
   background: 'var(--color-background-surface)',

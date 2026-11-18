@@ -48,7 +48,3 @@ export default function ProviderButtons({ providers, pending, onSocial, onPasske
     </Grid>
   )
 }
-
-export function hasProviders(providers: Record<AuthProvider, boolean>) {
-  return providers.google || providers.github
-}

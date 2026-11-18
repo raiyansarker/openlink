@@ -1,8 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import DashboardActivityPanel, {
-  ACTIVITY_CATEGORIES,
-  type ActivityFilterState,
-} from '#/components/activity/DashboardActivityPanel'
+import DashboardActivityPanel from '#/components/activity/DashboardActivityPanel'
+import { ACTIVITY_CATEGORIES, type ActivityFilterState } from '#/lib/activity/filters'
 import type { ActivityCategory } from '#/lib/api/types'
 import { createPageHead } from '#/lib/page-title'
 

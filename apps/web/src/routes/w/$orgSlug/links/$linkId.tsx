@@ -1,9 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Section } from '@astryxdesign/core/Section'
-import LinkDetailPage, {
-  LINK_DETAIL_TABS,
-  type LinkDetailTab,
-} from '#/components/link-detail/LinkDetailPage'
+import LinkDetailPage from '#/components/link-detail/LinkDetailPage'
+import { LINK_DETAIL_TABS, type LinkDetailTab } from '#/lib/links/link-detail-tabs'
 import { AnalyticsSearchParams, type AnalyticsSearch, type AnalyticsView } from '#/lib/analytics/search'
 import type { HistoryKind } from '#/components/link-detail/LinkHistoryTimeline'
 import { createPageHead } from '#/lib/page-title'
