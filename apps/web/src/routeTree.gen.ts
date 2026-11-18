@@ -33,6 +33,7 @@ import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as WIndexRouteImport } from './routes/w/index'
 import { Route as WOrgSlugRouteRouteImport } from './routes/w/$orgSlug/route'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiDebugTraceTestRouteImport } from './routes/api/debug/trace-test'
 import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
 import { Route as ApiUploadsAvatarRouteImport } from './routes/api/uploads/avatar'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
@@ -174,6 +175,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDebugTraceTestRoute = ApiDebugTraceTestRouteImport.update({
+  id: '/api/debug/trace-test',
+  path: '/api/debug/trace-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMediaSplatRoute = ApiMediaSplatRouteImport.update({
   id: '/api/media/$',
   path: '/api/media/$',
@@ -312,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/domains': typeof WOrgSlugDomainsRouteRouteWithChildren
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/debug/trace-test': typeof ApiDebugTraceTestRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
@@ -353,6 +360,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/w': typeof WIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/debug/trace-test': typeof ApiDebugTraceTestRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
@@ -401,6 +409,7 @@ export interface FileRoutesById {
   '/w/$orgSlug/domains': typeof WOrgSlugDomainsRouteRouteWithChildren
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/debug/trace-test': typeof ApiDebugTraceTestRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
@@ -449,6 +458,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains'
     | '/w/$orgSlug/settings'
     | '/api/auth/$'
+    | '/api/debug/trace-test'
     | '/api/media/$'
     | '/api/uploads/avatar'
     | '/api/v1/$'
@@ -490,6 +500,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/w'
     | '/api/auth/$'
+    | '/api/debug/trace-test'
     | '/api/media/$'
     | '/api/uploads/avatar'
     | '/api/v1/$'
@@ -537,6 +548,7 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains'
     | '/w/$orgSlug/settings'
     | '/api/auth/$'
+    | '/api/debug/trace-test'
     | '/api/media/$'
     | '/api/uploads/avatar'
     | '/api/v1/$'
@@ -574,6 +586,7 @@ export interface RootRouteChildren {
   EditLinkRoute: typeof EditLinkRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiDebugTraceTestRoute: typeof ApiDebugTraceTestRoute
   ApiMediaSplatRoute: typeof ApiMediaSplatRoute
   ApiUploadsAvatarRoute: typeof ApiUploadsAvatarRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
@@ -749,6 +762,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/debug/trace-test': {
+      id: '/api/debug/trace-test'
+      path: '/api/debug/trace-test'
+      fullPath: '/api/debug/trace-test'
+      preLoaderRoute: typeof ApiDebugTraceTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/media/$': {
@@ -1028,6 +1048,7 @@ const rootRouteChildren: RootRouteChildren = {
   EditLinkRoute: EditLinkRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiDebugTraceTestRoute: ApiDebugTraceTestRoute,
   ApiMediaSplatRoute: ApiMediaSplatRoute,
   ApiUploadsAvatarRoute: ApiUploadsAvatarRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
