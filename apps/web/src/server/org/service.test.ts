@@ -10,13 +10,12 @@ import { BackendError } from '../effect/operations'
 import { Db } from '../effect/services/db'
 import type { Db as DbService } from '../effect/services/db'
 import { canManageLinks, getMembership, isAdmin } from './access'
-import { findBootstrapInviteByToken, hashInviteToken } from './invites'
+import { hashInviteToken } from './invites'
 import {
   acceptMemberInvite,
   createMemberInvite,
-  createOrganizationWithBootstrapInvite,
+  createOrganizationForUser,
   getOrganizationById,
-  InvalidBootstrapInvite,
   InvalidInvite,
   InviteEmailMismatch,
   listOrganizationsForUser,
@@ -46,16 +45,24 @@ beforeEach(() => {
     )
   }
   // SQLite proxy executes asynchronously like D1; only the adapter differs from OpenLinkDb.
+  const execute = (sql: string, params: unknown[], method: string) => {
+    if (failSql?.(sql)) throw ioFailure
+    const query = sqlite.query(sql)
+    if (method === 'run') {
+      query.run(...(params as never[]))
+      return { rows: [] }
+    }
+    return { rows: query.values(...(params as never[])) }
+  }
   db = drizzle(
     async (sql, params, method) => {
       await Promise.resolve()
-      if (failSql?.(sql)) throw ioFailure
-      const query = sqlite.query(sql)
-      if (method === 'run') {
-        query.run(...params)
-        return { rows: [] }
-      }
-      return { rows: query.values(...params) }
+      return execute(sql, params, method)
+    },
+    // Like D1, a batch is one transaction: a failing statement rolls back the rest.
+    async (queries) => {
+      await Promise.resolve()
+      return sqlite.transaction(() => queries.map((q) => execute(q.sql, q.params, q.method)))()
     },
     { schema },
   ) as unknown as OpenLinkDb
@@ -118,10 +125,10 @@ function inviteRow() {
 }
 
 const createInput = {
+  id: 'org-new',
   userId: 'user-1',
   name: 'New Organization',
   slug: 'new-org',
-  inviteToken: 'token',
 }
 const acceptInput = {
   userId: 'user-1',
@@ -132,12 +139,10 @@ const acceptInput = {
 describe('Effect organization services with injected async SQLite', () => {
   test('zero-field errors expose the expected tags', () => {
     expect([
-      new InvalidBootstrapInvite()._tag,
       new InvalidInvite()._tag,
       new InviteEmailMismatch()._tag,
       new OrganizationConflict()._tag,
     ]).toEqual([
-      'InvalidBootstrapInvite',
       'InvalidInvite',
       'InviteEmailMismatch',
       'OrganizationConflict',
@@ -179,59 +184,32 @@ describe('Effect organization services with injected async SQLite', () => {
     expect(await run(getDomainInOrganization('missing', 'org-1'))).toBeNull()
   })
 
-  test('bootstrap lookup filters token, kind and acceptance without adding an expiry check', async () => {
-    expect(await run(findBootstrapInviteByToken('token'))).toBeNull()
-    seedInvite({ kind: 'bootstrap', organizationId: null, expiresAt: 0 })
-    expect(await run(findBootstrapInviteByToken('wrong-token'))).toBeNull()
-    expect(await run(findBootstrapInviteByToken('token'))).toMatchObject({
-      id: 'invite-1',
-    })
-    sqlite.run('UPDATE organization_invite SET accepted_at = 1')
-    expect(await run(findBootstrapInviteByToken('token'))).toBeNull()
-    sqlite.run(
-      "UPDATE organization_invite SET accepted_at = NULL, kind = 'member'",
-    )
-    expect(await run(findBootstrapInviteByToken('token'))).toBeNull()
-  })
-
-  test('invalid bootstrap token fails before writing', async () => {
-    expect(
-      await run(
-        Effect.flip(createOrganizationWithBootstrapInvite(createInput)),
-      ),
-    ).toBeInstanceOf(InvalidBootstrapInvite)
-    expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(1)
-  })
-
-  test('creation is lazy, creates an owner, and consumes the bootstrap invite', async () => {
-    seedInvite({ kind: 'bootstrap', organizationId: null })
-    const effect = createOrganizationWithBootstrapInvite(createInput)
+  test('creation is lazy, creates an owner, and saves the logo key', async () => {
+    const effect = createOrganizationForUser({ ...createInput, logoKey: 'logos/org-new/abc.webp' })
     expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(1)
     const org = await run(effect)
     expect(org).toMatchObject({
+      id: 'org-new',
       name: createInput.name,
       slug: createInput.slug,
+      logoKey: 'logos/org-new/abc.webp',
     })
     expect(await run(getMembership('user-1', org.id))).toMatchObject({
       role: 'owner',
     })
-    expect(inviteRow().accepted_at).toBeNumber()
-    expect(await run(findBootstrapInviteByToken('token'))).toBeNull()
   })
 
-  test('organization UNIQUE failure becomes OrganizationConflict without consuming the invite', async () => {
-    seedInvite({ kind: 'bootstrap', organizationId: null })
+  test('organization UNIQUE failure becomes OrganizationConflict without writing a member', async () => {
     expect(
       await run(
         Effect.flip(
-          createOrganizationWithBootstrapInvite({
+          createOrganizationForUser({
             ...createInput,
             slug: 'organization',
           }),
         ),
       ),
     ).toBeInstanceOf(OrganizationConflict)
-    expect(inviteRow().accepted_at).toBeNull()
     expect(
       sqlite.query('SELECT id FROM organization_member').all(),
     ).toHaveLength(0)
@@ -320,10 +298,6 @@ describe('Effect organization services with injected async SQLite', () => {
     ['org.getMembership', () => getMembership('user-1', 'org-1')],
     ['org.listOrganizationsForUser', () => listOrganizationsForUser('user-1')],
     ['org.getOrganizationById', () => getOrganizationById('org-1')],
-    [
-      'org.findBootstrapInviteByToken',
-      () => findBootstrapInviteByToken('token'),
-    ],
     ['org.findMemberInvite', () => acceptMemberInvite(acceptInput)],
     [
       'access.getDomainInOrganization',
@@ -345,56 +319,49 @@ describe('Effect organization services with injected async SQLite', () => {
   )
 
   test('non-UNIQUE organization insert errors remain BackendError', async () => {
-    seedInvite({ kind: 'bootstrap', organizationId: null })
     failSql = (sql) => sql.startsWith('insert into "organization"')
     expect(
       await run(
-        Effect.flip(createOrganizationWithBootstrapInvite(createInput)),
+        Effect.flip(createOrganizationForUser(createInput)),
       ),
     ).toMatchObject({
       _tag: 'BackendError',
       operation: 'org.createOrganization',
     })
-    expect(inviteRow().accepted_at).toBeNull()
+    expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(1)
   })
 
-  test('owner insertion failure preserves the existing partial-write behavior', async () => {
-    seedInvite({ kind: 'bootstrap', organizationId: null })
+  test('owner insertion failure rolls back the new organization', async () => {
     failSql = (sql) => sql.startsWith('insert into "organization_member"')
     expect(
       await run(
-        Effect.flip(createOrganizationWithBootstrapInvite(createInput)),
+        Effect.flip(createOrganizationForUser(createInput)),
       ),
     ).toMatchObject({
       _tag: 'BackendError',
-      operation: 'org.createOwnerMembership',
+      operation: 'org.createOrganization',
     })
-    expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(2)
+    expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(1)
     expect(
       sqlite.query('SELECT id FROM organization_member').all(),
     ).toHaveLength(0)
-    expect(inviteRow().accepted_at).toBeNull()
   })
 
-  test('bootstrap consumption failure leaves the organization and owner written', async () => {
-    seedInvite({ kind: 'bootstrap', organizationId: null })
-    failSql = (sql) => sql.startsWith('update "organization_invite"')
+  test('onboarding failure rolls back the organization and owner', async () => {
+    failSql = (sql) => sql.startsWith('update "user"')
     expect(
       await run(
-        Effect.flip(createOrganizationWithBootstrapInvite(createInput)),
+        Effect.flip(createOrganizationForUser(createInput)),
       ),
     ).toMatchObject({
       _tag: 'BackendError',
-      operation: 'org.acceptBootstrapInvite',
+      operation: 'org.createOrganization',
     })
-    expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(2)
-    expect(sqlite.query('SELECT role FROM organization_member').all()).toEqual([
-      { role: 'owner' },
-    ])
-    expect(inviteRow().accepted_at).toBeNull()
+    expect(sqlite.query('SELECT id FROM organization').all()).toHaveLength(1)
+    expect(sqlite.query('SELECT role FROM organization_member').all()).toEqual([])
   })
 
-  test('invite consumption failure leaves the new membership written and invite unconsumed', async () => {
+  test('invite consumption failure rolls back the new membership', async () => {
     seedInvite()
     failSql = (sql) => sql.startsWith('update "organization_invite"')
     expect(
@@ -403,9 +370,7 @@ describe('Effect organization services with injected async SQLite', () => {
       _tag: 'BackendError',
       operation: 'org.acceptMemberInvite',
     })
-    expect(await run(getMembership('user-1', 'org-1'))).toMatchObject({
-      role: 'admin',
-    })
+    expect(await run(getMembership('user-1', 'org-1'))).toBeNull()
     expect(inviteRow().accepted_at).toBeNull()
   })
 })

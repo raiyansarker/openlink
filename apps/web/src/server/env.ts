@@ -13,7 +13,6 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   BETTER_AUTH_URL: string
   /** Extra origins allowed to call the auth API (comma separated), e.g. previews. */
   BETTER_AUTH_TRUSTED_ORIGINS?: string
-  BOOTSTRAP_ORG_INVITE_TOKEN?: string
   /** Email and password sign-in is on unless this is `"false"`. */
   EMAIL_PASSWORD_SIGN_IN?: string
   /** OAuth providers switch on only when both the id and secret are set. */

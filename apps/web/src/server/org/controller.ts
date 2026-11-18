@@ -25,16 +25,15 @@ import {
   revokeInvite,
   transferOwnership,
   updateMemberRole,
-  updateOrganization,
 } from './members'
 import {
   acceptMemberInvite,
   createMemberInvite,
-  createOrganizationWithBootstrapInvite,
   getOrganizationById,
   listOrganizationsForUser,
 } from './service'
 import { isAdmin } from './permissions'
+import { createWorkspace, updateWorkspace } from './workspace'
 
 /** Map member-domain failures onto the typed API errors; spread only the ones an effect can raise. */
 const onMemberNotFound = (errors: ErrorFactories) => ({
@@ -61,14 +60,13 @@ export const organizationsController = {
 
   createOrganization: os.organizations.createOrganization.effect(function* ({ input, errors }) {
     const session = yield* requireAuthSession
-    const org = yield* createOrganizationWithBootstrapInvite({
-      userId: session.session.user.id,
-      ...input.body,
-    }).pipe(Effect.catchTags({
-      InvalidBootstrapInvite: () => Effect.fail(errors.FORBIDDEN({ message: 'Invalid or expired bootstrap invite token' })),
-      OrganizationConflict: () => Effect.fail(errors.CONFLICT({ message: 'Unable to create organization' })),
-      BackendError: () => Effect.fail(errors.CONFLICT({ message: 'Unable to create organization' })),
-    }))
+    const org = yield* createWorkspace({ userId: session.session.user.id, ...input.body }).pipe(
+      Effect.catchTags({
+        UploadRejected: (error) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
+        OrganizationConflict: () => Effect.fail(errors.CONFLICT({ message: 'Unable to create organization' })),
+        BackendError: () => Effect.fail(errors.CONFLICT({ message: 'Unable to create organization' })),
+      }),
+    )
     return toOrganizationDto(org)
   }),
 
@@ -100,17 +98,19 @@ export const organizationsController = {
 
   updateOrganization: os.organizations.updateOrganization.effect(function* ({ input, errors }) {
     const { session } = yield* requireOrgAdminEffect(input.params.organizationId)
-    const before = yield* getOrganizationById(input.params.organizationId)
-    const org = yield* updateOrganization({ organizationId: input.params.organizationId, ...input.body }).pipe(
+    const saved = yield* updateWorkspace({ organizationId: input.params.organizationId, ...input.body }).pipe(
       Effect.catchTags({
+        UploadRejected: (error) => Effect.fail(errors.BAD_REQUEST({ message: error.message })),
         OrganizationConflict: () => Effect.fail(errors.CONFLICT({ message: 'That workspace URL is already taken' })),
         BackendError: () => Effect.fail(errors.BAD_REQUEST({ message: 'Unable to update workspace' })),
       }),
     )
-    if (!org) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Organization not found' }))
+    if (!saved) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Organization not found' }))
+    const { before, after: org, logoChanged } = saved
     const changes = [
-      ...(before && before.name !== org.name ? [{ label: 'Name', from: before.name, to: org.name }] : []),
-      ...(before && before.slug !== org.slug ? [{ label: 'URL', from: before.slug, to: org.slug }] : []),
+      ...(before.name !== org.name ? [{ label: 'Name', from: before.name, to: org.name }] : []),
+      ...(before.slug !== org.slug ? [{ label: 'URL', from: before.slug, to: org.slug }] : []),
+      ...(logoChanged ? [{ label: 'Logo', from: before.logoKey ? 'set' : 'none', to: org.logoKey ? 'updated' : 'none' }] : []),
     ]
     if (changes.length > 0) {
       yield* audit(session, { organizationId: org.id, action: 'workspace.updated', target: { type: 'workspace', id: org.id, label: org.name }, changes })

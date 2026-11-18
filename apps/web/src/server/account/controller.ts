@@ -7,6 +7,8 @@ import { DeviceSessions } from '#/server/devices/sessions'
 import { acceptInviteById, declineInviteForEmail, listInvitesForEmail } from '#/server/org/service'
 import { os } from '#/server/orpc/implement'
 
+import { ProfilePicture } from './picture'
+
 export const accountController = {
   // Cookie sessions only: an API key is not a device and must not sign people out.
   listDeviceSessions: os.account.listDeviceSessions.effect(function* () {
@@ -76,6 +78,21 @@ export const accountController = {
       action: 'invite.declined',
       target: { type: 'invite', id: declined.id, label: declined.email },
     })
+    return {}
+  }),
+
+  // Cookie sessions only: an API key acts for a workspace, not for a person's profile.
+  updateMyPicture: os.account.updateMyPicture.effect(function* ({ input, errors }) {
+    const session = yield* requireAuthSession
+    const imageUrl = yield* ProfilePicture.replace(session.session.user.id, input.body.image).pipe(
+      Effect.catchTag('UploadRejected', (error) => Effect.fail(errors.BAD_REQUEST({ message: error.message }))),
+    )
+    return { imageUrl }
+  }),
+
+  removeMyPicture: os.account.removeMyPicture.effect(function* () {
+    const session = yield* requireAuthSession
+    yield* ProfilePicture.remove(session.session.user.id)
     return {}
   }),
 }

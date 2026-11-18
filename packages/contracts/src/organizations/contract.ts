@@ -39,7 +39,7 @@ export const createOrganization = oc
       operationId: 'createOrganization',
       path: '/organizations',
       successStatus: 201,
-      summary: 'Create a workspace; the first one completes onboarding',
+      summary: 'Create a workspace, with its logo if one is given; the first one completes onboarding',
       inputStructure: 'detailed',
       tags: ['Organizations'],
     }),
@@ -109,7 +109,9 @@ const orgOp = (
     }),
   )
 
-export const updateOrganization = orgOp('PATCH', 'updateOrganization', '/organizations/{organizationId}')
+export const updateOrganization = orgOp('PATCH', 'updateOrganization', '/organizations/{organizationId}', {
+  summary: 'Rename a workspace, change its URL, or replace or remove its logo',
+})
   .input(type({ body: UpdateOrganizationRequest, params: OrganizationIdPath }))
   .output(Organization)
 

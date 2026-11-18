@@ -1,11 +1,35 @@
-import type { DnsRecord } from '@openlink/domain'
+import { DomainSdkError, normalizeHostname, type DnsRecord } from '@openlink/domain'
 import { and, eq } from 'drizzle-orm'
-import { Effect } from 'effect'
+import { Data, Effect } from 'effect'
 import { customDomain } from '@openlink/db/schema'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { Bindings } from '#/server/effect/services/bindings'
 import { useDomainClient } from '#/server/effect/services/domain-client'
+
+/** The hostname is already connected, to this or another workspace. */
+export class DomainTaken extends Data.TaggedError('DomainTaken')<{}> {}
+
+function isUniqueViolation(cause: unknown): boolean {
+  const seen = new Set<unknown>()
+  while (cause instanceof Error && !seen.has(cause)) {
+    seen.add(cause)
+    if (/UNIQUE/i.test(cause.message)) return true
+    cause = cause.cause
+  }
+  return false
+}
+
+/** The form hostnames are stored in. An invalid one is left as typed; the provider rejects it. */
+function storedHostname(hostname: string) {
+  try {
+    return normalizeHostname(hostname)
+  } catch {
+    return hostname.trim().toLowerCase()
+  }
+}
+
+const isProviderConflict = (cause: unknown) => cause instanceof DomainSdkError && cause.code === 'DOMAIN_CONFLICT'
 
 function mapReadiness(status: string): (typeof customDomain.$inferSelect)['readiness'] {
   if (status === 'active') return 'active'
@@ -99,8 +123,17 @@ export function registerCustomDomain(input: {
   return Effect.gen(function* () {
     const db = yield* Db
     const bindings = yield* Bindings
+    // Checked before the provider is asked: for a hostname it already has, the provider hands
+    // back the existing registration, which belongs to whoever connected it first.
+    const [taken] = yield* operation('domain.register.check', () =>
+      db.select({ id: customDomain.id }).from(customDomain).where(eq(customDomain.hostname, storedHostname(input.hostname))).limit(1),
+    )
+    if (taken) return yield* Effect.fail(new DomainTaken())
+
     const client = yield* useDomainClient
-    const created = yield* operation('domain.register.provider', () => client.add(input.hostname))
+    const created = yield* operation('domain.register.provider', () => client.add(input.hostname)).pipe(
+      Effect.catchIf((error) => isProviderConflict(error.cause), () => Effect.fail(new DomainTaken())),
+    )
 
     const id = crypto.randomUUID()
     const now = new Date()
@@ -125,6 +158,20 @@ export function registerCustomDomain(input: {
           updatedAt: now,
         })
         .returning(),
+    ).pipe(
+      Effect.catchIf(
+        (error) => isUniqueViolation(error.cause),
+        // Someone connected it between the check and the insert: the provider entry is theirs, so keep it.
+        () => Effect.fail(new DomainTaken()),
+      ),
+      Effect.tapError((error) =>
+        error._tag === 'DomainTaken'
+          ? Effect.void
+          : // We just registered it and could not record it: undo, so the provider and the table agree.
+            operation('domain.register.undo', () => client.remove(created.hostname)).pipe(
+              Effect.catch((undo) => Effect.logWarning(`domain.register: could not undo ${created.hostname}: ${String(undo.cause)}`)),
+            ),
+      ),
     )
 
     return row!

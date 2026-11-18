@@ -37,18 +37,19 @@ async function setup() {
   }
   const admin = await member('admin@example.com', { o1: 'admin', o2: 'owner' })
 
-  const run = <A, E, R>(effect: Effect.Effect<A, E, R>, headers: Record<string, string> = admin.headers) =>
+  /** `authOverride` swaps in a different auth instance, e.g. one whose calls fail. */
+  const run = <A, E, R>(effect: Effect.Effect<A, E, R>, headers: Record<string, string> = admin.headers, authOverride: unknown = auth) =>
     Effect.runPromise(
       effect.pipe(
         Effect.provideService(WorkerRequest, new Request('http://localhost/api/v1/x', { headers })),
-        Effect.provideService(Auth, Effect.succeed(auth as never)),
+        Effect.provideService(Auth, Effect.succeed(authOverride as never)),
       ) as Effect.Effect<A, E, never>,
     )
   const fail = <A, E, R>(effect: Effect.Effect<A, E, R>, headers?: Record<string, string>) => run(Effect.flip(effect), headers)
   const create = (overrides: Partial<Parameters<typeof createApiKey>[0]> = {}) =>
     run(createApiKey({ organizationId: 'o1', name: ' CI deploy ', role: 'member', createdByUserId: admin.userId, ...overrides }))
   const stored = (id: string) => adapter.select().from(apikey).where(eq(apikey.id, id)).get()
-  return { run, fail, create, stored, member, admin, adapter }
+  return { run, fail, create, stored, member, admin, adapter, auth }
 }
 
 describe('createApiKey', () => {
@@ -136,6 +137,22 @@ describe('rotateApiKey', () => {
     expect(await t.run(authenticateApiKey(secret))).toBeNull()
     expect(await t.run(authenticateApiKey(rotated.secret))).toMatchObject({ role: 'viewer' })
     expect((await t.run(listApiKeys('o1'))).map((k) => k.id)).toEqual([rotated.row.id])
+  })
+
+  test('if the old key cannot be revoked, the new key is deleted again and the old one keeps working', async () => {
+    const t = await setup()
+    const { row, secret } = await t.create({ role: 'viewer' })
+    const failing = {
+      ...t.auth,
+      api: {
+        ...t.auth.api,
+        deleteApiKey: (args: { body: { keyId: string } }) =>
+          args.body.keyId === row.id ? Promise.reject(new Error('revoke failed')) : t.auth.api.deleteApiKey(args as never),
+      },
+    }
+    await t.run(Effect.flip(rotateApiKey({ organizationId: 'o1', keyId: row.id, createdByUserId: t.admin.userId })), t.admin.headers, failing)
+    expect((await t.run(listApiKeys('o1'))).map((k) => k.id)).toEqual([row.id])
+    expect(await t.run(authenticateApiKey(secret))).toMatchObject({ id: row.id })
   })
 
   test('creates nothing when the key does not exist or belongs to another organization', async () => {

@@ -1,4 +1,4 @@
-import { createDomainClient } from '@opencoredev/domain-sdk'
+import { createDomainClient, DomainSdkError, normalizeHostname } from '@opencoredev/domain-sdk'
 import { cloudflareSaaS } from '@opencoredev/domain-sdk/cloudflare'
 import { memoryProvider } from '@opencoredev/domain-sdk/testing'
 
@@ -39,4 +39,4 @@ export function createOpenLinkDomainClient(env: OpenLinkDomainEnv) {
 }
 
 export type { DnsRecord, Domain } from '@opencoredev/domain-sdk'
-export { createDomainClient, memoryProvider, cloudflareSaaS }
+export { createDomainClient, memoryProvider, cloudflareSaaS, DomainSdkError, normalizeHostname }

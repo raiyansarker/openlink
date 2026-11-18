@@ -119,7 +119,8 @@ export function createApiKey(input: {
 /**
  * Replaces a key with a new one of the same name and role, and returns the new secret.
  * The new key is created before the old one is revoked, so a failure never leaves the
- * workspace without a working key.
+ * workspace without a working key. If the revoke fails, the new key is deleted again:
+ * its secret was never shown, so keeping it would leave an unusable duplicate.
  */
 export function rotateApiKey(input: { organizationId: string; keyId: string; createdByUserId: string }) {
   return Effect.gen(function* () {
@@ -130,7 +131,13 @@ export function rotateApiKey(input: { organizationId: string; keyId: string; cre
       role: existing.role,
       createdByUserId: input.createdByUserId,
     })
-    yield* revokeApiKey(input.organizationId, existing.id)
+    yield* revokeApiKey(input.organizationId, existing.id).pipe(
+      Effect.onError(() =>
+        revokeApiKey(input.organizationId, created.row.id).pipe(
+          Effect.catch((error) => Effect.logWarning(`apiKeys.rotate: could not undo new key ${created.row.id}: ${String(error)}`)),
+        ),
+      ),
+    )
     return { ...created, previous: existing }
   })
 }
