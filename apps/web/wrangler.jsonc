@@ -44,7 +44,20 @@
 		}
 	],
   "observability": {
-    // Only Issues is on; logs and traces are not enabled.
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "redact_query_string": false,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": false,
+      "persist": true
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true
+    },
     "issues": {
       "enabled": true
     }
