@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import SettingsSkeleton from '#/components/settings/SettingsSkeleton'
+import SettingsLoading from '#/components/settings/SettingsLoading'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { Button } from '@astryxdesign/core/Button'
 import { Heading } from '@astryxdesign/core/Heading'
@@ -204,7 +204,7 @@ export default function WorkspaceMembersPanel() {
         />
       </VStack>
 
-      {query.isPending ? <SettingsSkeleton variant="rows" count={4} label="Loading members…" /> : null}
+      {query.isPending ? <SettingsLoading size="section" label="Loading members…" /> : null}
       {query.error ? (
         <VStack gap={2} hAlign="start" role="alert">
           <Text>{apiErrorMessage(query.error, 'Could not load members.')}</Text>

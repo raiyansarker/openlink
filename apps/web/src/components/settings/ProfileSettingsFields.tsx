@@ -10,7 +10,7 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { Grid, GridSpan } from '@astryxdesign/core/Grid'
 import { Button } from '@astryxdesign/core/Button'
 import { Avatar } from '@astryxdesign/core/Avatar'
-import SettingsSkeleton from '#/components/settings/SettingsSkeleton'
+import SettingsLoading from '#/components/settings/SettingsLoading'
 
 import ChangePasswordDialog from '#/components/settings/ChangePasswordDialog'
 import PasskeysSettingsBlock from '#/components/settings/PasskeysSettingsBlock'
@@ -127,7 +127,7 @@ export default function ProfileSettingsFields() {
   }, [user?.name])
 
   if (isLoading || !user) {
-    return <SettingsSkeleton count={4} label="Loading your profile…" />
+    return <SettingsLoading label="Loading your profile…" />
   }
 
   const savePicture = async (image: Blob | null) => {
