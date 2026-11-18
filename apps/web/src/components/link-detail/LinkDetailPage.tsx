@@ -22,20 +22,20 @@ import { QrBlock } from '#/components/create-link/LinkPreviewPanel'
 import LinkAnalyticsSection from '#/components/analytics/LinkAnalyticsSection'
 import LinkNotes, { lastNotesEdit } from '#/components/link-detail/LinkNotes'
 import { useLinkHistory } from '#/hooks/use-link-history'
-import { QueryKeys } from '#/lib/api/query'
+import { orpc } from '#/lib/api/orpc'
 import LinkHistoryTimeline, { type HistoryKind } from '#/components/link-detail/LinkHistoryTimeline'
 import LinkSettingsPanel from '#/components/link-detail/LinkSettingsPanel'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
 import MoveToFolderDialog, { type MoveSubject } from '#/components/links/MoveToFolderDialog'
 import { FolderIcon, MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { ShortLink } from '#/data/demo/types'
+import type { ShortLink } from '#/lib/api/types'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatNumber } from '#/lib/analytics/format'
 import type { AnalyticsView } from '#/lib/analytics/search'
 import { isOnHold } from '#/lib/links/create-link'
 import { getFolderPath } from '#/lib/links/folder-tree'
-import { linkStatusLabel, linkStatusLine } from '#/lib/links/link-summary'
+import { linkStatusLabel, linkStatusLine, linkTargetUrl, linkTitle } from '#/lib/links/link-summary'
 
 export const LINK_DETAIL_TABS = ['analytics', 'notes', 'settings', 'history'] as const
 export type LinkDetailTab = (typeof LINK_DETAIL_TABS)[number]
@@ -90,7 +90,7 @@ function LinkHeader({
             {linkStatusLabel(link)}
           </Text>
           <Text type="supporting" color="secondary">
-            {link.clicks > 0 ? `${formatNumber(link.clicks)} lifetime clicks · ` : ''}
+            {link.clickCount > 0 ? `${formatNumber(link.clickCount)} lifetime clicks · ` : ''}
             {linkStatusLine(link)}
           </Text>
         </HStack>
@@ -248,7 +248,7 @@ export default function LinkDetailPage({
     {
       id: 'open',
       label: 'Open destination',
-      onClick: () => void window.open(link.targetUrl, '_blank', 'noopener,noreferrer'),
+      onClick: () => void window.open(linkTargetUrl(link), '_blank', 'noopener,noreferrer'),
     },
     {
       id: 'hold',
@@ -268,7 +268,7 @@ export default function LinkDetailPage({
         setMoving({
           kind: 'link',
           id: link.id,
-          name: link.title,
+          name: linkTitle(link),
           folderId: link.folderId ?? null,
         }),
     },
@@ -360,7 +360,7 @@ export default function LinkDetailPage({
               lastEdit={lastNotesEdit(history.events)}
               onSave={async (notes) => {
                 await saveLinkNotes(link.id, notes)
-                void queryClient.invalidateQueries({ queryKey: QueryKeys.linkHistory(activeOrg.id, link.id) })
+                void queryClient.invalidateQueries({ queryKey: orpc.links.getWorkspaceLinkHistory.key({ input: { params: { organizationId: activeOrg.id, linkId: link.id } } }) })
               }}
             />
           ) : null}

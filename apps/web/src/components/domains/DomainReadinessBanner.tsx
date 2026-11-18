@@ -2,7 +2,7 @@ import { HStack } from '@astryxdesign/core/HStack'
 import { StatusDot } from '@astryxdesign/core/StatusDot'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { DomainReadiness } from '#/data/demo/domains'
+import type { DomainReadiness } from '#/lib/api/types'
 import { domainStatusMeta } from '#/lib/domains/domain-status-meta'
 
 type DomainReadinessBannerProps = {

@@ -36,5 +36,3 @@ export const DASHBOARD_NAV_HORIZONTAL_PADDING = 8
 
 /** @deprecated Use DASHBOARD_SURFACE_BG — kept for any stale imports */
 export const DASHBOARD_PANEL_BACKGROUND = DASHBOARD_SURFACE_BG
-
-export const DEMO_USER_AVATAR_URL = 'https://github.com/raiyansarker.png'

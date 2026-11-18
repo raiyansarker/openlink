@@ -82,6 +82,7 @@ export default function CreateLinkChromeButton({
 
   return (
     <button
+      className="ol-focus-ring"
       type="button"
       onClick={open}
       aria-keyshortcuts={hasShortcut ? 'C' : undefined}

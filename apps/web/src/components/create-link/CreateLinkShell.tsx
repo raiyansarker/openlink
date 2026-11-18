@@ -157,11 +157,15 @@ export default function CreateLinkShell({
           <Link
             to={backTo}
             search={backSearch}
+            className="ol-focus-ring"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              padding: '2px 0',
+              padding: '4px 10px 4px 6px',
+              marginLeft: -6,
+              // Room and rounded corners, so the focus ring isn't a tight box on the text.
+              borderRadius: 'var(--radius-element)',
               color: SHELL_NAV_TEXT_PRIMARY,
               fontSize: 14,
               fontWeight: 600,

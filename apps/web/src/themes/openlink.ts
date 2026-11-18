@@ -17,7 +17,8 @@ const OPENLINK_BG_POPOVER = ['#ffffff', '#1f1f24'] as const
 const INPUT_FIELD_RADIUS = 'var(--radius-element)'
 
 /**
- * Border-only focus — semantic accent (blue), no inset shadow rings on fields.
+ * Border-only focus in blue, no inset shadow rings on fields.
+ * Not brand orange: an orange border on a field reads as an error.
  * No `borderRadius` here: fields already use `--radius-element`, and setting it
  * in the theme layer would override InputGroup's square inner corners.
  */
@@ -26,7 +27,7 @@ const INPUT_QUIET_FOCUS = {
   ':hover': { boxShadow: 'none' },
   ':focus-within': {
     boxShadow: 'none',
-    borderColor: 'var(--color-accent)',
+    borderColor: 'var(--openlink-field-focus)',
   },
 } as const
 
@@ -63,17 +64,22 @@ export const openlinkTheme = defineTheme({
       'color-mix(in oklab, #FF4602 16%, transparent)',
       'color-mix(in oklab, #FF6B33 22%, transparent)',
     ],
+    /** Focused field border: the same deep blue in both schemes. */
+    '--openlink-field-focus': ['#015FCC', '#015FCC'],
   },
   tokens: {
     '--shadow-inset-hover': 'none',
     '--shadow-inset-selected': 'none',
-    '--focus-outline-color': OPENLINK_BRAND,
+    // Keyboard focus rings use brand orange, a touch lighter in dark mode.
+    '--focus-outline-color': [OPENLINK_BRAND, OPENLINK_BRAND_DARK],
     '--color-background-body': [...OPENLINK_BG_BODY],
     '--color-background-surface': [...OPENLINK_BG_SURFACE],
     '--color-background-muted': [...OPENLINK_BG_MUTED],
     '--color-background-card': [...OPENLINK_BG_SURFACE],
     '--color-background-popover': [...OPENLINK_BG_POPOVER],
     '--color-background-gray': ['#ececec', '#232327'],
+    /** Loading placeholders: the neutral #f1f1f1 all but vanished on the white panel as it pulses. */
+    '--color-skeleton': ['#dcdce0', '#525252'],
     '--color-border': ['rgba(0, 0, 0, 0.075)', 'rgba(255, 255, 255, 0.1)'],
     '--color-border-emphasized': ['#dfdfdf', '#3f3f46'],
     '--color-overlay-hover': ['rgba(0, 0, 0, 0.05)', 'rgba(255, 255, 255, 0.06)'],

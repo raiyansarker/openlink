@@ -1,21 +1,22 @@
+import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { Avatar } from '@astryxdesign/core/Avatar'
+import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
+import { Spinner } from '@astryxdesign/core/Spinner'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import ActivityDetailSheet from '#/components/activity/ActivityDetailSheet'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { MemberActivityEvent } from '#/data/demo/types'
 import { useMemberActivity } from '#/hooks/use-activity'
-import { MemberId } from '#/lib/api/members'
-import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
+import { apiErrorMessage } from '#/lib/api/errors'
+import type { ActivityEvent, Role } from '#/lib/api/types'
+import type { Person } from '#/lib/members/people'
 import { formatShortDate } from '#/lib/format/short-date'
-import {
-  demoLinksCreatedCount,
-  demoSignInMethod,
-} from '#/lib/members/member-detail-demo'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import {
   FLOATING_END_DRAWER_PADDING,
@@ -25,22 +26,15 @@ import MemberActivityTimeline from './MemberActivityTimeline'
 import MemberRowMenu from './MemberRowMenu'
 
 type MemberDetailDrawerProps = {
-  member: WorkspaceMember | null
+  member: Person | null
   onOpenChange: (open: boolean) => void
-  onChangeRole: (memberId: string, role: WorkspaceMemberRole) => void
-  onRemove: (memberId: string) => void
-  onResendInvite: (memberId: string) => void
+  onChangeRole: (member: Person, role: Role) => void
+  onRemove: (member: Person) => void
+  onResendInvite: (member: Person) => void
 }
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
+/** How many of a member's latest actions the drawer shows; "See all" opens the rest. */
+const ACTIVITY_LIMIT = 20
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -56,39 +50,35 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function MemberDetailDrawer({
-  member,
+  member: current,
   onOpenChange,
   onChangeRole,
   onRemove,
   onResendInvite,
 }: MemberDetailDrawerProps) {
-  const isOpen = member != null
+  // Keep the last member (and their activity) on screen while the drawer animates closed.
+  const [member, setMember] = useState(current)
+  if (current && current !== member) setMember(current)
+  const isOpen = current != null
   const { activeOrg } = useOrganization()
   const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
-  const userId = member ? MemberId.parse(member.id) : null
-  // What this person did most recently: their last 20 actions, filtered on the server.
-  const activityQuery = useMemberActivity(activeOrg.id, isOpen && userId?.kind === 'user' ? userId.id : null)
-  const activities: MemberActivityEvent[] =
-    userId?.kind === 'user'
-      ? (activityQuery.data?.items ?? []).map((event) => ({
-          id: event.id,
-          memberId: member!.id,
-          title: `${event.action[0]!.toUpperCase()}${event.action.slice(1)} ${event.target}`,
-          ...(event.details?.[0] ? { description: `${event.details[0].label}: ${event.details[0].value}` } : {}),
-          occurredAt: event.occurredAt,
-        }))
-      : []
+  const userId = member?.kind === 'member' ? member.userId : null
+  // What this person did most recently: their latest actions, filtered on the server.
+  const activityQuery = useMemberActivity(activeOrg.id, userId, ACTIVITY_LIMIT)
+  const activities = userId ? (activityQuery.data?.items ?? []) : []
+  const [openEvent, setOpenEvent] = useState<ActivityEvent | null>(null)
+  const navigate = useNavigate()
 
   const isOwner = member?.role === 'owner'
-  const isPending = member?.status === 'pending'
-  const lastActive = member?.lastActiveAt ?? member?.lastLoginAt
+  const isPending = member?.kind === 'invite'
 
-  const handleRemove = (memberId: string) => {
-    onRemove(memberId)
+  const handleRemove = (person: Person) => {
+    onRemove(person)
     onOpenChange(false)
   }
 
   return (
+    <>
     <Drawer
       isOpen={isOpen}
       onOpenChange={onOpenChange}
@@ -97,7 +87,7 @@ export default function MemberDetailDrawer({
       width={420}
       purpose="info"
       padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle()}
+      style={floatingEndDrawerStyle({ isOpen })}
     >
       {member ? (
         <Layout
@@ -119,7 +109,7 @@ export default function MemberDetailDrawer({
                 >
                   <HStack gap={3} vAlign="start">
                     <Avatar
-                      src={member.avatarUrl}
+                      src={member.image}
                       name={member.name}
                       size={72}
                       tooltip={false}
@@ -153,40 +143,55 @@ export default function MemberDetailDrawer({
 
                 <VStack gap={3} hAlign="stretch" width="100%">
                   <DetailRow
-                    label="Last active"
-                    value={
-                      lastActive
-                        ? formatDateTime(lastActive)
-                        : isPending
-                          ? '—'
-                          : 'Not recorded'
-                    }
+                    label={isPending ? 'Invited' : 'Joined workspace'}
+                    value={formatShortDate(member.since)}
                   />
-                  <DetailRow
-                    label="Joined workspace"
-                    value={isPending ? '—' : formatShortDate(member.joinedAt)}
-                  />
-                  {!isPending ? (
-                    <>
-                      <DetailRow
-                        label="Links created"
-                        value={String(demoLinksCreatedCount(member.id))}
-                      />
-                      <DetailRow
-                        label="Sign-in method"
-                        value={demoSignInMethod(member)}
-                      />
-                    </>
-                  ) : null}
                 </VStack>
 
                 <Divider variant="subtle" />
 
                 <VStack gap={4} hAlign="stretch" width="100%">
-                  <Heading level={4} weight="bold">
-                    Activity
-                  </Heading>
-                  <MemberActivityTimeline events={activities} />
+                  <HStack hAlign="between" vAlign="center" gap={2} width="100%">
+                    <Heading level={4} weight="bold">
+                      Activity
+                    </Heading>
+                    {activities.length > 0 ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        label="See all"
+                        tooltip={`All of ${member.name}'s activity`}
+                        onClick={() =>
+                          void navigate({
+                            to: '/w/$orgSlug/activity',
+                            params: { orgSlug: activeOrg.slug },
+                            search: { q: member.name },
+                          })
+                        }
+                      />
+                    ) : null}
+                  </HStack>
+                  {isPending ? (
+                    <Text type="supporting" color="secondary">
+                      Activity shows up once they accept the invite.
+                    </Text>
+                  ) : activityQuery.isPending ? (
+                    <Spinner size="md" label="Loading activity…" />
+                  ) : activityQuery.isError ? (
+                    <VStack gap={2} hAlign="start" role="alert">
+                      <Text type="supporting">{apiErrorMessage(activityQuery.error, 'Could not load their activity.')}</Text>
+                      <Button size="sm" variant="secondary" label="Try again" onClick={() => void activityQuery.refetch()} />
+                    </VStack>
+                  ) : (
+                    <>
+                      <MemberActivityTimeline events={activities} onOpenEvent={setOpenEvent} />
+                      {activities.length >= ACTIVITY_LIMIT ? (
+                        <Text type="supporting" color="secondary">
+                          {`Showing the latest ${ACTIVITY_LIMIT}. See all for the rest.`}
+                        </Text>
+                      ) : null}
+                    </>
+                  )}
                 </VStack>
               </VStack>
             </LayoutContent>
@@ -196,5 +201,8 @@ export default function MemberDetailDrawer({
         <Layout content={<LayoutContent>{null}</LayoutContent>} />
       )}
     </Drawer>
+    {/* An event's full details open over the member drawer. */}
+    <ActivityDetailSheet event={openEvent} onOpenChange={(open) => !open && setOpenEvent(null)} />
+    </>
   )
 }

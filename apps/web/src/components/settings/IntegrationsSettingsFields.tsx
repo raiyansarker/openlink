@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { EmptyState } from '@astryxdesign/core/EmptyState'
 import { Heading } from '@astryxdesign/core/Heading'
@@ -7,7 +7,7 @@ import { StatusDot } from '@astryxdesign/core/StatusDot'
 import { Table, pixel, proportional } from '@astryxdesign/core/Table'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import { handleDomainsTableRowClick } from '#/components/domains/domains-table-row-click'
+import { clickableRows } from '#/lib/tables/clickable-rows'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import CreateWebhookDrawer from '#/components/settings/CreateWebhookDrawer'
 import WebhookDetailSheet from '#/components/settings/WebhookDetailSheet'
@@ -69,10 +69,11 @@ export default function IntegrationsSettingsFields() {
     [updateWebhook],
   )
 
-  const openRowAtIndex = (index: number) => {
-    const row = webhooks[index]
-    if (row) setSelectedId(row.id)
-  }
+  // Each row opens the webhook's details.
+  const rowPlugins = useMemo(
+    () => ({ open: clickableRows<WebhookRow>((row) => setSelectedId(row.id), (row) => `Open ${row.name}`) }),
+    [],
+  )
 
   return (
     <VStack gap={6} hAlign="stretch" width="100%">
@@ -112,9 +113,6 @@ export default function IntegrationsSettingsFields() {
           className="members-table members-table--clickable-rows"
           width="100%"
           hAlign="stretch"
-          onClick={(event) =>
-            handleDomainsTableRowClick(event, webhooks.length, openRowAtIndex)
-          }
         >
           <Table<WebhookRow>
             className="members-table__grid"
@@ -123,6 +121,7 @@ export default function IntegrationsSettingsFields() {
             density="balanced"
             dividers="rows"
             hasHover
+            plugins={rowPlugins}
             columns={[
               {
                 key: 'name',

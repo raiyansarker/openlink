@@ -10,15 +10,16 @@ import {
 } from '@astryxdesign/core/SegmentedControl'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { LinkHistoryEvent } from '#/data/demo/types'
-import type { LinkHistoryKind, LinkHistorySummary } from '#/lib/api/link-history'
+import type { LinkHistoryKind } from '#/hooks/use-link-history'
+import type { LinkHistoryEntry, LinkHistorySummary } from '#/lib/api/types'
+import { historySummary } from '#/lib/links/history'
 import { formatShortDate } from '#/lib/format/short-date'
 
 /** Same track/node language as MemberActivityTimeline and DomainSetupTimeline. */
 const TRACK_COLOR = 'var(--color-border-emphasized)'
 const NODE_SIZE_PX = 8
 
-type DayGroup = { dayLabel: string; events: LinkHistoryEvent[] }
+type DayGroup = { dayLabel: string; events: LinkHistoryEntry[] }
 
 function startOfDay(date: Date): number {
   const d = new Date(date)
@@ -35,14 +36,14 @@ function dayLabel(iso: string): string {
   return formatShortDate(iso)
 }
 
-function groupByDay(events: LinkHistoryEvent[]): DayGroup[] {
+function groupByDay(events: LinkHistoryEntry[]): DayGroup[] {
   const sorted = [...events].sort(
-    (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
+    (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
   )
   const order: string[] = []
-  const buckets = new Map<string, LinkHistoryEvent[]>()
+  const buckets = new Map<string, LinkHistoryEntry[]>()
   for (const event of sorted) {
-    const label = dayLabel(event.at)
+    const label = dayLabel(event.occurredAt)
     if (!buckets.has(label)) {
       buckets.set(label, [])
       order.push(label)
@@ -63,7 +64,7 @@ function EventNode({
   event,
   showConnector,
 }: {
-  event: LinkHistoryEvent
+  event: LinkHistoryEntry
   showConnector: boolean
 }) {
   return (
@@ -104,13 +105,13 @@ function EventNode({
         style={{ flex: 1, minWidth: 0 }}
       >
         <HStack hAlign="between" vAlign="start" gap={2} width="100%" wrap="wrap">
-          <Text weight="semibold">{event.summary}</Text>
+          <Text weight="semibold">{historySummary(event)}</Text>
           <Text type="supporting" color="secondary">
-            {formatTime(event.at)}
+            {formatTime(event.occurredAt)}
           </Text>
         </HStack>
         <Text type="supporting" color="secondary">
-          {event.actor}
+          {event.actor.label}
         </Text>
         {event.changes?.map((change) => (
           <Text key={change.label} type="supporting" style={{ wordBreak: 'break-word' }}>
@@ -154,7 +155,7 @@ function summaryLine(summary: LinkHistorySummary): string {
 
 /** Who changed what and when, grouped by day, newest first, with type filters. */
 type LinkHistoryTimelineProps = {
-  events: LinkHistoryEvent[]
+  events: LinkHistoryEntry[]
   summary?: LinkHistorySummary
   kind: HistoryKind | null
   onKindChange: (kind: HistoryKind | null) => void

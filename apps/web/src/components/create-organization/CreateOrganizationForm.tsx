@@ -1,5 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react'
+import { useForm } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
+import { type } from 'arktype'
 import { VStack } from '@astryxdesign/core/VStack'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Heading } from '@astryxdesign/core/Heading'
@@ -12,12 +14,20 @@ import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { SquareImage } from '#/lib/media/square-image'
 import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
-import { slugifyOrganizationSlug } from '#/lib/organization/slugify'
+import { checkedText, fieldStatus, firstError, requiredText, submitWith } from '#/lib/forms/fields'
+import { isValidOrganizationSlug, slugifyOrganizationSlug } from '#/lib/organization/slugify'
 
 const ICON_MAX_BYTES = SquareImage.MAX_UPLOAD_BYTES
 const ICON_ACCEPT = SquareImage.ACCEPT
 const PICTURE_HELP = 'PNG, JPG, WebP, or GIF up to 10 MB. We crop it to a square.'
 const SLUG_PLACEHOLDER = 'acme-inc'
+
+const CreateOrganizationSchema = type({
+  name: requiredText('Enter a workspace name.'),
+  slug: checkedText((slug) =>
+    isValidOrganizationSlug(slug) ? null : 'Use a slug with lowercase letters, numbers, and hyphens (min. 2 characters).',
+  ),
+})
 
 function MutedCaption({ children }: { children: ReactNode }) {
   return (
@@ -73,29 +83,31 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingIconFile = useRef<File | null>(null)
 
-  const [name, setName] = useState('')
-  const [slug, setSlug] = useState('')
   const [slugEdited, setSlugEdited] = useState(false)
   const [iconPreview, setIconPreview] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const displayName = name.trim() || 'Organization'
-  const slugPathSegment = slug.trim() || SLUG_PLACEHOLDER
-  const slugDescription = `Your workspace URL: /w/${slugPathSegment}`
-
-  const onNameChange = (value: string) => {
-    setName(value)
-    if (!slugEdited) {
-      setSlug(slugifyOrganizationSlug(value))
-    }
-  }
-
-  const onSlugChange = (value: string) => {
-    setSlugEdited(true)
-    setSlug(slugifyOrganizationSlug(value))
-  }
+  const form = useForm({
+    defaultValues: { name: '', slug: '' },
+    validators: {
+      onSubmit: CreateOrganizationSchema,
+      onSubmitAsync: async ({ value }) => {
+        try {
+          // The logo is uploaded once the workspace exists; a failed upload keeps the workspace.
+          const { organization: org } = await createOrganization({
+            name: value.name,
+            slug: value.slug,
+            logo: pendingIconFile.current,
+          })
+          ActiveWorkspace.remember(org.slug)
+          void navigate({ to: WorkspaceUrl.build(org.slug), replace: true })
+          return undefined
+        } catch (error) {
+          return error instanceof Error ? error.message : 'Could not create organization.'
+        }
+      },
+    },
+  })
 
   const openFilePicker = () => {
     setUploadError(null)
@@ -131,28 +143,8 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
     if (fileRef.current) fileRef.current.value = ''
   }
 
-  const handleSubmit = async () => {
-    setFormError(null)
-    setIsSubmitting(true)
-    try {
-      // The logo is uploaded once the workspace exists; a failed upload keeps the workspace.
-      const { organization: org } = await createOrganization({
-        name,
-        slug,
-        logo: pendingIconFile.current,
-      })
-      ActiveWorkspace.remember(org.slug)
-      void navigate({ to: WorkspaceUrl.build(org.slug), replace: true })
-    } catch (error) {
-      setFormError(
-        error instanceof Error ? error.message : 'Could not create organization.',
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   return (
+    <form noValidate onSubmit={submitWith(form)}>
     <VStack gap={8} hAlign="stretch" width="100%">
         <VStack gap={1} hAlign="start" width="100%">
           <Heading level={3}>
@@ -167,13 +159,17 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
 
         <FormBlock title="Icon">
           <HStack gap={4} vAlign="start" wrap="wrap" width="100%">
-            <Avatar
-              src={iconPreview ?? undefined}
-              name={displayName}
-              size={72}
-              shape="rounded"
-              tooltip={false}
-            />
+            <form.Subscribe selector={(state) => state.values.name.trim() || 'Organization'}>
+              {(displayName) => (
+                <Avatar
+                  src={iconPreview ?? undefined}
+                  name={displayName}
+                  size={72}
+                  shape="rounded"
+                  tooltip={false}
+                />
+              )}
+            </form.Subscribe>
             <VStack gap={2} hAlign="start">
               <HStack gap={2} vAlign="center" wrap="wrap">
                 <Button
@@ -229,34 +225,55 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
         >
           <Grid columns={2} gap={4} width="100%">
             <GridSpan columns="full">
-              <TextInput
-                label="Organization name"
-                width="100%"
-                placeholder="Acme Inc."
-                value={name}
-                onChange={onNameChange}
-                isRequired
-              />
+              <form.Field name="name">
+                {(field) => (
+                  <TextInput
+                    label="Organization name"
+                    width="100%"
+                    placeholder="Acme Inc."
+                    value={field.state.value}
+                    onChange={(value) => {
+                      field.handleChange(value)
+                      // The slug follows the name until it is edited by hand.
+                      if (!slugEdited) form.setFieldValue('slug', slugifyOrganizationSlug(value))
+                    }}
+                    status={fieldStatus(field.state.meta.errors)}
+                    isRequired
+                  />
+                )}
+              </form.Field>
             </GridSpan>
             <GridSpan columns="full">
-              <TextInput
-                label="Slug"
-                width="100%"
-                placeholder={SLUG_PLACEHOLDER}
-                value={slug}
-                onChange={onSlugChange}
-                description={slugDescription}
-                isRequired
-              />
+              <form.Field name="slug">
+                {(field) => (
+                  <TextInput
+                    label="Slug"
+                    width="100%"
+                    placeholder={SLUG_PLACEHOLDER}
+                    value={field.state.value}
+                    onChange={(value) => {
+                      setSlugEdited(true)
+                      field.handleChange(slugifyOrganizationSlug(value))
+                    }}
+                    description={`Your workspace URL: /w/${field.state.value.trim() || SLUG_PLACEHOLDER}`}
+                    status={fieldStatus(field.state.meta.errors)}
+                    isRequired
+                  />
+                )}
+              </form.Field>
             </GridSpan>
           </Grid>
         </FormBlock>
 
-        {formError ? (
-          <Text type="supporting" color="primary">
-            {formError}
-          </Text>
-        ) : null}
+        <form.Subscribe selector={(state) => firstError(state.errorMap.onSubmit ? [state.errorMap.onSubmit] : [])}>
+          {(formError) =>
+            formError ? (
+              <Text type="supporting" color="primary" role="alert">
+                {formError}
+              </Text>
+            ) : null
+          }
+        </form.Subscribe>
 
         <HStack gap={2} vAlign="center" hAlign="end" wrap="wrap" width="100%">
           {isOnboarding ? null : (
@@ -267,14 +284,19 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
               onClick={() => void navigate({ to: '/w' })}
             />
           )}
-          <Button
-            variant={isOnboarding ? 'primary' : 'secondary'}
-            size="sm"
-            label={isSubmitting ? 'Creating…' : isOnboarding ? 'Continue' : 'Create organization'}
-            isDisabled={isSubmitting || !name.trim() || !slug.trim()}
-            onClick={() => void handleSubmit()}
-          />
+          <form.Subscribe selector={(state) => [state.isSubmitting, state.values.name.trim() !== '' && state.values.slug.trim() !== ''] as const}>
+            {([isSubmitting, isFilled]) => (
+              <Button
+                variant={isOnboarding ? 'primary' : 'secondary'}
+                size="sm"
+                type="submit"
+                label={isSubmitting ? 'Creating…' : isOnboarding ? 'Continue' : 'Create organization'}
+                isDisabled={isSubmitting || !isFilled}
+              />
+            )}
+          </form.Subscribe>
         </HStack>
     </VStack>
+    </form>
   )
 }

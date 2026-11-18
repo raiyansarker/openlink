@@ -46,12 +46,15 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 export default function WebhookDetailSheet({
-  webhook,
+  webhook: current,
   onOpenChange,
   onUpdate,
   onRemove,
 }: WebhookDetailSheetProps) {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
+  // Keep the last webhook on screen while the drawer animates closed.
+  const [webhook, setWebhook] = useState(current)
+  if (current && current !== webhook) setWebhook(current)
 
   if (!webhook) return null
 
@@ -60,14 +63,14 @@ export default function WebhookDetailSheet({
   return (
     <>
       <Drawer
-        isOpen
+        isOpen={current != null}
         onOpenChange={onOpenChange}
         label={webhook.name}
         side="end"
         width={420}
         hasScrim
         padding={FLOATING_END_DRAWER_PADDING}
-        style={floatingEndDrawerStyle()}
+        style={floatingEndDrawerStyle({ isOpen: current != null })}
       >
         <Layout
           header={

@@ -3,12 +3,12 @@ import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import CopyValueButton from '#/components/common/CopyValueButton'
 import RouteRail from '#/components/common/RouteRail'
-import type { DomainDnsRecord } from '#/data/demo/domains'
+import type { DnsRecord } from '#/lib/api/types'
 import { dnsValueFieldLabel } from '#/lib/domains/dns-record-display'
 import { DnsRecordName } from '#/lib/domains/dns-record-name'
 
 type DomainDnsRecordRouteProps = {
-  record: DomainDnsRecord
+  record: DnsRecord
   domainHostname: string
 }
 

@@ -1,4 +1,4 @@
-import type { WorkspaceCustomDomain } from '#/data/demo/domains'
+import type { Domain } from '#/lib/api/types'
 
 export type DomainTimelineEvent = {
   id: string
@@ -8,7 +8,7 @@ export type DomainTimelineEvent = {
 }
 
 export function buildDomainTimeline(
-  domain: WorkspaceCustomDomain,
+  domain: Domain,
 ): DomainTimelineEvent[] {
   const events: DomainTimelineEvent[] = [
     {
