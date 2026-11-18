@@ -5,6 +5,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 
 import { DASHBOARD_SURFACE_BG } from '#/components/dashboard/layout/dashboard-shell-colors'
+import SettingsSkeleton from '#/components/settings/SettingsSkeleton'
 
 /** `page` fills the viewport (top-level routes); `inline` sits inside an existing layout, such as a settings panel. */
 export type StatusPresentation = 'page' | 'inline'
@@ -16,7 +17,11 @@ type WorkspaceStatusScreenProps = { presentation?: StatusPresentation } & (
 )
 
 function Body(props: WorkspaceStatusScreenProps) {
-  if (props.state === 'loading') return <Spinner size={props.presentation === 'inline' ? 'md' : 'lg'} label={props.label ?? 'Loading your workspace…'} />
+  if (props.state === 'loading') {
+    // Inside settings, the panel previews its shape instead of a lone spinner in the corner.
+    if (props.presentation === 'inline') return <SettingsSkeleton label={props.label ?? 'Loading your workspace…'} />
+    return <Spinner size="lg" label={props.label ?? 'Loading your workspace…'} />
+  }
   if (props.state === 'missing') {
     return (
       <VStack gap={2} hAlign="start">
