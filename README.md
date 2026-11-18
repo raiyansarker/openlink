@@ -74,7 +74,7 @@ Contracts live under `packages/contracts/src/` and are composed in `contract.ts`
 | `links`         | CRUD per domain, workspace search, bulk move/tag/delete, history |
 | `comments`      | Link comment threads and reactions                |
 | `activity`      | Workspace audit feed (also powers link history)   |
-| `apiKeys`       | Workspace API keys (`Authorization: Bearer ol_live_…`) |
+| `apiKeys`       | Workspace API keys (`Authorization: Bearer sk_…`) |
 
 Short links resolve at `/{slug}` on any active custom domain (redirect, password gate, expiry/fallback, click limits).
 
@@ -140,7 +140,7 @@ operations now require an owner or admin.
 
 Workspace API keys use the Better Auth [API key plugin](https://www.better-auth.com/docs/plugins/api-key)
 (`@better-auth/api-key`), configured in `apps/web/src/server/auth/api-keys.ts`.
-Clients send `Authorization: Bearer ol_live_…`; `requirePrincipal` verifies the key with
+Clients send `Authorization: Bearer sk_…`; `requirePrincipal` verifies the key with
 `auth.api.verifyApiKey`. The dashboard and the `apiKeys` oRPC routes call `auth.api.*`
 through `apps/web/src/server/apikeys/service.ts`.
 
@@ -187,7 +187,7 @@ headers. A key without a valid role, for example one made by calling
 
 **Other settings:**
 
-- Secrets start with `ol_live_`. Only a hash is stored; the list shows the first 12
+- Secrets start with `sk_`. Only a hash is stored; the list shows the first 9
   characters (`start`).
 - The plugin's per-key rate limit is off. Its default is 10 requests per day.
 - `lastRequest` (shown as "last used") is updated on every authenticated request.

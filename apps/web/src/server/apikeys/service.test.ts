@@ -9,7 +9,7 @@ import { WorkerRequest } from '#/server/effect/services/request'
 import { createTestAuth, signUpTestUser } from '#/server/testing/auth'
 import { createTestDatabase } from '#/server/testing/sqlite'
 import { ApiKeyNotFound } from './errors'
-import { authenticateApiKey, createApiKey, listApiKeys, revokeApiKey, updateApiKeyRole } from './service'
+import { authenticateApiKey, createApiKey, listApiKeys, revokeApiKey, rotateApiKey, updateApiKeyRole } from './service'
 
 const databases: Database[] = []
 afterEach(() => {
@@ -56,8 +56,8 @@ describe('createApiKey', () => {
     const t = await setup()
     const { row, secret } = await t.create()
     expect(row).toMatchObject({ name: 'CI deploy', role: 'member', organizationId: 'o1', lastUsedAt: null })
-    expect(secret.startsWith('ol_live_')).toBe(true)
-    expect(row.prefix).toBe(secret.slice(0, 12))
+    expect(secret.startsWith('sk_')).toBe(true)
+    expect(row.prefix).toBe(secret.slice(0, 9))
     expect(t.stored(row.id)?.referenceId).toBe('o1')
     expect(JSON.stringify(t.adapter.select().from(apikey).all())).not.toContain(secret)
   })
@@ -125,6 +125,28 @@ describe('updateApiKeyRole / revokeApiKey', () => {
   })
 })
 
+describe('rotateApiKey', () => {
+  test('swaps in a new key with the same name and role, and the old secret stops working', async () => {
+    const t = await setup()
+    const { row, secret } = await t.create({ role: 'viewer' })
+    const rotated = await t.run(rotateApiKey({ organizationId: 'o1', keyId: row.id, createdByUserId: t.admin.userId }))
+    expect(rotated.row).toMatchObject({ name: 'CI deploy', role: 'viewer', organizationId: 'o1' })
+    expect(rotated.row.id).not.toBe(row.id)
+    expect(rotated.secret.startsWith('sk_')).toBe(true)
+    expect(await t.run(authenticateApiKey(secret))).toBeNull()
+    expect(await t.run(authenticateApiKey(rotated.secret))).toMatchObject({ role: 'viewer' })
+    expect((await t.run(listApiKeys('o1'))).map((k) => k.id)).toEqual([rotated.row.id])
+  })
+
+  test('creates nothing when the key does not exist or belongs to another organization', async () => {
+    const t = await setup()
+    const { row } = await t.create()
+    expect(await t.fail(rotateApiKey({ organizationId: 'o2', keyId: row.id, createdByUserId: t.admin.userId }))).toBeInstanceOf(ApiKeyNotFound)
+    expect(await t.fail(rotateApiKey({ organizationId: 'o1', keyId: 'missing', createdByUserId: t.admin.userId }))).toBeInstanceOf(ApiKeyNotFound)
+    expect(await t.run(listApiKeys('o1'))).toHaveLength(1)
+  })
+})
+
 describe('authenticateApiKey', () => {
   test('resolves a valid secret to its workspace principal and records its use', async () => {
     const t = await setup()
@@ -136,7 +158,7 @@ describe('authenticateApiKey', () => {
   test('unknown, truncated and tampered secrets resolve to null', async () => {
     const t = await setup()
     const { secret } = await t.create()
-    for (const bad of ['ol_live_nope', secret.slice(0, -1), `${secret}x`, secret.toUpperCase(), '']) {
+    for (const bad of ['sk_nope', secret.slice(0, -1), `${secret}x`, secret.toUpperCase(), '']) {
       expect(await t.run(authenticateApiKey(bad))).toBeNull()
     }
   })

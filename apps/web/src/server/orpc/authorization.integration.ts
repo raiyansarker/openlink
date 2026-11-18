@@ -64,12 +64,13 @@ const deleteLinks = mock((_input: unknown) => Effect.succeed(2))
 const activityRow = { id: 'evt-1', organizationId: org.id, actorType: 'member' as const, actorUserId: 'user-1', actorLabel: 'Ada', action: 'link.created', category: 'links' as const, targetType: 'link', targetId: 'link-1', targetLabel: 'hello', source: 'dashboard' as const, detailsJson: JSON.stringify({ changes: [{ label: 'Title', from: '—', to: 'Hi' }] }), ipAddress: '203.0.113.9', createdAt: now }
 const listActivity = mock((_input: unknown) => Effect.succeed({ items: [activityRow], nextCursor: undefined as string | undefined }))
 const audit = mock((_session: unknown, _event: unknown) => Effect.void)
-const keyRow = { id: 'key-1', organizationId: org.id, name: 'CI deploy', prefix: 'ol_live_8f3a', role: 'member' as const, createdAt: now, lastUsedAt: null }
+const keyRow = { id: 'key-1', organizationId: org.id, name: 'CI deploy', prefix: 'sk_8f3a', role: 'member' as const, createdAt: now, lastUsedAt: null }
 let keyPrincipal: { id: string; organizationId: string; role: 'admin' | 'member' | 'viewer'; name: string } | null = null
 const authenticateApiKey = mock((_secret: string) => Effect.succeed(keyPrincipal))
 const listApiKeys = mock((_organizationId: string) => Effect.succeed([keyRow]))
-const createApiKey = mock((input: { name: string; role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ row: { ...keyRow, ...input }, secret: 'ol_live_secret-value' }))
+const createApiKey = mock((input: { name: string; role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ row: { ...keyRow, ...input }, secret: 'sk_secret-value' }))
 const updateApiKeyRole = mock((input: { role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ row: { ...keyRow, role: input.role }, previousRole: 'member' as const }))
+const rotateApiKey = mock((_input: { keyId: string }) => Effect.succeed({ row: { ...keyRow, id: 'key-2' }, secret: 'sk_rotated-value', previous: keyRow }))
 const revokeApiKey = mock((_organizationId: string, _keyId: string) => Effect.succeed(keyRow))
 const deviceRow = { id: 'sess-current', ipAddress: '203.0.113.7', userAgent: 'UA', city: 'Dhaka', country: 'BD', latitude: 23.8, longitude: 90.4, signInMethod: 'github', createdAt: now, updatedAt: now, expiresAt: now }
 const listDeviceSessions = mock((_userId: string) => Effect.succeed([deviceRow, { ...deviceRow, id: 'sess-laptop', city: null, latitude: null, longitude: null }]))
@@ -139,7 +140,7 @@ const summarizeTarget = mock((_input: unknown) =>
 mock.module('#/server/activity/service', () => ({ listActivity, summarizeTarget }))
 mock.module('#/server/activity/audit', () => ({ audit }))
 mock.module('#/server/apikeys/service', () => ({
-  authenticateApiKey, listApiKeys, createApiKey, updateApiKeyRole, revokeApiKey,
+  authenticateApiKey, listApiKeys, createApiKey, updateApiKeyRole, rotateApiKey, revokeApiKey,
 }))
 mock.module('#/server/devices/sessions', () => ({
   DeviceSessions: { list: listDeviceSessions, revoke: revokeDeviceSession, revokeOthers: revokeOtherDeviceSessions },
@@ -174,7 +175,7 @@ const sideEffects = [
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
   moveLinks, addTagsToLinks, deleteLinks,
-  createApiKey, updateApiKeyRole, revokeApiKey, revokeDeviceSession, revokeOtherDeviceSessions,
+  createApiKey, updateApiKeyRole, rotateApiKey, revokeApiKey, revokeDeviceSession, revokeOtherDeviceSessions,
   acceptInviteById, declineInviteForEmail,
 ]
 const spies = [
@@ -703,7 +704,7 @@ describe('API key management', () => {
   test('the secret is returned once on creation and never when listing', async () => {
     role = 'admin'
     const created = await (await request('POST', keysPath, { name: ' CI ', role: 'viewer' })).json()
-    expect(created).toMatchObject({ secret: 'ol_live_secret-value', role: 'viewer', prefix: 'ol_live_8f3a' })
+    expect(created).toMatchObject({ secret: 'sk_secret-value', role: 'viewer', prefix: 'sk_8f3a' })
     expect(createApiKey).toHaveBeenCalledWith({ organizationId: org.id, name: 'CI', role: 'viewer', createdByUserId: 'user-1' })
     const listed = (await (await request('GET', keysPath)).json()) as { items: Record<string, unknown>[] }
     expect(JSON.stringify(listed)).not.toContain('secret')
@@ -736,8 +737,21 @@ describe('API key management', () => {
     expect(audit).toHaveBeenLastCalledWith(cookieActor, expect.objectContaining({ action: 'apikey.revoked' }))
   })
 
+  test('rotating a key returns the new secret and audits both keys', async () => {
+    role = 'admin'
+    audit.mockClear()
+    const response = await request('POST', `${keysPath}/key-1/rotate`)
+    expect(response.status).toBe(201)
+    expect(await response.json()).toMatchObject({ id: 'key-2', secret: 'sk_rotated-value' })
+    expect(rotateApiKey).toHaveBeenCalledWith({ organizationId: org.id, keyId: 'key-1', createdByUserId: 'user-1' })
+    expect(audit).toHaveBeenCalledWith(cookieActor, expect.objectContaining({ action: 'apikey.created' }))
+    expect(audit).toHaveBeenCalledWith(cookieActor, expect.objectContaining({ action: 'apikey.revoked' }))
+  })
+
   test('unknown keys are a 404', async () => {
     role = 'admin'
+    rotateApiKey.mockImplementationOnce(() => Effect.fail({ _tag: 'ApiKeyNotFound' }) as never)
+    expect((await request('POST', `${keysPath}/missing/rotate`)).status).toBe(404)
     revokeApiKey.mockImplementationOnce(() => Effect.fail({ _tag: 'ApiKeyNotFound' }) as never)
     expect((await request('DELETE', `${keysPath}/missing`)).status).toBe(404)
     updateApiKeyRole.mockImplementationOnce(() => Effect.fail({ _tag: 'ApiKeyNotFound' }) as never)
@@ -746,7 +760,7 @@ describe('API key management', () => {
 })
 
 describe('requests authenticated with an API key', () => {
-  const bearer = { authorization: 'Bearer ol_live_test-secret' }
+  const bearer = { authorization: 'Bearer sk_test-secret' }
   const asKey = (keyRole: 'admin' | 'member' | 'viewer', organizationId = org.id) => {
     keyPrincipal = { id: 'key-1', organizationId, role: keyRole, name: 'CI deploy' }
   }
@@ -756,7 +770,7 @@ describe('requests authenticated with an API key', () => {
     authenticated = false
     const response = await request('GET', `${orgPath}/members`, undefined, bearer)
     expect(response.status).toBe(200)
-    expect(authenticateApiKey).toHaveBeenCalledWith('ol_live_test-secret')
+    expect(authenticateApiKey).toHaveBeenCalledWith('sk_test-secret')
     expect(requireSession).not.toHaveBeenCalled()
     expect(requireOrgMembership).not.toHaveBeenCalled()
   })
@@ -940,7 +954,7 @@ describe('your invites (notifications)', () => {
       expect((await request(method, path)).status).toBe(401)
     }
     keyPrincipal = { id: 'key-1', organizationId: org.id, role: 'admin', name: 'CI' }
-    expect((await request('GET', '/me/invites', undefined, { authorization: 'Bearer ol_live_x' })).status).toBe(401)
+    expect((await request('GET', '/me/invites', undefined, { authorization: 'Bearer sk_x' })).status).toBe(401)
     expect(listInvitesForEmail).not.toHaveBeenCalled()
     expect(acceptInviteById).not.toHaveBeenCalled()
   })
@@ -984,7 +998,7 @@ describe('device sessions', () => {
       expect((await request(method, path)).status).toBe(401)
     }
     keyPrincipal = { id: 'key-1', organizationId: org.id, role: 'admin', name: 'CI' }
-    expect((await request('POST', '/me/sessions/revoke-others', undefined, { authorization: 'Bearer ol_live_x' })).status).toBe(401)
+    expect((await request('POST', '/me/sessions/revoke-others', undefined, { authorization: 'Bearer sk_x' })).status).toBe(401)
     expect(revokeOtherDeviceSessions).not.toHaveBeenCalled()
     expect(listDeviceSessions).not.toHaveBeenCalled()
   })
