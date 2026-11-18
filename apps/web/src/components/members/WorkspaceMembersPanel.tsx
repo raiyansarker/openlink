@@ -38,7 +38,11 @@ export default function WorkspaceMembersPanel() {
   const members = query.people
   const mutations = usePeopleMutations(organizationId)
   const [actionError, setActionError] = useState<string | null>(null)
-  /** Row actions share one error line. */
+  /**
+   * Row actions share one error line. This only wraps them for error handling:
+   * each action runs a `usePeopleMutations` mutation, which refreshes the member
+   * and invite lists itself, so nothing is invalidated here.
+   */
   const action = useMutation({
     mutationFn: (run: () => Promise<unknown>) => run(),
     onMutate: () => setActionError(null),

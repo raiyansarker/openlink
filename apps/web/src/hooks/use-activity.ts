@@ -50,8 +50,11 @@ export function useMemberActivity(organizationId: string, userId: string | null,
   )
 }
 
+/** How long a search box waits after the last keystroke before it searches. */
+export const QUERY_DEBOUNCE_MS = 300
+
 /** `value`, once it has stopped changing for `delayMs` (for search boxes). */
-export function useDebouncedValue<T>(value: T, delayMs = 300): T {
+export function useDebouncedValue<T>(value: T, delayMs = QUERY_DEBOUNCE_MS): T {
   const [settled, setSettled] = useState(value)
   useEffect(() => {
     const timer = window.setTimeout(() => setSettled(value), delayMs)
