@@ -42,13 +42,11 @@ export default function PreviewImageField({
   const [localUrl, setLocalUrl] = useState<string | null>(null)
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
 
-  // Drop the local copy once the uploaded image is in place (or the upload failed).
+  // Free the local copy when it is replaced or the field goes away.
   useEffect(() => {
-    if (!isUploading && localUrl) {
-      URL.revokeObjectURL(localUrl)
-      setLocalUrl(null)
-    }
-  }, [isUploading, localUrl])
+    if (!localUrl) return
+    return () => URL.revokeObjectURL(localUrl)
+  }, [localUrl])
 
   const choose = (file: File | null) => {
     if (!file) return
@@ -57,7 +55,8 @@ export default function PreviewImageField({
     onChoose(file)
   }
 
-  const shown = localUrl ?? imageUrl
+  // The local copy only stands in while the upload runs; after that the uploaded image (or the old one, if it failed) shows.
+  const shown = isUploading && localUrl ? localUrl : imageUrl
   const status = error ? { type: 'error' as const, message: error } : undefined
 
   if (!shown) {
@@ -89,7 +88,7 @@ export default function PreviewImageField({
         <AspectRatio ratio={CARD_RATIO}>
           <img
             src={shown}
-            alt="Share image"
+            alt="How the link card looks when shared"
             onLoad={(event) => setSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
             style={{
               width: '100%',
