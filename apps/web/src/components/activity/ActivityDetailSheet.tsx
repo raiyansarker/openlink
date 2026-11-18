@@ -56,7 +56,7 @@ export default function ActivityDetailSheet({
       hasScrim
       purpose="info"
       padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle()}
+      style={floatingEndDrawerStyle({ isOpen: current != null })}
     >
       <Layout
         header={

@@ -57,7 +57,7 @@ export default function DeviceDetailSheet({
         width={420}
         hasScrim
         padding={FLOATING_END_DRAWER_PADDING}
-        style={floatingEndDrawerStyle()}
+        style={floatingEndDrawerStyle({ isOpen })}
       >
         <Layout
           header={

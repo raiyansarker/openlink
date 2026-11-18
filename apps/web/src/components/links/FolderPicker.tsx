@@ -129,7 +129,7 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
         width={400}
         purpose="form"
         padding={FLOATING_END_DRAWER_PADDING}
-        style={floatingEndDrawerStyle()}
+        style={floatingEndDrawerStyle({ isOpen })}
       >
         <Layout
           header={<DrawerHeader title="Choose a folder" subtitle="Where the link is filed." onOpenChange={setIsOpen} />}

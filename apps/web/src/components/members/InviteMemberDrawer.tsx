@@ -73,7 +73,7 @@ export default function InviteMemberDrawer({
       width={400}
       purpose="form"
       padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle()}
+      style={floatingEndDrawerStyle({ isOpen })}
     >
       <Layout
         header={

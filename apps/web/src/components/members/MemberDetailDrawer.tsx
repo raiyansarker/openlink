@@ -72,7 +72,7 @@ export default function MemberDetailDrawer({
       width={420}
       purpose="info"
       padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle()}
+      style={floatingEndDrawerStyle({ isOpen })}
     >
       {member ? (
         <Layout

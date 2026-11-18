@@ -91,7 +91,7 @@ export default function CreateWebhookDrawer({
       width={420}
       purpose="form"
       padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle()}
+      style={floatingEndDrawerStyle({ isOpen })}
     >
       <Layout
         header={
