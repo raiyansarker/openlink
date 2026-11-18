@@ -307,7 +307,7 @@
     --astryx-theme-neutral-color-status-fill-accent: light-dark(#0074e2, #6d9cfe);
     --openlink-brand: light-dark(#FF4602, #FF6B33);
     --openlink-brand-muted: light-dark(color-mix(in oklab, #FF4602 16%, transparent), color-mix(in oklab, #FF6B33 22%, transparent));
-    --openlink-field-focus: light-dark(#0074E2, #0074E2);
+    --openlink-field-focus: light-dark(#015FCC, #015FCC);
   }
 
   :scope {

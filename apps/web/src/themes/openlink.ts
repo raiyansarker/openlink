@@ -65,7 +65,7 @@ export const openlinkTheme = defineTheme({
       'color-mix(in oklab, #FF6B33 22%, transparent)',
     ],
     /** Focused field border: the same deep blue in both schemes. */
-    '--openlink-field-focus': ['#0074E2', '#0074E2'],
+    '--openlink-field-focus': ['#015FCC', '#015FCC'],
   },
   tokens: {
     '--shadow-inset-hover': 'none',
