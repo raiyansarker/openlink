@@ -24,6 +24,8 @@ bun run dev --filter=@openlink/email
 
 The preview server runs on port `3001`. Build all templates with `bun run build --filter=@openlink/email`.
 
+Each template accepts an optional `logoUrl` prop. It defaults to `/logo192.png` for previews; when sending an email, pass the absolute URL for the PNG hosted by the web application, for example `https://app.example.com/logo192.png`.
+
 ## Integration note
 
 The backend currently creates invite and authentication records but does not yet have a mail transport binding. The props on each template are deliberately transport-agnostic so they can be connected to Resend, Postmark, SES, or another provider without changing the markup.

@@ -33,10 +33,12 @@ export function EmailLayout({
   preview,
   children,
   footer = "You received this message from OpenLink.",
+  logoUrl = "/logo192.png",
 }: {
   preview: string;
   children: ReactNode;
   footer?: string;
+  logoUrl?: string;
 }) {
   return (
     <Html>
@@ -48,7 +50,7 @@ export function EmailLayout({
             <Row>
               <Column style={styles.logoColumn}>
                 <Img
-                  src="/logo192.png"
+                  src={logoUrl}
                   alt="OpenLink"
                   height="40"
                   width="40"

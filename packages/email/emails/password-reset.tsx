@@ -10,21 +10,24 @@ export type PasswordResetEmailProps = {
   name: string;
   resetUrl: string;
   expiresIn: string;
+  logoUrl?: string;
 };
 
 const defaultProps: PasswordResetEmailProps = {
   name: "Alex",
   resetUrl: "https://openlink.example/reset/example-token",
   expiresIn: "1 hour",
+  logoUrl: "/logo192.png",
 };
 
 export default function PasswordResetEmail({
   name,
   resetUrl,
   expiresIn,
+  logoUrl,
 }: PasswordResetEmailProps = defaultProps) {
   return (
-    <EmailLayout preview="Reset your OpenLink password">
+    <EmailLayout logoUrl={logoUrl} preview="Reset your OpenLink password">
       <EmailHeading eyebrow="Account security">
         Reset your password
       </EmailHeading>
