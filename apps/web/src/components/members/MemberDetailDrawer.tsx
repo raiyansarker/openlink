@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { Divider } from '@astryxdesign/core/Divider'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
@@ -41,18 +42,21 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function MemberDetailDrawer({
-  member,
+  member: current,
   onOpenChange,
   onChangeRole,
   onRemove,
   onResendInvite,
 }: MemberDetailDrawerProps) {
-  const isOpen = member != null
+  // Keep the last member (and their activity) on screen while the drawer animates closed.
+  const [member, setMember] = useState(current)
+  if (current && current !== member) setMember(current)
+  const isOpen = current != null
   const { activeOrg } = useOrganization()
   const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
   const userId = member?.kind === 'member' ? member.userId : null
   // What this person did most recently: their last 20 actions, filtered on the server.
-  const activityQuery = useMemberActivity(activeOrg.id, isOpen ? userId : null)
+  const activityQuery = useMemberActivity(activeOrg.id, userId)
   const activities = userId ? (activityQuery.data?.items ?? []) : []
 
   const isOwner = member?.role === 'owner'

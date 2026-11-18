@@ -33,15 +33,18 @@ type DomainDetailSheetProps = {
 }
 
 export default function DomainDetailSheet({
-  target,
+  target: current,
   onOpenChange,
 }: DomainDetailSheetProps) {
   const { getDomainById, verifyDomain, removeDomain } = useDomainsWorkspace()
   const [removeAlertOpen, setRemoveAlertOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
+  // Keep the last domain on screen while the drawer animates closed.
+  const [target, setTarget] = useState(current)
+  if (current && current !== target) setTarget(current)
 
-  const isOpen = target != null
+  const isOpen = current != null
   const custom: Domain | undefined = target
     ? getDomainById(target.domainId)
     : undefined
