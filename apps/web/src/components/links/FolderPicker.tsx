@@ -164,22 +164,16 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
           }
           footer={
             <LayoutFooter hasDivider>
-              <VStack gap={2} hAlign="stretch" width="100%">
-                {/* The full path, so a folder picked from search or deep in the tree is unambiguous. */}
-                <Text type="supporting" color="secondary" maxLines={2}>
-                  Selected: {pending ? folderPathLabel(folders, pending) : ROOT_LABEL}
-                </Text>
-                <HStack gap={2} hAlign="end" width="100%">
-                  <Button variant="ghost" size="sm" label="Cancel" onClick={() => setIsOpen(false)} />
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    label="Use folder"
-                    isDisabled={pending === value}
-                    onClick={confirm}
-                  />
-                </HStack>
-              </VStack>
+              <HStack gap={2} hAlign="end" width="100%">
+                <Button variant="ghost" size="sm" label="Cancel" onClick={() => setIsOpen(false)} />
+                <Button
+                  variant="primary"
+                  size="sm"
+                  label="Use folder"
+                  isDisabled={pending === value}
+                  onClick={confirm}
+                />
+              </HStack>
             </LayoutFooter>
           }
         />
