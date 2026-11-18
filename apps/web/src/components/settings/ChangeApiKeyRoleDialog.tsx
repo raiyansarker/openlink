@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -26,14 +26,21 @@ function defaultAssignableRole(key: WorkspaceApiKey): WorkspaceMemberRole {
   return 'member'
 }
 
-function ChangeApiKeyRoleDialogBody({
+export default function ChangeApiKeyRoleDialog({
   apiKey,
+  isOpen,
   onOpenChange,
   onConfirm,
 }: ChangeApiKeyRoleDialogProps) {
   const [selectedRole, setSelectedRole] = useState<WorkspaceMemberRole>(
     defaultAssignableRole(apiKey),
   )
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedRole(defaultAssignableRole(apiKey))
+    }
+  }, [isOpen, apiKey])
 
   const unchanged = selectedRole === apiKey.role
 
@@ -45,73 +52,66 @@ function ChangeApiKeyRoleDialogBody({
   }
 
   return (
-    <Layout
-      header={
-        <DialogHeader title="Change role" onOpenChange={onOpenChange} />
-      }
-      content={
-        <LayoutContent>
-          <VStack gap={4} hAlign="stretch" width="100%">
-            <Text type="supporting" color="secondary">
-              Choose a workspace role for the {apiKey.name} key.
-            </Text>
-            <VStack gap={2} hAlign="stretch" width="100%">
-              <Text weight="semibold">Workspace role</Text>
-              <SegmentedControl
-                label="Workspace role"
-                value={selectedRole}
-                onChange={(value) =>
-                  setSelectedRole(value as WorkspaceMemberRole)
-                }
-                layout="fill"
-              >
-                {API_KEY_ASSIGNABLE_ROLES.map((option) => (
-                  <SegmentedControlItem
-                    key={option}
-                    value={option}
-                    label={workspaceMemberRoleLabel(option)}
-                  />
-                ))}
-              </SegmentedControl>
-              <Text type="supporting" color="secondary">
-                {WORKSPACE_MEMBER_ROLE_HELP[selectedRole]}
-              </Text>
-            </VStack>
-          </VStack>
-        </LayoutContent>
-      }
-      footer={
-        <LayoutFooter hasDivider>
-          <HStack gap={2} hAlign="end" width="100%" wrap="wrap">
-            <Button
-              variant="ghost"
-              size="sm"
-              label="Cancel"
-              onClick={() => onOpenChange(false)}
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              label={unchanged ? 'Done' : 'Save role'}
-              onClick={handleSave}
-            />
-          </HStack>
-        </LayoutFooter>
-      }
-    />
-  )
-}
-
-export default function ChangeApiKeyRoleDialog(props: ChangeApiKeyRoleDialogProps) {
-  const { onOpenChange } = props
-  return (
     <Dialog
-      isOpen={props.isOpen}
+      isOpen={isOpen}
       onOpenChange={onOpenChange}
       purpose="form"
       width={400}
     >
-      {props.isOpen ? <ChangeApiKeyRoleDialogBody {...props} /> : null}
+      <Layout
+        header={
+          <DialogHeader title="Change role" onOpenChange={onOpenChange} />
+        }
+        content={
+          <LayoutContent>
+            <VStack gap={4} hAlign="stretch" width="100%">
+              <Text type="supporting" color="secondary">
+                Choose a workspace role for the {apiKey.name} key.
+              </Text>
+              <VStack gap={2} hAlign="stretch" width="100%">
+                <Text weight="semibold">Workspace role</Text>
+                <SegmentedControl
+                  label="Workspace role"
+                  value={selectedRole}
+                  onChange={(value) =>
+                    setSelectedRole(value as WorkspaceMemberRole)
+                  }
+                  layout="fill"
+                >
+                  {API_KEY_ASSIGNABLE_ROLES.map((option) => (
+                    <SegmentedControlItem
+                      key={option}
+                      value={option}
+                      label={workspaceMemberRoleLabel(option)}
+                    />
+                  ))}
+                </SegmentedControl>
+                <Text type="supporting" color="secondary">
+                  {WORKSPACE_MEMBER_ROLE_HELP[selectedRole]}
+                </Text>
+              </VStack>
+            </VStack>
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider>
+            <HStack gap={2} hAlign="end" width="100%" wrap="wrap">
+              <Button
+                variant="ghost"
+                size="sm"
+                label="Cancel"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                label={unchanged ? 'Done' : 'Save role'}
+                onClick={handleSave}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   )
 }

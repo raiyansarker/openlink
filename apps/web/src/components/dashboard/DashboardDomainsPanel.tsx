@@ -55,6 +55,12 @@ export default function DashboardDomainsPanel() {
   }
 
   useEffect(() => {
+    setSearchQuery('')
+    setStatusFilter('all')
+    setSheetTarget(null)
+  }, [activeOrg.id])
+
+  useEffect(() => {
     if (!detailRequestDomainId) return
     setSheetTarget({ kind: 'custom', domainId: detailRequestDomainId })
     consumeDetailRequest()

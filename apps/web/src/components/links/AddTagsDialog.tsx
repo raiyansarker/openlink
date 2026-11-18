@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -16,80 +16,76 @@ type AddTagsDialogProps = {
 }
 
 /** Adds tags to several links at once (existing tags are kept). */
-function AddTagsDialogBody({
+export default function AddTagsDialog({
   count,
   existingTags,
   onOpenChange,
   onAdd,
 }: AddTagsDialogProps) {
   const [tags, setTags] = useState<string[]>([])
+  useEffect(() => {
+    if (count > 0) setTags([])
+  }, [count])
   const source = useMemo(
     () => createStaticSource(existingTags.map((t) => ({ id: t, label: t }))),
     [existingTags],
   )
 
   return (
-    <Layout
-      header={
-        <DialogHeader
-          title="Add tags"
-          subtitle={`To ${count} ${count === 1 ? 'link' : 'links'}`}
-          onOpenChange={onOpenChange}
-        />
-      }
-      content={
-        <LayoutContent padding={FOLDER_DIALOG_PADDING}>
-          <Tokenizer
-            label="Tags"
-            description="Press Enter to add each tag. Links keep the tags they already have."
-            placeholder="campaign, docs, social…"
-            searchSource={source}
-            value={tags.map((t) => ({ id: t, label: t }))}
-            onChange={(items) =>
-              setTags(
-                [...new Set(items.map((i) => i.label.trim().toLowerCase()))].filter(
-                  Boolean,
-                ),
-              )
-            }
-            hasCreate
-            hasAutoFocus
-            debounceMs={0}
-            width="100%"
-          />
-        </LayoutContent>
-      }
-      footer={
-        <LayoutFooter hasDivider padding={FOLDER_DIALOG_PADDING}>
-          <HStack gap={2} hAlign="end" width="100%">
-            <Button variant="ghost" label="Cancel" onClick={() => onOpenChange(false)} />
-            <Button
-              variant="primary"
-              label="Add tags"
-              isDisabled={tags.length === 0}
-              onClick={() => {
-                onAdd(tags)
-                onOpenChange(false)
-              }}
-            />
-          </HStack>
-        </LayoutFooter>
-      }
-    />
-  )
-}
-
-export default function AddTagsDialog(props: AddTagsDialogProps) {
-  const { onOpenChange } = props
-  return (
     <Dialog
-      isOpen={props.count > 0}
+      isOpen={count > 0}
       onOpenChange={onOpenChange}
       purpose="form"
       width={460}
       padding={FOLDER_DIALOG_PADDING}
     >
-      {props.count > 0 ? <AddTagsDialogBody {...props} /> : null}
+      <Layout
+        header={
+          <DialogHeader
+            title="Add tags"
+            subtitle={`To ${count} ${count === 1 ? 'link' : 'links'}`}
+            onOpenChange={onOpenChange}
+          />
+        }
+        content={
+          <LayoutContent padding={FOLDER_DIALOG_PADDING}>
+            <Tokenizer
+              label="Tags"
+              description="Press Enter to add each tag. Links keep the tags they already have."
+              placeholder="campaign, docs, social…"
+              searchSource={source}
+              value={tags.map((t) => ({ id: t, label: t }))}
+              onChange={(items) =>
+                setTags(
+                  [...new Set(items.map((i) => i.label.trim().toLowerCase()))].filter(
+                    Boolean,
+                  ),
+                )
+              }
+              hasCreate
+              hasAutoFocus
+              debounceMs={0}
+              width="100%"
+            />
+          </LayoutContent>
+        }
+        footer={
+          <LayoutFooter hasDivider padding={FOLDER_DIALOG_PADDING}>
+            <HStack gap={2} hAlign="end" width="100%">
+              <Button variant="ghost" label="Cancel" onClick={() => onOpenChange(false)} />
+              <Button
+                variant="primary"
+                label="Add tags"
+                isDisabled={tags.length === 0}
+                onClick={() => {
+                  onAdd(tags)
+                  onOpenChange(false)
+                }}
+              />
+            </HStack>
+          </LayoutFooter>
+        }
+      />
     </Dialog>
   )
 }
