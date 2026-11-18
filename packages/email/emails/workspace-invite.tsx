@@ -41,7 +41,7 @@ export default function WorkspaceInviteEmail(
     expiresAt,
     baseUrl,
     logoUrl,
-  } = { ...defaultProps, ...props };
+  } = Object.keys(props).length === 0 ? defaultProps : props;
 
   return (
     <EmailLayout
@@ -61,6 +61,7 @@ export default function WorkspaceInviteEmail(
       </Text>
       <Section style={{ margin: "24px 0" }}>
         <DetailRow label="Workspace" value={workspaceName} />
+        <DetailRow label="Invited by" value={inviterName} />
         <DetailRow label="Your role" value={role} />
         <DetailRow label="Expires" value={expiresAt} />
       </Section>

@@ -26,6 +26,6 @@ The preview server runs on port `3001`. Build all templates with `bun run build 
 
 Each template accepts optional `baseUrl` and `logoUrl` props. `baseUrl` is used for shared footer links, while `logoUrl` defaults to `/logo192.png` for previews. When sending an email, pass the application URL and the absolute URL for the hosted PNG, for example `baseUrl="https://app.example.com"` and `logoUrl="https://app.example.com/logo192.png"`.
 
-## Integration note
+## Sending
 
-The backend currently creates invite and authentication records but does not yet have a mail transport binding. The props on each template are deliberately transport-agnostic so they can be connected to Resend, Postmark, SES, or another provider without changing the markup.
+`renderEmail(message)` turns an `EmailMessage` (`{ template, props }`) into a subject, HTML and plain text. The web app never sends inline: it enqueues a job on the `openlink-email` Cloudflare queue, and the Worker's queue handler (`apps/web/src/server/email/`) renders and delivers it through Resend.

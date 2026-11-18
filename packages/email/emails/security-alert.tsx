@@ -42,7 +42,7 @@ export default function SecurityAlertEmail(
     securityUrl,
     baseUrl,
     logoUrl,
-  } = { ...defaultProps, ...props };
+  } = Object.keys(props).length === 0 ? defaultProps : props;
 
   return (
     <EmailLayout
