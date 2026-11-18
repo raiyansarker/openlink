@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
@@ -38,14 +38,17 @@ const ACTOR_KIND_LABEL = {
 } as const
 
 export default function ActivityDetailSheet({
-  event,
+  event: current,
   onOpenChange,
 }: ActivityDetailSheetProps) {
+  // Keep the last event on screen while the drawer animates closed.
+  const [event, setEvent] = useState(current)
+  if (current && current !== event) setEvent(current)
   if (!event) return null
 
   return (
     <Drawer
-      isOpen
+      isOpen={current != null}
       onOpenChange={onOpenChange}
       label="Activity details"
       side="end"
