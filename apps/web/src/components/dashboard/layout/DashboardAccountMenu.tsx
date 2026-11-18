@@ -1,4 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
+import type { CSSProperties } from 'react'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { useCurrentUser } from '#/hooks/use-current-user'
@@ -21,6 +22,7 @@ export default function DashboardAccountMenu({
   const onRail = variant === 'rail'
   const navigate = useNavigate()
   const { user } = useCurrentUser()
+  const accountName = user?.name?.trim() || user?.email || 'Account'
 
   const signOut = async () => {
     try {
@@ -46,7 +48,7 @@ export default function DashboardAccountMenu({
           className="ol-focus-ring"
           {...triggerProps}
           type="button"
-          aria-label={user ? `Account menu for ${user.name}` : 'Account menu'}
+          aria-label={user ? `Account menu for ${accountName}` : 'Account menu'}
           style={{
             width: PROFILE_SIZE,
             height: PROFILE_SIZE,
@@ -69,10 +71,14 @@ export default function DashboardAccountMenu({
         >
           <Avatar
             src={user?.image || undefined}
-            name={user?.name ?? 'Account'}
+            name={accountName}
             size={36}
             shape="rounded"
             tooltip={false}
+            style={{
+              '--color-text-primary': '#f4f4f5',
+              '--color-neutral': 'rgba(255, 255, 255, 0.12)',
+            } as CSSProperties}
           />
         </button>
       )}
@@ -80,7 +86,7 @@ export default function DashboardAccountMenu({
         // Your name and email open your profile; shown as a normal row, not a disabled one.
         {
           id: 'profile',
-          label: user?.name ?? 'My Profile',
+          label: user ? accountName : 'My Profile',
           ...(user ? { description: user.email } : {}),
           onClick: goToProfile,
         },

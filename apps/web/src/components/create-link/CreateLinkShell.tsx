@@ -8,7 +8,7 @@ import {
   DASHBOARD_SURFACE_BG,
   SHELL_NAV_TEXT_PRIMARY,
 } from '#/components/dashboard/layout/dashboard-shell-colors'
-import { useKeyPress } from '#/hooks/use-key-press'
+import { useShortcut } from '#/hooks/use-shortcut'
 
 /** Same language as Settings: raised panel + plain canvas column, 50/50. */
 const MAIN_WIDTH = '50%'
@@ -66,9 +66,7 @@ export default function CreateLinkShell({
   const navigate = useNavigate()
 
   // Escape goes back, even from a field; open menus/dialogs get it first.
-  useKeyPress('Escape', () => void navigate({ to: backTo, search: backSearch }), {
-    allowInInputs: true,
-  })
+  useShortcut('Escape', () => void navigate({ to: backTo, search: backSearch }))
 
   return (
     <div

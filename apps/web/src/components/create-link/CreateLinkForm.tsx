@@ -27,8 +27,7 @@ import { Tokenizer } from '@astryxdesign/core/Tokenizer'
 import { createStaticSource } from '@astryxdesign/core/Typeahead'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useFrameCheck } from '#/hooks/use-frame-check'
-import { useKeyPress } from '#/hooks/use-key-press'
-import CreateLinkSuccess from '#/components/create-link/CreateLinkSuccess'
+import { useShortcut } from '#/hooks/use-shortcut'
 import Favicon from '#/components/create-link/Favicon'
 import PreviewImageField from '#/components/create-link/PreviewImageField'
 import HoldPagePreview from '#/components/create-link/HoldPagePreview'
@@ -74,7 +73,6 @@ import {
 } from '#/lib/links/create-link'
 import { folderPathLabel } from '#/lib/links/folder-tree'
 import FolderPicker from '#/components/links/FolderPicker'
-import { linkTargetUrl, linkTitle } from '#/lib/links/link-summary'
 import { HOLD_PAGES, holdPageMeta } from '#/lib/links/hold-pages'
 
 const DEFAULT_DOMAIN_VALUE = '__default__'
@@ -227,8 +225,11 @@ export default function CreateLinkForm({
           if (editLink) {
             await updateLink(editLink.id, value)
           } else {
-            setCreated(await createLink(value))
-            window.scrollTo({ top: 0 })
+            const link = await createLink(value)
+            // The new link is now in `links`; stop validating so its own
+            // back-half isn't flagged as taken while we navigate away.
+            setCreated(link)
+            goToDetail(link.id)
           }
           return undefined
         } catch (err) {
@@ -326,11 +327,14 @@ export default function CreateLinkForm({
 
   const countries = useMemo(() => getCountries(), [])
 
-  const errors: DraftErrors = useMemo(
-    () => validateDraft(draft, validationContext),
+  const errors: DraftErrors = useMemo(() => {
+    const found = validateDraft(draft, validationContext)
+    // While saving (and until we navigate away) `links` already contains the
+    // link being created, so its own back-half would be flagged as taken.
+    if (!isEditing && (isSubmitting || created)) delete found.slug
+    return found
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [draft, links, editLink],
-  )
+  }, [draft, links, editLink, created, isSubmitting])
   // Slug conflicts are worth flagging while typing; the rest after submit.
   const visibleError = (field: keyof DraftErrors) =>
     showErrors || (field === 'slug' && draft.slug) ? errors[field] : undefined
@@ -472,7 +476,7 @@ export default function CreateLinkForm({
   }
 
   // ⌘/Ctrl + Enter submits from anywhere on the page.
-  useKeyPress('mod+Enter', submit, { allowInInputs: true, allowInOverlays: true })
+  useShortcut('Mod+Enter', submit, { allowInOverlays: true })
 
   const setUtmField = (key: UtmKey, value: string) =>
     update('utm', { ...draft.utm, [key]: value })
@@ -514,33 +518,6 @@ export default function CreateLinkForm({
 
   const nowValue = toLocalInputValue(new Date())
   const hasExpiryRule = draft.expiryEnabled || draft.clickLimitEnabled
-
-  if (created) {
-    const createdUrl = shortUrlFor(created.slug, created.domainId)
-    return (
-      <CreateLinkShell
-        backTo={linksPath}
-        backSearch={{ folder: created.folderId ?? undefined }}
-        main={
-          <CreateLinkSuccess
-            title={linkTitle(created)}
-            shortUrl={createdUrl}
-            destination={linkTargetUrl(created)}
-            folderLabel={folderPathLabel(folders, created.folderId ?? null)}
-            rules={rules.filter((r) => r.label !== 'Folder')}
-            tags={created.tags ?? []}
-            qrFileName={`${shortHostFor(created.domainId)}-${created.slug}`}
-            onViewLinks={() => goToLinks(created.folderId ?? null)}
-            onCreateAnother={() => {
-              setCreated(null)
-              setPreviewFileError(null)
-              form.reset({ ...emptyDraft(created.folderId ?? null), slug: generateSlug() })
-            }}
-          />
-        }
-      />
-    )
-  }
 
   const formBody = (
     <VStack gap={8} hAlign="stretch" width="100%">

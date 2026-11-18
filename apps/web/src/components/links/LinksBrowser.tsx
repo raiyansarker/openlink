@@ -22,7 +22,7 @@ import { ShortcutChip } from '#/components/dashboard/CreateLinkChromeButton'
 import { DRAG_MIME } from '#/components/links/links-browser-types'
 import { FolderIcon, PlusIcon } from '#/components/icons/IcnMcp'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { useKeyPress } from '#/hooks/use-key-press'
+import { useShortcut } from '#/hooks/use-shortcut'
 import type { LinkFolder, ShortLink } from '#/lib/api/types'
 import {
   canCreateFolderIn,
@@ -89,7 +89,7 @@ export default function LinksBrowser({
   }
   const canCreateFolderHere = canCreateFolderIn(folders, currentId)
   // "F" → new folder in the folder being viewed (like "C" for a new link).
-  useKeyPress('f', () => setNewFolderOpen(true), {
+  useShortcut('F', () => setNewFolderOpen(true), {
     isEnabled: canCreateFolderHere,
   })
 

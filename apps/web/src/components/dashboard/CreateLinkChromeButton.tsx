@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { useKeyPress } from '#/hooks/use-key-press'
+import { useShortcut } from '#/hooks/use-shortcut'
 import {
   SHELL_CHROME_BORDER,
   SHELL_NAV_TEXT_PRIMARY,
@@ -75,7 +75,7 @@ export default function CreateLinkChromeButton({
     })
   }
 
-  useKeyPress('c', open, { isEnabled: hasShortcut })
+  useShortcut('C', open, { isEnabled: hasShortcut })
 
   const widthStyle: CSSProperties =
     layout === 'fill' ? { width: '100%' } : { width: 'auto' }
