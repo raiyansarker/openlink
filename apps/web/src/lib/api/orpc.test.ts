@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 
-import { ApiClient } from './client'
+import { createApiClient } from './orpc'
 
 type Seen = { method: string; url: string; body: unknown }
 
 function setup(response: { status?: number; body?: unknown } = { body: {} }) {
   const seen: Seen[] = []
-  const client = ApiClient.create({
+  const client = createApiClient({
     origin: () => 'http://localhost:3000',
     fetch: async (url, init) => {
       const text = typeof init.body === 'string' ? init.body : ''
@@ -20,7 +20,7 @@ function setup(response: { status?: number; body?: unknown } = { body: {} }) {
   return { client, seen }
 }
 
-describe('ApiClient request shapes (derived from the shared contract)', () => {
+describe('API client request shapes (derived from the shared contract)', () => {
   test('lists organizations with GET', async () => {
     const { client, seen } = setup({ body: { items: [] } })
     expect(await client.organizations.listOrganizations()).toEqual({ items: [] })

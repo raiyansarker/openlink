@@ -15,11 +15,11 @@ import {
   SmartphoneIcon,
 } from '#/components/icons/IcnMcp'
 import DeviceDetailSheet from '#/components/settings/DeviceDetailSheet'
-import type { ActiveSession, DeviceKind } from '#/data/demo/active-sessions'
-import { ApiError } from '#/lib/api/error'
+import { apiErrorMessage } from '#/lib/api/errors'
+import { orpc } from '#/lib/api/orpc'
 import { useNotify } from '#/hooks/use-notify'
-import { QueryKeys } from '#/lib/api/query'
-import { DevicesApi } from '#/lib/devices/api'
+import { describeDeviceSession, type DeviceView } from '#/lib/devices/describe'
+import type { DeviceKind } from '#/lib/devices/user-agent'
 import { formatLastActive } from '#/lib/settings/session-time'
 
 const DEVICE_ICONS: Record<DeviceKind, (size: number) => ReactNode> = {
@@ -29,52 +29,56 @@ const DEVICE_ICONS: Record<DeviceKind, (size: number) => ReactNode> = {
 }
 
 const FIELDS_MAX_WIDTH = 560
-const devices = new DevicesApi()
 
-function sessionCaption(session: ActiveSession): string {
+/** Module-level so `select` stays stable. */
+const toDeviceViews = (data: { items: Parameters<typeof describeDeviceSession>[0][] }) => data.items.map(describeDeviceSession)
+
+function sessionCaption(session: DeviceView): string {
   const place = [session.city, session.country].filter(Boolean).join(', ')
   return place ? `${session.client} · ${place}` : session.client
 }
 
 export default function DevicesSettingsFields() {
   const queryClient = useQueryClient()
-  const query = useQuery({ queryKey: QueryKeys.deviceSessions, queryFn: () => devices.list() })
+  const query = useQuery(orpc.account.listDeviceSessions.queryOptions({ select: toDeviceViews }))
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [signOutAllOpen, setSignOutAllOpen] = useState(false)
   const notify = useNotify()
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: QueryKeys.deviceSessions })
-  const signOutOne = useMutation({
-    mutationFn: (id: string) => devices.signOut(id),
-    onSuccess: () => setSelectedId(null),
-    onError: (e) => notify.error(ApiError.message(e)),
-    onSettled: refresh,
-  })
-  const signOutOthers = useMutation({
-    mutationFn: () => devices.signOutOthers(),
-    onError: (e) => notify.error(ApiError.message(e)),
-    onSettled: () => {
-      setSignOutAllOpen(false)
-      void refresh()
-    },
-  })
+  const refresh = () => queryClient.invalidateQueries({ queryKey: orpc.account.listDeviceSessions.queryKey() })
+  const signOutOne = useMutation(
+    orpc.account.revokeDeviceSession.mutationOptions({
+      onSuccess: () => setSelectedId(null),
+      onError: (e) => notify.error(apiErrorMessage(e, 'Could not sign out that device.')),
+      onSettled: refresh,
+    }),
+  )
+  const signOutOthers = useMutation(
+    orpc.account.revokeOtherDeviceSessions.mutationOptions({
+      onError: (e) => notify.error(apiErrorMessage(e, 'Could not sign out your other devices.')),
+      onSettled: () => {
+        setSignOutAllOpen(false)
+        void refresh()
+      },
+    }),
+  )
 
   if (query.isPending) return <Spinner size="md" label="Loading your devices…" />
   if (query.isError) {
     return (
       <VStack gap={2} hAlign="start" role="alert">
-        <Text>{ApiError.message(query.error, 'Could not load your devices.')}</Text>
+        <Text>{apiErrorMessage(query.error, 'Could not load your devices.')}</Text>
         <Button size="sm" variant="secondary" label="Try again" onClick={() => void query.refetch()} />
       </VStack>
     )
   }
 
-  const sessions: ActiveSession[] = query.data
+  const sessions: DeviceView[] = query.data
   const selected = sessions.find((s) => s.id === selectedId) ?? null
   const otherCount = sessions.filter((s) => !s.isCurrent).length
 
   const signOut = (id: string) => {
-    signOutOne.mutate(id)
+    signOutOne.mutate({ params: { sessionId: id } })
   }
 
   return (

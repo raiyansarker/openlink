@@ -11,47 +11,22 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
 import { useNotify } from '#/hooks/use-notify'
-import { QueryKeys } from '#/lib/api/query'
+import { authCall, AuthQueryKeys } from '#/lib/auth/errors'
 
 type Passkey = { id: string; name?: string | null; createdAt?: string | Date | null; deviceType?: string; backedUp?: boolean }
 
-/** The signed-in person's passkeys, through Better Auth's passkey plugin. */
-class PasskeysApi {
-  static async list(): Promise<Passkey[]> {
-    const { data, error } = await AuthSession.client.passkey.listUserPasskeys()
-    if (error) throw new Error('Could not load your passkeys.')
-    return (data ?? []) as Passkey[]
-  }
+function passkeyLabel(passkey: Passkey): string {
+  return passkey.name?.trim() || 'Passkey'
+}
 
-  /** Opens the browser's passkey prompt. Resolves to null when the person cancels it. */
-  static async add(): Promise<'added' | null> {
-    const result = await AuthSession.client.passkey.addPasskey()
-    if (result?.error) {
-      const message = AuthErrorMessages.passkey(result.error)
-      if (message === null) return null
-      throw new Error(message.replace('sign-in', 'setup'))
-    }
-    return 'added'
-  }
-
-  static async remove(id: string): Promise<void> {
-    const { error } = await AuthSession.client.passkey.deletePasskey({ id })
-    if (error) throw new Error('Could not remove the passkey.')
-  }
-
-  static label(passkey: Passkey): string {
-    return passkey.name?.trim() || 'Passkey'
-  }
-
-  static detail(passkey: Passkey): string {
-    const parts = [
-      passkey.createdAt
-        ? `Added ${new Date(passkey.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
-        : null,
-      passkey.backedUp ? 'Synced across your devices' : passkey.deviceType === 'singleDevice' ? 'On this device only' : null,
-    ]
-    return parts.filter(Boolean).join(' · ')
-  }
+function passkeyDetail(passkey: Passkey): string {
+  const parts = [
+    passkey.createdAt
+      ? `Added ${new Date(passkey.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : null,
+    passkey.backedUp ? 'Synced across your devices' : passkey.deviceType === 'singleDevice' ? 'On this device only' : null,
+  ]
+  return parts.filter(Boolean).join(' · ')
 }
 
 /**
@@ -66,11 +41,23 @@ export default function PasskeysSettingsBlock() {
 
   useEffect(() => setIsSupported(typeof window.PublicKeyCredential === 'function'), [])
 
-  const passkeys = useQuery({ queryKey: QueryKeys.passkeys, queryFn: PasskeysApi.list })
-  const refresh = () => queryClient.invalidateQueries({ queryKey: QueryKeys.passkeys })
+  const passkeys = useQuery({
+    queryKey: AuthQueryKeys.passkeys,
+    queryFn: async () => (await authCall(AuthSession.client.passkey.listUserPasskeys(), 'Could not load your passkeys.')) as Passkey[],
+  })
+  const refresh = () => queryClient.invalidateQueries({ queryKey: AuthQueryKeys.passkeys })
 
   const add = useMutation({
-    mutationFn: PasskeysApi.add,
+    /** Opens the browser's passkey prompt. Resolves to null when the person cancels it. */
+    mutationFn: async (): Promise<'added' | null> => {
+      const result = await AuthSession.client.passkey.addPasskey()
+      if (result?.error) {
+        const message = AuthErrorMessages.passkey(result.error)
+        if (message === null) return null
+        throw new Error(message.replace('sign-in', 'setup'))
+      }
+      return 'added'
+    },
     onSuccess: (outcome) => {
       if (outcome === 'added') notify.info('Passkey added. You can use it next time you sign in.')
     },
@@ -78,7 +65,7 @@ export default function PasskeysSettingsBlock() {
     onSettled: refresh,
   })
   const remove = useMutation({
-    mutationFn: (passkey: Passkey) => PasskeysApi.remove(passkey.id),
+    mutationFn: (passkey: Passkey) => authCall(AuthSession.client.passkey.deletePasskey({ id: passkey.id }), 'Could not remove the passkey.'),
     onSuccess: () => notify.info('Passkey removed.'),
     onError: (error) => notify.error(error instanceof Error ? error.message : 'Could not remove the passkey.'),
     onSettled: refresh,
@@ -95,8 +82,8 @@ export default function PasskeysSettingsBlock() {
           {items.map((passkey) => (
             <Item
               key={passkey.id}
-              label={PasskeysApi.label(passkey)}
-              description={PasskeysApi.detail(passkey) || undefined}
+              label={passkeyLabel(passkey)}
+              description={passkeyDetail(passkey) || undefined}
               endContent={
                 <Button
                   variant="ghost"
@@ -139,7 +126,7 @@ export default function PasskeysSettingsBlock() {
         onOpenChange={(open) => {
           if (!open) setRemoving(null)
         }}
-        title={`Remove ${removing ? PasskeysApi.label(removing) : 'this passkey'}?`}
+        title={`Remove ${removing ? passkeyLabel(removing) : 'this passkey'}?`}
         description="You will not be able to sign in with it any more. Your other sign-in methods keep working."
         actionLabel="Remove passkey"
         actionVariant="destructive"

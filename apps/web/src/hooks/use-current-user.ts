@@ -1,13 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 
-import { QueryKeys } from '#/lib/api/query'
 import { AuthSession } from '#/lib/auth/client'
-import { ProfileApi } from '#/lib/profile/api'
+import { authCall, AuthQueryKeys } from '#/lib/auth/errors'
+import type { SocialProvider } from '#/lib/auth/types'
 
 /** The signed-in person, from the session. `user` is null while loading or when signed out. */
 export function useCurrentUser() {
-  const query = useQuery({ queryKey: QueryKeys.currentUser, queryFn: () => AuthSession.state() })
+  const query = useQuery({ queryKey: AuthQueryKeys.session, queryFn: () => AuthSession.state() })
   return { user: query.data?.user ?? null, isLoading: query.isPending }
 }
 
@@ -16,11 +16,30 @@ export function useRefreshCurrentUser() {
   const queryClient = useQueryClient()
   return useCallback(async () => {
     AuthSession.invalidate()
-    await queryClient.invalidateQueries({ queryKey: QueryKeys.currentUser })
+    await queryClient.invalidateQueries({ queryKey: AuthQueryKeys.session })
   }, [queryClient])
+}
+
+export type LinkedAccounts = {
+  /** Whether the account can sign in with a password (and so change it). */
+  hasPassword: boolean
+  providers: SocialProvider[]
+}
+
+/** Module-level so `select` stays stable. */
+function toLinkedAccounts(accounts: { providerId: string }[]): LinkedAccounts {
+  const ids = new Set(accounts.map((account) => account.providerId))
+  return {
+    hasPassword: ids.has('credential'),
+    providers: (['google', 'github'] as const).filter((provider) => ids.has(provider)),
+  }
 }
 
 /** Which sign-in methods the account has (password and/or Google, GitHub). */
 export function useLinkedAccounts() {
-  return useQuery({ queryKey: QueryKeys.linkedAccounts, queryFn: () => ProfileApi.linkedAccounts() })
+  return useQuery({
+    queryKey: AuthQueryKeys.accounts,
+    queryFn: () => authCall(AuthSession.client.listAccounts(), 'Could not load your sign-in methods.'),
+    select: toLinkedAccounts,
+  })
 }

@@ -10,7 +10,8 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 
 import { FormFields } from '#/lib/forms/fields'
-import { ProfileApi, ProfileError } from '#/lib/profile/api'
+import { AuthSession } from '#/lib/auth/client'
+import { authCall } from '#/lib/auth/errors'
 import { ProfileRules } from '#/lib/profile/rules'
 
 const ChangePasswordSchema = type({
@@ -34,10 +35,14 @@ export default function ChangePasswordDialog({ isOpen, onOpenChange, onChanged }
         const problem = ProfileRules.newPassword(value)
         if (problem) return problem
         try {
-          await ProfileApi.changePassword(value.current, value.next)
+          // Other devices are signed out: a password change usually means "lock everyone else out".
+          await authCall(
+            AuthSession.client.changePassword({ currentPassword: value.current, newPassword: value.next, revokeOtherSessions: true }),
+            'Could not change your password.',
+          )
           return undefined
         } catch (e) {
-          return e instanceof ProfileError ? e.message : 'Could not change your password.'
+          return e instanceof Error ? e.message : 'Could not change your password.'
         }
       },
     },

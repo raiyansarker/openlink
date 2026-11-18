@@ -3,12 +3,12 @@ import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { IconButton } from '@astryxdesign/core/IconButton'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
-import type { WorkspaceApiKey } from '#/data/demo/api-keys'
+import type { ApiKey } from '#/lib/api/types'
 import type { Role } from '#/lib/api/types'
 import ChangeApiKeyRoleDialog from '#/components/settings/ChangeApiKeyRoleDialog'
 
 type ApiKeyRowMenuProps = {
-  apiKey: WorkspaceApiKey
+  apiKey: ApiKey
   onChangeRole: (keyId: string, role: Role) => void
   /** Replaces the key. The new secret is shown by the parent, since this row goes away with the old key. */
   onRotate: (keyId: string) => void

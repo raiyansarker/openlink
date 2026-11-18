@@ -16,7 +16,8 @@ import ChangePasswordDialog from '#/components/settings/ChangePasswordDialog'
 import PasskeysSettingsBlock from '#/components/settings/PasskeysSettingsBlock'
 import DeleteAccountDialog from '#/components/settings/DeleteAccountDialog'
 import { useCurrentUser, useLinkedAccounts, useRefreshCurrentUser } from '#/hooks/use-current-user'
-import { ProfileApi, ProfileError } from '#/lib/profile/api'
+import { AuthSession } from '#/lib/auth/client'
+import { authCall } from '#/lib/auth/errors'
 import { SquareImage } from '#/lib/media/square-image'
 import { MediaUploads } from '#/lib/media/uploads'
 import { FormFields } from '#/lib/forms/fields'
@@ -108,12 +109,12 @@ export default function ProfileSettingsFields() {
         const check = ProfileRules.name(value.name)
         if (!check.ok) return { fields: { name: check.message } }
         try {
-          await ProfileApi.updateProfile({ name: check.value })
+          await authCall(AuthSession.client.updateUser({ name: check.value }), 'Could not save your name.')
           await refresh()
           setNameSaved(true)
           return undefined
         } catch (e) {
-          return { fields: { name: e instanceof ProfileError ? e.message : 'Could not save your name.' } }
+          return { fields: { name: e instanceof Error ? e.message : 'Could not save your name.' } }
         }
       },
     },

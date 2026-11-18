@@ -7,7 +7,8 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 
-import { ProfileApi, ProfileError } from '#/lib/profile/api'
+import { AuthSession } from '#/lib/auth/client'
+import { authCall } from '#/lib/auth/errors'
 
 type DeleteAccountDialogProps = {
   isOpen: boolean
@@ -39,10 +40,12 @@ export default function DeleteAccountDialog({ isOpen, onOpenChange, email, hasPa
     setIsDeleting(true)
     setError(null)
     try {
-      await ProfileApi.deleteAccount(hasPassword ? password : undefined)
+      // Password accounts confirm with their password; others need a recent sign-in.
+      await authCall(AuthSession.client.deleteUser(hasPassword ? { password } : {}), 'Could not delete your account.')
+      AuthSession.invalidate()
       onDeleted()
     } catch (e) {
-      setError(e instanceof ProfileError ? e.message : 'Could not delete your account.')
+      setError(e instanceof Error ? e.message : 'Could not delete your account.')
       setIsDeleting(false)
     }
   }

@@ -15,7 +15,7 @@ import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
-import { API_KEY_ASSIGNABLE_ROLES } from '#/data/demo/api-keys'
+import { ASSIGNABLE_WORKSPACE_ROLES as API_KEY_ASSIGNABLE_ROLES } from '#/lib/members/role-help'
 import type { Role } from '#/lib/api/types'
 import { WORKSPACE_MEMBER_ROLE_HELP } from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'

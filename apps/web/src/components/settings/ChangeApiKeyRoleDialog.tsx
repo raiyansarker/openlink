@@ -9,19 +9,20 @@ import {
 } from '@astryxdesign/core/SegmentedControl'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import { API_KEY_ASSIGNABLE_ROLES, type WorkspaceApiKey } from '#/data/demo/api-keys'
+import type { ApiKey } from '#/lib/api/types'
+import { ASSIGNABLE_WORKSPACE_ROLES as API_KEY_ASSIGNABLE_ROLES } from '#/lib/members/role-help'
 import type { Role } from '#/lib/api/types'
 import { WORKSPACE_MEMBER_ROLE_HELP } from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 
 type ChangeApiKeyRoleDialogProps = {
-  apiKey: WorkspaceApiKey
+  apiKey: ApiKey
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: (keyId: string, role: Role) => void
 }
 
-function defaultAssignableRole(key: WorkspaceApiKey): Role {
+function defaultAssignableRole(key: ApiKey): Role {
   if (API_KEY_ASSIGNABLE_ROLES.includes(key.role)) return key.role
   return 'member'
 }

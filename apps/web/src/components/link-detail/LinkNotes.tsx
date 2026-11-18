@@ -9,7 +9,7 @@ import { TextArea } from '@astryxdesign/core/TextArea'
 import { VStack } from '@astryxdesign/core/VStack'
 import { MAX_LINK_NOTES_LENGTH } from '@openlink/contracts'
 import { InlineShortcut } from '#/components/create-link/LinkPreviewPanel'
-import type { LinkHistoryEvent } from '#/data/demo/types'
+import type { LinkHistoryEntry } from '#/lib/api/types'
 
 /** Who last changed the notes, and when (from the link's history). */
 export type NotesEdit = { actor: string; at: string; imageUrl?: string }
@@ -25,9 +25,11 @@ type LinkNotesProps = {
 const AVATAR_PX = 32
 
 /** The newest history entry that changed the notes, if any. */
-export function lastNotesEdit(events: LinkHistoryEvent[]): NotesEdit | undefined {
+export function lastNotesEdit(events: LinkHistoryEntry[]): NotesEdit | undefined {
   const event = events.find((e) => e.changes?.some((c) => c.label === 'Notes'))
-  return event ? { actor: event.actor, at: event.at, ...(event.actorImageUrl ? { imageUrl: event.actorImageUrl } : {}) } : undefined
+  return event
+    ? { actor: event.actor.label, at: event.occurredAt, ...(event.actor.imageUrl ? { imageUrl: event.actor.imageUrl } : {}) }
+    : undefined
 }
 
 function timeAgo(iso: string, now = Date.now()): string {

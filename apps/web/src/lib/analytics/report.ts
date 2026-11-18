@@ -57,49 +57,51 @@ export type AnalyticsReport = {
   operatingSystems: BreakdownRow[]
 }
 
-export class AnalyticsReportMapper {
-  static readonly HEATMAP_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  static readonly HEATMAP_HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'))
-  /** API weekdays count from Sunday = 0. */
-  private static readonly WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+export const HEATMAP_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+export const HEATMAP_HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'))
+/** API weekdays count from Sunday = 0. */
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-  static fromApi(dto: AnalyticsReportDto): AnalyticsReport {
-    const labels = new Map(dto.channels.map((c) => [c.key, c.label]))
-    const heat = new Map(dto.heatmap.map((cell) => [`${AnalyticsReportMapper.WEEKDAYS[cell.weekday]}|${cell.hour}`, cell.clicks]))
-    return {
-      range: dto.range,
-      bucket: dto.bucket,
-      windowStart: new Date(dto.windowStart),
-      windowEnd: new Date(dto.windowEnd),
-      totals: dto.totals,
-      previousTotals: dto.previousTotals,
-      // Only channels that had clicks are stacked, so the legend lists what happened.
-      traffic: dto.traffic.flatMap((point) => {
-        const label = labels.get(point.channel)
-        return label ? [{ time: new Date(point.time), channel: label, clicks: point.clicks }] : []
-      }),
-      totalsSeries: dto.totalsSeries.map((point) => ({ ...point, time: new Date(point.time) })),
-      previousSeries: dto.previousSeries.map((point) => ({ ...point, time: new Date(point.time) })),
-      heatmap: AnalyticsReportMapper.HEATMAP_DAYS.flatMap((day) =>
-        AnalyticsReportMapper.HEATMAP_HOURS.map((hour) => ({ day, hour, clicks: heat.get(`${day}|${Number(hour)}`) ?? 0 })),
-      ),
-      heatmapDays: AnalyticsReportMapper.HEATMAP_DAYS,
-      heatmapHours: AnalyticsReportMapper.HEATMAP_HOURS,
-      heatmapWindowLabel: `Last ${dto.heatmapDays} days`,
-      links: dto.links,
-      destinations: dto.destinations,
-      channels: dto.channels,
-      referrers: dto.referrers,
-      countries: dto.countries.map((country) => ({ ...country, code: country.key })),
-      cities: dto.cities,
-      devices: dto.devices,
-      browsers: dto.browsers,
-      operatingSystems: dto.operatingSystems,
-    }
+/**
+ * Chart-ready report: timestamps become Dates, traffic is labelled by
+ * channel, and the heatmap is filled to a full week of hours.
+ */
+export function toAnalyticsReport(dto: AnalyticsReportDto): AnalyticsReport {
+  const labels = new Map(dto.channels.map((c) => [c.key, c.label]))
+  const heat = new Map(dto.heatmap.map((cell) => [`${WEEKDAYS[cell.weekday]}|${cell.hour}`, cell.clicks]))
+  return {
+    range: dto.range,
+    bucket: dto.bucket,
+    windowStart: new Date(dto.windowStart),
+    windowEnd: new Date(dto.windowEnd),
+    totals: dto.totals,
+    previousTotals: dto.previousTotals,
+    // Only channels that had clicks are stacked, so the legend lists what happened.
+    traffic: dto.traffic.flatMap((point) => {
+      const label = labels.get(point.channel)
+      return label ? [{ time: new Date(point.time), channel: label, clicks: point.clicks }] : []
+    }),
+    totalsSeries: dto.totalsSeries.map((point) => ({ ...point, time: new Date(point.time) })),
+    previousSeries: dto.previousSeries.map((point) => ({ ...point, time: new Date(point.time) })),
+    heatmap: HEATMAP_DAYS.flatMap((day) =>
+      HEATMAP_HOURS.map((hour) => ({ day, hour, clicks: heat.get(`${day}|${Number(hour)}`) ?? 0 })),
+    ),
+    heatmapDays: HEATMAP_DAYS,
+    heatmapHours: HEATMAP_HOURS,
+    heatmapWindowLabel: `Last ${dto.heatmapDays} days`,
+    links: dto.links,
+    destinations: dto.destinations,
+    channels: dto.channels,
+    referrers: dto.referrers,
+    countries: dto.countries.map((country) => ({ ...country, code: country.key })),
+    cities: dto.cities,
+    devices: dto.devices,
+    browsers: dto.browsers,
+    operatingSystems: dto.operatingSystems,
   }
+}
 
-  /** Nothing recorded in this window or the one before. */
-  static isEmpty(report: AnalyticsReport): boolean {
-    return report.totals.clicks === 0 && report.previousTotals.clicks === 0
-  }
+/** Nothing recorded in this window or the one before. */
+export function isEmptyReport(report: AnalyticsReport): boolean {
+  return report.totals.clicks === 0 && report.previousTotals.clicks === 0
 }

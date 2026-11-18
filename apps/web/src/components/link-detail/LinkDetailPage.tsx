@@ -22,7 +22,7 @@ import { QrBlock } from '#/components/create-link/LinkPreviewPanel'
 import LinkAnalyticsSection from '#/components/analytics/LinkAnalyticsSection'
 import LinkNotes, { lastNotesEdit } from '#/components/link-detail/LinkNotes'
 import { useLinkHistory } from '#/hooks/use-link-history'
-import { QueryKeys } from '#/lib/api/query'
+import { orpc } from '#/lib/api/orpc'
 import LinkHistoryTimeline, { type HistoryKind } from '#/components/link-detail/LinkHistoryTimeline'
 import LinkSettingsPanel from '#/components/link-detail/LinkSettingsPanel'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
@@ -360,7 +360,7 @@ export default function LinkDetailPage({
               lastEdit={lastNotesEdit(history.events)}
               onSave={async (notes) => {
                 await saveLinkNotes(link.id, notes)
-                void queryClient.invalidateQueries({ queryKey: QueryKeys.linkHistory(activeOrg.id, link.id) })
+                void queryClient.invalidateQueries({ queryKey: orpc.links.getWorkspaceLinkHistory.key({ input: { params: { organizationId: activeOrg.id, linkId: link.id } } }) })
               }}
             />
           ) : null}
