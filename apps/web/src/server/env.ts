@@ -23,6 +23,8 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   GITHUB_CLIENT_SECRET?: string
   /** When `"true"`, create-invite responses include the raw token (local dev only). */
   EXPOSE_INVITE_TOKENS_IN_API?: string
+  /** Enables `/api/debug/trace-test` for requests sending this value in `x-trace-test-token`. Leave unset to keep it off. */
+  TRACE_TEST_TOKEN?: string
 }
 
 export function getBindings(): WorkerBindings {
