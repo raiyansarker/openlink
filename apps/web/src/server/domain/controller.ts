@@ -27,9 +27,10 @@ export const domainsController = {
     const row = yield* registerCustomDomain({
       organizationId: input.params.organizationId,
       hostname: input.body.hostname,
-    }).pipe(Effect.catchTag('BackendError', () =>
-      Effect.fail(errors.BAD_REQUEST({ message: 'Unable to register domain' })),
-    ))
+    }).pipe(Effect.catchTags({
+      DomainTaken: () => Effect.fail(errors.CONFLICT({ message: 'That domain is already connected to a workspace' })),
+      BackendError: () => Effect.fail(errors.BAD_REQUEST({ message: 'Unable to register domain' })),
+    }))
     yield* audit(session, {
       organizationId: input.params.organizationId,
       action: 'domain.added',

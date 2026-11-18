@@ -1112,6 +1112,11 @@ const typedFailures = [
     tag: 'BackendError', status: 400, code: 'BAD_REQUEST', message: 'Unable to register domain',
   },
   {
+    name: 'domain already connected', workflow: registerCustomDomain,
+    path: domainsPath, body: { hostname: domain.hostname },
+    tag: 'DomainTaken', status: 409, code: 'CONFLICT', message: 'That domain is already connected to a workspace',
+  },
+  {
     name: 'slug conflict', workflow: createLinkRecord,
     path: linksPath, body: createBody,
     tag: 'SlugConflict', status: 409, code: 'CONFLICT', message: 'Slug already exists on this domain',
