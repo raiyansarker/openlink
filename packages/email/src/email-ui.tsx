@@ -44,8 +44,8 @@ export function EmailLayout({
         <Container style={styles.container}>
           <Section style={styles.header}>
             <Img
-              src="https://openlink.example/logo192.png"
-              alt=""
+              src="/logo192.png"
+              alt="OpenLink"
               width="28"
               height="28"
               style={styles.logo}
@@ -129,8 +129,9 @@ const styles = {
     padding: "24px 0 20px",
   },
   logo: {
+    borderRadius: "7px",
     display: "inline-block",
-    marginRight: "8px",
+    margin: "0 8px 0 0",
     verticalAlign: "middle",
   },
   wordmark: {
