@@ -199,6 +199,7 @@ export default function CreateLinkForm({
     shortUrlFor,
     createLink,
     updateLink,
+    createFolder,
   } = useOrganization()
 
   const [created, setCreated] = useState<ShortLink | null>(null)
@@ -631,6 +632,7 @@ export default function CreateLinkForm({
                   folders={folders}
                   value={draft.folderId}
                   onChange={(folderId) => update('folderId', folderId)}
+                  onCreateFolder={createFolder}
                 />
                 <Tokenizer
                   label="Tags"
