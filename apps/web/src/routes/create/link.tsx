@@ -12,8 +12,6 @@ type CreateLinkSearch = {
 }
 
 export const Route = createFileRoute('/create/link')({
-  beforeLoad: ({ location }) => AuthSession.requireSignedIn(location),
-  head: createPageHead('Create link'),
   validateSearch: (search: Record<string, unknown>): CreateLinkSearch => ({
     org: typeof search.org === 'string' && search.org ? search.org : undefined,
     folder:
@@ -21,6 +19,8 @@ export const Route = createFileRoute('/create/link')({
         ? search.folder
         : undefined,
   }),
+  beforeLoad: ({ location }) => AuthSession.requireSignedIn(location),
+  head: createPageHead('Create link'),
   component: CreateLinkPage,
 })
 

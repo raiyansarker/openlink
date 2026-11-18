@@ -22,3 +22,14 @@ export function historySummary(entry: LinkHistoryEntry): string {
   const changes = entry.changes ?? []
   return changes.length === 1 ? `Changed ${changes[0]!.label.toLowerCase()}` : `Changed ${changes.length} settings`
 }
+
+/** Who last changed the notes, and when (from the link's history). */
+export type NotesEdit = { actor: string; at: string; imageUrl?: string }
+
+/** The newest history entry that changed the notes, if any. */
+export function lastNotesEdit(events: LinkHistoryEntry[]): NotesEdit | undefined {
+  const event = events.find((e) => e.changes?.some((c) => c.label === 'Notes'))
+  return event
+    ? { actor: event.actor.label, at: event.occurredAt, ...(event.actor.imageUrl ? { imageUrl: event.actor.imageUrl } : {}) }
+    : undefined
+}

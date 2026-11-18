@@ -9,13 +9,13 @@ import LinksBrowser from '#/components/links/LinksBrowser'
 import { createPageHead } from '#/lib/page-title'
 
 export const Route = createFileRoute('/w/$orgSlug/links/')({
-  head: createPageHead('Links'),
   validateSearch: (search: Record<string, unknown>): { folder?: string } => ({
     folder:
       typeof search.folder === 'string' && search.folder
         ? search.folder
         : undefined,
   }),
+  head: createPageHead('Links'),
   component: DashboardLinksPage,
 })
 

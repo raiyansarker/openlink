@@ -5,9 +5,9 @@ import { LoginRedirect } from '#/lib/auth/redirect'
 import { createPageHead } from '#/lib/page-title'
 
 export const Route = createFileRoute('/signup')({
-  head: createPageHead('Sign Up'),
   validateSearch: AuthPages.validateSearch,
   beforeLoad: AuthPages.beforeLoad,
+  head: createPageHead('Sign Up'),
   component: SignUpRoute,
 })
 

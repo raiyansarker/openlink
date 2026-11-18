@@ -16,22 +16,20 @@ import ActivityActorAvatar from '#/components/activity/ActivityActorAvatar'
 import ActivityDetailSheet from '#/components/activity/ActivityDetailSheet'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { ACTIVITY_CATEGORY_LABELS, ACTIVITY_SOURCE_LABELS } from '#/lib/activity/labels'
-import type { ActivityCategory, ActivityEvent } from '#/lib/api/types'
+import type { ActivityEvent } from '#/lib/api/types'
 import { useActivityFeed, useDebouncedValue } from '#/hooks/use-activity'
 import { formatEventTime, groupByDay } from '#/lib/activity/group-by-day'
+import {
+  ACTIVITY_CATEGORIES,
+  type ActivityFilterState,
+  type CategoryFilter,
+} from '#/lib/activity/filters'
 import { apiErrorMessage } from '#/lib/api/errors'
-
-export type CategoryFilter = 'all' | ActivityCategory
-
-export const ACTIVITY_CATEGORIES = Object.keys(ACTIVITY_CATEGORY_LABELS) as ActivityCategory[]
 
 const CATEGORY_OPTIONS: { value: CategoryFilter; label: string }[] = [
   { value: 'all', label: 'All activity' },
   ...ACTIVITY_CATEGORIES.map((value) => ({ value, label: ACTIVITY_CATEGORY_LABELS[value] })),
 ]
-
-/** Filters as kept in the URL by the route. */
-export type ActivityFilterState = { category: CategoryFilter; q: string }
 
 type DashboardActivityPanelProps = {
   filters: ActivityFilterState

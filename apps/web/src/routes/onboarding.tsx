@@ -8,8 +8,8 @@ import { createPageHead } from '#/lib/page-title'
 
 /** First stop after sign-up: create a workspace. Every other page waits until this is done. */
 export const Route = createFileRoute('/onboarding')({
-  head: createPageHead('Welcome'),
   beforeLoad: ({ location }) => AuthSession.requireSignedIn(location),
+  head: createPageHead('Welcome'),
   component: OnboardingPage,
 })
 

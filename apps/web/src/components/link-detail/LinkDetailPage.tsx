@@ -20,7 +20,8 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { useClipboard } from '@astryxdesign/core/hooks'
 import { QrBlock } from '#/components/create-link/LinkPreviewPanel'
 import LinkAnalyticsSection from '#/components/analytics/LinkAnalyticsSection'
-import LinkNotes, { lastNotesEdit } from '#/components/link-detail/LinkNotes'
+import LinkNotes from '#/components/link-detail/LinkNotes'
+import { lastNotesEdit } from '#/lib/links/history'
 import { useLinkHistory } from '#/hooks/use-link-history'
 import { orpc } from '#/lib/api/orpc'
 import LinkHistoryTimeline, { type HistoryKind } from '#/components/link-detail/LinkHistoryTimeline'
@@ -37,8 +38,7 @@ import { isOnHold } from '#/lib/links/create-link'
 import { getFolderPath } from '#/lib/links/folder-tree'
 import { linkStatusLabel, linkStatusLine, linkTargetUrl, linkTitle } from '#/lib/links/link-summary'
 
-export const LINK_DETAIL_TABS = ['analytics', 'notes', 'settings', 'history'] as const
-export type LinkDetailTab = (typeof LINK_DETAIL_TABS)[number]
+import type { LinkDetailTab } from '#/lib/links/link-detail-tabs'
 
 type LinkDetailPageProps = {
   linkId: string

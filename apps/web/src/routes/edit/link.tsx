@@ -12,12 +12,12 @@ type EditLinkSearch = {
 }
 
 export const Route = createFileRoute('/edit/link')({
-  beforeLoad: ({ location }) => AuthSession.requireSignedIn(location),
-  head: createPageHead('Edit link'),
   validateSearch: (search: Record<string, unknown>): EditLinkSearch => ({
     org: typeof search.org === 'string' && search.org ? search.org : undefined,
     link: typeof search.link === 'string' && search.link ? search.link : undefined,
   }),
+  beforeLoad: ({ location }) => AuthSession.requireSignedIn(location),
+  head: createPageHead('Edit link'),
   component: EditLinkPage,
 })
 
