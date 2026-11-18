@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { CodeBlock } from '@astryxdesign/core/CodeBlock'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
@@ -14,6 +14,7 @@ import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
+import { useOpenSession } from '#/hooks/use-open-session'
 import type { WebhookEvent, WorkspaceWebhook } from '#/data/demo/webhooks'
 import {
   checkEndpoint,
@@ -33,26 +34,31 @@ type CreateWebhookDrawerProps = {
   onCreate: (webhook: WorkspaceWebhook) => void
 }
 
-export default function CreateWebhookDrawer({
-  isOpen,
-  onOpenChange,
-  onCreate,
-}: CreateWebhookDrawerProps) {
+export default function CreateWebhookDrawer(props: CreateWebhookDrawerProps) {
+  const session = useOpenSession(props.isOpen)
+  return (
+    <Drawer
+      isOpen={props.isOpen}
+      onOpenChange={props.onOpenChange}
+      label="Add webhook"
+      side="end"
+      width={420}
+      purpose="form"
+      padding={FLOATING_END_DRAWER_PADDING}
+      style={floatingEndDrawerStyle({ isOpen: props.isOpen })}
+    >
+      <CreateWebhookForm key={session} {...props} />
+    </Drawer>
+  )
+}
+
+function CreateWebhookForm({ onOpenChange, onCreate }: CreateWebhookDrawerProps) {
   const [hostAndPath, setHostAndPath] = useState('')
   const [name, setName] = useState('')
   const [events, setEvents] = useState<WebhookEvent[]>(DEFAULT_EVENTS)
   const [isTouched, setIsTouched] = useState(false)
   const [signingSecret, setSigningSecret] = useState<string | null>(null)
   const [createdName, setCreatedName] = useState('')
-
-  useEffect(() => {
-    if (!isOpen) return
-    setHostAndPath('')
-    setName('')
-    setEvents(DEFAULT_EVENTS)
-    setIsTouched(false)
-    setSigningSecret(null)
-  }, [isOpen])
 
   const endpoint = useMemo(() => checkEndpoint(hostAndPath), [hostAndPath])
   const urlStatus =
@@ -83,16 +89,6 @@ export default function CreateWebhookDrawer({
   }
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      label="Add webhook"
-      side="end"
-      width={420}
-      purpose="form"
-      padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle({ isOpen })}
-    >
       <Layout
         header={
           <DrawerHeader
@@ -207,6 +203,5 @@ export default function CreateWebhookDrawer({
           </LayoutFooter>
         }
       />
-    </Drawer>
   )
 }

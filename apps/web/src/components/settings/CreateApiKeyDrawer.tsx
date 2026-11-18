@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { type } from 'arktype'
 import { Button } from '@astryxdesign/core/Button'
@@ -18,6 +18,7 @@ import {
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
 import { ASSIGNABLE_WORKSPACE_ROLES as API_KEY_ASSIGNABLE_ROLES } from '#/lib/members/role-help'
+import { useOpenSession } from '#/hooks/use-open-session'
 import type { Role } from '#/lib/api/types'
 import { WORKSPACE_MEMBER_ROLE_HELP } from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
@@ -32,11 +33,25 @@ type CreateApiKeyDrawerProps = {
   onCreate: (input: { name: string; role: Role }) => Promise<string>
 }
 
-export default function CreateApiKeyDrawer({
-  isOpen,
-  onOpenChange,
-  onCreate,
-}: CreateApiKeyDrawerProps) {
+export default function CreateApiKeyDrawer(props: CreateApiKeyDrawerProps) {
+  const session = useOpenSession(props.isOpen)
+  return (
+    <Drawer
+      isOpen={props.isOpen}
+      onOpenChange={props.onOpenChange}
+      label="Create API key"
+      side="end"
+      width={400}
+      purpose="form"
+      padding={FLOATING_END_DRAWER_PADDING}
+      style={floatingEndDrawerStyle({ isOpen: props.isOpen })}
+    >
+      <CreateApiKeyForm key={session} {...props} />
+    </Drawer>
+  )
+}
+
+function CreateApiKeyForm({ onOpenChange, onCreate }: CreateApiKeyDrawerProps) {
   const [createdSecret, setCreatedSecret] = useState<string | null>(null)
 
   const form = useForm({
@@ -54,26 +69,9 @@ export default function CreateApiKeyDrawer({
     },
   })
 
-  useEffect(() => {
-    if (!isOpen) return
-    form.reset()
-    setCreatedSecret(null)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen])
-
   const revealMode = createdSecret != null
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      label="Create API key"
-      side="end"
-      width={400}
-      purpose="form"
-      padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle({ isOpen })}
-    >
       <Layout
         header={
           <DrawerHeader
@@ -187,6 +185,5 @@ export default function CreateApiKeyDrawer({
           </LayoutFooter>
         }
       />
-    </Drawer>
   )
 }

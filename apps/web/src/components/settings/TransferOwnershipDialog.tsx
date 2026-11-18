@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -6,6 +6,7 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Selector } from '@astryxdesign/core/Selector'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import { useOpenSession } from '#/hooks/use-open-session'
 import type { Member } from '#/lib/api/types'
 
 type TransferOwnershipDialogProps = {
@@ -17,18 +18,22 @@ type TransferOwnershipDialogProps = {
   onTransfer: (userId: string) => void
 }
 
-export default function TransferOwnershipDialog({
-  isOpen,
+export default function TransferOwnershipDialog(props: TransferOwnershipDialogProps) {
+  const session = useOpenSession(props.isOpen)
+  return (
+    <Dialog isOpen={props.isOpen} onOpenChange={props.onOpenChange} purpose="form" width={440}>
+      <TransferForm key={session} {...props} />
+    </Dialog>
+  )
+}
+
+function TransferForm({
   onOpenChange,
   workspaceName,
   candidates,
   onTransfer,
 }: TransferOwnershipDialogProps) {
   const [memberId, setMemberId] = useState('')
-
-  useEffect(() => {
-    if (isOpen) setMemberId('')
-  }, [isOpen])
 
   const options = candidates.map((member) => ({
     value: member.userId,
@@ -37,7 +42,6 @@ export default function TransferOwnershipDialog({
   }))
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={440}>
       <Layout
         header={
           <DialogHeader
@@ -93,6 +97,5 @@ export default function TransferOwnershipDialog({
           </LayoutFooter>
         }
       />
-    </Dialog>
   )
 }

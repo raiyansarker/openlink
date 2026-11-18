@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent } from 'react'
+import { useMemo, useState, type DragEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Banner } from '@astryxdesign/core/Banner'
@@ -71,7 +71,11 @@ export default function LinksBrowser({
     [folders, currentId],
   )
 
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  // The selection belongs to the folder it was made in; opening another folder drops it.
+  const [selection, setSelection] = useState<{ id: string; inFolder: string | null } | null>(null)
+  const selectedFolderId = selection?.inFolder === currentId ? selection.id : null
+  const setSelectedFolderId = (id: string | null) =>
+    setSelection(id == null ? null : { id, inFolder: currentId })
   const [breadcrumbDropKey, setBreadcrumbDropKey] = useState<string | null>(null)
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [renaming, setRenaming] = useState<LinkFolder | null>(null)
@@ -100,10 +104,6 @@ export default function LinksBrowser({
     })
   const editLink = (linkId: string) =>
     void navigate({ to: '/edit/link', search: { org: activeOrg.slug, link: linkId } })
-
-  useEffect(() => {
-    setSelectedFolderId(null)
-  }, [currentId])
 
   const folderTiles = useMemo<FolderTile[]>(
     () =>

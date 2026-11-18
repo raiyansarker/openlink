@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -9,6 +9,7 @@ import {
 } from '@astryxdesign/core/SegmentedControl'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import { useOpenSession } from '#/hooks/use-open-session'
 import type { Role } from '#/lib/api/types'
 import type { Person } from '#/lib/members/people'
 import {
@@ -30,21 +31,28 @@ function defaultAssignableRole(member: Person): Role {
   return 'member'
 }
 
-export default function ChangeMemberRoleDialog({
+export default function ChangeMemberRoleDialog(props: ChangeMemberRoleDialogProps) {
+  const session = useOpenSession(props.isOpen, props.member.key)
+  return (
+    <Dialog
+      isOpen={props.isOpen}
+      onOpenChange={props.onOpenChange}
+      purpose="form"
+      width={400}
+    >
+      <ChangeMemberRoleForm key={session} {...props} />
+    </Dialog>
+  )
+}
+
+function ChangeMemberRoleForm({
   member,
-  isOpen,
   onOpenChange,
   onConfirm,
 }: ChangeMemberRoleDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<Role>(
+  const [selectedRole, setSelectedRole] = useState<Role>(() =>
     defaultAssignableRole(member),
   )
-
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedRole(defaultAssignableRole(member))
-    }
-  }, [isOpen, member])
 
   const unchanged = selectedRole === member.role
 
@@ -56,12 +64,6 @@ export default function ChangeMemberRoleDialog({
   }
 
   return (
-    <Dialog
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      purpose="form"
-      width={400}
-    >
       <Layout
         header={
           <DialogHeader title="Change role" onOpenChange={onOpenChange} />
@@ -116,6 +118,5 @@ export default function ChangeMemberRoleDialog({
           </LayoutFooter>
         }
       />
-    </Dialog>
   )
 }
