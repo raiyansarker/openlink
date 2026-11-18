@@ -16,7 +16,7 @@ import type { LinkFolder } from '#/lib/api/types'
 import { folderPathLabel, getChildFolders, getFolderPath } from '#/lib/links/folder-tree'
 
 const ROOT_ID = '__root__'
-const ROOT_LABEL = 'All links (top level)'
+const ROOT_LABEL = 'All links'
 
 type FolderPickerProps = {
   label?: string
@@ -66,6 +66,8 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
           onClick: () => setPending(folder.id),
         }
       })
+    // "All links" is the root of the tree, so every folder visibly sits inside it.
+    const topLevel = branch(null)
     return [
       {
         id: ROOT_ID,
@@ -73,8 +75,8 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
         startContent: <FolderIcon size={16} />,
         isSelected: pending === null,
         onClick: () => setPending(null),
+        ...(topLevel.length > 0 ? { children: topLevel, isExpanded: true } : {}),
       },
-      ...branch(null),
     ]
   }, [folders, pending, openIds])
 
@@ -121,12 +123,13 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
           header={<DrawerHeader title="Choose a folder" subtitle="Where the link is filed." onOpenChange={setIsOpen} />}
           content={
             <LayoutContent>
-              <VStack gap={4} hAlign="stretch" width="100%">
+              <VStack gap={3} hAlign="stretch" width="100%">
                 {folders.length > 0 ? (
                   <TextInput
                     label="Search folders"
                     isLabelHidden
                     placeholder="Search folders"
+                    size="sm"
                     value={query}
                     onChange={setQuery}
                     hasClear
@@ -138,6 +141,7 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
                     <TreeList
                       aria-label="Matching folders"
                       variant="noGuides"
+                      density="compact"
                       items={matches.map(({ folder, path }) => ({
                         id: folder.id,
                         label: folder.name,
@@ -153,14 +157,14 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
                     </Text>
                   )
                 ) : (
-                  <TreeList aria-label="Folders" items={tree} />
+                  <TreeList aria-label="Folders" density="compact" items={tree} />
                 )}
               </VStack>
             </LayoutContent>
           }
           footer={
             <LayoutFooter hasDivider>
-              <VStack gap={3} hAlign="stretch" width="100%">
+              <VStack gap={2} hAlign="stretch" width="100%">
                 {/* The full path, so a folder picked from search or deep in the tree is unambiguous. */}
                 <Text type="supporting" color="secondary" maxLines={2}>
                   Selected: {pending ? folderPathLabel(folders, pending) : ROOT_LABEL}
