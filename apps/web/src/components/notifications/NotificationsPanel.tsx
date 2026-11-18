@@ -12,8 +12,8 @@ import { Skeleton } from '@astryxdesign/core/Skeleton'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useAnswerInvite, useMyInvites } from '#/hooks/use-my-invites'
-import { ApiError } from '#/lib/api/error'
-import type { MyInvite } from '#/lib/api/my-invites'
+import { apiErrorMessage } from '#/lib/api/errors'
+import type { MyInvite } from '#/lib/api/types'
 import { formatShortDate } from '#/lib/format/short-date'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 
@@ -44,7 +44,7 @@ function InviteRow({ invite, onJoined }: { invite: MyInvite; onJoined: (invite: 
   const isBusy = accept.isPending || decline.isPending
   const run = (action: () => Promise<unknown>) => {
     setError(null)
-    action().catch((caught: unknown) => setError(ApiError.message(caught, 'Something went wrong.')))
+    action().catch((caught: unknown) => setError(apiErrorMessage(caught, 'Something went wrong.')))
   }
 
   return (
@@ -71,7 +71,7 @@ function InviteRow({ invite, onJoined }: { invite: MyInvite; onJoined: (invite: 
             label="Decline"
             isDisabled={isBusy}
             isLoading={decline.isPending}
-            onClick={() => run(() => decline.mutateAsync(invite.id))}
+            onClick={() => run(() => decline.mutateAsync({ params: { inviteId: invite.id } }))}
           />
           <Button
             variant="primary"
@@ -80,7 +80,7 @@ function InviteRow({ invite, onJoined }: { invite: MyInvite; onJoined: (invite: 
             isDisabled={isBusy}
             isLoading={accept.isPending}
             onClick={() => run(async () => {
-              await accept.mutateAsync(invite.id)
+              await accept.mutateAsync({ params: { inviteId: invite.id } })
               onJoined(invite)
             })}
           />
@@ -138,7 +138,7 @@ export default function NotificationsPanel() {
           ) : invites.isError && items.length === 0 ? (
             <Banner
               status="error"
-              title={ApiError.message(invites.error, 'Notifications could not be loaded.')}
+              title={apiErrorMessage(invites.error, 'Notifications could not be loaded.')}
               endContent={<Button variant="secondary" size="sm" label="Try again" onClick={() => void invites.refetch()} />}
             />
           ) : items.length === 0 ? (

@@ -1,43 +1,46 @@
 type OpenLinkAppMarkProps = {
   size?: number
+  /**
+   * `light`: white tile (`public/logo-light.svg`).
+   * `dark`: black tile (`public/logo-dark.svg`).
+   * `auto`: black tile in light mode, white tile in dark mode.
+   */
+  variant?: 'light' | 'dark' | 'auto'
 }
 
-/**
- * OpenLink mark — a lasso. A rope rises from the lower left, curls once, and
- * closes in a loop: catching a destination. Neutral tile, brand orange knot.
- */
-export default function OpenLinkAppMark({ size = 36 }: OpenLinkAppMarkProps) {
+const ORANGE = '#F2541B'
+const INK = '#111418'
+const PAPER = '#FAFAF7'
+
+/** The OpenLink logo: two slashes on a rounded tile. */
+export default function OpenLinkAppMark({ size = 36, variant = 'auto' }: OpenLinkAppMarkProps) {
+  const tile =
+    variant === 'light'
+      ? { fill: PAPER, stroke: INK }
+      : variant === 'dark'
+        ? { fill: INK, stroke: 'none' }
+        : { fill: `light-dark(${INK}, ${PAPER})`, stroke: `light-dark(transparent, ${INK})` }
+  const first = variant === 'light' ? INK : variant === 'dark' ? PAPER : `light-dark(${PAPER}, ${INK})`
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 96 96" fill="none" aria-hidden>
       <rect
-        x="0.5"
-        y="0.5"
-        width="39"
-        height="39"
-        rx="11"
-        fill="#161616"
-        stroke="rgba(255,255,255,0.14)"
+        x="1.333"
+        y="1.333"
+        width="93.333"
+        height="93.333"
+        rx="22.667"
+        strokeWidth="2.667"
+        style={tile}
       />
-      {/* Rope: from the hand, one curl, up to the knot */}
-      <path
-        d="M9.5 31.5c2.6-.4 4.4-2.2 4.6-4.4.2-2-1.6-3.2-3-2.3-1.5 1-.6 3.4 1.6 3.6 2.6.2 4.4-2.4 5.6-5.4"
-        stroke="#fafafa"
-        strokeWidth="2.2"
+      <g
+        transform="translate(9.842 9.842) scale(0.763158)"
+        strokeWidth="12"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      {/* Loop */}
-      <ellipse
-        cx="24.4"
-        cy="15.6"
-        rx="8.2"
-        ry="6.4"
-        transform="rotate(-24 24.4 15.6)"
-        stroke="#fafafa"
-        strokeWidth="2.2"
-      />
-      {/* Knot (honda) where rope meets loop */}
-      <circle cx="18.6" cy="21.2" r="2.3" fill="var(--openlink-brand, #FF4602)" />
+      >
+        <path d="M28 78L48 22" style={{ stroke: first }} />
+        <path d="M52 78L72 22" stroke={ORANGE} />
+      </g>
     </svg>
   )
 }

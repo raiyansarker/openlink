@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { ShortLink } from '#/data/demo/types'
+import type { ShortLink } from '#/lib/api/types'
 import { linksToCsv } from '#/lib/settings/export-links'
 import { previewImport } from './import-links'
 
@@ -10,9 +10,9 @@ const link = (slug: string, domainId: string | null, extra: Partial<ShortLink> =
     slug,
     domainId,
     title: slug,
-    targetUrl: `https://example.com/${slug}`,
+    destinationUrl: `https://example.com/${slug}`,
     status: 'active',
-    clicks: 0,
+    clickCount: 0,
     tags: [],
     createdAt: '2026-11-16T00:00:00.000Z',
     ...extra,

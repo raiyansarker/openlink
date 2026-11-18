@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
-import type { Organization } from '#/data/demo/types'
+import type { Workspace } from '#/lib/api/types'
 import { ActiveWorkspace } from './org-slug'
 
-const org = (slug: string): Organization => ({ id: `id-${slug}`, name: slug, slug, plan: 'free' })
+const org = (slug: string): Workspace => ({ id: `id-${slug}`, name: slug, slug, role: 'owner', createdAt: '2026-01-01T00:00:00.000Z' })
 const orgs = [org('acme'), org('other'), org('third')]
 
 const store = new Map<string, string>()

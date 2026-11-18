@@ -1,57 +1,20 @@
-import type { ShortLinkStatus } from '#/data/demo/types'
-
-export type LinkStatusDotVariant = 'success' | 'warning' | 'neutral'
+import type { LinkStatus } from '#/lib/api/types'
 
 export type LinkStatusMeta = {
-  status: ShortLinkStatus
   label: string
   description: string
-  dotVariant: LinkStatusDotVariant
-  isPulsing: boolean
 }
 
-const STATUS_META: Record<ShortLinkStatus, LinkStatusMeta> = {
-  active: {
-    status: 'active',
-    label: 'Live',
-    description: 'Redirects are serving traffic',
-    dotVariant: 'success',
-    isPulsing: true,
-  },
-  scheduled: {
-    status: 'scheduled',
-    label: 'Scheduled',
-    description: 'Starts redirecting at its activation time',
-    dotVariant: 'neutral',
-    isPulsing: false,
-  },
-  paused: {
-    status: 'paused',
-    label: 'Paused',
-    description: 'Redirects temporarily stopped',
-    dotVariant: 'warning',
-    isPulsing: false,
-  },
-  archived: {
-    status: 'archived',
-    label: 'Archived',
-    description: 'Kept for history, not serving',
-    dotVariant: 'neutral',
-    isPulsing: false,
-  },
+/** One label and description per API status. */
+const STATUS_META: Record<LinkStatus, LinkStatusMeta> = {
+  draft: { label: 'Draft', description: 'Saved but not redirecting yet' },
+  scheduled: { label: 'Scheduled', description: 'Starts redirecting at its activation time' },
+  active: { label: 'Live', description: 'Redirects are serving traffic' },
+  paused: { label: 'Paused', description: 'Redirects temporarily stopped' },
+  expired: { label: 'Expired', description: 'Past its expiry date or click limit' },
+  disabled: { label: 'Disabled', description: 'Turned off, not serving' },
 }
 
-export function linkStatusMeta(status: ShortLinkStatus): LinkStatusMeta {
-  return STATUS_META[status] ?? STATUS_META.archived
+export function linkStatusMeta(status: LinkStatus): LinkStatusMeta {
+  return STATUS_META[status]
 }
-
-/** @deprecated Prefer linkStatusMeta — kept for callers expecting badge variants */
-export function linkStatusBadgeVariant(
-  status: ShortLinkStatus,
-): 'success' | 'warning' | 'neutral' {
-  const variant = linkStatusMeta(status).dotVariant
-  if (variant === 'success' || variant === 'warning') return variant
-  return 'neutral'
-}
-
-export type LinkStatusBadgeVariant = ReturnType<typeof linkStatusBadgeVariant>

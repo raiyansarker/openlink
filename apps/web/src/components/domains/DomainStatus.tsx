@@ -1,5 +1,5 @@
 import { Text } from '@astryxdesign/core/Text'
-import type { DomainReadiness } from '#/data/demo/domains'
+import type { DomainReadiness } from '#/lib/api/types'
 import { domainStatusMeta } from '#/lib/domains/domain-status-meta'
 
 type DomainStatusProps = {

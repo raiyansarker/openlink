@@ -3,7 +3,7 @@ import DashboardActivityPanel, {
   ACTIVITY_CATEGORIES,
   type ActivityFilterState,
 } from '#/components/activity/DashboardActivityPanel'
-import type { ActivityCategory } from '#/data/demo/workspace-activity'
+import type { ActivityCategory } from '#/lib/api/types'
 import { createPageHead } from '#/lib/page-title'
 
 type ActivitySearch = { category?: ActivityCategory; q?: string }

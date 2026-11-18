@@ -1,8 +1,8 @@
 import { holdPageMeta } from '#/lib/links/hold-pages'
-import type { HoldPage } from '#/data/demo/types'
+import type { HoldPageId } from '#/lib/api/types'
 
 type HoldPagePreviewProps = {
-  page: HoldPage
+  page: HoldPageId
   /** Address shown in the fake browser bar. */
   url: string
   /** Shrinks the type for picker thumbnails. */

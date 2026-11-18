@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { LinkIcon } from '#/components/icons/IcnMcp'
 import { faviconUrl } from '#/lib/links/favicon'
 
@@ -11,8 +11,9 @@ type FaviconProps = {
 /** Destination site icon (Google favicon service), with a neutral fallback. */
 export default function Favicon({ url, size = 16 }: FaviconProps) {
   const src = url ? faviconUrl(url, size * 2) : null
-  const [failed, setFailed] = useState(false)
-  useEffect(() => setFailed(false), [src])
+  // A failure belongs to one address; a new address gets a fresh try.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const failed = failedSrc === src
 
   if (!src || failed) {
     return (
@@ -34,7 +35,7 @@ export default function Favicon({ url, size = 16 }: FaviconProps) {
       width={size}
       height={size}
       referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
+      onError={() => setFailedSrc(src)}
       style={{ display: 'block', flexShrink: 0, borderRadius: 3 }}
     />
   )

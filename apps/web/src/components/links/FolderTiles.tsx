@@ -15,7 +15,7 @@ import {
   FOLDER_CHIP_BG,
   FOLDER_CHIP_BORDER,
 } from '#/components/links/folder-colors'
-import type { LinkFolder } from '#/data/demo/types'
+import type { LinkFolder } from '#/lib/api/types'
 
 export type FolderTile = { folder: LinkFolder }
 

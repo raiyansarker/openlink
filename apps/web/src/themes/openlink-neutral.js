@@ -158,7 +158,7 @@ export const openlinkNeutralTheme = {
     "--color-warning-muted": "light-dark(#fae19e, #e2b6233D)",
     "--color-border": "light-dark(rgba(0, 0, 0, 0.075), rgba(255, 255, 255, 0.1))",
     "--color-border-emphasized": "light-dark(#dfdfdf, #3f3f46)",
-    "--color-skeleton": "light-dark(#f1f1f1, #525252)",
+    "--color-skeleton": "light-dark(#dcdce0, #525252)",
     "--color-shadow": "light-dark(#0000001A, #0000004D)",
     "--color-tint-hover": "light-dark(#000000, #ffffff)",
     "--color-background-red": "light-dark(#ffc4be, #5b2b28)",
@@ -215,17 +215,19 @@ export const openlinkNeutralTheme = {
     "--shadow-inset-success": "inset 0px 0px 0px 2px #2f7d334D",
     "--shadow-inset-warning": "inset 0px 0px 0px 2px #f8d36a4D",
     "--shadow-inset-error": "inset 0px 0px 0px 2px #de47454D",
-    "--focus-outline-color": "#FF4602"
+    "--focus-outline-color": "light-dark(#FF4602, #FF6B33)"
   },
   localTokens: {
     "--astryx-theme-neutral-color-status-fill-accent": "light-dark(#0074e2, #6d9cfe)",
     "--openlink-brand": "light-dark(#FF4602, #FF6B33)",
-    "--openlink-brand-muted": "light-dark(color-mix(in oklab, #FF4602 16%, transparent), color-mix(in oklab, #FF6B33 22%, transparent))"
+    "--openlink-brand-muted": "light-dark(color-mix(in oklab, #FF4602 16%, transparent), color-mix(in oklab, #FF6B33 22%, transparent))",
+    "--openlink-field-focus": "light-dark(#015FCC, #015FCC)"
   },
   __localTokenOwners: {
     "--astryx-theme-neutral-color-status-fill-accent": "neutral",
     "--openlink-brand": "openlink-neutral",
-    "--openlink-brand-muted": "openlink-neutral"
+    "--openlink-brand-muted": "openlink-neutral",
+    "--openlink-field-focus": "openlink-neutral"
   },
   __localTokenLineage: ["neutral","openlink-neutral"],
   components: {
@@ -452,7 +454,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-field-focus)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -465,7 +467,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-field-focus)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -478,7 +480,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-field-focus)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -491,7 +493,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-field-focus)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -504,7 +506,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-field-focus)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -517,7 +519,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--color-accent)"
+          "borderColor": "var(--openlink-field-focus)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }

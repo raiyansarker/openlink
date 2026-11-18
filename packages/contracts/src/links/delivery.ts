@@ -42,8 +42,6 @@ export type SocialPreview = typeof SocialPreview.infer
 
 type HoldPageCopy = {
   label: string
-  /** HTTP status the page is served with. */
-  status: 502 | 503 | 504
   heading: string
   /** Footer under the rule on web-server style pages. */
   footer?: string
@@ -56,18 +54,16 @@ type HoldPageCopy = {
 /** What each hold page says. Shared so the editor preview and the live page match. */
 export class HoldPages {
   static readonly ALL: Readonly<Record<HoldPageId, HoldPageCopy>> = {
-    'bad-gateway': { label: '502 Bad Gateway', status: 502, heading: '502 Bad Gateway', footer: 'nginx', isServerStyle: true },
+    'bad-gateway': { label: '502 Bad Gateway', heading: '502 Bad Gateway', footer: 'nginx', isServerStyle: true },
     'service-unavailable': {
       label: '503 Unavailable',
-      status: 503,
       heading: '503 Service Temporarily Unavailable',
       footer: 'nginx',
       isServerStyle: true,
     },
-    'gateway-timeout': { label: '504 Timeout', status: 504, heading: '504 Gateway Time-out', footer: 'nginx', isServerStyle: true },
+    'gateway-timeout': { label: '504 Timeout', heading: '504 Gateway Time-out', footer: 'nginx', isServerStyle: true },
     maintenance: {
       label: 'Maintenance',
-      status: 503,
       heading: 'We’ll be right back',
       body: 'This page is down for scheduled maintenance. Please try again in a little while.',
       isServerStyle: false,

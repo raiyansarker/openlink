@@ -43,6 +43,7 @@ export default function DashboardAccountMenu({
       menuWidth={220}
       renderTrigger={(triggerProps) => (
         <button
+          className="ol-focus-ring"
           {...triggerProps}
           type="button"
           aria-label={user ? `Account menu for ${user.name}` : 'Account menu'}

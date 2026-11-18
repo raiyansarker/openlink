@@ -19,3 +19,7 @@ export function badRequest(message: string) {
 export function conflict(message: string) {
   return new ORPCError('CONFLICT', { message })
 }
+
+/** Typed error constructors from a procedure's `errors`, for helpers that map domain failures onto them. */
+export type MessageError = (options: { message: string }) => Error
+export type ErrorFactories = { NOT_FOUND: MessageError; FORBIDDEN: MessageError }

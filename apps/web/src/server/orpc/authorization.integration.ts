@@ -164,8 +164,8 @@ mock.module('#/server/analytics/report', () => ({
 mock.module('#/server/effect/runtime', () => ({ requestEffectContext, effectRuntime: { runPromise: Effect.runPromise } }))
 
 const { handleOpenApiRequest } = await import('./openapi-handler')
-const { ApiClient } = await import('#/lib/api/client')
-const { ApiError } = await import('#/lib/api/error')
+const { createApiClient } = await import('#/lib/api/orpc')
+const { apiFailure, isRetryable } = await import('#/lib/api/errors')
 
 const sideEffects = [
   createMemberInvite, registerCustomDomain, removeCustomDomain, refreshCustomDomain,
@@ -834,8 +834,8 @@ describe('requests authenticated with an API key', () => {
 })
 
 // The real browser client against the real router: proves the two sides agree on the wire format.
-describe('frontend ApiClient against the real server', () => {
-  const client = ApiClient.create({
+describe('frontend API client against the real server', () => {
+  const client = createApiClient({
     origin: () => 'http://localhost',
     fetch: async (url, init) => {
       const result = await handleOpenApiRequest(new Request(url, init))
@@ -843,7 +843,10 @@ describe('frontend ApiClient against the real server', () => {
       return result.response
     },
   })
-  const failure = async (promise: Promise<unknown>) => ApiError.from(await promise.then(() => null, (e) => e))
+  const failure = async (promise: Promise<unknown>) => {
+    const error = await promise.then(() => null, (e) => e)
+    return { ...apiFailure(error), isRetryable: isRetryable(error) }
+  }
 
   test('parses successful, validated responses', async () => {
     role = 'viewer'
@@ -866,9 +869,9 @@ describe('frontend ApiClient against the real server', () => {
     expect(deleteLinkRecord).toHaveBeenCalledWith(linkRow.id)
   })
 
-  test('maps HTTP errors to ApiError with codes, statuses and server messages', async () => {
+  test('maps HTTP errors to codes, statuses and server messages', async () => {
     authenticated = false
-    expect(await failure(client.organizations.listOrganizations())).toMatchObject({ code: 'UNAUTHORIZED', status: 401, isUnauthorized: true })
+    expect(await failure(client.organizations.listOrganizations())).toMatchObject({ code: 'UNAUTHORIZED', status: 401 })
     authenticated = true
     role = null
     expect(await failure(client.organizations.getOrganization({ params: { organizationId: org.id } }))).toMatchObject({
