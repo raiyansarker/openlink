@@ -1,4 +1,4 @@
-import type { DomainReadiness } from '#/data/demo/domains'
+import type { DomainReadiness } from '#/lib/api/types'
 
 /**
  * Same palette as the links empty-state illustrations (Dropbox blue, lifted in

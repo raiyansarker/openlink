@@ -3,8 +3,8 @@ import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { QrRow, SettingsList } from '#/components/create-link/LinkPreviewPanel'
-import type { LinkFolder, ShortLink } from '#/data/demo/types'
-import { formatDateTime, linkSettingsRows } from '#/lib/links/link-summary'
+import type { LinkFolder, ShortLink } from '#/lib/api/types'
+import { formatDateTime, linkSettingsRows, linkTargetUrl } from '#/lib/links/link-summary'
 
 type LinkSettingsPanelProps = {
   link: ShortLink
@@ -77,13 +77,13 @@ export default function LinkSettingsPanel({
         title="Settings"
         description="How the link behaves. Edit the link to change them."
       >
-        <SettingsList rules={linkSettingsRows(link, folders)} tags={link.tags} isFlat />
+        <SettingsList rules={linkSettingsRows(link, folders)} tags={link.tags ?? []} isFlat />
       </SettingsSection>
 
       <SettingsSection title="Details" description="Fixed when the link was created.">
         <DetailRow label="Domain" value={host} />
         <DetailRow label="Back-half" value={`/${link.slug}`} />
-        <DetailRow label="Destination" value={stripScheme(link.targetUrl)} />
+        <DetailRow label="Destination" value={stripScheme(linkTargetUrl(link))} />
         <DetailRow label="Created" value={formatDateTime(link.createdAt)} />
         <DetailRow label="Last updated" value={formatDateTime(link.updatedAt ?? link.createdAt)} />
         {link.description ? <DetailRow label="Notes" value={link.description} /> : null}

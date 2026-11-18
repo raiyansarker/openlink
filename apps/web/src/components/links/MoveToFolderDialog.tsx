@@ -7,7 +7,7 @@ import { Selector } from '@astryxdesign/core/Selector'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
-import type { LinkFolder } from '#/data/demo/types'
+import type { LinkFolder } from '#/lib/api/types'
 import { canMoveFolder, folderPathLabel } from '#/lib/links/folder-tree'
 
 const ROOT_VALUE = '__root__'

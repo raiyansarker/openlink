@@ -11,11 +11,11 @@ import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
-import type { ActiveSession } from '#/data/demo/active-sessions'
+import type { DeviceView } from '#/lib/devices/describe'
 import { formatLastActive, formatSessionDate } from '#/lib/settings/session-time'
 
 type DeviceDetailSheetProps = {
-  session: ActiveSession | null
+  session: DeviceView | null
   onOpenChange: (open: boolean) => void
   onSignOut: (sessionId: string) => void
 }
@@ -57,7 +57,7 @@ export default function DeviceDetailSheet({
         width={420}
         hasScrim
         padding={FLOATING_END_DRAWER_PADDING}
-        style={floatingEndDrawerStyle()}
+        style={floatingEndDrawerStyle({ isOpen })}
       >
         <Layout
           header={

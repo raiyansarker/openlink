@@ -1,10 +1,16 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
-import { ActivityApi, type ActivityFilters } from '#/lib/api/activity'
-import { QueryKeys } from '#/lib/api/query'
+import { orpc } from '#/lib/api/orpc'
+import type { ActivityCategory } from '#/lib/api/types'
 
-const api = new ActivityApi()
+export type ActivityFilters = {
+  category?: ActivityCategory
+  /** Free-text search, matched on the server. */
+  q?: string
+}
+
+const PAGE_SIZE = 30
 
 /** New events show up on their own: the loaded pages refresh on this timer and on tab focus. */
 const LIVE_REFRESH_MS = 30_000
@@ -14,23 +20,34 @@ const LIVE_REFRESH_MS = 30_000
  * once, `fetchNextPage` adds older events using the server's cursor.
  */
 export function useActivityFeed(organizationId: string, filters: ActivityFilters) {
-  return useInfiniteQuery({
-    queryKey: [...QueryKeys.activity(organizationId), 'feed', filters],
-    queryFn: ({ pageParam }) => api.page(organizationId, filters, pageParam),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    refetchInterval: LIVE_REFRESH_MS,
-    refetchOnWindowFocus: true,
-  })
+  const q = filters.q?.trim()
+  return useInfiniteQuery(
+    orpc.activity.listActivity.infiniteOptions({
+      input: (cursor: string | undefined) => ({
+        params: { organizationId },
+        query: {
+          limit: String(PAGE_SIZE),
+          ...(cursor ? { cursor } : {}),
+          ...(filters.category ? { category: filters.category } : {}),
+          ...(q ? { q } : {}),
+        },
+      }),
+      initialPageParam: undefined,
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      refetchInterval: LIVE_REFRESH_MS,
+      refetchOnWindowFocus: true,
+    }),
+  )
 }
 
 /** One member's latest actions, for their profile drawer. */
 export function useMemberActivity(organizationId: string, userId: string | null, limit = 20) {
-  return useQuery({
-    queryKey: [...QueryKeys.activity(organizationId), 'member', userId, limit],
-    queryFn: () => api.page(organizationId, { actor: userId! }, undefined, limit),
-    enabled: userId != null,
-  })
+  return useQuery(
+    orpc.activity.listActivity.queryOptions({
+      input: { params: { organizationId }, query: { limit: String(limit), actor: userId ?? '' } },
+      enabled: userId != null,
+    }),
+  )
 }
 
 /** `value`, once it has stopped changing for `delayMs` (for search boxes). */

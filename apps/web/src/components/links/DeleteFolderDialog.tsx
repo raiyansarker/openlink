@@ -10,7 +10,7 @@ import {
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
-import type { LinkFolder } from '#/data/demo/types'
+import type { LinkFolder } from '#/lib/api/types'
 import type { DeleteFolderMode } from '#/lib/links/folder-tree'
 
 type DeleteFolderDialogProps = {

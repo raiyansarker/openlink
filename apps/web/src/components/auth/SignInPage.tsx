@@ -1,5 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect } from 'react'
+import { useForm } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
+import { type } from 'arktype'
 import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -11,10 +13,16 @@ import { VStack } from '@astryxdesign/core/VStack'
 import PasswordField from '#/components/common/PasswordField'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
+import { fieldStatus, requiredExact, requiredText, submitWith } from '#/lib/forms/fields'
 import { PasskeySupport } from './auth-icons'
 import AuthShell from './AuthShell'
 import ProviderButtons, { hasProviders } from './ProviderButtons'
 import { useAuthActions, type AuthProvider } from './use-auth-actions'
+
+const SignInSchema = type({
+  email: requiredText('Enter your email address.'),
+  password: requiredExact('Enter your password.'),
+})
 
 type SignInPageProps = {
   destination: string
@@ -28,8 +36,20 @@ type SignInPageProps = {
 export default function SignInPage({ destination, redirect, oauthError, providers, emailPassword }: SignInPageProps) {
   const navigate = useNavigate()
   const auth = useAuthActions({ destination, returnPath: '/login', initialError: AuthErrorMessages.oauth(oauthError) })
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const form = useForm({
+    defaultValues: { email: '', password: '' },
+    validators: { onSubmit: SignInSchema },
+    onSubmit: ({ value }) =>
+      auth.run('email', async () => {
+        try {
+          const { error } = await AuthSession.client.signIn.email({ email: value.email.trim(), password: value.password })
+          if (error) return AuthErrorMessages.emailSignIn(error)
+          await auth.finish()
+        } catch {
+          return AuthErrorMessages.emailSignIn(undefined)
+        }
+      }),
+  })
 
   // Saved passkeys show up in the email field's autofill when the browser supports it.
   useEffect(() => {
@@ -59,19 +79,6 @@ export default function SignInPage({ destination, redirect, oauthError, provider
       }
     })
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    void auth.run('email', async () => {
-      try {
-        const { error } = await AuthSession.client.signIn.email({ email: email.trim(), password })
-        if (error) return AuthErrorMessages.emailSignIn(error)
-        await auth.finish()
-      } catch {
-        return AuthErrorMessages.emailSignIn(undefined)
-      }
-    })
-  }
-
   const signUp = { to: '/signup' as const, ...(redirect ? { redirect } : {}) }
 
   return (
@@ -97,32 +104,46 @@ export default function SignInPage({ destination, redirect, oauthError, provider
             }
           />
           {/* POST so credentials never end up in the URL if this is submitted before hydration. */}
-          <form method="post" onSubmit={submit}>
+          <form
+            method="post"
+            noValidate
+            onSubmit={submitWith(form)}
+          >
             <VStack gap={4} hAlign="stretch">
-              <TextInput
-                label="Email address"
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={setEmail}
-                // "webauthn" lets the browser offer saved passkeys right here.
-                autoComplete="username webauthn"
-                autoCapitalize="none"
-                hasSpellCheck={false}
-                htmlName="email"
-                width="100%"
-                isRequired
-              />
+              <form.Field name="email">
+                {(field) => (
+                  <TextInput
+                    label="Email address"
+                    type="email"
+                    placeholder="you@company.com"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    status={fieldStatus(field.state.meta.errors)}
+                    // "webauthn" lets the browser offer saved passkeys right here.
+                    autoComplete="username webauthn"
+                    autoCapitalize="none"
+                    hasSpellCheck={false}
+                    htmlName="email"
+                    width="100%"
+                    isRequired
+                  />
+                )}
+              </form.Field>
               <VStack gap={2} hAlign="stretch">
-                <PasswordField
-                  label="Password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={setPassword}
-                  autoComplete="current-password webauthn"
-                  htmlName="password"
-                  isRequired
-                />
+                <form.Field name="password">
+                  {(field) => (
+                    <PasswordField
+                      label="Password"
+                      placeholder="Enter your password"
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      status={fieldStatus(field.state.meta.errors)}
+                      autoComplete="current-password webauthn"
+                      htmlName="password"
+                      isRequired
+                    />
+                  )}
+                </form.Field>
                 <HStack hAlign="end">
                   <Link
                     href="#"

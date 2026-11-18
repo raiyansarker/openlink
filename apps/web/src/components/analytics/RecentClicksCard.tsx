@@ -6,7 +6,7 @@ import { VStack } from '@astryxdesign/core/VStack'
 import AnalyticsCard from '#/components/analytics/AnalyticsCard'
 import { useRecentClicks } from '#/hooks/use-analytics'
 import { countryFlag } from '#/lib/analytics/flag'
-import type { RecentClick } from '#/lib/api/analytics'
+import type { RecentClick } from '#/lib/api/types'
 import { countryName } from '#/lib/links/countries'
 
 type RecentClicksCardProps = {

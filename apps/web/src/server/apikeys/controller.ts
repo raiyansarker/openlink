@@ -5,7 +5,7 @@ import { requireOrgAdminUserEffect } from '#/server/effect/access'
 import { audit } from '#/server/activity/audit'
 import { os } from '#/server/orpc/implement'
 
-import { createApiKey, listApiKeys, revokeApiKey, updateApiKeyRole } from './service'
+import { createApiKey, listApiKeys, revokeApiKey, rotateApiKey, updateApiKeyRole } from './service'
 
 export const apiKeysController = {
   listApiKeys: os.apiKeys.listApiKeys.effect(function* ({ input }) {
@@ -39,6 +39,7 @@ export const apiKeysController = {
       organizationId: input.params.organizationId,
       keyId: input.params.keyId,
       role: input.body.role,
+      userId: session.session.user.id,
     }).pipe(Effect.catchTags({ ApiKeyNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'API key not found' })) }))
     if (previousRole !== row.role) {
       yield* audit(session, {
@@ -49,6 +50,27 @@ export const apiKeysController = {
       })
     }
     return toApiKeyDto(row)
+  }),
+
+  rotateApiKey: os.apiKeys.rotateApiKey.effect(function* ({ input, errors }) {
+    const { session } = yield* requireOrgAdminUserEffect(input.params.organizationId)
+    const { row, secret, previous } = yield* rotateApiKey({
+      organizationId: input.params.organizationId,
+      keyId: input.params.keyId,
+      createdByUserId: session.session.user.id,
+    }).pipe(Effect.catchTags({ ApiKeyNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'API key not found' })) }))
+    yield* audit(session, {
+      organizationId: input.params.organizationId,
+      action: 'apikey.created',
+      target: { type: 'api_key', id: row.id, label: row.name },
+      changes: [{ label: 'Role', from: '—', to: row.role }],
+    })
+    yield* audit(session, {
+      organizationId: input.params.organizationId,
+      action: 'apikey.revoked',
+      target: { type: 'api_key', id: previous.id, label: previous.name },
+    })
+    return { ...toApiKeyDto(row), secret }
   }),
 
   revokeApiKey: os.apiKeys.revokeApiKey.effect(function* ({ input, errors }) {

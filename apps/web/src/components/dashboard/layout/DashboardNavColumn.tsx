@@ -82,6 +82,7 @@ function NavLinkItem({
 
   return (
     <button
+      className="ol-focus-ring"
       type="button"
       aria-current={isSelected ? 'page' : undefined}
       onClick={() => void navigate({ to: item.href })}
@@ -166,6 +167,7 @@ export default function DashboardNavColumn() {
       </div>
 
       <nav
+        className="focus-inset"
         style={{
           flex: 1,
           minHeight: 0,
