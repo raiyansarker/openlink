@@ -1,8 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { stableContext } from '#/lib/react/stable-context'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -10,26 +8,9 @@ import {
   type ReactNode,
 } from 'react'
 import { useToast } from '@astryxdesign/core/Toast'
-import { MAX_LINK_NOTES_LENGTH } from '@openlink/contracts'
-import { useAnalyticsSummary } from '#/hooks/use-analytics'
-import type { DeleteFolderMode, Domain, LinkFolder, LinkHold, ShortLink, UpdateLinkBody, Workspace } from '#/lib/api/types'
+import type { DeleteFolderMode, Domain, LinkFolder, LinkHold, ShortLink, Workspace } from '#/lib/api/types'
 import { apiErrorMessage } from '#/lib/api/errors'
-import { api, orpc } from '#/lib/api/orpc'
-import {
-  canCreateFolderIn,
-  canMoveFolder,
-  validateFolderName,
-} from '#/lib/links/folder-tree'
-import {
-  draftToCreateBody,
-  draftToUpdateBody,
-  generateSlug,
-  isSlugTaken,
-  validateDraft,
-  type CreateLinkDraft,
-} from '#/lib/links/create-link'
-import { ShortUrl } from '#/lib/links/short-url'
-import { LinkLiveStatus, linkTitle } from '#/lib/links/link-summary'
+import type { CreateLinkDraft } from '#/lib/links/create-link'
 import NotFoundPage from '#/components/not-found/NotFoundPage'
 import WorkspaceStatusScreen, { type StatusPresentation } from '#/components/workspace/WorkspaceStatusScreen'
 import {
@@ -39,6 +20,10 @@ import {
 import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { WorkspaceDeparture } from '#/lib/dashboard/workspace-departure'
+import { friendly } from '#/contexts/organization/workspace-api'
+import { useFolderActions } from '#/contexts/organization/use-folder-actions'
+import { useLinkActions } from '#/contexts/organization/use-link-actions'
+import { useWorkspaceData } from '#/contexts/organization/use-workspace-data'
 
 type OrganizationContextValue = {
   organizations: Workspace[]
@@ -100,9 +85,6 @@ type OrganizationProviderProps = {
   presentation?: StatusPresentation
   children: ReactNode
 }
-
-/** How often the links list (clicks, status) refreshes while the tab is visible. */
-const LINKS_REFRESH_MS = 30_000
 
 /**
  * Loads the user's workspaces, then renders `children` inside the chosen one.
@@ -178,41 +160,8 @@ function WorkspaceGate({ orgSlugFromRoute, presentation = 'page', children }: Or
   )
 }
 
-/** Bulk endpoints take at most this many ids per call. */
-const BULK_LIMIT = 200
-const chunks = <T,>(items: T[]) =>
-  Array.from({ length: Math.ceil(items.length / BULK_LIMIT) }, (_, i) => items.slice(i * BULK_LIMIT, (i + 1) * BULK_LIMIT))
-
-/** Page size for loading a workspace's links. */
-const LINKS_PAGE = 200
 /** Safety cap for one workspace list; the browser filters and searches locally. */
-export const MAX_LINKS = 2000
-
-/** Every link of a workspace, page by page up to `MAX_LINKS`. */
-async function listAllLinks(organizationId: string): Promise<ShortLink[]> {
-  const links: ShortLink[] = []
-  for (let offset = 0; offset < MAX_LINKS; offset += LINKS_PAGE) {
-    const page = await api.links.listOrganizationLinks({
-      params: { organizationId },
-      query: { limit: String(LINKS_PAGE), offset: String(offset) },
-    })
-    links.push(...page.items)
-    if (links.length >= page.total || page.items.length === 0) break
-  }
-  return links
-}
-
-/** List responses carry their rows in `items`. Module-level so `select` stays stable. */
-const selectItems = <T,>(data: { items: T[] }): T[] => data.items
-
-/** Turns any failure into an Error whose message is safe to show. */
-async function friendly<T>(run: () => Promise<T>, fallback: string): Promise<T> {
-  try {
-    return await run()
-  } catch (error) {
-    throw new Error(apiErrorMessage(error, fallback))
-  }
-}
+export { MAX_LINKS } from '#/contexts/organization/workspace-api'
 
 function OrganizationScope({
   activeOrg,
@@ -224,252 +173,42 @@ function OrganizationScope({
   children: ReactNode
 }) {
   const { organizations } = useWorkspaceDirectory()
-  const queryClient = useQueryClient()
-  const orgId = activeOrg.id
-  const input = { params: { organizationId: orgId } }
-  const linksKey = orpc.links.listOrganizationLinks.queryKey({ input: { ...input, query: {} } })
-  const foldersKey = orpc.folders.listFolders.queryKey({ input })
+  const {
+    orgId,
+    linksQuery,
+    foldersQuery,
+    domains,
+    folders,
+    links,
+    stats,
+    shortHostFor,
+    shortUrlFor,
+    requireFolder,
+    putLink,
+    refreshLinks,
+    refreshFolders,
+  } = useWorkspaceData(activeOrg)
 
-  // Clicks land on the redirect path, outside this page, so the list refreshes
-  // itself: on a timer while the tab is visible, and when you come back to it.
-  const linksQuery = useQuery({
-    queryKey: linksKey,
-    queryFn: () => listAllLinks(orgId),
-    refetchInterval: LINKS_REFRESH_MS,
-    refetchOnWindowFocus: true,
+  const {
+    createLink,
+    setLinkPreviewImage,
+    updateLink,
+    duplicateLink,
+    moveLinks,
+    moveLink,
+    setLinksHold,
+    setLinkHold,
+    saveLinkNotes,
+    addTagsToLinks,
+    deleteLinks,
+    deleteLink,
+  } = useLinkActions({ orgId, links, requireFolder, putLink, refreshLinks })
+  const { createFolder, renameFolder, moveFolder, deleteFolder } = useFolderActions({
+    orgId,
+    folders,
+    requireFolder,
+    refreshFolders,
   })
-  const foldersQuery = useQuery(orpc.folders.listFolders.queryOptions({ input, select: selectItems }))
-  // Domains never block the workspace; without them links fall back to the app host.
-  const domainsQuery = useQuery(orpc.domains.listDomains.queryOptions({ input, select: selectItems }))
-
-  const domains = useMemo(() => domainsQuery.data ?? [], [domainsQuery.data])
-  const folders = useMemo(() => foldersQuery.data ?? [], [foldersQuery.data])
-  const links = useMemo(() => linksQuery.data ?? [], [linksQuery.data])
-
-  // Writes refresh what they touched. Folder changes can move or delete links, so they refresh both.
-  const refreshLinks = () => queryClient.invalidateQueries({ queryKey: linksKey })
-  const refreshFolders = () =>
-    Promise.all([queryClient.invalidateQueries({ queryKey: foldersKey }), queryClient.invalidateQueries({ queryKey: linksKey })])
-  /** Shows a saved link at once, then re-reads the list. */
-  const putLink = (link: ShortLink) => {
-    queryClient.setQueryData<ShortLink[]>(linksKey, (prev = []) =>
-      prev.some((l) => l.id === link.id) ? prev.map((l) => (l.id === link.id ? link : l)) : [link, ...prev],
-    )
-    return refreshLinks()
-  }
-
-  const createLinkMutation = useMutation(orpc.links.createWorkspaceLink.mutationOptions({ onSuccess: putLink }))
-  const updateLinkMutation = useMutation(orpc.links.updateWorkspaceLink.mutationOptions({ onSuccess: putLink }))
-  const moveLinksMutation = useMutation(orpc.links.moveLinks.mutationOptions({ onSuccess: refreshLinks }))
-  const addTagsMutation = useMutation(orpc.links.addLinkTags.mutationOptions({ onSuccess: refreshLinks }))
-  const deleteLinksMutation = useMutation(orpc.links.deleteLinks.mutationOptions({ onSuccess: refreshLinks }))
-  const createFolderMutation = useMutation(orpc.folders.createFolder.mutationOptions({ onSuccess: refreshFolders }))
-  const updateFolderMutation = useMutation(orpc.folders.updateFolder.mutationOptions({ onSuccess: refreshFolders }))
-  const deleteFolderMutation = useMutation(orpc.folders.deleteFolder.mutationOptions({ onSuccess: refreshFolders }))
-
-  /** Saves part of a link; fields left out keep their value. */
-  const updateLink$ = (linkId: string, body: UpdateLinkBody) =>
-    updateLinkMutation.mutateAsync({ params: { organizationId: orgId, linkId }, body })
-
-  const shortHostFor = useCallback((domainId: string | null | undefined) => ShortUrl.host(domainId, domains), [domains])
-  const shortUrlFor = useCallback(
-    (slug: string, domainId: string | null | undefined) => ShortUrl.build(slug, domainId, domains),
-    [domains],
-  )
-
-  // Link counts come from the links; click numbers from recorded clicks.
-  const summary = useAnalyticsSummary(orgId).data
-  const stats = useMemo<WorkspaceStats>(
-    () => ({
-      totalLinks: links.length,
-      activeLinks: links.filter((link) => LinkLiveStatus.current(link) === 'active' && !LinkLiveStatus.isExpired(link)).length,
-      clicksToday: summary?.clicksToday ?? 0,
-      clicksThisWeek: summary?.clicksThisWeek ?? 0,
-      uniqueVisitorsWeek: summary?.uniqueVisitorsWeek ?? 0,
-      topReferrer: summary?.topReferrer ?? '—',
-    }),
-    [links, summary],
-  )
-
-  const requireFolder = useCallback(
-    (folderId: string | null, message = 'That folder no longer exists.') => {
-      if (folderId && !folders.some((f) => f.id === folderId)) throw new Error(message)
-    },
-    [folders],
-  )
-
-  const createLink = useCallback(
-    async (draft: CreateLinkDraft, previewImage?: File | null) => {
-      const first = Object.values(validateDraft(draft, { links }))[0]
-      if (first) throw new Error(first)
-      requireFolder(draft.folderId)
-
-      let slug = draft.slug.trim()
-      while (!slug || isSlugTaken(links, draft.domainId, slug)) slug = generateSlug()
-
-      const body = draftToCreateBody(draft, slug)
-      // A file makes the client send multipart; the server stores it as the card's image.
-      return createLinkMutation.mutateAsync({ params: { organizationId: orgId }, body: previewImage ? { ...body, previewImage } : body })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [links, orgId, requireFolder],
-  )
-
-  const updateLink = useCallback(
-    async (linkId: string, draft: CreateLinkDraft) => {
-      const before = links.find((l) => l.id === linkId)
-      if (!before) throw new Error('That link no longer exists.')
-      const first = Object.values(
-        validateDraft(draft, { links, editing: { linkId, hasPassword: !!before.passwordProtected } }),
-      )[0]
-      if (first) throw new Error(first)
-      requireFolder(draft.folderId)
-
-      return updateLink$(linkId, draftToUpdateBody(draft, before))
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [links, orgId, requireFolder],
-  )
-
-  const setLinkPreviewImage = useCallback(
-    // Only the image: a form body can't carry the nulls a full save uses to clear settings.
-    (linkId: string, image: File) => updateLink$(linkId, { previewImage: image }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [orgId],
-  )
-
-  const duplicateLink = useCallback(
-    async (linkId: string) => {
-      const source = links.find((l) => l.id === linkId)
-      if (!source) throw new Error('That link no longer exists.')
-      let slug = `${source.slug}-copy`
-      for (let n = 2; isSlugTaken(links, source.domainId ?? null, slug); n++) {
-        slug = n > 9 ? generateSlug() : `${source.slug}-copy-${n}`
-      }
-      // Passwords are never readable, so a copy starts without one.
-      const { id: _id, organizationId: _org, status: _status, enabled: _enabled, clickCount: _clicks, passwordProtected: _password, alias: _alias, createdAt: _created, updatedAt: _updated, ...settings } = source
-      return createLinkMutation.mutateAsync({
-        params: { organizationId: orgId },
-        body: { ...settings, slug, title: `Copy of ${linkTitle(source)}` },
-      })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [links, orgId],
-  )
-
-  const moveLinks = useCallback(
-    async (linkIds: string[], folderId: string | null) => {
-      requireFolder(folderId, 'That destination no longer exists.')
-      const ids = linkIds.filter((id) => (links.find((l) => l.id === id)?.folderId ?? null) !== folderId)
-      if (ids.length === 0) return
-      for (const batch of chunks(ids)) {
-        await moveLinksMutation.mutateAsync({ params: { organizationId: orgId }, body: { linkIds: batch, folderId } })
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [links, orgId, requireFolder],
-  )
-
-  const moveLink = useCallback((linkId: string, folderId: string | null) => moveLinks([linkId], folderId), [moveLinks])
-
-  const setLinksHold = useCallback(
-    async (linkIds: string[], hold: LinkHold | null) => {
-      const wanted = new Set(linkIds)
-      const targets = links.filter((l) => wanted.has(l.id) && (hold || l.hold))
-      // Hold travels in the link's metadata, so each link is saved on its own.
-      await Promise.all(targets.map((l) => updateLink$(l.id, { hold })))
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [links, orgId],
-  )
-
-  const setLinkHold = useCallback((linkId: string, hold: LinkHold | null) => setLinksHold([linkId], hold), [setLinksHold])
-
-  const saveLinkNotes = useCallback(
-    async (linkId: string, notes: string) => {
-      if (notes.length > MAX_LINK_NOTES_LENGTH) {
-        throw new Error(`Keep notes under ${MAX_LINK_NOTES_LENGTH.toLocaleString()} characters.`)
-      }
-      await updateLink$(linkId, { description: notes.trim() || null })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [orgId],
-  )
-
-  const addTagsToLinks = useCallback(
-    async (linkIds: string[], tags: string[]) => {
-      const clean = [...new Set(tags.map((t) => t.trim().toLowerCase()).filter(Boolean))]
-      if (clean.length === 0 || linkIds.length === 0) return
-      for (const batch of chunks(linkIds)) {
-        await addTagsMutation.mutateAsync({ params: { organizationId: orgId }, body: { linkIds: batch, tags: clean } })
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [orgId],
-  )
-
-  const deleteLinks = useCallback(
-    async (linkIds: string[]) => {
-      if (linkIds.length === 0) return
-      for (const batch of chunks(linkIds)) {
-        await deleteLinksMutation.mutateAsync({ params: { organizationId: orgId }, body: { linkIds: batch } })
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [orgId],
-  )
-
-  const deleteLink = useCallback((linkId: string) => deleteLinks([linkId]), [deleteLinks])
-
-  const createFolder = useCallback(
-    async (name: string, parentId: string | null) => {
-      requireFolder(parentId)
-      if (!canCreateFolderIn(folders, parentId)) throw new Error('Folders cannot be nested any deeper.')
-      const error = validateFolderName(folders, name, parentId)
-      if (error) throw new Error(error)
-      return createFolderMutation.mutateAsync({ params: { organizationId: orgId }, body: { name: name.trim(), parentId } })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [folders, orgId, requireFolder],
-  )
-
-  const renameFolder = useCallback(
-    async (folderId: string, name: string) => {
-      const target = folders.find((f) => f.id === folderId)
-      if (!target) throw new Error('That folder no longer exists.')
-      const error = validateFolderName(folders, name, target.parentId ?? null, folderId)
-      if (error) throw new Error(error)
-      await updateFolderMutation.mutateAsync({ params: { organizationId: orgId, folderId }, body: { name: name.trim() } })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [folders, orgId],
-  )
-
-  const moveFolder = useCallback(
-    async (folderId: string, parentId: string | null) => {
-      const target = folders.find((f) => f.id === folderId)
-      if (!target) throw new Error('That folder no longer exists.')
-      if ((target.parentId ?? null) === parentId) return
-      requireFolder(parentId, 'That destination no longer exists.')
-      if (!canMoveFolder(folders, folderId, parentId)) {
-        throw new Error('A folder cannot be moved into itself, its subfolders, or past the maximum depth.')
-      }
-      const error = validateFolderName(folders, target.name, parentId, folderId)
-      if (error) throw new Error(error)
-      await updateFolderMutation.mutateAsync({ params: { organizationId: orgId, folderId }, body: { parentId } })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [folders, orgId, requireFolder],
-  )
-
-  const deleteFolder = useCallback(
-    async (folderId: string, mode: DeleteFolderMode) => {
-      // The server moves or deletes the contents; the mutation reloads both lists.
-      await deleteFolderMutation.mutateAsync({ params: { organizationId: orgId, folderId }, query: { mode } })
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [orgId],
-  )
 
   const value = useMemo<OrganizationContextValue>(
     () => ({
