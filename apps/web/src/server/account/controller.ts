@@ -7,7 +7,7 @@ import { DeviceSessions } from '#/server/devices/sessions'
 import { acceptInviteById, declineInviteForEmail, listInvitesForEmail } from '#/server/org/service'
 import { os } from '#/server/orpc/implement'
 
-export const accountRouter = {
+export const accountController = {
   // Cookie sessions only: an API key is not a device and must not sign people out.
   listDeviceSessions: os.account.listDeviceSessions.effect(function* () {
     const session = yield* requireAuthSession

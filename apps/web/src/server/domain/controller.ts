@@ -14,7 +14,7 @@ import {
 import { DomainLinks } from './domain-links'
 import { requireDomain } from './guards'
 
-export const domainsRouter = {
+export const domainsController = {
   listDomains: os.domains.listDomains.effect(function* ({ input }) {
     yield* requireOrgMemberEffect(input.params.organizationId)
     const rows = yield* listDomainsForOrganization(input.params.organizationId)

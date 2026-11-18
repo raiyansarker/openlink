@@ -15,7 +15,7 @@ type AuthPayload = {
 const readAuthPayload = (response: Response) =>
   operation<AuthPayload>('auth.readResponse', () => response.json())
 
-export const authRouter = {
+export const authController = {
   signUp: os.auth.signUp.effect(function* ({ input, context, errors }) {
     const response = yield* signUp(input.body)
     if (!response.ok) {

@@ -71,7 +71,7 @@ const requireLinkFolder = (
       )
     : Effect.void
 
-export const linksRouter = {
+export const linksController = {
   listOrganizationLinks: os.links.listOrganizationLinks.effect(function* ({ input }) {
     yield* requireOrgMemberEffect(input.params.organizationId)
     const { items, total } = yield* queryOrganizationLinks({

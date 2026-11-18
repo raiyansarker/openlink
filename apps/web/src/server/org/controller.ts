@@ -52,7 +52,7 @@ const memberErrors = (errors: ErrorFactories) => ({
   ...onMemberDenied(errors),
 })
 
-export const organizationsRouter = {
+export const organizationsController = {
   listOrganizations: os.organizations.listOrganizations.effect(function* () {
     const session = yield* requireAuthSession
     const rows = yield* listOrganizationsForUser(session.session.user.id)

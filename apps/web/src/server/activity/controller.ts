@@ -5,7 +5,7 @@ import { os } from '#/server/orpc/implement'
 
 import { listActivity } from './service'
 
-export const activityRouter = {
+export const activityController = {
   listActivity: os.activity.listActivity.effect(function* ({ input }) {
     const { membership } = yield* requireOrgMemberEffect(input.params.organizationId)
     const { items, nextCursor } = yield* listActivity({

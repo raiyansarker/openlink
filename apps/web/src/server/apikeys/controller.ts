@@ -7,7 +7,7 @@ import { os } from '#/server/orpc/implement'
 
 import { createApiKey, listApiKeys, revokeApiKey, updateApiKeyRole } from './service'
 
-export const apiKeysRouter = {
+export const apiKeysController = {
   listApiKeys: os.apiKeys.listApiKeys.effect(function* ({ input }) {
     yield* requireOrgAdminUserEffect(input.params.organizationId)
     const rows = yield* listApiKeys(input.params.organizationId)

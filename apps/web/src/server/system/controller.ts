@@ -11,7 +11,7 @@ const openApiGenerator = new OpenAPIGenerator({
   converters: [new ArkTypeToJsonSchemaConverter()],
 })
 
-export const systemRouter = {
+export const systemController = {
   getHealth: os.system.getHealth.effect(function* ({ errors }) {
     const report = yield* runHealthChecks()
     if (report.status === 'error') {

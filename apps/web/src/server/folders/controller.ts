@@ -19,7 +19,7 @@ const onFolderNameTaken = (errors: { CONFLICT: MessageError }) => ({
   FolderNameTaken: () => Effect.fail(errors.CONFLICT({ message: 'A folder with this name already exists here' })),
 })
 
-export const foldersRouter = {
+export const foldersController = {
   listFolders: os.folders.listFolders.effect(function* ({ input }) {
     yield* requireOrgMemberEffect(input.params.organizationId)
     const rows = yield* listFolders(input.params.organizationId)

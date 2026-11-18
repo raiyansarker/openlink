@@ -7,7 +7,7 @@ import { notFound } from '#/server/orpc/errors'
 
 import { AnalyticsReports, AnalyticsSummaries, RecentClicks } from './report'
 
-export const analyticsRouter = {
+export const analyticsController = {
   getAnalyticsReport: os.analytics.getAnalyticsReport.effect(function* ({ input }) {
     const organizationId = input.params.organizationId
     yield* requireOrgMemberEffect(organizationId)
