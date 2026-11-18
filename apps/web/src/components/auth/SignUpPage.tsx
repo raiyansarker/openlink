@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useForm } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
+import { type } from 'arktype'
 import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
 import { Icon } from '@astryxdesign/core/Icon'
@@ -9,9 +10,16 @@ import { VStack } from '@astryxdesign/core/VStack'
 import PasswordField from '#/components/common/PasswordField'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
+import { FormFields } from '#/lib/forms/fields'
 import AuthShell from './AuthShell'
 import ProviderButtons, { hasProviders } from './ProviderButtons'
 import { useAuthActions, type AuthProvider } from './use-auth-actions'
+
+const SignUpSchema = type({
+  name: 'string',
+  email: FormFields.email({ required: 'Enter your email address.', invalid: 'Enter a valid email address.' }),
+  password: FormFields.requiredExact('Enter a password.'),
+})
 
 type SignUpPageProps = {
   destination: string
@@ -24,27 +32,26 @@ type SignUpPageProps = {
 export default function SignUpPage({ destination, redirect, oauthError, providers, emailPassword }: SignUpPageProps) {
   const navigate = useNavigate()
   const auth = useAuthActions({ destination, returnPath: '/signup', initialError: AuthErrorMessages.oauth(oauthError) })
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    void auth.run('email', async () => {
-      try {
-        const { error } = await AuthSession.client.signUp.email({
-          // Left blank, the name starts as the part of the email before the @.
-          name: name.trim() || email.trim().split('@')[0]!,
-          email: email.trim(),
-          password,
-        })
-        if (error) return AuthErrorMessages.emailSignUp(error)
-        await auth.finish()
-      } catch {
-        return AuthErrorMessages.emailSignUp(undefined)
-      }
-    })
-  }
+  const form = useForm({
+    defaultValues: { name: '', email: '', password: '' },
+    validators: { onSubmit: SignUpSchema },
+    onSubmit: ({ value }) =>
+      auth.run('email', async () => {
+        try {
+          const email = value.email.trim()
+          const { error } = await AuthSession.client.signUp.email({
+            // Left blank, the name starts as the part of the email before the @.
+            name: value.name.trim() || email.split('@')[0]!,
+            email,
+            password: value.password,
+          })
+          if (error) return AuthErrorMessages.emailSignUp(error)
+          await auth.finish()
+        } catch {
+          return AuthErrorMessages.emailSignUp(undefined)
+        }
+      }),
+  })
 
   const signIn = { to: '/login' as const, ...(redirect ? { redirect } : {}) }
 
@@ -68,40 +75,62 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
               }
             />
           ) : null}
-          <form method="post" onSubmit={submit}>
+          <form
+            method="post"
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              void form.handleSubmit()
+            }}
+          >
             <VStack gap={4} hAlign="stretch">
-              <TextInput
-                label="Your name"
-                placeholder="Ada Lovelace"
-                value={name}
-                onChange={setName}
-                autoComplete="name"
-                htmlName="name"
-                width="100%"
-                isOptional
-              />
-              <TextInput
-                label="Email address"
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={setEmail}
-                autoComplete="email"
-                autoCapitalize="none"
-                hasSpellCheck={false}
-                htmlName="email"
-                width="100%"
-                isRequired
-              />
-              <PasswordField
-                label="Password"
-                placeholder="At least 8 characters"
-                value={password}
-                onChange={setPassword}
-                autoComplete="new-password"
-                htmlName="password"
-                isRequired
-              />
+              <form.Field name="name">
+                {(field) => (
+                  <TextInput
+                    label="Your name"
+                    placeholder="Ada Lovelace"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    autoComplete="name"
+                    htmlName="name"
+                    width="100%"
+                    isOptional
+                  />
+                )}
+              </form.Field>
+              <form.Field name="email">
+                {(field) => (
+                  <TextInput
+                    label="Email address"
+                    type="email"
+                    placeholder="you@company.com"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    status={FormFields.status(field.state.meta.errors)}
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    hasSpellCheck={false}
+                    htmlName="email"
+                    width="100%"
+                    isRequired
+                  />
+                )}
+              </form.Field>
+              <form.Field name="password">
+                {(field) => (
+                  <PasswordField
+                    label="Password"
+                    placeholder="At least 8 characters"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    status={FormFields.status(field.state.meta.errors)}
+                    autoComplete="new-password"
+                    htmlName="password"
+                    isRequired
+                  />
+                )}
+              </form.Field>
               <Button
                 label="Create account"
                 variant="primary"
