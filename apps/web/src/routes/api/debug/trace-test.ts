@@ -1,24 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Cause, Exit } from 'effect'
 import { effectRuntime } from '#/server/effect/runtime'
-import { getBindings } from '#/server/env'
 import { ErrorReport } from '#/server/observability'
-import { TraceTest, tokensMatch, type TraceTestKind } from '#/server/observability/trace-test'
+import { TraceTest, type TraceTestKind } from '#/server/observability/trace-test'
 
 /**
- * Tracing check. Off unless the `TRACE_TEST_TOKEN` secret is set, and then only for requests carrying it:
+ * Temporary tracing check, open to anyone. Remove this route once tracing is verified.
  *
- *   curl -H "x-trace-test-token: $TOKEN" "https://<host>/api/debug/trace-test?kind=nested"
+ *   curl "https://<host>/api/debug/trace-test?kind=nested"
  *
  * `kind` is ok, typed, defect, operation or nested; without it every kind runs in one request.
  * The response includes the trace id to look up in Workers › Observability › Traces.
  */
 const serve = async ({ request }: { request: Request }) => {
-  const expected = getBindings().TRACE_TEST_TOKEN
-  if (!expected || !tokensMatch(request.headers.get('x-trace-test-token'), expected)) {
-    return new Response(null, { status: 404 })
-  }
-
   const requested = new URL(request.url).searchParams.get('kind')
   if (requested !== null && !TraceTest.isKind(requested)) {
     return Response.json({ error: `kind must be one of: ${TraceTest.KINDS.join(', ')}` }, { status: 400 })

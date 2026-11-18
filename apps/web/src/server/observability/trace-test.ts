@@ -72,11 +72,3 @@ export class TraceTest {
     ).pipe(Effect.withSpan('trace_test.level_3'))
   }).pipe(Effect.withSpan('trace_test.level_2'), Effect.withSpan('trace_test.level_1'))
 }
-
-/** Constant-time string comparison for the access token. */
-export function tokensMatch(given: string | null, expected: string): boolean {
-  if (given === null || given.length !== expected.length) return false
-  let diff = 0
-  for (let i = 0; i < expected.length; i++) diff |= given.charCodeAt(i) ^ expected.charCodeAt(i)
-  return diff === 0
-}

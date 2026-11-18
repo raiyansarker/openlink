@@ -24,6 +24,3 @@ CF_API_TOKEN=
 CF_ZONE_ID=
 CF_SAAS_CNAME_TARGET=
 CF_SAAS_CUSTOM_ORIGIN=
-
-# Enables /api/debug/trace-test (send it in the x-trace-test-token header). Leave empty to keep the endpoint off.
-TRACE_TEST_TOKEN=
