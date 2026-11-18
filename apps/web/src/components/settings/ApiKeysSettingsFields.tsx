@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
-import SettingsLoading from '#/components/settings/SettingsLoading'
+import SettingsSkeleton from '#/components/settings/SettingsSkeleton'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { apiErrorMessage } from '#/lib/api/errors'
 import { orpc } from '#/lib/api/orpc'
@@ -168,7 +168,7 @@ export default function ApiKeysSettingsFields() {
           Only workspace owners and admins can view and manage API keys.
         </Text>
       ) : null}
-      {canManage && query.isPending ? <SettingsLoading size="section" label="Loading API keys…" /> : null}
+      {canManage && query.isPending ? <SettingsSkeleton variant="rows" count={3} label="Loading API keys…" /> : null}
       {canManage && query.isError ? (
         <VStack gap={2} hAlign="start" role="alert">
           <Text>{apiErrorMessage(query.error, 'Could not load API keys.')}</Text>

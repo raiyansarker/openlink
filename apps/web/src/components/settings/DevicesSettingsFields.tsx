@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
-import SettingsLoading from '#/components/settings/SettingsLoading'
+import SettingsSkeleton from '#/components/settings/SettingsSkeleton'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Badge } from '@astryxdesign/core/Badge'
 import { Button } from '@astryxdesign/core/Button'
@@ -63,7 +63,7 @@ export default function DevicesSettingsFields() {
     }),
   )
 
-  if (query.isPending) return <SettingsLoading label="Loading your devices…" />
+  if (query.isPending) return <SettingsSkeleton variant="rows" count={3} label="Loading your devices…" />
   if (query.isError) {
     return (
       <VStack gap={2} hAlign="start" role="alert">
