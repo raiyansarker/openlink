@@ -19,7 +19,7 @@ export default function DomainDnsRecordsTable({
   return (
     <VStack gap={4} width="100%" hAlign="stretch">
       {records.map((record, index) => (
-        <Fragment key={`${record.type}_${record.host}_${index}`}>
+        <Fragment key={`${record.type}_${record.host}_${record.value}`}>
           {index > 0 ? <Divider variant="subtle" /> : null}
           <VStack gap={3} width="100%" hAlign="stretch">
             <HStack hAlign="between" vAlign="center" gap={2} width="100%">

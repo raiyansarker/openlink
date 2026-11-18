@@ -1,9 +1,10 @@
-import { memo, useEffect, useId, useState, type ReactNode } from 'react'
+import { memo, useId, type ReactNode } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useClipboard } from '@astryxdesign/core/hooks'
+import { useClientValue } from '#/hooks/use-client-value'
 import Favicon from '#/components/create-link/Favicon'
 import QrCode from '#/components/create-link/QrCode'
 import { downloadQrPng, downloadQrSvg } from '#/lib/links/qr-code'
@@ -143,10 +144,7 @@ type CreateLinkActionsProps = {
  * and hydration identical.
  */
 export function InlineShortcut() {
-  const [isApple, setIsApple] = useState(true)
-  useEffect(() => {
-    setIsApple(/Mac|iPhone|iPad/.test(navigator.platform))
-  }, [])
+  const isApple = useClientValue(() => /Mac|iPhone|iPad/.test(navigator.platform), true)
   return (
     <span
       aria-hidden="true"

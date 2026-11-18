@@ -17,7 +17,7 @@ import ActivityDetailSheet from '#/components/activity/ActivityDetailSheet'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { ACTIVITY_CATEGORY_LABELS, ACTIVITY_SOURCE_LABELS } from '#/lib/activity/labels'
 import type { ActivityEvent } from '#/lib/api/types'
-import { useActivityFeed, useDebouncedValue } from '#/hooks/use-activity'
+import { QUERY_DEBOUNCE_MS, useActivityFeed } from '#/hooks/use-activity'
 import { formatEventTime, groupByDay } from '#/lib/activity/group-by-day'
 import {
   ACTIVITY_CATEGORIES,
@@ -51,11 +51,15 @@ export default function DashboardActivityPanel({ filters, onFiltersChange }: Das
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // Typing stays instant; the URL and the server query follow once typing pauses.
   const [draftQuery, setDraftQuery] = useState(filters.q)
-  const settledQuery = useDebouncedValue(draftQuery)
-  useEffect(() => {
-    if (settledQuery !== filters.q) onFiltersChange({ q: settledQuery })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settledQuery])
+  const queryTimer = useRef<number | undefined>(undefined)
+  const changeQuery = (value: string) => {
+    setDraftQuery(value)
+    window.clearTimeout(queryTimer.current)
+    queryTimer.current = window.setTimeout(() => {
+      if (value !== filters.q) onFiltersChange({ q: value })
+    }, QUERY_DEBOUNCE_MS)
+  }
+  useEffect(() => () => window.clearTimeout(queryTimer.current), [])
 
   const feed = useActivityFeed(activeOrg.id, {
     ...(filters.category !== 'all' ? { category: filters.category } : {}),
@@ -106,7 +110,7 @@ export default function DashboardActivityPanel({ filters, onFiltersChange }: Das
             size="sm"
             placeholder="Search by person, action, or item"
             value={draftQuery}
-            onChange={setDraftQuery}
+            onChange={changeQuery}
             controlStyle={{ flex: '4 1 0', minWidth: 0, width: '80%' }}
           />
           <Selector

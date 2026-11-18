@@ -11,6 +11,7 @@ import {
   useFieldStatus,
   useLinkForm,
 } from '#/components/create-link/form/LinkFormContext'
+import { useClientValue } from '#/hooks/use-client-value'
 import { toLocalInputValue, validDestination } from '#/components/create-link/form/derive'
 
 export type TextField =
@@ -83,6 +84,11 @@ export const DraftDateTimeInput = memo(function DraftDateTimeInput({
   const { set } = useLinkForm()
   const value = useDraftValue(field)
   const status = useFieldStatus(field)
+  // "Now" is the browser's; the server render has no minimum (it is only a picker hint).
+  const now = useClientValue<ISODateTimeString | undefined>(
+    () => toLocalInputValue(new Date()),
+    undefined,
+  )
   const onChange = useCallback(
     (next: ISODateTimeString | undefined) => set(field, next),
     [set, field],
@@ -92,7 +98,7 @@ export const DraftDateTimeInput = memo(function DraftDateTimeInput({
       {...props}
       value={value as ISODateTimeString | undefined}
       onChange={onChange}
-      min={min ?? toLocalInputValue(new Date())}
+      min={min ?? now}
       status={status}
     />
   )

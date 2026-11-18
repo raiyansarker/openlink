@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -9,6 +9,7 @@ import {
 } from '@astryxdesign/core/SegmentedControl'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import { useOpenSession } from '#/hooks/use-open-session'
 import type { ApiKey } from '#/lib/api/types'
 import { ASSIGNABLE_WORKSPACE_ROLES as API_KEY_ASSIGNABLE_ROLES } from '#/lib/members/role-help'
 import type { Role } from '#/lib/api/types'
@@ -27,21 +28,28 @@ function defaultAssignableRole(key: ApiKey): Role {
   return 'member'
 }
 
-export default function ChangeApiKeyRoleDialog({
+export default function ChangeApiKeyRoleDialog(props: ChangeApiKeyRoleDialogProps) {
+  const session = useOpenSession(props.isOpen, props.apiKey.id)
+  return (
+    <Dialog
+      isOpen={props.isOpen}
+      onOpenChange={props.onOpenChange}
+      purpose="form"
+      width={400}
+    >
+      <ChangeApiKeyRoleForm key={session} {...props} />
+    </Dialog>
+  )
+}
+
+function ChangeApiKeyRoleForm({
   apiKey,
-  isOpen,
   onOpenChange,
   onConfirm,
 }: ChangeApiKeyRoleDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<Role>(
+  const [selectedRole, setSelectedRole] = useState<Role>(() =>
     defaultAssignableRole(apiKey),
   )
-
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedRole(defaultAssignableRole(apiKey))
-    }
-  }, [isOpen, apiKey])
 
   const unchanged = selectedRole === apiKey.role
 
@@ -53,12 +61,6 @@ export default function ChangeApiKeyRoleDialog({
   }
 
   return (
-    <Dialog
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      purpose="form"
-      width={400}
-    >
       <Layout
         header={
           <DialogHeader title="Change role" onOpenChange={onOpenChange} />
@@ -113,6 +115,5 @@ export default function ChangeApiKeyRoleDialog({
           </LayoutFooter>
         }
       />
-    </Dialog>
   )
 }

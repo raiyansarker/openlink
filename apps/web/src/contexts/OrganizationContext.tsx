@@ -374,7 +374,8 @@ function OrganizationScope({
 
   const setLinksHold = useCallback(
     async (linkIds: string[], hold: LinkHold | null) => {
-      const targets = links.filter((l) => linkIds.includes(l.id) && (hold || l.hold))
+      const wanted = new Set(linkIds)
+      const targets = links.filter((l) => wanted.has(l.id) && (hold || l.hold))
       // Hold travels in the link's metadata, so each link is saved on its own.
       await Promise.all(targets.map((l) => updateLink$(l.id, { hold })))
     },

@@ -171,6 +171,7 @@ export function downloadQrPng(value: string, filename: string, size = 1024) {
     }
     URL.revokeObjectURL(svgUrl)
   }
+  image.onerror = () => URL.revokeObjectURL(svgUrl)
   image.src = svgUrl
 }
 

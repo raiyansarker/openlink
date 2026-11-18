@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { type } from 'arktype'
@@ -83,7 +83,8 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
   const fileRef = useRef<HTMLInputElement>(null)
   const pendingIconFile = useRef<File | null>(null)
 
-  const [slugEdited, setSlugEdited] = useState(false)
+  // Once you type your own URL, the name stops filling it in. Nothing on screen depends on it.
+  const slugEdited = useRef(false)
   const [iconPreview, setIconPreview] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
@@ -109,6 +110,12 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
     },
   })
 
+  // Free the previous preview when it is replaced, removed or the form goes away.
+  useEffect(() => {
+    if (!iconPreview) return
+    return () => URL.revokeObjectURL(iconPreview)
+  }, [iconPreview])
+
   const openFilePicker = () => {
     setUploadError(null)
     fileRef.current?.click()
@@ -126,20 +133,13 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
     }
     setUploadError(null)
     pendingIconFile.current = file
-    const url = URL.createObjectURL(file)
-    setIconPreview((prev) => {
-      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev)
-      return url
-    })
+    setIconPreview(URL.createObjectURL(file))
   }
 
   const removeIcon = () => {
     setUploadError(null)
     pendingIconFile.current = null
-    setIconPreview((prev) => {
-      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev)
-      return null
-    })
+    setIconPreview(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -235,7 +235,7 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
                     onChange={(value) => {
                       field.handleChange(value)
                       // The slug follows the name until it is edited by hand.
-                      if (!slugEdited) form.setFieldValue('slug', slugifyOrganizationSlug(value))
+                      if (!slugEdited.current) form.setFieldValue('slug', slugifyOrganizationSlug(value))
                     }}
                     status={fieldStatus(field.state.meta.errors)}
                     isRequired
@@ -252,7 +252,7 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
                     placeholder={SLUG_PLACEHOLDER}
                     value={field.state.value}
                     onChange={(value) => {
-                      setSlugEdited(true)
+                      slugEdited.current = true
                       field.handleChange(slugifyOrganizationSlug(value))
                     }}
                     description={`Your workspace URL: /w/${field.state.value.trim() || SLUG_PLACEHOLDER}`}

@@ -44,6 +44,16 @@ function mapRecordStatus(status: DnsRecord['status']) {
   return 'required'
 }
 
+/** Stored records as a list; anything unreadable counts as no records. */
+function parseDnsRecords(json: string): { status?: string }[] {
+  try {
+    const parsed: unknown = JSON.parse(json || '[]')
+    return Array.isArray(parsed) ? (parsed as { status?: string }[]) : []
+  } catch {
+    return []
+  }
+}
+
 function serializeDnsRecords(records: DnsRecord[]) {
   return JSON.stringify(
     records.map((record) => ({
@@ -82,7 +92,7 @@ export function refreshCustomDomain(domainId: string) {
           .set({
             readiness: 'active',
             dnsRecordsJson: JSON.stringify(
-              (JSON.parse(row.dnsRecordsJson || '[]') as { status?: string }[]).map((record) => ({ ...record, status: 'verified' })),
+              parseDnsRecords(row.dnsRecordsJson).map((record) => ({ ...record, status: 'verified' })),
             ),
             activeAt: row.activeAt ?? new Date(),
             updatedAt: new Date(),
