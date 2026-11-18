@@ -1,72 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useHotkey } from '@tanstack/react-hotkeys'
+import type { RegisterableHotkey } from '@tanstack/react-hotkeys'
 
-/**
- * A key combo: an `event.key` value, optionally prefixed by modifiers joined
- * with `+`. Case-insensitive.
- *
- *   'c'          plain key (Shift allowed, so "C" also matches)
- *   'Escape'     named key
- *   'mod+Enter'  ⌘ on macOS, Ctrl elsewhere (either is accepted)
- *   'shift+/'    modifiers listed must be held; unlisted ones must not
- *                (except Shift, which is only checked when listed)
- */
-export type KeyCombo = string
-
-export type KeyPressOptions = {
+export type ShortcutOptions = {
   /** Turn the shortcut off without unmounting. Default `true`. */
   isEnabled?: boolean
-  /** Fire while focus is in a text field or editable region. Default `false`. */
-  allowInInputs?: boolean
   /** Fire while a dialog, menu, listbox or open popup is showing. Default `false`. */
   allowInOverlays?: boolean
-  /** Fire on auto-repeat while the key is held. Default `false`. */
-  allowRepeat?: boolean
-  /** Call `event.preventDefault()` when the shortcut fires. Default `true`. */
-  preventDefault?: boolean
-}
-
-type ParsedCombo = {
-  key: string
-  mod: boolean
-  meta: boolean
-  ctrl: boolean
-  alt: boolean
-  shift: boolean
-}
-
-function parseCombo(combo: KeyCombo): ParsedCombo {
-  const parts = combo.split('+').map((p) => p.trim().toLowerCase())
-  // A combo ending in "+" means the plus key itself (e.g. "shift++").
-  const key = combo.endsWith('+') ? '+' : (parts.pop() ?? '')
-  const has = (name: string) => parts.includes(name)
-  return {
-    key,
-    mod: has('mod'),
-    meta: has('meta') || has('cmd'),
-    ctrl: has('ctrl'),
-    alt: has('alt') || has('option'),
-    shift: has('shift'),
-  }
-}
-
-function matchesCombo(event: KeyboardEvent, combo: ParsedCombo): boolean {
-  if (event.key.toLowerCase() !== combo.key) return false
-  if (combo.shift && !event.shiftKey) return false
-  if (combo.alt !== event.altKey) return false
-  if (combo.mod) {
-    // Either ⌘ or Ctrl satisfies "mod"; nothing else may be held.
-    return event.metaKey || event.ctrlKey
-  }
-  return combo.meta === event.metaKey && combo.ctrl === event.ctrlKey
-}
-
-/** Focus is somewhere the user types: a field, a select, or an editable region. */
-export function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target.isContentEditable ||
-    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
-  )
 }
 
 const OVERLAY_SELECTOR =
@@ -76,7 +15,7 @@ const OVERLAY_SELECTOR =
  * A dialog, menu, listbox or popup is actually showing. Hidden or empty popup
  * containers left in the DOM don't count.
  */
-export function isOverlayOpen(): boolean {
+function isOverlayOpen(): boolean {
   if (typeof document === 'undefined') return false
   for (const el of document.querySelectorAll(OVERLAY_SELECTOR)) {
     if (el.checkVisibility?.() ?? true) return true
@@ -85,49 +24,29 @@ export function isOverlayOpen(): boolean {
 }
 
 /**
- * Global keyboard shortcut. Runs `handler` when any of `combos` is pressed
- * anywhere on the page, and by default stays out of the way of typing,
- * overlays, key repeat, IME composition, and keys another handler already
- * consumed (`defaultPrevented`).
+ * App keyboard shortcut on top of TanStack Hotkeys. TanStack skips plain keys
+ * while focus is in a field and ignores key repeat; this adds a guard so
+ * shortcuts stay quiet while a dialog or menu is open.
  *
- *   useKeyPress('c', openCreateLink)
- *   useKeyPress('Escape', goBack, { allowInInputs: true })
- *   useKeyPress('mod+Enter', submit, { allowInInputs: true })
- *   useKeyPress(['?', 'shift+/'], showHelp)
+ *   useShortcut('C', openCreateLink)
+ *   useShortcut('Escape', goBack)
+ *   useShortcut('Mod+Enter', submit, { allowInOverlays: true })
+ *
+ * `Escape` and `Mod+…` fire from inside fields; single letters do not.
  */
-export function useKeyPress(
-  combos: KeyCombo | KeyCombo[],
+export function useShortcut(
+  hotkey: RegisterableHotkey,
   handler: (event: KeyboardEvent) => void,
-  {
-    isEnabled = true,
-    allowInInputs = false,
-    allowInOverlays = false,
-    allowRepeat = false,
-    preventDefault = true,
-  }: KeyPressOptions = {},
+  { isEnabled = true, allowInOverlays = false }: ShortcutOptions = {},
 ) {
-  // Latest callback without re-subscribing every render.
-  const handlerRef = useRef(handler)
-  handlerRef.current = handler
-
-  // Stable dependency for inline arrays like ['a', 'b'].
-  const comboKey = (Array.isArray(combos) ? combos : [combos]).join('\n')
-
-  useEffect(() => {
-    if (!isEnabled) return
-    const parsed = comboKey.split('\n').map(parseCombo)
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing) return
-      if (!allowRepeat && event.repeat) return
-      if (!parsed.some((combo) => matchesCombo(event, combo))) return
-      if (!allowInInputs && isTypingTarget(event.target)) return
+  useHotkey(
+    hotkey,
+    (event) => {
+      if (event.repeat) return
       if (!allowInOverlays && isOverlayOpen()) return
-      if (preventDefault) event.preventDefault()
-      handlerRef.current(event)
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [comboKey, isEnabled, allowInInputs, allowInOverlays, allowRepeat, preventDefault])
+      event.preventDefault()
+      handler(event)
+    },
+    { enabled: isEnabled, preventDefault: false, stopPropagation: false },
+  )
 }

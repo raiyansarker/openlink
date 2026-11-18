@@ -27,7 +27,7 @@ import { Tokenizer } from '@astryxdesign/core/Tokenizer'
 import { createStaticSource } from '@astryxdesign/core/Typeahead'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useFrameCheck } from '#/hooks/use-frame-check'
-import { useKeyPress } from '#/hooks/use-key-press'
+import { useShortcut } from '#/hooks/use-shortcut'
 import Favicon from '#/components/create-link/Favicon'
 import PreviewImageField from '#/components/create-link/PreviewImageField'
 import HoldPagePreview from '#/components/create-link/HoldPagePreview'
@@ -476,7 +476,7 @@ export default function CreateLinkForm({
   }
 
   // ⌘/Ctrl + Enter submits from anywhere on the page.
-  useKeyPress('mod+Enter', submit, { allowInInputs: true, allowInOverlays: true })
+  useShortcut('Mod+Enter', submit, { allowInOverlays: true })
 
   const setUtmField = (key: UtmKey, value: string) =>
     update('utm', { ...draft.utm, [key]: value })
