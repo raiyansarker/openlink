@@ -13,7 +13,8 @@ import { PlusIcon } from '#/components/icons/IcnMcp'
 import { ApiError } from '#/lib/api/error'
 import { WorkspaceMembersApi, type AssignableRole } from '#/lib/api/members'
 import { QueryKeys } from '#/lib/api/query'
-import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
+import type { Role } from '#/lib/api/types'
+import type { WorkspaceMember } from '#/data/demo/types'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import InviteMemberDrawer from './InviteMemberDrawer'
@@ -73,7 +74,7 @@ export default function WorkspaceMembersPanel() {
     setDetailMember(member)
   }
 
-  const changeRole = (memberId: string, role: WorkspaceMemberRole) => {
+  const changeRole = (memberId: string, role: Role) => {
     if (role === 'owner') return
     action.mutate(async () => {
       await membersApi.changeRole(activeOrg.id, memberId, role)
@@ -90,7 +91,7 @@ export default function WorkspaceMembersPanel() {
 
   const resendInvite = (memberId: string) => action.mutate(() => membersApi.resendInvite(activeOrg.id, memberId))
 
-  const submitInvite = async (email: string, role: WorkspaceMemberRole) => {
+  const submitInvite = async (email: string, role: Role) => {
     if (members.some((m) => m.email.toLowerCase() === email)) {
       throw new Error('This email is already in the workspace.')
     }

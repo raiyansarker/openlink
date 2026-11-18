@@ -9,6 +9,7 @@ import { useOrganization } from '#/contexts/OrganizationContext'
 import { useAnalyticsReport } from '#/hooks/use-analytics'
 import type { AnalyticsView } from '#/lib/analytics/search'
 import { formatReportWindow as windowLabel } from '#/lib/analytics/format'
+import { linkTargetUrl } from '#/lib/links/link-summary'
 
 /** Workspace analytics from recorded clicks; selecting a top link drills into it. */
 type DashboardAnalyticsPanelProps = {
@@ -25,7 +26,7 @@ export default function DashboardAnalyticsPanel({ view, onViewChange }: Dashboar
   const setLinkId = (id: string | null) => onViewChange({ linkId: id }, { push: true })
 
   const selected = linkId ? links.find((link) => link.id === linkId) ?? null : null
-  const selectedLink = selected ? { slug: selected.slug, destination: selected.targetUrl } : null
+  const selectedLink = selected ? { slug: selected.slug, destination: linkTargetUrl(selected) } : null
 
   const drillInto = (id: string) => {
     setLinkId(id)

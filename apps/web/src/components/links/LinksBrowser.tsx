@@ -23,7 +23,7 @@ import { DRAG_MIME } from '#/components/links/links-browser-types'
 import { FolderIcon, PlusIcon } from '#/components/icons/IcnMcp'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { useKeyPress } from '#/hooks/use-key-press'
-import type { LinkFolder, ShortLink } from '#/data/demo/types'
+import type { LinkFolder, ShortLink } from '#/lib/api/types'
 import {
   canCreateFolderIn,
   canMoveFolder,
@@ -34,6 +34,7 @@ import {
   getLinksInFolder,
 } from '#/lib/links/folder-tree'
 import { isOnHold } from '#/lib/links/create-link'
+import { linkTitle } from '#/lib/links/link-summary'
 
 type LinksBrowserProps = {
   /** Current folder id from the URL; unknown ids fall back to the root. */
@@ -125,7 +126,7 @@ export default function LinksBrowser({
       const folder = folders.find((f) => f.id === id)
       if (
         !folder ||
-        folder.parentId === destinationId ||
+        (folder.parentId ?? null) === destinationId ||
         !canMoveFolder(folders, id, destinationId)
       ) {
         return
@@ -149,7 +150,7 @@ export default function LinksBrowser({
           kind: 'folder',
           id: folder.id,
           name: folder.name,
-          parentId: folder.parentId,
+          parentId: folder.parentId ?? null,
         }),
     },
     { type: 'divider' as const },
@@ -189,7 +190,7 @@ export default function LinksBrowser({
         setMoving({
           kind: 'link',
           id: link.id,
-          name: link.title,
+          name: linkTitle(link),
           folderId: link.folderId ?? null,
         }),
     },

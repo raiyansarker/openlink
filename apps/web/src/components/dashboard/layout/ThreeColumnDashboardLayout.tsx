@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Organization } from '#/data/demo/types'
+import type { Workspace } from '#/lib/api/types'
 import OrganizationIconRail from './OrganizationIconRail'
 import DashboardNavColumn from './DashboardNavColumn'
 import {
@@ -11,7 +11,7 @@ import {
 } from './dashboard-shell-colors'
 
 type ThreeColumnDashboardLayoutProps = {
-  organizations: Organization[]
+  organizations: Workspace[]
   activeOrgSlug: string
   children: ReactNode
 }

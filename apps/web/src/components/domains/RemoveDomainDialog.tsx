@@ -8,13 +8,13 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { WorkspaceCustomDomain } from '#/data/demo/domains'
+import type { Domain } from '#/lib/api/types'
 import { exportLinks } from '#/lib/settings/export-links'
 
 type RemoveDomainDialogProps = {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  domain: WorkspaceCustomDomain
+  domain: Domain
   /** Rejects with an Error carrying a message to show. */
   onRemove: () => Promise<void>
 }

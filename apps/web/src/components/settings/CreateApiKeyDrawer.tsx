@@ -16,7 +16,7 @@ import {
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
 import { API_KEY_ASSIGNABLE_ROLES } from '#/data/demo/api-keys'
-import type { WorkspaceMemberRole } from '#/data/demo/types'
+import type { Role } from '#/lib/api/types'
 import { WORKSPACE_MEMBER_ROLE_HELP } from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 
@@ -24,7 +24,7 @@ type CreateApiKeyDrawerProps = {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   /** Creates the key on the server and resolves with its one-time secret. */
-  onCreate: (input: { name: string; role: WorkspaceMemberRole }) => Promise<string>
+  onCreate: (input: { name: string; role: Role }) => Promise<string>
 }
 
 export default function CreateApiKeyDrawer({
@@ -33,7 +33,7 @@ export default function CreateApiKeyDrawer({
   onCreate,
 }: CreateApiKeyDrawerProps) {
   const [name, setName] = useState('')
-  const [role, setRole] = useState<WorkspaceMemberRole>('member')
+  const [role, setRole] = useState<Role>('member')
   const [createdSecret, setCreatedSecret] = useState<string | null>(null)
 
   useEffect(() => {
@@ -114,7 +114,7 @@ export default function CreateApiKeyDrawer({
                     label="Workspace role"
                     value={role}
                     onChange={(value) =>
-                      setRole(value as WorkspaceMemberRole)
+                      setRole(value as Role)
                     }
                     layout="fill"
                     size="sm"

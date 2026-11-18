@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { stableContext } from '#/lib/react/stable-context'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   useCallback,
   useContext,
@@ -12,33 +12,24 @@ import {
 import { useToast } from '@astryxdesign/core/Toast'
 import { MAX_LINK_NOTES_LENGTH } from '@openlink/contracts'
 import { useAnalyticsSummary } from '#/hooks/use-analytics'
-import type { WorkspaceCustomDomain } from '#/data/demo/domains'
-import type {
-  LinkFolder,
-  LinkHold,
-  Organization,
-  OrgDashboardStats,
-  ShortLink,
-} from '#/data/demo/types'
-import { DomainsApi } from '#/lib/api/domains'
-import { LinkMapper, LinksApi } from '#/lib/api/links'
-import { QueryKeys } from '#/lib/api/query'
-import { ApiError } from '#/lib/api/error'
+import type { DeleteFolderMode, Domain, LinkFolder, LinkHold, ShortLink, UpdateLinkBody, Workspace } from '#/lib/api/types'
+import { apiErrorMessage } from '#/lib/api/errors'
+import { api, orpc } from '#/lib/api/orpc'
 import {
   canCreateFolderIn,
   canMoveFolder,
   validateFolderName,
-  type DeleteFolderMode,
 } from '#/lib/links/folder-tree'
 import {
-  draftToLink,
+  draftToCreateBody,
+  draftToUpdateBody,
   generateSlug,
   isSlugTaken,
   validateDraft,
   type CreateLinkDraft,
 } from '#/lib/links/create-link'
 import { ShortUrl } from '#/lib/links/short-url'
-import { LinkLiveStatus } from '#/lib/links/link-summary'
+import { LinkLiveStatus, linkTitle } from '#/lib/links/link-summary'
 import NotFoundPage from '#/components/not-found/NotFoundPage'
 import WorkspaceStatusScreen, { type StatusPresentation } from '#/components/workspace/WorkspaceStatusScreen'
 import {
@@ -50,14 +41,14 @@ import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { WorkspaceDeparture } from '#/lib/dashboard/workspace-departure'
 
 type OrganizationContextValue = {
-  organizations: Organization[]
-  activeOrg: Organization
+  organizations: Workspace[]
+  activeOrg: Workspace
   activeOrgId: string
   links: ShortLink[]
   folders: LinkFolder[]
   /** Custom domains of the workspace (any readiness). */
-  domains: WorkspaceCustomDomain[]
-  stats: OrgDashboardStats
+  domains: Domain[]
+  stats: WorkspaceStats
   /** Host a link is served on: its custom domain, or the app's own host. */
   shortHostFor: (domainId: string | null | undefined) => string
   shortUrlFor: (slug: string, domainId: string | null | undefined) => string
@@ -87,7 +78,17 @@ type OrganizationContextValue = {
   deleteLink: (linkId: string) => Promise<void>
 }
 
-const OrganizationContext = stableContext<OrganizationContextValue | null>('Organization', null)
+/** Overview numbers: link counts from the loaded links, clicks from recorded analytics. */
+export type WorkspaceStats = {
+  totalLinks: number
+  activeLinks: number
+  clicksToday: number
+  clicksThisWeek: number
+  uniqueVisitorsWeek: number
+  topReferrer: string
+}
+
+const OrganizationContext = stableContext<OrganizationContextValue | null>('Workspace', null)
 
 type OrganizationProviderProps = {
   /** Workspace from the URL. Without it, the remembered (or first) workspace is used. */
@@ -124,7 +125,7 @@ function WorkspaceGate({ orgSlugFromRoute, presentation = 'page', children }: Or
 
   // The workspace we were just in. If it drops out of the list while we're on
   // its pages, we were removed from it (or it was deleted or renamed).
-  const lastActive = useRef<Organization | null>(null)
+  const lastActive = useRef<Workspace | null>(null)
   const departure = useMemo(
     () =>
       status === 'ready' && !activeOrg && orgSlugFromRoute && lastActive.current?.slug === orgSlugFromRoute
@@ -174,20 +175,39 @@ function WorkspaceGate({ orgSlugFromRoute, presentation = 'page', children }: Or
   )
 }
 
-const linksApi = new LinksApi()
-const domainsApi = new DomainsApi()
-
 /** Bulk endpoints take at most this many ids per call. */
 const BULK_LIMIT = 200
 const chunks = <T,>(items: T[]) =>
   Array.from({ length: Math.ceil(items.length / BULK_LIMIT) }, (_, i) => items.slice(i * BULK_LIMIT, (i + 1) * BULK_LIMIT))
+
+/** Page size for loading a workspace's links. */
+const LINKS_PAGE = 200
+/** Safety cap for one workspace list; the browser filters and searches locally. */
+export const MAX_LINKS = 2000
+
+/** Every link of a workspace, page by page up to `MAX_LINKS`. */
+async function listAllLinks(organizationId: string): Promise<ShortLink[]> {
+  const links: ShortLink[] = []
+  for (let offset = 0; offset < MAX_LINKS; offset += LINKS_PAGE) {
+    const page = await api.links.listOrganizationLinks({
+      params: { organizationId },
+      query: { limit: String(LINKS_PAGE), offset: String(offset) },
+    })
+    links.push(...page.items)
+    if (links.length >= page.total || page.items.length === 0) break
+  }
+  return links
+}
+
+/** List responses carry their rows in `items`. Module-level so `select` stays stable. */
+const selectItems = <T,>(data: { items: T[] }): T[] => data.items
 
 /** Turns any failure into an Error whose message is safe to show. */
 async function friendly<T>(run: () => Promise<T>, fallback: string): Promise<T> {
   try {
     return await run()
   } catch (error) {
-    throw error instanceof ApiError ? error : ApiError.from(error, fallback)
+    throw new Error(apiErrorMessage(error, fallback))
   }
 }
 
@@ -196,50 +216,57 @@ function OrganizationScope({
   presentation,
   children,
 }: {
-  activeOrg: Organization
+  activeOrg: Workspace
   presentation: StatusPresentation
   children: ReactNode
 }) {
   const { organizations } = useWorkspaceDirectory()
   const queryClient = useQueryClient()
   const orgId = activeOrg.id
-  const linksKey = QueryKeys.links(orgId)
-  const foldersKey = QueryKeys.folders(orgId)
+  const input = { params: { organizationId: orgId } }
+  const linksKey = orpc.links.listOrganizationLinks.queryKey({ input: { ...input, query: {} } })
+  const foldersKey = orpc.folders.listFolders.queryKey({ input })
 
   // Clicks land on the redirect path, outside this page, so the list refreshes
   // itself: on a timer while the tab is visible, and when you come back to it.
   const linksQuery = useQuery({
     queryKey: linksKey,
-    queryFn: () => linksApi.listLinks(orgId),
+    queryFn: () => listAllLinks(orgId),
     refetchInterval: LINKS_REFRESH_MS,
     refetchOnWindowFocus: true,
   })
-  const foldersQuery = useQuery({ queryKey: foldersKey, queryFn: () => linksApi.listFolders(orgId) })
+  const foldersQuery = useQuery(orpc.folders.listFolders.queryOptions({ input, select: selectItems }))
   // Domains never block the workspace; without them links fall back to the app host.
-  const domainsQuery = useQuery({ queryKey: QueryKeys.domains(orgId), queryFn: () => domainsApi.list(orgId) })
+  const domainsQuery = useQuery(orpc.domains.listDomains.queryOptions({ input, select: selectItems }))
 
   const domains = useMemo(() => domainsQuery.data ?? [], [domainsQuery.data])
   const folders = useMemo(() => foldersQuery.data ?? [], [foldersQuery.data])
   const links = useMemo(() => linksQuery.data ?? [], [linksQuery.data])
 
-  const setLinksCache = useCallback(
-    (update: (prev: ShortLink[]) => ShortLink[]) =>
-      queryClient.setQueryData<ShortLink[]>(linksKey, (prev) => update(prev ?? [])),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [queryClient, orgId],
-  )
-  const setFoldersCache = useCallback(
-    (update: (prev: LinkFolder[]) => LinkFolder[]) =>
-      queryClient.setQueryData<LinkFolder[]>(foldersKey, (prev) => update(prev ?? [])),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [queryClient, orgId],
-  )
-  /** Keeps a server copy of a link, without dropping session-only extras. */
-  const putLink = useCallback(
-    (link: ShortLink) =>
-      setLinksCache((prev) => (prev.some((l) => l.id === link.id) ? prev.map((l) => (l.id === link.id ? link : l)) : [link, ...prev])),
-    [setLinksCache],
-  )
+  // Writes refresh what they touched. Folder changes can move or delete links, so they refresh both.
+  const refreshLinks = () => queryClient.invalidateQueries({ queryKey: linksKey })
+  const refreshFolders = () =>
+    Promise.all([queryClient.invalidateQueries({ queryKey: foldersKey }), queryClient.invalidateQueries({ queryKey: linksKey })])
+  /** Shows a saved link at once, then re-reads the list. */
+  const putLink = (link: ShortLink) => {
+    queryClient.setQueryData<ShortLink[]>(linksKey, (prev = []) =>
+      prev.some((l) => l.id === link.id) ? prev.map((l) => (l.id === link.id ? link : l)) : [link, ...prev],
+    )
+    return refreshLinks()
+  }
+
+  const createLinkMutation = useMutation(orpc.links.createWorkspaceLink.mutationOptions({ onSuccess: putLink }))
+  const updateLinkMutation = useMutation(orpc.links.updateWorkspaceLink.mutationOptions({ onSuccess: putLink }))
+  const moveLinksMutation = useMutation(orpc.links.moveLinks.mutationOptions({ onSuccess: refreshLinks }))
+  const addTagsMutation = useMutation(orpc.links.addLinkTags.mutationOptions({ onSuccess: refreshLinks }))
+  const deleteLinksMutation = useMutation(orpc.links.deleteLinks.mutationOptions({ onSuccess: refreshLinks }))
+  const createFolderMutation = useMutation(orpc.folders.createFolder.mutationOptions({ onSuccess: refreshFolders }))
+  const updateFolderMutation = useMutation(orpc.folders.updateFolder.mutationOptions({ onSuccess: refreshFolders }))
+  const deleteFolderMutation = useMutation(orpc.folders.deleteFolder.mutationOptions({ onSuccess: refreshFolders }))
+
+  /** Saves part of a link; fields left out keep their value. */
+  const updateLink$ = (linkId: string, body: UpdateLinkBody) =>
+    updateLinkMutation.mutateAsync({ params: { organizationId: orgId, linkId }, body })
 
   const shortHostFor = useCallback((domainId: string | null | undefined) => ShortUrl.host(domainId, domains), [domains])
   const shortUrlFor = useCallback(
@@ -249,7 +276,7 @@ function OrganizationScope({
 
   // Link counts come from the links; click numbers from recorded clicks.
   const summary = useAnalyticsSummary(orgId).data
-  const stats = useMemo<OrgDashboardStats>(
+  const stats = useMemo<WorkspaceStats>(
     () => ({
       totalLinks: links.length,
       activeLinks: links.filter((link) => LinkLiveStatus.current(link) === 'active' && !LinkLiveStatus.isExpired(link)).length,
@@ -277,12 +304,10 @@ function OrganizationScope({
       let slug = draft.slug.trim()
       while (!slug || isSlugTaken(links, draft.domainId, slug)) slug = generateSlug()
 
-      const link = draftToLink(draft, { orgId, id: '', slug })
-      const created = await linksApi.createLink(orgId, link, draft.passwordEnabled ? draft.password : undefined)
-      putLink(created)
-      return created
+      return createLinkMutation.mutateAsync({ params: { organizationId: orgId }, body: draftToCreateBody(draft, slug) })
     },
-    [links, orgId, putLink, requireFolder],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [links, orgId, requireFolder],
   )
 
   const updateLink = useCallback(
@@ -295,21 +320,10 @@ function OrganizationScope({
       if (first) throw new Error(first)
       requireFolder(draft.folderId)
 
-      // Back-half and domain are fixed once a link exists.
-      const rebuilt = draftToLink(
-        { ...draft, slug: before.slug, domainId: before.domainId ?? null },
-        { orgId, id: before.id, slug: before.slug },
-      )
-      const password = draft.passwordEnabled && draft.password ? draft.password : undefined
-      const body = {
-        ...LinkMapper.toUpdateBody(rebuilt, password),
-        ...(!draft.passwordEnabled && before.passwordProtected ? { clearPassword: true } : {}),
-      }
-      const saved = await linksApi.updateLink(orgId, linkId, body)
-      putLink(saved)
-      return saved
+      return updateLink$(linkId, draftToUpdateBody(draft, before))
     },
-    [links, orgId, putLink, requireFolder],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [links, orgId, requireFolder],
   )
 
   const duplicateLink = useCallback(
@@ -321,16 +335,14 @@ function OrganizationScope({
         slug = n > 9 ? generateSlug() : `${source.slug}-copy-${n}`
       }
       // Passwords are never readable, so a copy starts without one.
-      const copy = await linksApi.createLink(orgId, {
-        ...source,
-        slug,
-        title: `Copy of ${source.title}`,
-        passwordProtected: undefined,
+      const { id: _id, organizationId: _org, status: _status, enabled: _enabled, clickCount: _clicks, passwordProtected: _password, alias: _alias, createdAt: _created, updatedAt: _updated, ...settings } = source
+      return createLinkMutation.mutateAsync({
+        params: { organizationId: orgId },
+        body: { ...settings, slug, title: `Copy of ${linkTitle(source)}` },
       })
-      putLink(copy)
-      return copy
     },
-    [links, orgId, putLink],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [links, orgId],
   )
 
   const moveLinks = useCallback(
@@ -338,11 +350,12 @@ function OrganizationScope({
       requireFolder(folderId, 'That destination no longer exists.')
       const ids = linkIds.filter((id) => (links.find((l) => l.id === id)?.folderId ?? null) !== folderId)
       if (ids.length === 0) return
-      for (const batch of chunks(ids)) await linksApi.moveLinks(orgId, batch, folderId)
-      const moved = new Set(ids)
-      setLinksCache((prev) => prev.map((l) => (moved.has(l.id) ? { ...l, folderId } : l)))
+      for (const batch of chunks(ids)) {
+        await moveLinksMutation.mutateAsync({ params: { organizationId: orgId }, body: { linkIds: batch, folderId } })
+      }
     },
-    [links, orgId, requireFolder, setLinksCache],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [links, orgId, requireFolder],
   )
 
   const moveLink = useCallback((linkId: string, folderId: string | null) => moveLinks([linkId], folderId), [moveLinks])
@@ -351,12 +364,10 @@ function OrganizationScope({
     async (linkIds: string[], hold: LinkHold | null) => {
       const targets = links.filter((l) => linkIds.includes(l.id) && (hold || l.hold))
       // Hold travels in the link's metadata, so each link is saved on its own.
-      const saved = await Promise.all(
-        targets.map((l) => linksApi.updateLink(orgId, l.id, LinkMapper.toUpdateBody({ ...l, hold: hold ?? undefined }))),
-      )
-      saved.forEach(putLink)
+      await Promise.all(targets.map((l) => updateLink$(l.id, { hold })))
     },
-    [links, orgId, putLink],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [links, orgId],
   )
 
   const setLinkHold = useCallback((linkId: string, hold: LinkHold | null) => setLinksHold([linkId], hold), [setLinksHold])
@@ -366,33 +377,33 @@ function OrganizationScope({
       if (notes.length > MAX_LINK_NOTES_LENGTH) {
         throw new Error(`Keep notes under ${MAX_LINK_NOTES_LENGTH.toLocaleString()} characters.`)
       }
-      const description = notes.trim() || null
-      putLink(await linksApi.updateLink(orgId, linkId, { description }))
+      await updateLink$(linkId, { description: notes.trim() || null })
     },
-    [orgId, putLink],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orgId],
   )
 
   const addTagsToLinks = useCallback(
     async (linkIds: string[], tags: string[]) => {
       const clean = [...new Set(tags.map((t) => t.trim().toLowerCase()).filter(Boolean))]
       if (clean.length === 0 || linkIds.length === 0) return
-      for (const batch of chunks(linkIds)) await linksApi.addTags(orgId, batch, clean)
-      const ids = new Set(linkIds)
-      setLinksCache((prev) =>
-        prev.map((l) => (ids.has(l.id) ? { ...l, tags: [...new Set([...l.tags, ...clean])] } : l)),
-      )
+      for (const batch of chunks(linkIds)) {
+        await addTagsMutation.mutateAsync({ params: { organizationId: orgId }, body: { linkIds: batch, tags: clean } })
+      }
     },
-    [orgId, setLinksCache],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orgId],
   )
 
   const deleteLinks = useCallback(
     async (linkIds: string[]) => {
       if (linkIds.length === 0) return
-      for (const batch of chunks(linkIds)) await linksApi.deleteLinks(orgId, batch)
-      const ids = new Set(linkIds)
-      setLinksCache((prev) => prev.filter((l) => !ids.has(l.id)))
+      for (const batch of chunks(linkIds)) {
+        await deleteLinksMutation.mutateAsync({ params: { organizationId: orgId }, body: { linkIds: batch } })
+      }
     },
-    [orgId, setLinksCache],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orgId],
   )
 
   const deleteLink = useCallback((linkId: string) => deleteLinks([linkId]), [deleteLinks])
@@ -403,53 +414,48 @@ function OrganizationScope({
       if (!canCreateFolderIn(folders, parentId)) throw new Error('Folders cannot be nested any deeper.')
       const error = validateFolderName(folders, name, parentId)
       if (error) throw new Error(error)
-      const created = await linksApi.createFolder(orgId, name.trim(), parentId)
-      setFoldersCache((prev) => [...prev, created])
-      return created
+      return createFolderMutation.mutateAsync({ params: { organizationId: orgId }, body: { name: name.trim(), parentId } })
     },
-    [folders, orgId, requireFolder, setFoldersCache],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [folders, orgId, requireFolder],
   )
 
   const renameFolder = useCallback(
     async (folderId: string, name: string) => {
       const target = folders.find((f) => f.id === folderId)
       if (!target) throw new Error('That folder no longer exists.')
-      const error = validateFolderName(folders, name, target.parentId, folderId)
+      const error = validateFolderName(folders, name, target.parentId ?? null, folderId)
       if (error) throw new Error(error)
-      await linksApi.updateFolder(orgId, folderId, { name: name.trim() })
-      setFoldersCache((prev) => prev.map((f) => (f.id === folderId ? { ...f, name: name.trim() } : f)))
+      await updateFolderMutation.mutateAsync({ params: { organizationId: orgId, folderId }, body: { name: name.trim() } })
     },
-    [folders, orgId, setFoldersCache],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [folders, orgId],
   )
 
   const moveFolder = useCallback(
     async (folderId: string, parentId: string | null) => {
       const target = folders.find((f) => f.id === folderId)
       if (!target) throw new Error('That folder no longer exists.')
-      if (target.parentId === parentId) return
+      if ((target.parentId ?? null) === parentId) return
       requireFolder(parentId, 'That destination no longer exists.')
       if (!canMoveFolder(folders, folderId, parentId)) {
         throw new Error('A folder cannot be moved into itself, its subfolders, or past the maximum depth.')
       }
       const error = validateFolderName(folders, target.name, parentId, folderId)
       if (error) throw new Error(error)
-      await linksApi.updateFolder(orgId, folderId, { parentId })
-      setFoldersCache((prev) => prev.map((f) => (f.id === folderId ? { ...f, parentId } : f)))
+      await updateFolderMutation.mutateAsync({ params: { organizationId: orgId, folderId }, body: { parentId } })
     },
-    [folders, orgId, requireFolder, setFoldersCache],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [folders, orgId, requireFolder],
   )
 
   const deleteFolder = useCallback(
     async (folderId: string, mode: DeleteFolderMode) => {
-      await linksApi.deleteFolder(orgId, folderId, mode)
-      // The server moves or deletes the contents; reload both lists.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: foldersKey }),
-        queryClient.invalidateQueries({ queryKey: linksKey }),
-      ])
+      // The server moves or deletes the contents; the mutation reloads both lists.
+      await deleteFolderMutation.mutateAsync({ params: { organizationId: orgId, folderId }, query: { mode } })
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [orgId, queryClient],
+    [orgId],
   )
 
   const value = useMemo<OrganizationContextValue>(
@@ -512,7 +518,7 @@ function OrganizationScope({
       <WorkspaceStatusScreen
         presentation={presentation}
         state="error"
-        message={ApiError.message(error, 'Could not load this workspace’s links.')}
+        message={apiErrorMessage(error, 'Could not load this workspace’s links.')}
         onRetry={() => {
           void linksQuery.refetch()
           void foldersQuery.refetch()

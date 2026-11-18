@@ -14,7 +14,7 @@ import {
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
-import type { WorkspaceCustomDomain } from '#/data/demo/domains'
+import type { Domain } from '#/lib/api/types'
 import { buildDomainTimeline } from '#/lib/domains/domain-timeline'
 import { formatShortDate } from '#/lib/format/short-date'
 import DomainDnsRecordsTable from './DomainDnsRecordsTable'
@@ -42,7 +42,7 @@ export default function DomainDetailSheet({
   const [isVerifying, setIsVerifying] = useState(false)
 
   const isOpen = target != null
-  const custom: WorkspaceCustomDomain | undefined = target
+  const custom: Domain | undefined = target
     ? getDomainById(target.domainId)
     : undefined
 

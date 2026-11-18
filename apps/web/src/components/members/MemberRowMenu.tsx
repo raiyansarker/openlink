@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { IconButton } from '@astryxdesign/core/IconButton'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
-import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
+import type { Role } from '#/lib/api/types'
+import type { WorkspaceMember } from '#/data/demo/types'
 import ChangeMemberRoleDialog from '#/components/members/ChangeMemberRoleDialog'
 
 type MemberRowMenuProps = {
   member: WorkspaceMember
-  onChangeRole: (memberId: string, role: WorkspaceMemberRole) => void
+  onChangeRole: (memberId: string, role: Role) => void
   onResendInvite: (memberId: string) => void
   onRemove: (memberId: string) => void
 }

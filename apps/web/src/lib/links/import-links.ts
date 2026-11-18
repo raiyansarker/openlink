@@ -1,4 +1,4 @@
-import type { LinkFolder, ShortLink } from '#/data/demo/types'
+import type { LinkFolder, ShortLink } from '#/lib/api/types'
 import {
   emptyDraft,
   isSlugTaken,
@@ -53,7 +53,7 @@ export function parseCsv(text: string): string[][] {
 type Column = 'destination' | 'slug' | 'title' | 'tags' | 'folder' | 'notes'
 
 const HEADER_ALIASES: Record<Column, string[]> = {
-  destination: ['destination', 'url', 'destination url', 'target', 'targeturl', 'long url'],
+  destination: ['destination', 'url', 'destination url', 'destinationurl', 'target', 'targeturl', 'long url'],
   slug: ['slug', 'back-half', 'backhalf', 'short', 'key'],
   title: ['title', 'name'],
   tags: ['tags', 'tag'],

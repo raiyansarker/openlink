@@ -44,7 +44,7 @@ import SocialPreviewCard from '#/components/create-link/SocialPreviewCard'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { ShortUrl } from '#/lib/links/short-url'
 import { MediaUploads } from '#/lib/media/uploads'
-import type { HoldPage, RedirectStatusCode, ShortLink } from '#/data/demo/types'
+import type { HoldPageId, RedirectStatus, ShortLink } from '#/lib/api/types'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatCompactNumber } from '#/lib/format/compact-number'
 import { countryFlag, countryName, getCountries } from '#/lib/links/countries'
@@ -71,13 +71,14 @@ import {
   type UtmKey,
 } from '#/lib/links/create-link'
 import { folderPathLabel } from '#/lib/links/folder-tree'
+import { linkTargetUrl, linkTitle } from '#/lib/links/link-summary'
 import { HOLD_PAGES, holdPageMeta } from '#/lib/links/hold-pages'
 
 const DEFAULT_DOMAIN_VALUE = '__default__'
 const ROOT_FOLDER_VALUE = '__root__'
 
 const REDIRECT_OPTIONS: {
-  value: RedirectStatusCode
+  value: RedirectStatus
   label: string
   help: string
 }[] = [
@@ -287,7 +288,7 @@ export default function CreateLinkForm({
   )
 
   const tagSource = useMemo(() => {
-    const existing = [...new Set(links.flatMap((l) => l.tags))].sort()
+    const existing = [...new Set(links.flatMap((l) => l.tags ?? []))].sort()
     return createStaticSource(existing.map((t) => ({ id: t, label: t })))
   }, [links])
 
@@ -519,12 +520,12 @@ export default function CreateLinkForm({
         backSearch={{ folder: created.folderId ?? undefined }}
         main={
           <CreateLinkSuccess
-            title={created.title}
+            title={linkTitle(created)}
             shortUrl={createdUrl}
-            destination={created.targetUrl}
+            destination={linkTargetUrl(created)}
             folderLabel={folderPathLabel(folders, created.folderId ?? null)}
             rules={rules.filter((r) => r.label !== 'Folder')}
-            tags={created.tags}
+            tags={created.tags ?? []}
             qrFileName={`${shortHostFor(created.domainId)}-${created.slug}`}
             onViewLinks={() => goToLinks(created.folderId ?? null)}
             onCreateAnother={() => {
@@ -917,7 +918,7 @@ export default function CreateLinkForm({
                   label="Redirect type"
                   value={String(draft.redirectStatus)}
                   onChange={(value) =>
-                    update('redirectStatus', Number(value) as RedirectStatusCode)
+                    update('redirectStatus', Number(value) as RedirectStatus)
                   }
                   layout="fill"
                   isDisabled={draft.cloakEnabled}
@@ -1002,7 +1003,7 @@ export default function CreateLinkForm({
                         type="button"
                         role="radio"
                         aria-checked={isSelected}
-                        onClick={() => update('holdPage', option.page as HoldPage)}
+                        onClick={() => update('holdPage', option.page as HoldPageId)}
                         style={{
                           display: 'flex',
                           flexDirection: 'column',

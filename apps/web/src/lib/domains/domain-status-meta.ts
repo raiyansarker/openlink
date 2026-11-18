@@ -1,4 +1,4 @@
-import type { DomainReadiness } from '#/data/demo/domains'
+import type { DomainReadiness } from '#/lib/api/types'
 
 export type DomainStatusDotVariant = 'success' | 'warning' | 'neutral'
 
@@ -35,8 +35,14 @@ const STATUS_META: Record<DomainReadiness, DomainStatusMeta> = {
     description: 'DNS does not match — update records and verify again',
     dotVariant: 'neutral',
   },
+  removing: {
+    readiness: 'removing',
+    label: 'Removing',
+    description: 'Being removed with its short links',
+    dotVariant: 'neutral',
+  },
 }
 
 export function domainStatusMeta(readiness: DomainReadiness): DomainStatusMeta {
-  return STATUS_META[readiness] ?? STATUS_META.pending
+  return STATUS_META[readiness]
 }

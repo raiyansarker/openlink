@@ -12,7 +12,7 @@ import {
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { WorkspaceMemberRole } from '#/data/demo/types'
+import type { Role } from '#/lib/api/types'
 import { FormFields } from '#/lib/forms/fields'
 import {
   ASSIGNABLE_WORKSPACE_ROLES,
@@ -34,7 +34,7 @@ type InviteMemberDrawerProps = {
   onOpenChange: (open: boolean) => void
   workspaceName: string
   /** Throws an Error with a user-facing message when the invite is rejected. */
-  onSubmit: (email: string, role: WorkspaceMemberRole) => Promise<void>
+  onSubmit: (email: string, role: Role) => Promise<void>
 }
 
 export default function InviteMemberDrawer({
@@ -44,7 +44,7 @@ export default function InviteMemberDrawer({
   onSubmit,
 }: InviteMemberDrawerProps) {
   const form = useForm({
-    defaultValues: { email: '', role: 'member' as WorkspaceMemberRole },
+    defaultValues: { email: '', role: 'member' as Role },
     validators: {
       onSubmit: InviteSchema,
       onSubmitAsync: async ({ value }) => {
@@ -125,7 +125,7 @@ export default function InviteMemberDrawer({
                         label="Workspace role"
                         value={field.state.value}
                         onChange={(value) =>
-                          field.handleChange(value as WorkspaceMemberRole)
+                          field.handleChange(value as Role)
                         }
                         layout="fill"
                         size="sm"

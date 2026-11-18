@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Tooltip } from '@astryxdesign/core/Tooltip'
-import type { Organization } from '#/data/demo/types'
+import type { Workspace } from '#/lib/api/types'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import OrganizationLogo from '#/components/dashboard/icons/OrganizationLogo'
 import OpenLinkAppMark from '#/components/dashboard/icons/OpenLinkAppMark'
@@ -29,7 +29,7 @@ const ORG_CONTROL_RADIUS = 9
 const ORG_LOGO_RADIUS = ORG_CONTROL_RADIUS - (ORG_CONTROL_SIZE - ORG_LOGO_SIZE) / 2
 
 type OrganizationIconRailProps = {
-  organizations: Organization[]
+  organizations: Workspace[]
   activeOrgSlug: string
 }
 

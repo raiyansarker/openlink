@@ -10,7 +10,7 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { isValidCustomHostname } from '#/lib/domains/demo-dns'
+import { isValidCustomHostname } from '#/lib/domains/hostname'
 import DomainIllustration from './DomainIllustration'
 
 export default function AddDomainForm() {

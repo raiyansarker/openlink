@@ -22,7 +22,7 @@ import DomainStatus from '#/components/domains/DomainStatus'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { WorkspaceCustomDomain } from '#/data/demo/domains'
+import type { Domain } from '#/lib/api/types'
 import {
   DOMAIN_STATUS_FILTER_OPTIONS,
   matchesDomainSearch,
@@ -31,7 +31,7 @@ import {
 } from '#/lib/domains/filter-options'
 import { formatShortDate } from '#/lib/format/short-date'
 
-type DomainRow = WorkspaceCustomDomain & Record<string, unknown>
+type DomainRow = Domain & Record<string, unknown>
 
 export default function DashboardDomainsPanel() {
   const { activeOrg } = useOrganization()
@@ -85,7 +85,7 @@ export default function DashboardDomainsPanel() {
   const openDomain = (domainId: string) =>
     setSheetTarget({ kind: 'custom', domainId })
 
-  const openCustomDomain = (domain: WorkspaceCustomDomain) =>
+  const openCustomDomain = (domain: Domain) =>
     openDomain(domain.id)
 
   const openRowAtIndex = (index: number) => {

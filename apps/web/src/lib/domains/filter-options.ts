@@ -1,4 +1,4 @@
-import type { DomainReadiness } from '#/data/demo/domains'
+import type { DomainReadiness } from '#/lib/api/types'
 
 export type DomainStatusFilter = 'all' | DomainReadiness
 
@@ -11,6 +11,8 @@ export const DOMAIN_STATUS_FILTER_OPTIONS: {
   { value: 'verifying', label: 'Verifying' },
   { value: 'pending', label: 'Pending DNS' },
   { value: 'failed', label: 'Misconfigured' },
+  { value: 'removing', label: 'Removing' },
+  { value: 'removing', label: 'Removing' },
 ]
 
 export function matchesDomainSearch(hostname: string, query: string): boolean {

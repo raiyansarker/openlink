@@ -19,7 +19,7 @@ import ApiKeyRowMenu from '#/components/settings/ApiKeyRowMenu'
 import ApiKeysIllustration from '#/components/settings/ApiKeysIllustration'
 import ApiKeySecretRevealDialog from '#/components/settings/ApiKeySecretRevealDialog'
 import CreateApiKeyDrawer from '#/components/settings/CreateApiKeyDrawer'
-import type { WorkspaceMemberRole } from '#/data/demo/types'
+import type { Role } from '#/lib/api/types'
 import type { WorkspaceApiKey } from '#/data/demo/api-keys'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 
@@ -62,7 +62,7 @@ export default function ApiKeysSettingsFields() {
   const revokeKey = useCallback((keyId: string) => void run(() => keysApi.revoke(activeOrg.id, keyId)).catch(() => {}), [run, activeOrg.id])
 
   const changeKeyRole = useCallback(
-    (keyId: string, role: WorkspaceMemberRole) => {
+    (keyId: string, role: Role) => {
       if (role === 'owner') return
       void run(() => keysApi.changeRole(activeOrg.id, keyId, role)).catch(() => {})
     },

@@ -11,10 +11,10 @@ import {
   type ItemMenus,
 } from '#/components/links/links-browser-types'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { ShortLink } from '#/data/demo/types'
+import type { ShortLink } from '#/lib/api/types'
 import { formatCompactNumber } from '#/lib/format/compact-number'
 import { formatShortDate } from '#/lib/format/short-date'
-import { linkStatusLabel } from '#/lib/links/link-summary'
+import { linkStatusLabel, linkTargetUrl, linkTitle } from '#/lib/links/link-summary'
 import { stripUrlScheme } from '#/lib/links/strip-url-scheme'
 
 type LinksListViewProps = Pick<ItemMenus, 'linkMenu'> & {
@@ -107,18 +107,18 @@ export default function LinksListView({
               renderCell: (row) => (
                 <span style={{ display: 'block', minWidth: 0, overflow: 'hidden' }}>
                   <Text type="supporting" color="secondary" maxLines={1}>
-                    {stripUrlScheme(row.targetUrl)}
+                    {stripUrlScheme(linkTargetUrl(row))}
                   </Text>
                 </span>
               ),
             },
             {
-              key: 'clicks',
+              key: 'clickCount',
               header: 'Clicks',
               width: pixel(88),
               align: 'end',
               renderCell: (row) => (
-                <Text weight="medium">{formatCompactNumber(row.clicks)}</Text>
+                <Text weight="medium">{formatCompactNumber(row.clickCount)}</Text>
               ),
             },
             {
@@ -146,7 +146,7 @@ export default function LinksListView({
               width: pixel(48),
               align: 'end',
               renderCell: (row) => (
-                <ItemMenuButton label={row.title} items={linkMenu(row)} />
+                <ItemMenuButton label={linkTitle(row)} items={linkMenu(row)} />
               ),
             },
           ]}

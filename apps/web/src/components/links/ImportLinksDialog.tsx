@@ -12,7 +12,7 @@ import { Table, pixel, proportional } from '@astryxdesign/core/Table'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
-import type { LinkFolder, ShortLink } from '#/data/demo/types'
+import type { LinkFolder, ShortLink } from '#/lib/api/types'
 import type { CreateLinkDraft } from '#/lib/links/create-link'
 import { folderPathLabel } from '#/lib/links/folder-tree'
 import {

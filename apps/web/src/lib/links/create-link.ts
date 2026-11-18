@@ -1,19 +1,21 @@
 import { HoldPages } from '@openlink/contracts'
 import type {
-  HoldPage,
+  CreateLinkBody,
+  HoldPageId,
   LinkHold,
   LinkTargeting,
-  RedirectStatusCode,
+  RedirectStatus,
   ShortLink,
   SocialPreview,
+  UpdateLinkBody,
   UtmParameters,
-} from '#/data/demo/types'
+} from '#/lib/api/types'
 
 /** Same rule as the API contract (`CreateLinkRequest.slug`). */
 export const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/
 export const MAX_SLUG_LENGTH = 64
 export const MIN_PASSWORD_LENGTH = 4
-export const DEFAULT_REDIRECT_STATUS: RedirectStatusCode = 302
+export const DEFAULT_REDIRECT_STATUS: RedirectStatus = 302
 
 const SLUG_ALPHABET =
   'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -111,7 +113,7 @@ export type CreateLinkDraft = {
   tags: string[]
   utmEnabled: boolean
   utm: UtmParameters
-  redirectStatus: RedirectStatusCode
+  redirectStatus: RedirectStatus
   scheduleEnabled: boolean
   /** Local "YYYY-MM-DDTHH:mm" from DateTimeInput. */
   activateAt: string | undefined
@@ -134,7 +136,7 @@ export type CreateLinkDraft = {
   androidUrl: string
   geoRules: GeoRuleRow[]
   holdEnabled: boolean
-  holdPage: HoldPage
+  holdPage: HoldPageId
   holdReleaseEnabled: boolean
   holdReleaseAt: string | undefined
 }
@@ -404,25 +406,13 @@ export function cleanSocialPreview(
 }
 
 /** Status the link starts in, matching the server's create rule. */
-export function initialStatus(
-  draft: CreateLinkDraft,
-  now = new Date(),
-): ShortLink['status'] {
+export function initialStatus(draft: CreateLinkDraft, now = new Date()): ShortLink['status'] {
   const activateAt = draft.scheduleEnabled ? parseLocal(draft.activateAt) : null
   return activateAt && activateAt > now ? 'scheduled' : 'active'
 }
 
-/** Builds the stored link from a validated draft. */
-export function draftToLink(
-  draft: CreateLinkDraft,
-  { orgId, id, slug, now = new Date() }: {
-    orgId: string
-    id: string
-    /** Final slug (generated when the draft left it blank). */
-    slug: string
-    now?: Date
-  },
-): ShortLink {
+/** Settings shared by create and edit, from a validated draft. Absent means "off". */
+function draftSettings(draft: CreateLinkDraft) {
   const destination = normalizeUrl(draft.destination)
   const utm = draft.utmEnabled ? cleanUtm(draft.utm) : undefined
   const activateAt = draft.scheduleEnabled ? parseLocal(draft.activateAt) : null
@@ -435,42 +425,74 @@ export function draftToLink(
       .filter((row) => row.key.trim())
       .map((row) => [row.key.trim(), row.value.trim()]),
   )
-
   let host = ''
   try {
     host = new URL(destination).hostname.replace(/^www\./, '')
   } catch {
     /* validated already */
   }
-
   return {
-    id,
-    orgId,
-    slug,
-    title: draft.title.trim() || host || slug,
-    description: draft.description.trim() || undefined,
-    targetUrl: applyUtm(destination, utm),
     destinationUrl: destination,
-    clicks: 0,
-    createdAt: now.toISOString(),
-    status: initialStatus(draft, now),
-    tags: [...new Set(draft.tags.map((t) => t.trim()).filter(Boolean))],
-    folderId: draft.folderId,
-    domainId: draft.domainId,
+    /** Falls back to the destination's host; the caller adds the back-half as a last resort. */
+    title: draft.title.trim() || host,
+    description: draft.description.trim() || undefined,
     redirectStatus: draft.redirectStatus,
     activateAt: activateAt?.toISOString(),
     expiresAt: expiresAt?.toISOString(),
     maxClicks: draft.clickLimitEnabled ? (draft.maxClicks ?? undefined) : undefined,
-    passwordProtected: draft.passwordEnabled || undefined,
-    expiredDestinationUrl:
-      hasExpiryRule && expired ? normalizeUrl(expired) : undefined,
+    expiredDestinationUrl: hasExpiryRule && expired ? normalizeUrl(expired) : undefined,
     fallbackDestinationUrl: fallback ? normalizeUrl(fallback) : undefined,
+    tags: [...new Set(draft.tags.map((t) => t.trim()).filter(Boolean))],
     utm,
     metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-    cloaked: draft.cloakEnabled || undefined,
+    folderId: draft.folderId,
+    cloaked: draft.cloakEnabled,
     socialPreview: cleanSocialPreview(draft),
     targeting: cleanTargeting(draft),
     hold: cleanHold(draft),
+  }
+}
+
+/** Drops keys whose value is undefined, so the request only carries what is set. */
+function defined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as T
+}
+
+/** The create request for a validated draft. `slug` is final (generated when the draft left it blank). */
+export function draftToCreateBody(draft: CreateLinkDraft, slug: string): CreateLinkBody {
+  const settings = draftSettings(draft)
+  return defined({
+    ...settings,
+    title: settings.title || slug,
+    slug,
+    domainId: draft.domainId,
+    password: draft.passwordEnabled && draft.password ? draft.password : undefined,
+  })
+}
+
+/**
+ * The update request for a validated draft. Every optional setting is sent,
+ * as null when off, so turning one off clears it. Back-half and domain never change.
+ */
+export function draftToUpdateBody(draft: CreateLinkDraft, before: Pick<ShortLink, 'slug' | 'passwordProtected'>): UpdateLinkBody {
+  const s = draftSettings(draft)
+  return {
+    ...s,
+    title: s.title || before.slug,
+    description: s.description ?? null,
+    activateAt: s.activateAt ?? null,
+    expiresAt: s.expiresAt ?? null,
+    maxClicks: s.maxClicks ?? null,
+    expiredDestinationUrl: s.expiredDestinationUrl ?? null,
+    fallbackDestinationUrl: s.fallbackDestinationUrl ?? null,
+    utm: s.utm ?? null,
+    metadata: s.metadata ?? null,
+    hold: s.hold ?? null,
+    targeting: s.targeting ?? null,
+    socialPreview: s.socialPreview ?? null,
+    // An empty password keeps the current one; turning the password off clears it.
+    ...(draft.passwordEnabled && draft.password ? { password: draft.password } : {}),
+    ...(!draft.passwordEnabled && before.passwordProtected ? { clearPassword: true } : {}),
   }
 }
 
@@ -483,35 +505,19 @@ export function isoToLocalInput(iso: string | undefined): string | undefined {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-/** Strips utm_* params that `applyUtm` added, recovering the entered URL. */
-function stripUtm(url: string, utm: UtmParameters | undefined): string {
-  if (!utm) return url
-  try {
-    const parsed = new URL(url)
-    for (const key of UTM_KEYS) {
-      if (utm[key] && parsed.searchParams.get(`utm_${key}`) === utm[key]) {
-        parsed.searchParams.delete(`utm_${key}`)
-      }
-    }
-    return parsed.toString()
-  } catch {
-    return url
-  }
-}
-
-/** Fills the form from an existing link (inverse of `draftToLink`). */
+/** Fills the form from an existing link (inverse of `draftToUpdateBody`). */
 export function linkToDraft(link: ShortLink): CreateLinkDraft {
   const base = emptyDraft(link.folderId ?? null)
   let n = 0
   const id = (prefix: string) => `${prefix}_${link.id}_${n++}`
   return {
     ...base,
-    destination: link.destinationUrl ?? stripUtm(link.targetUrl, link.utm),
-    title: link.title,
+    destination: link.destinationUrl,
+    title: link.title ?? '',
     description: link.description ?? '',
     domainId: link.domainId ?? null,
     slug: link.slug,
-    tags: [...link.tags],
+    tags: [...(link.tags ?? [])],
     utmEnabled: !!link.utm,
     utm: { ...link.utm },
     redirectStatus: link.redirectStatus ?? DEFAULT_REDIRECT_STATUS,
@@ -528,7 +534,7 @@ export function linkToDraft(link: ShortLink): CreateLinkDraft {
     metadata: Object.entries(link.metadata ?? {}).map(([key, value]) => ({
       id: id('meta'),
       key,
-      value,
+      value: String(value),
     })),
     cloakEnabled: !!link.cloaked,
     previewEnabled: !!link.socialPreview,
