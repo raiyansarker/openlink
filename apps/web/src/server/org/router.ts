@@ -12,7 +12,10 @@ import { principalUserId } from '#/server/effect/principal'
 import { requireAuthSession } from '#/server/effect/session'
 import { audit } from '#/server/activity/audit'
 import { MediaStore } from '#/server/media/media-store'
-import type { MemberPermissionDenied } from '#/server/org/errors'
+import { os } from '#/server/orpc/implement'
+import type { ErrorFactories } from '#/server/orpc/errors'
+
+import type { MemberPermissionDenied } from './errors'
 import {
   deleteOrganization,
   listMembers,
@@ -23,18 +26,15 @@ import {
   transferOwnership,
   updateMemberRole,
   updateOrganization,
-} from '#/server/org/members'
+} from './members'
 import {
   acceptMemberInvite,
   createMemberInvite,
   createOrganizationWithBootstrapInvite,
   getOrganizationById,
   listOrganizationsForUser,
-} from '#/server/org/service'
-import { isAdmin } from '#/server/org/permissions'
-
-import { os } from './os'
-import { type ErrorFactories } from './guards'
+} from './service'
+import { isAdmin } from './permissions'
 
 /** Map member-domain failures onto the typed API errors; spread only the ones an effect can raise. */
 const onMemberNotFound = (errors: ErrorFactories) => ({

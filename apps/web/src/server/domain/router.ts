@@ -1,17 +1,17 @@
 import { Effect } from 'effect'
 
 import { toDomainDto } from '#/server/api/serializers'
+import { requireOrgAdminEffect, requireOrgMemberEffect } from '#/server/effect/access'
+import { audit } from '#/server/activity/audit'
+import { os } from '#/server/orpc/implement'
+
 import {
   listDomainsForOrganization,
   registerCustomDomain,
   refreshCustomDomain,
   removeCustomDomain,
-} from '#/server/domain/service'
-import { requireOrgAdminEffect, requireOrgMemberEffect } from '#/server/effect/access'
-import { audit } from '#/server/activity/audit'
-import { DomainLinks } from '#/server/domain/domain-links'
-
-import { os } from './os'
+} from './service'
+import { DomainLinks } from './domain-links'
 import { requireDomain } from './guards'
 
 export const domainsRouter = {

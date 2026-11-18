@@ -2,10 +2,10 @@ import { Effect } from 'effect'
 
 import { toApiKeyDto } from '#/server/api/serializers'
 import { requireOrgAdminUserEffect } from '#/server/effect/access'
-import { createApiKey, listApiKeys, revokeApiKey, updateApiKeyRole } from '#/server/apikeys/service'
 import { audit } from '#/server/activity/audit'
+import { os } from '#/server/orpc/implement'
 
-import { os } from './os'
+import { createApiKey, listApiKeys, revokeApiKey, updateApiKeyRole } from './service'
 
 export const apiKeysRouter = {
   listApiKeys: os.apiKeys.listApiKeys.effect(function* ({ input }) {

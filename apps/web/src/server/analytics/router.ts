@@ -1,11 +1,11 @@
 import { Effect } from 'effect'
 
-import { AnalyticsReports, AnalyticsSummaries, RecentClicks } from '#/server/analytics/report'
 import { requireOrgMemberEffect } from '#/server/effect/access'
 import { getLinkInOrganization } from '#/server/links/service'
+import { os } from '#/server/orpc/implement'
+import { notFound } from '#/server/orpc/errors'
 
-import { os } from './os'
-import { notFound } from '../errors'
+import { AnalyticsReports, AnalyticsSummaries, RecentClicks } from './report'
 
 export const analyticsRouter = {
   getAnalyticsReport: os.analytics.getAnalyticsReport.effect(function* ({ input }) {

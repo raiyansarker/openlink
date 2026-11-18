@@ -9,20 +9,22 @@ import { ensureFolderInOrganization } from '#/server/folders/service'
 import { audit } from '#/server/activity/audit'
 import { diffLink, linkUpdateAction } from '#/server/activity/actions'
 import { LinkHistory, type LinkHistoryKind } from '#/server/activity/link-history'
-import { addTagsToLinks, deleteLinks, moveLinks } from '#/server/links/bulk'
-import { queryOrganizationLinks } from '#/server/links/queries'
+import { isAdmin } from '#/server/org/permissions'
+import { os } from '#/server/orpc/implement'
+import { notFound } from '#/server/orpc/errors'
+import { requireDomain } from '#/server/domain/guards'
+import type { MessageError } from '#/server/orpc/errors'
+
+import { addTagsToLinks, deleteLinks, moveLinks } from './bulk'
+import { queryOrganizationLinks } from './queries'
 import {
   createLinkRecord,
   deleteLinkRecord,
   getLinkInOrganization,
   listLinksForDomain,
   updateLinkRecord,
-} from '#/server/links/service'
-import { isAdmin } from '#/server/org/permissions'
-
-import { os } from './os'
-import { notFound } from '../errors'
-import { requireDomain, requireLink, type MessageError } from './guards'
+} from './service'
+import { requireLink } from './guards'
 
 /** A link addressed by workspace and link id, optionally pinned to a domain. */
 type LinkAddress = { organizationId: string; linkId: string; domainId?: string }

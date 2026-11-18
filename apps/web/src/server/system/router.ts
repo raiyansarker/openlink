@@ -5,8 +5,7 @@ import { Effect } from 'effect'
 
 import { operation } from '#/server/effect/operations'
 import { runHealthChecks } from '#/server/health/checks'
-
-import { os } from './os'
+import { os } from '#/server/orpc/implement'
 
 const openApiGenerator = new OpenAPIGenerator({
   converters: [new ArkTypeToJsonSchemaConverter()],

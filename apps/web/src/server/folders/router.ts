@@ -2,12 +2,12 @@ import { Effect } from 'effect'
 
 import { toFolderDto } from '#/server/api/serializers'
 import { requireLinkWriterEffect, requireOrgMemberEffect } from '#/server/effect/access'
-import type { FolderRuleViolation } from '#/server/folders/errors'
-import { createFolder, deleteFolder, listFolders, updateFolder } from '#/server/folders/service'
 import { audit } from '#/server/activity/audit'
+import { os } from '#/server/orpc/implement'
+import type { ErrorFactories, MessageError } from '#/server/orpc/errors'
 
-import { os } from './os'
-import type { ErrorFactories, MessageError } from './guards'
+import type { FolderRuleViolation } from './errors'
+import { createFolder, deleteFolder, listFolders, updateFolder } from './service'
 
 const onFolderNotFound = (errors: ErrorFactories) => ({
   FolderNotFound: () => Effect.fail(errors.NOT_FOUND({ message: 'Folder not found' })),

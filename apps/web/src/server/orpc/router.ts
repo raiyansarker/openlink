@@ -1,16 +1,20 @@
-import { os } from './routers/os'
-import { systemRouter } from './routers/system'
-import { authRouter } from './routers/auth'
-import { accountRouter } from './routers/account'
-import { activityRouter } from './routers/activity'
-import { analyticsRouter } from './routers/analytics'
-import { apiKeysRouter } from './routers/api-keys'
-import { organizationsRouter } from './routers/organizations'
-import { domainsRouter } from './routers/domains'
-import { foldersRouter } from './routers/folders'
-import { linksRouter } from './routers/links'
+import { accountRouter } from '#/server/account/router'
+import { activityRouter } from '#/server/activity/router'
+import { analyticsRouter } from '#/server/analytics/router'
+import { apiKeysRouter } from '#/server/apikeys/router'
+import { authRouter } from '#/server/auth/router'
+import { domainsRouter } from '#/server/domain/router'
+import { foldersRouter } from '#/server/folders/router'
+import { linksRouter } from '#/server/links/router'
+import { organizationsRouter } from '#/server/org/router'
+import { systemRouter } from '#/server/system/router'
 
-/** Every API procedure, one router per contract area (see `./routers`). */
+import { os } from './implement'
+
+/**
+ * Every API procedure. Each contract area is implemented next to its domain code
+ * (`#/server/<module>/router.ts`); this file only puts them together.
+ */
 export const router = os.router({
   system: systemRouter,
   auth: authRouter,

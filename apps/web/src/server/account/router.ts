@@ -5,8 +5,7 @@ import { requireAuthSession } from '#/server/effect/session'
 import { audit } from '#/server/activity/audit'
 import { DeviceSessions } from '#/server/devices/sessions'
 import { acceptInviteById, declineInviteForEmail, listInvitesForEmail } from '#/server/org/service'
-
-import { os } from './os'
+import { os } from '#/server/orpc/implement'
 
 export const accountRouter = {
   // Cookie sessions only: an API key is not a device and must not sign people out.

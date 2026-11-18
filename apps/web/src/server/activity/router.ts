@@ -1,9 +1,9 @@
 import { toActivityDto } from '#/server/api/serializers'
 import { requireOrgMemberEffect } from '#/server/effect/access'
-import { listActivity } from '#/server/activity/service'
 import { isAdmin } from '#/server/org/permissions'
+import { os } from '#/server/orpc/implement'
 
-import { os } from './os'
+import { listActivity } from './service'
 
 export const activityRouter = {
   listActivity: os.activity.listActivity.effect(function* ({ input }) {
