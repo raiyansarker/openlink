@@ -36,3 +36,14 @@ export const MyInvite = type({
 export const ListMyInvitesResponse = type({ items: MyInvite.array() })
 
 export const MyInviteIdPath = type({ inviteId: 'string' })
+
+/**
+ * A profile picture: a PNG, JPEG, WebP or GIF of at most 1 MB, sent as a file field in a
+ * `multipart/form-data` body. The browser app sends a 256px WebP.
+ */
+export const ProfilePicture = type.instanceOf(Blob)
+
+export const UpdateMyPictureRequest = type({ image: ProfilePicture })
+
+/** Where the stored picture is served from. */
+export const MyPicture = type({ imageUrl: 'string' })

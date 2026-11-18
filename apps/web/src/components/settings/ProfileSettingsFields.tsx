@@ -1,4 +1,5 @@
 import { useForm } from '@tanstack/react-form'
+import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { type } from 'arktype'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -19,7 +20,8 @@ import { useCurrentUser, useLinkedAccounts, useRefreshCurrentUser } from '#/hook
 import { AuthSession } from '#/lib/auth/client'
 import { authCall } from '#/lib/auth/errors'
 import { SquareImage } from '#/lib/media/square-image'
-import { MediaUploads } from '#/lib/media/uploads'
+import { apiErrorMessage } from '#/lib/api/errors'
+import { orpc } from '#/lib/api/orpc'
 import { fieldStatus, submitWith } from '#/lib/forms/fields'
 import { ProfileRules } from '#/lib/profile/rules'
 
@@ -93,6 +95,8 @@ export default function ProfileSettingsFields() {
   const { user, isLoading } = useCurrentUser()
   const refresh = useRefreshCurrentUser()
   const accounts = useLinkedAccounts()
+  const updatePicture = useMutation(orpc.account.updateMyPicture.mutationOptions())
+  const removePicture = useMutation(orpc.account.removeMyPicture.mutationOptions())
 
   const [nameSaved, setNameSaved] = useState(false)
   const [pictureStatus, setPictureStatus] = useState<string | null>(null)
@@ -134,11 +138,11 @@ export default function ProfileSettingsFields() {
     setIsSavingPicture(true)
     setPictureStatus(null)
     try {
-      if (image) await MediaUploads.setAvatar(image)
-      else await MediaUploads.clearAvatar()
+      if (image) await updatePicture.mutateAsync({ body: { image } })
+      else await removePicture.mutateAsync()
       await refresh()
     } catch (e) {
-      setPictureStatus(e instanceof Error ? e.message : 'Could not update your picture.')
+      setPictureStatus(apiErrorMessage(e, 'Could not update your picture.'))
     } finally {
       setIsSavingPicture(false)
     }

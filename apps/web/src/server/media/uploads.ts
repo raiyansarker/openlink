@@ -1,15 +1,11 @@
-import { user } from '@openlink/db/schema'
 import { ORPCError } from '@orpc/server'
-import { eq } from 'drizzle-orm'
 import { Cause, Data, Effect } from 'effect'
 
 import { AuthOrigins } from '../auth/origins'
 import { requireLinkWriterEffect } from '../effect/access'
 import { operation } from '../effect/operations'
 import { Bindings } from '../effect/services/bindings'
-import { Db } from '../effect/services/db'
 import { WorkerRequest } from '../effect/services/request'
-import { requireAuthSession } from '../effect/session'
 import { ImageFormat } from './image-format'
 import { MediaKey, type MediaKind } from './media-key'
 import { MediaStore } from './media-store'
@@ -17,7 +13,10 @@ import { MediaStore } from './media-store'
 /** An upload was refused; `message` is safe to show. */
 export class UploadRejected extends Data.TaggedError('UploadRejected')<{ status: number; message: string }> {}
 
-/** Image uploads: profile pictures, workspace logos (through the workspace API) and share cards. */
+/**
+ * Image checks and storage. Profile pictures and workspace logos arrive through the API
+ * (`storeImage`); share cards still use their own upload route (`setLinkPreview`).
+ */
 export class MediaUploads {
   /** Already resized in the browser (256px WebP is ~20 KB); this only stops abuse. */
   static readonly MAX_BYTES = 1024 * 1024
@@ -36,9 +35,6 @@ export class MediaUploads {
       return yield* Effect.fail(new UploadRejected({ status: 403, message: 'This request was blocked.' }))
     }
   })
-
-  /** Read the body as an image, checking size and the real format. */
-  static readonly readImage = MediaUploads.readImageUpTo(MediaUploads.MAX_BYTES)
 
   static readImageUpTo(maxBytes: number) {
     return Effect.gen(function* () {
@@ -100,41 +96,6 @@ export class MediaUploads {
       return { url: MediaKey.toUrl(key) }
     })
   }
-
-  /** Replace the signed-in person's picture. API keys cannot change a person's profile. */
-  static readonly setAvatar = Effect.gen(function* () {
-    yield* MediaUploads.requireTrustedOrigin
-    const session = yield* requireAuthSession
-    const image = yield* MediaUploads.readImage
-    const userId = session.session.user.id
-    const key = MediaKey.create('avatars', userId, image.extension)
-    yield* MediaStore.put(key, image.bytes, image.mime)
-
-    const db = yield* Db
-    const [previous] = yield* operation('media.avatar.read', () =>
-      db.select({ image: user.image }).from(user).where(eq(user.id, userId)).limit(1),
-    )
-    const url = MediaKey.toUrl(key)
-    yield* operation('media.avatar.save', () =>
-      db.update(user).set({ image: url, updatedAt: new Date() }).where(eq(user.id, userId)),
-    ).pipe(Effect.tapError(() => MediaStore.removeQuietly(key)))
-    yield* MediaStore.removeQuietly(MediaKey.fromUrl(previous?.image))
-    return { url }
-  })
-
-  static readonly clearAvatar = Effect.gen(function* () {
-    yield* MediaUploads.requireTrustedOrigin
-    const session = yield* requireAuthSession
-    const userId = session.session.user.id
-    const db = yield* Db
-    const [previous] = yield* operation('media.avatar.read', () =>
-      db.select({ image: user.image }).from(user).where(eq(user.id, userId)).limit(1),
-    )
-    yield* operation('media.avatar.clear', () =>
-      db.update(user).set({ image: null, updatedAt: new Date() }).where(eq(user.id, userId)),
-    )
-    yield* MediaStore.removeQuietly(MediaKey.fromUrl(previous?.image))
-  })
 
   /** Serve a stored image. Keys are unguessable and change on every upload, so caching is permanent. */
   static serve(rawKey: string) {
