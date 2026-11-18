@@ -166,6 +166,7 @@ export default function DashboardNavColumn() {
       </div>
 
       <nav
+        className="focus-inset"
         style={{
           flex: 1,
           minHeight: 0,

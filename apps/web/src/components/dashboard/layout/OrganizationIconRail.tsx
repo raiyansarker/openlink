@@ -203,6 +203,7 @@ export default function OrganizationIconRail({
         />
 
         <div
+          className="focus-inset"
           style={{
             display: 'flex',
             flexDirection: 'column',

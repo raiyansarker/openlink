@@ -452,7 +452,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--openlink-brand)"
+          "borderColor": "var(--color-accent)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -465,7 +465,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--openlink-brand)"
+          "borderColor": "var(--color-accent)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -478,7 +478,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--openlink-brand)"
+          "borderColor": "var(--color-accent)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -491,7 +491,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--openlink-brand)"
+          "borderColor": "var(--color-accent)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -504,7 +504,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--openlink-brand)"
+          "borderColor": "var(--color-accent)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
@@ -517,7 +517,7 @@ export const openlinkNeutralTheme = {
         },
         ":focus-within": {
           "boxShadow": "none",
-          "borderColor": "var(--openlink-brand)"
+          "borderColor": "var(--color-accent)"
         },
         "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }

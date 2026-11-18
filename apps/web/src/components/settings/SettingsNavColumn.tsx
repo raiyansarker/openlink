@@ -196,6 +196,7 @@ export default function SettingsNavColumn() {
       </button>
 
       <nav
+        className="focus-inset"
         style={{
           flex: 1,
           display: 'flex',
