@@ -5,19 +5,17 @@ import type { OpenLinkDb } from '@openlink/db'
 import { Bindings } from '../effect/services/bindings'
 import { Db } from '../effect/services/db'
 import type { WorkerBindings } from '../env'
-import { clientIp } from '../rate-limit/limiter'
-import { EmailFormat } from '../email/format'
 import { EmailDispatch, EmailDispatchLive } from '../email/dispatch'
-import type { EmailDraft } from '../email/job'
+import type { EmailEvent } from '../email/events'
+import { EmailFormat } from '../email/format'
+import { clientIp } from '../rate-limit/limiter'
 
-type Recipient = { email: string; name?: string | null }
-
-/** Better Auth's token links are valid for one hour unless configured otherwise. */
-const LINK_LIFETIME = '1 hour'
+type Recipient = { id: string; email: string }
 
 /**
- * The emails Better Auth triggers. Each one goes through the email workflow, never sent inline,
- * so a slow provider cannot slow down sign-up or reset requests.
+ * The emails Better Auth triggers, emitted as events (user IDs only). The email workflow
+ * builds each one from the database when it sends, so Better Auth's own link is not used:
+ * the workflow mints a fresh verification link and reads the reset token from D1.
  */
 export class AuthEmails {
   constructor(
@@ -25,60 +23,45 @@ export class AuthEmails {
     private readonly db: () => OpenLinkDb,
   ) {}
 
-  private static greeting(user: Recipient) {
-    return user.name?.trim() || user.email
-  }
-
-  /** Better Auth's hooks are plain async code, so this runs the dispatch service outside the request runtime. */
-  /** The request's client IP counts toward the per-IP email limits. */
-  private send(to: string, draft: EmailDraft, request?: Request): Promise<void> {
+  /**
+   * Better Auth's hooks are plain async code, so this runs the dispatch service outside the
+   * request runtime. The request's client IP counts toward the per-IP email limits.
+   */
+  private emit(to: string, event: EmailEvent, request?: Request): Promise<void> {
     const services = Layer.mergeAll(Layer.succeed(Bindings, this.bindings()), Layer.succeed(Db, this.db()))
     return Effect.runPromise(
       Effect.gen(function* () {
         const dispatch = yield* EmailDispatch
-        yield* dispatch.send(to, draft, { ip: clientIp(request) })
+        yield* dispatch.send(to, event, { ip: clientIp(request) })
       }).pipe(Effect.provide(EmailDispatchLive.pipe(Layer.provide(services)))),
     )
   }
 
-  private appUrl(path: string) {
-    return new URL(path, this.bindings().BETTER_AUTH_URL).toString()
+  verifyEmail(user: Recipient, request?: Request) {
+    return this.emit(user.email, { type: 'email-verification', userId: user.id }, request)
   }
 
-  verifyEmail(user: Recipient, verifyUrl: string, request?: Request) {
-    return this.send(user.email, {
-      template: 'email-verification',
-      props: { name: AuthEmails.greeting(user), verifyUrl, expiresIn: LINK_LIFETIME },
-    }, request)
-  }
-
-  resetPassword(user: Recipient, resetUrl: string, request?: Request) {
-    return this.send(user.email, {
-      template: 'password-reset',
-      props: { name: AuthEmails.greeting(user), resetUrl, expiresIn: LINK_LIFETIME },
-    }, request)
+  resetPassword(user: Recipient, request?: Request) {
+    return this.emit(user.email, { type: 'password-reset', userId: user.id }, request)
   }
 
   welcome(user: Recipient) {
-    return this.send(user.email, {
-      template: 'welcome',
-      props: { name: AuthEmails.greeting(user), dashboardUrl: this.appUrl('/dashboard') },
-    })
+    return this.emit(user.email, { type: 'welcome', userId: user.id })
   }
 
   /** Sent after a password reset completes, so the owner notices if it was not them. */
   passwordChanged(user: Recipient, request: Request | undefined) {
     const cf = (request as unknown as { cf?: Record<string, unknown> } | undefined)?.cf
-    return this.send(user.email, {
-      template: 'security-alert',
-      props: {
-        name: AuthEmails.greeting(user),
-        event: 'Your password was changed',
+    return this.emit(
+      user.email,
+      {
+        type: 'password-changed',
+        userId: user.id,
+        occurredAt: Date.now(),
         device: EmailFormat.device(request?.headers.get('user-agent')),
         location: EmailFormat.location(cf),
-        occurredAt: EmailFormat.dateTime(new Date()),
-        securityUrl: this.appUrl('/settings/devices'),
       },
-    }, request)
+      request,
+    )
   }
 }

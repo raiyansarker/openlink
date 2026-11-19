@@ -84,13 +84,15 @@ function createAuth() {
       // No session until the address is confirmed. A sign-in attempt does not re-send the link:
       // the app sends people to /check-email, where they can ask for a new one.
       requireEmailVerification: true,
-      sendResetPassword: ({ user, url }, request) => emails.resetPassword(user, url, request),
+      // The workflow builds the link from the token Better Auth stored, so `url` is not passed on.
+      sendResetPassword: ({ user }, request) => emails.resetPassword(user, request),
       onPasswordReset: ({ user }, request) => emails.passwordChanged(user, request),
     },
     emailVerification: {
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
-      sendVerificationEmail: ({ user, url }, request) => emails.verifyEmail(user, url, request),
+      // The workflow mints a fresh link when it sends, so `url` is not passed on.
+      sendVerificationEmail: ({ user }, request) => emails.verifyEmail(user, request),
       afterEmailVerification: (user) => emails.welcome(user),
     },
     plugins: [
