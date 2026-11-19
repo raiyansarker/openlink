@@ -28,4 +28,4 @@ Each template accepts optional `baseUrl` and `logoUrl` props. `baseUrl` is used 
 
 ## Sending
 
-`renderEmail(message)` turns an `EmailMessage` (`{ template, props }`) into a subject, HTML and plain text. The web app never sends inline: it starts a run of the `openlink-email` Cloudflare Workflow (`EmailWorkflow` in `apps/web/src/server/email/`), which renders the email and delivers it through Resend, retrying transient failures.
+`renderEmail(message)` turns an `EmailMessage` (`{ template, props }`) into a subject, HTML and plain text. The web app never sends inline: it starts a run of the `openlink-email` Cloudflare Workflow (`EmailWorkflow` in `apps/web/src/server/email/`), which renders the email and delivers it through Amazon SES in production (Mailtrap Local under `vite dev`), retrying transient failures. Every email is rate limited per recipient, per IP and app-wide before it is queued (`apps/web/src/server/email/limits.ts`).

@@ -106,3 +106,27 @@ export function PasswordKeyIllustration(props: IllustrationProps) {
     </Frame>
   )
 }
+
+/** A sealed envelope on its way, with motion lines: a link was just sent. Decorative only. */
+export function CheckInboxIllustration(props: IllustrationProps) {
+  return (
+    <Frame {...props}>
+      <g stroke={FOLDER_BLUE} strokeWidth="1.75">
+        <path d="M30 32v10M25 37h10" />
+        <path d="M172 26v8M168 30h8" />
+        <circle cx="180" cy="84" r="2.5" />
+      </g>
+      {/* Motion lines behind the envelope */}
+      <g stroke={MUTED} strokeWidth="1.75" opacity="0.45">
+        <path d="M18 64h22M24 78h16M14 92h26" />
+      </g>
+      <rect x="48" y="40" width="112" height="76" rx="9" fill={SURFACE} stroke={INK} strokeWidth="1.75" />
+      <path d="M48 49l56 38 56-38" fill={TINT_STRONG} stroke={INK} strokeWidth="1.75" />
+      <path d="M48 108l38-30M160 108l-38-30" stroke={INK} strokeWidth="1.5" opacity="0.55" />
+      {/* Unread badge */}
+      <circle cx="156" cy="42" r="12" fill={FOLDER_BLUE} stroke={INK} strokeWidth="1.75" />
+      <path d="M156 37v6" stroke={SURFACE} strokeWidth="2.5" />
+      <circle cx="156" cy="47.5" r="1.4" fill={SURFACE} />
+    </Frame>
+  )
+}

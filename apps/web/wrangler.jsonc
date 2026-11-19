@@ -34,7 +34,7 @@
 		}
 	],
 	"vars": {
-		// Sender for outgoing email (not a secret). The domain must be verified with Resend.
+		// Sender for outgoing email (not a secret). The address or domain must be verified in Amazon SES.
 		"EMAIL_FROM": "OpenLink <no-reply@raiyansarker.com>"
 	},
 	"workflows": [

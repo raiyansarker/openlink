@@ -13,9 +13,12 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   LINK_PASSWORD_LIMITER: RateLimit
   /** Outgoing email. Callers start a run of this workflow (`EmailWorkflow`), which renders and sends. */
   EMAIL_WORKFLOW?: Workflow<EmailJob>
-  /** Resend API key (a Worker secret). Not needed under `vite dev`, which sends to Mailtrap Local. */
-  RESEND_API_KEY?: string
-  /** Sender, e.g. `OpenLink <no-reply@example.com>`. Set in `wrangler.jsonc`; the domain must be verified with Resend. */
+  /** Amazon SES credentials (Worker secrets) for production email. Not needed under `vite dev`, which sends to Mailtrap Local. */
+  AWS_SES_ACCESS_KEY_ID?: string
+  AWS_SES_SECRET_ACCESS_KEY?: string
+  /** SES region, e.g. `us-east-1`. The sender identity must be verified there. */
+  AWS_SES_REGION?: string
+  /** Sender, e.g. `OpenLink <no-reply@example.com>`. Set in `wrangler.jsonc`; the address or domain must be verified in Amazon SES. */
   EMAIL_FROM?: string
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_URL: string

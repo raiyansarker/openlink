@@ -38,7 +38,7 @@ export const AppLayer = Layer.mergeAll(
   BindingsLive,
   AuthLive,
   DomainClientLive,
-  EmailDispatchLive.pipe(Layer.provide(BindingsLive)),
+  EmailDispatchLive.pipe(Layer.provide(Layer.mergeAll(BindingsLive, DbLive))),
 )
 
 /** Services provided by the module-scoped runtime (per-request services are added in ApiContext). */

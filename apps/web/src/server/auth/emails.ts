@@ -1,7 +1,11 @@
 import { Effect, Layer } from 'effect'
 
+import type { OpenLinkDb } from '@openlink/db'
+
 import { Bindings } from '../effect/services/bindings'
+import { Db } from '../effect/services/db'
 import type { WorkerBindings } from '../env'
+import { clientIp } from '../rate-limit/limiter'
 import { EmailFormat } from '../email/format'
 import { EmailDispatch, EmailDispatchLive } from '../email/dispatch'
 import type { EmailDraft } from '../email/job'
@@ -16,20 +20,24 @@ const LINK_LIFETIME = '1 hour'
  * so a slow provider cannot slow down sign-up or reset requests.
  */
 export class AuthEmails {
-  constructor(private readonly bindings: () => WorkerBindings) {}
+  constructor(
+    private readonly bindings: () => WorkerBindings,
+    private readonly db: () => OpenLinkDb,
+  ) {}
 
   private static greeting(user: Recipient) {
     return user.name?.trim() || user.email
   }
 
   /** Better Auth's hooks are plain async code, so this runs the dispatch service outside the request runtime. */
-  private send(to: string, draft: EmailDraft): Promise<void> {
-    const bindings = this.bindings()
+  /** The request's client IP counts toward the per-IP email limits. */
+  private send(to: string, draft: EmailDraft, request?: Request): Promise<void> {
+    const services = Layer.mergeAll(Layer.succeed(Bindings, this.bindings()), Layer.succeed(Db, this.db()))
     return Effect.runPromise(
       Effect.gen(function* () {
         const dispatch = yield* EmailDispatch
-        yield* dispatch.send(to, draft)
-      }).pipe(Effect.provide(EmailDispatchLive.pipe(Layer.provide(Layer.succeed(Bindings, bindings))))),
+        yield* dispatch.send(to, draft, { ip: clientIp(request) })
+      }).pipe(Effect.provide(EmailDispatchLive.pipe(Layer.provide(services)))),
     )
   }
 
@@ -37,18 +45,18 @@ export class AuthEmails {
     return new URL(path, this.bindings().BETTER_AUTH_URL).toString()
   }
 
-  verifyEmail(user: Recipient, verifyUrl: string) {
+  verifyEmail(user: Recipient, verifyUrl: string, request?: Request) {
     return this.send(user.email, {
       template: 'email-verification',
       props: { name: AuthEmails.greeting(user), verifyUrl, expiresIn: LINK_LIFETIME },
-    })
+    }, request)
   }
 
-  resetPassword(user: Recipient, resetUrl: string) {
+  resetPassword(user: Recipient, resetUrl: string, request?: Request) {
     return this.send(user.email, {
       template: 'password-reset',
       props: { name: AuthEmails.greeting(user), resetUrl, expiresIn: LINK_LIFETIME },
-    })
+    }, request)
   }
 
   welcome(user: Recipient) {
@@ -71,6 +79,6 @@ export class AuthEmails {
         occurredAt: EmailFormat.dateTime(new Date()),
         securityUrl: this.appUrl('/settings/devices'),
       },
-    })
+    }, request)
   }
 }

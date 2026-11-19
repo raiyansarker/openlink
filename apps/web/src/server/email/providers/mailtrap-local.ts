@@ -14,7 +14,8 @@ const MAILTRAP_LOCAL_URL = 'http://127.0.0.1:3550'
  * Posts to `/api/v1/ingest`, the endpoint Mailtrap Local's own SMTP server hands
  * parsed mail to. Mailtrap marks it internal, so its shape may change between releases.
  */
-export const mailtrapLocalProvider = Effect.succeed<EmailProviderShape>({
+// Pure, so a production build (which never selects it) drops it entirely.
+export const mailtrapLocalProvider = /* @__PURE__ */ Effect.succeed<EmailProviderShape>({
   name: 'mailtrap-local',
   send: (email) =>
     Effect.gen(function* () {

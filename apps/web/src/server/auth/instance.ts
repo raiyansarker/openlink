@@ -1,3 +1,4 @@
+import { waitUntil } from 'cloudflare:workers'
 import { getAuthenticatorName, passkey } from '@better-auth/passkey'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -9,6 +10,7 @@ import { AuthEmails } from './emails'
 import { AuthLog } from './auth-log'
 import { AuthHooks } from './hooks'
 import { AuthOrigins } from './origins'
+import { authRateLimit } from './rate-limits'
 import { EmailPasswordSignIn, SocialProviders } from './providers'
 
 let auth: ReturnType<typeof createAuth> | undefined
@@ -17,7 +19,7 @@ let authConfigKey: string | undefined
 function createAuth() {
   const bindings = getBindings()
   const hooks = new AuthHooks(getDb, getBindings)
-  const emails = new AuthEmails(getBindings)
+  const emails = new AuthEmails(getBindings, getDb)
 
   return betterAuth({
     appName: 'OpenLink',
@@ -79,15 +81,16 @@ function createAuth() {
     emailAndPassword: {
       enabled: EmailPasswordSignIn.enabled(bindings),
       minPasswordLength: 8,
-      // No session until the address is confirmed; a sign-in attempt re-sends the link.
+      // No session until the address is confirmed; a sign-in attempt re-sends the link (rate limited).
       requireEmailVerification: true,
-      sendResetPassword: ({ user, url }) => emails.resetPassword(user, url),
+      sendResetPassword: ({ user, url }, request) => emails.resetPassword(user, url, request),
       onPasswordReset: ({ user }, request) => emails.passwordChanged(user, request),
     },
     emailVerification: {
       sendOnSignUp: true,
+      sendOnSignIn: true,
       autoSignInAfterVerification: true,
-      sendVerificationEmail: ({ user, url }) => emails.verifyEmail(user, url),
+      sendVerificationEmail: ({ user, url }, request) => emails.verifyEmail(user, url, request),
       afterEmailVerification: (user) => emails.welcome(user),
     },
     plugins: [
@@ -106,8 +109,14 @@ function createAuth() {
       }),
       ...apiKeyPlugins(),
     ],
+    rateLimit: authRateLimit(getDb),
     advanced: {
       cookiePrefix: 'openlink',
+      // Cloudflare sets this to the visitor's address; rate limits are keyed on it.
+      ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] },
+      // Reset and verification emails go out after the response, so how long a request
+      // takes never reveals whether the account exists (only real accounts get an email).
+      backgroundTasks: { handler: waitUntil },
     },
     logger: AuthLog.logger,
     onAPIError: { onError: AuthLog.onAPIError },

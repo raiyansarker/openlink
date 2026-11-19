@@ -26,8 +26,15 @@ CF_SAAS_CUSTOM_ORIGIN=
 
 # Email: `vite dev` sends every email to Mailtrap Local through its API on 127.0.0.1:3550
 # (`brew install mailtrap-local`, then run `mailtrap-local`). Read them at http://127.0.0.1:3550.
-# Nothing to set here; the sender comes from EMAIL_FROM in wrangler.jsonc.
+# Nothing to set here. The sender is EMAIL_FROM in wrangler.jsonc (a plain var, not a secret);
+# uncomment to send from a different address locally.
+# EMAIL_FROM=OpenLink <no-reply@example.com>
 
-# A built Worker sends through Resend: set RESEND_API_KEY as a Worker secret (`wrangler secret put RESEND_API_KEY`).
+# Production sends through Amazon SES (API v2). Set these as Worker secrets, e.g.
+#   wrangler secret put AWS_SES_ACCESS_KEY_ID
+# Use an IAM user that may only call ses:SendEmail. EMAIL_FROM (wrangler.jsonc) must be
+# verified in AWS_SES_REGION, and the account must be out of the SES sandbox to email anyone.
 # Uncomment to try real delivery with `vite preview`.
-# RESEND_API_KEY=
+# AWS_SES_ACCESS_KEY_ID=
+# AWS_SES_SECRET_ACCESS_KEY=
+# AWS_SES_REGION=us-east-1
