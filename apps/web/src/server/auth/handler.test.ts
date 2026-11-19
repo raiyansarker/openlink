@@ -3,13 +3,18 @@ import { Effect } from 'effect'
 
 import { BackendError } from '#/server/effect/operations'
 import { Auth } from '#/server/effect/services/auth'
+import { Bindings } from '#/server/effect/services/bindings'
 import { AuthHandler } from './handler'
 
 const handleAuthRequest = AuthHandler.handle
 const authUnavailable = AuthHandler.unavailable
 
 const provide = (auth: Effect.Effect<unknown, BackendError>) =>
-  Effect.provideService(Auth, auth as never)
+  <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+    effect.pipe(
+      Effect.provideService(Auth, auth as never),
+      Effect.provideService(Bindings, { BETTER_AUTH_SECRET: 'test-secret' } as never),
+    )
 
 describe('AuthHandler', () => {
   test('delegates the untouched request to Better Auth and returns its response', async () => {

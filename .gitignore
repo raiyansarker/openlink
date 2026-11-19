@@ -27,6 +27,7 @@ out/
 build
 dist
 .output
+.react-email
 .wrangler
 .tanstack
 .nitro

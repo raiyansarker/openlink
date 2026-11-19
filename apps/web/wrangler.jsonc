@@ -6,7 +6,8 @@
 		"nodejs_compat",
 		"enable_request_signal"
 	],
-	"main": "@tanstack/react-start/server-entry",
+	// Wraps the TanStack Start handler and hosts the email workflow.
+	"main": "src/server.ts",
 	// Reachable only through the custom domain: no *.workers.dev URL, no per-version preview URLs.
 	// Set here because dashboard toggles are reset by the next deploy.
 	"workers_dev": false,
@@ -32,6 +33,22 @@
 			"dataset": "openlink"
 		}
 	],
+	"vars": {
+		// Sender for outgoing email (not a secret). The address or domain must be verified in Amazon SES.
+		"EMAIL_FROM": "OpenLink <no-reply@raiyansarker.com>"
+	},
+	"workflows": [
+		{
+			// One run per outgoing email: render, then send with retries (see src/server/email/workflow.ts).
+			"name": "openlink-email",
+			"binding": "EMAIL_WORKFLOW",
+			"class_name": "EmailWorkflow"
+		}
+	],
+	"triggers": {
+		// Hourly: delete rate-limit windows that have ended (src/server/scheduled.ts).
+		"crons": ["0 * * * *"]
+	},
 	"ratelimits": [
 		{
 			// Wrong-password attempts on protected links, per link and visitor IP.

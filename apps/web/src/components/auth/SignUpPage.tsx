@@ -10,14 +10,14 @@ import { VStack } from '@astryxdesign/core/VStack'
 import PasswordField from '#/components/common/PasswordField'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
-import { fieldStatus, requiredEmail, requiredExact, submitWith } from '#/lib/forms/fields'
+import { fieldStatus, requiredEmail, requiredExact, requiredText, submitWith } from '#/lib/forms/fields'
 import AuthShell from './AuthShell'
 import ProviderButtons from './ProviderButtons'
 import { hasProviders } from './auth-providers'
 import { useAuthActions, type AuthProvider } from './use-auth-actions'
 
 const SignUpSchema = type({
-  name: 'string',
+  name: requiredText('Enter your name.'),
   email: requiredEmail({ required: 'Enter your email address.', invalid: 'Enter a valid email address.' }),
   password: requiredExact('Enter a password.'),
 })
@@ -40,13 +40,19 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
       auth.run('email', async () => {
         try {
           const email = value.email.trim()
-          const { error } = await AuthSession.client.signUp.email({
-            // Left blank, the name starts as the part of the email before the @.
-            name: value.name.trim() || email.split('@')[0]!,
+          const { data, error } = await AuthSession.client.signUp.email({
+            name: value.name.trim(),
             email,
             password: value.password,
+            callbackURL: '/verify-email',
           })
           if (error) return AuthErrorMessages.emailSignUp(error)
+          // Email accounts have no session until the address is verified.
+          if (!data?.token) {
+            // Nothing typed (least of all the password) stays on the page after the account is made.
+            form.reset()
+            return void (await navigate({ to: '/check-email' }))
+          }
           await auth.finish()
         } catch {
           return AuthErrorMessages.emailSignUp(undefined)
@@ -89,10 +95,11 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
                     placeholder="Ada Lovelace"
                     value={field.state.value}
                     onChange={field.handleChange}
+                    status={fieldStatus(field.state.meta.errors)}
                     autoComplete="name"
                     htmlName="name"
                     width="100%"
-                    isOptional
+                    isRequired
                   />
                 )}
               </form.Field>

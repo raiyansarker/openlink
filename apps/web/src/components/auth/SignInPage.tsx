@@ -43,7 +43,10 @@ export default function SignInPage({ destination, redirect, oauthError, provider
     onSubmit: ({ value }) =>
       auth.run('email', async () => {
         try {
-          const { error } = await AuthSession.client.signIn.email({ email: value.email.trim(), password: value.password })
+          const email = value.email.trim()
+          const { error } = await AuthSession.client.signIn.email({ email, password: value.password, callbackURL: '/verify-email' })
+          // Right password, unverified email: the link from sign-up is still the one to use.
+          if (error?.code?.toUpperCase() === 'EMAIL_NOT_VERIFIED') return void (await navigate({ to: '/check-email' }))
           if (error) return AuthErrorMessages.emailSignIn(error)
           await auth.finish()
         } catch {
@@ -147,14 +150,13 @@ export default function SignInPage({ destination, redirect, oauthError, provider
                 </form.Field>
                 <HStack hAlign="end">
                   <Link
-                    href="#"
+                    href="/forgot-password"
                     size="xsm"
                     color="secondary"
                     onClick={(event) => {
+                      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
                       event.preventDefault()
-                      auth.setNotice(
-                        'Password recovery needs an email service, which is not set up yet. Ask a workspace admin for help.',
-                      )
+                      void navigate({ to: '/forgot-password' })
                     }}
                   >
                     Forgot password?
