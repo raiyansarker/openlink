@@ -21,7 +21,7 @@ export const colors = {
   muted: "#667085",
   copy: "#344054",
   border: "#e4e7ec",
-  accent: "#111827",
+  accent: "#4b5563",
   accentSoft: "#f2f4f7",
   warning: "#b54708",
   warningSoft: "#fffaeb",
