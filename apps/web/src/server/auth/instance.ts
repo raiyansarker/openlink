@@ -81,14 +81,14 @@ function createAuth() {
     emailAndPassword: {
       enabled: EmailPasswordSignIn.enabled(bindings),
       minPasswordLength: 8,
-      // No session until the address is confirmed; a sign-in attempt re-sends the link (rate limited).
+      // No session until the address is confirmed. A sign-in attempt does not re-send the link:
+      // the app sends people to /check-email, where they can ask for a new one.
       requireEmailVerification: true,
       sendResetPassword: ({ user, url }, request) => emails.resetPassword(user, url, request),
       onPasswordReset: ({ user }, request) => emails.passwordChanged(user, request),
     },
     emailVerification: {
       sendOnSignUp: true,
-      sendOnSignIn: true,
       autoSignInAfterVerification: true,
       sendVerificationEmail: ({ user, url }, request) => emails.verifyEmail(user, url, request),
       afterEmailVerification: (user) => emails.welcome(user),

@@ -12,7 +12,7 @@ export const rateLimit = sqliteTable(
     count: integer('count').notNull(),
     /** Start of the current window, in ms. A new window resets `count`. */
     windowStart: integer('window_start').notNull(),
-    /** When the row stops mattering; expired rows are pruned. */
+    /** When the row stops mattering; an hourly cron deletes expired rows. */
     expiresAt: integer('expires_at').notNull(),
   },
   (table) => [index('rate_limit_expires_at_idx').on(table.expiresAt)],

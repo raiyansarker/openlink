@@ -58,7 +58,7 @@ describe('RateLimiter', () => {
     const { limiter, sqlite, clock } = setup()
     await limiter.consume([{ key: 'short', rules: [MINUTE_RULE] }, { key: 'long', rules: [HOUR_RULE] }])
     clock.now += 120_000
-    await limiter.prune()
+    expect(await limiter.prune()).toBe(1)
     expect((sqlite.query('select count(*) as count from rate_limit').get() as { count: number }).count).toBe(1)
   })
 

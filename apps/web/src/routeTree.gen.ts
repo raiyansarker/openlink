@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as CheckEmailRouteImport } from './routes/check-email'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -68,6 +69,11 @@ const SlugRoute = SlugRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckEmailRoute = CheckEmailRouteImport.update({
+  id: '/check-email',
+  path: '/check-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -290,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/w': typeof WRouteRouteWithChildren
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
+  '/check-email': typeof CheckEmailRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
@@ -334,6 +341,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
+  '/check-email': typeof CheckEmailRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
@@ -378,6 +386,7 @@ export interface FileRoutesById {
   '/w': typeof WRouteRouteWithChildren
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
+  '/check-email': typeof CheckEmailRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
@@ -427,6 +436,7 @@ export interface FileRouteTypes {
     | '/w'
     | '/$slug'
     | '/about'
+    | '/check-email'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
@@ -471,6 +481,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/about'
+    | '/check-email'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
@@ -514,6 +525,7 @@ export interface FileRouteTypes {
     | '/w'
     | '/$slug'
     | '/about'
+    | '/check-email'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
@@ -562,6 +574,7 @@ export interface RootRouteChildren {
   WRouteRoute: typeof WRouteRouteWithChildren
   SlugRoute: typeof SlugRoute
   AboutRoute: typeof AboutRoute
+  CheckEmailRoute: typeof CheckEmailRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -600,6 +613,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check-email': {
+      id: '/check-email'
+      path: '/check-email'
+      fullPath: '/check-email'
+      preLoaderRoute: typeof CheckEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -1016,6 +1036,7 @@ const rootRouteChildren: RootRouteChildren = {
   WRouteRoute: WRouteRouteWithChildren,
   SlugRoute: SlugRoute,
   AboutRoute: AboutRoute,
+  CheckEmailRoute: CheckEmailRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,

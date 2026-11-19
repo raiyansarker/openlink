@@ -19,7 +19,7 @@ export class AuthErrorMessages {
   /** Message for a failed email sign-in; never reveals whether the email exists. */
   static emailSignIn(error: { status?: number; code?: string } | null | undefined): string {
     if (!error) return 'Sign-in failed. Please try again.'
-    if (error.code?.toUpperCase() === 'EMAIL_NOT_VERIFIED') return 'Verify your email first. We just sent you a new link.'
+    if (error.code?.toUpperCase() === 'EMAIL_NOT_VERIFIED') return 'Verify your email first. Use the link we sent you, or request a new one.'
     if (error.status === 429) return 'Too many attempts. Wait a moment and try again.'
     if (error.status && error.status >= 500) return 'Sign-in is unavailable right now. Please try again.'
     // Not a credentials problem: the request itself was refused (for example a blocked origin).

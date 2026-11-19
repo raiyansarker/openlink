@@ -12,9 +12,6 @@ export type RateDecision =
   | { allowed: true; retryAfter: null; exceeded: [] }
   | { allowed: false; retryAfter: number; /** Keys that were over a limit. */ exceeded: string[] }
 
-/** Roughly one call in this many also deletes expired rows, so the table stays small without a cron. */
-const PRUNE_EVERY = 200
-
 /**
  * Fixed-window counters in D1. Each check is one atomic upsert, so concurrent
  * requests in different isolates or data centers all see the same count.
@@ -74,15 +71,15 @@ export class RateLimiter {
       exceeded.add(check.key)
       retryAfter = Math.max(retryAfter, Math.ceil((check.windowStart + check.windowMs - now) / 1000))
     })
-    if (Math.random() * PRUNE_EVERY < 1) void this.prune(now).catch(() => {})
     return exceeded.size > 0
       ? { allowed: false, retryAfter: Math.max(1, retryAfter), exceeded: [...exceeded] }
       : { allowed: true, retryAfter: null, exceeded: [] }
   }
 
-  /** Drop windows that have ended. */
-  async prune(now = this.now()) {
-    await this.db().delete(rateLimit).where(lt(rateLimit.expiresAt, now))
+  /** Drop windows that have ended; returns how many. Runs hourly from the Worker's cron (`server/scheduled.ts`). */
+  async prune(now = this.now()): Promise<number> {
+    const deleted = await this.db().delete(rateLimit).where(lt(rateLimit.expiresAt, now)).returning({ key: rateLimit.key })
+    return deleted.length
   }
 }
 

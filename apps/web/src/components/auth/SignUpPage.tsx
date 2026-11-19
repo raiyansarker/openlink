@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { type } from 'arktype'
@@ -12,9 +11,8 @@ import PasswordField from '#/components/common/PasswordField'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
 import { fieldStatus, requiredEmail, requiredExact, submitWith } from '#/lib/forms/fields'
-import { CheckInboxIllustration } from './AuthIllustrations'
+import { VerificationSends } from '#/lib/auth/verification-sends'
 import AuthShell from './AuthShell'
-import CheckInboxPanel from './CheckInboxPanel'
 import ProviderButtons from './ProviderButtons'
 import { hasProviders } from './auth-providers'
 import { useAuthActions, type AuthProvider } from './use-auth-actions'
@@ -36,8 +34,6 @@ type SignUpPageProps = {
 export default function SignUpPage({ destination, redirect, oauthError, providers, emailPassword }: SignUpPageProps) {
   const navigate = useNavigate()
   const auth = useAuthActions({ destination, returnPath: '/signup', initialError: AuthErrorMessages.oauth(oauthError) })
-  /** Set once the account exists but its email is not verified yet. */
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
   const form = useForm({
     defaultValues: { name: '', email: '', password: '' },
     validators: { onSubmit: SignUpSchema },
@@ -57,7 +53,8 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
           if (!data?.token) {
             // Nothing typed (least of all the password) stays on the page after the account is made.
             form.reset()
-            return void setPendingEmail(email)
+            VerificationSends.record(email)
+            return void (await navigate({ to: '/check-email', search: { email } }))
           }
           await auth.finish()
         } catch {
@@ -67,22 +64,6 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
   })
 
   const signIn = { to: '/login' as const, ...(redirect ? { redirect } : {}) }
-
-  if (pendingEmail) {
-    return (
-      <AuthShell
-        heading="Check your inbox"
-        subheading={`A verification link is on its way to ${pendingEmail}.`}
-        switchTo={{ prompt: 'Already verified?', label: 'Log in', ...signIn }}
-        illustration={<CheckInboxIllustration />}
-      >
-        <CheckInboxPanel
-          email={pendingEmail}
-          onBack={() => void navigate({ to: '/login', search: signIn.redirect ? { redirect: signIn.redirect } : {} })}
-        />
-      </AuthShell>
-    )
-  }
 
   return (
     <AuthShell

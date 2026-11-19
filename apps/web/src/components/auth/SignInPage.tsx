@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { type } from 'arktype'
@@ -15,9 +15,7 @@ import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
 import { fieldStatus, requiredExact, requiredText, submitWith } from '#/lib/forms/fields'
 import { PasskeySupport } from '#/lib/auth/passkey-support'
-import { CheckInboxIllustration } from './AuthIllustrations'
 import AuthShell from './AuthShell'
-import CheckInboxPanel from './CheckInboxPanel'
 import ProviderButtons from './ProviderButtons'
 import { hasProviders } from './auth-providers'
 import { useAuthActions, type AuthProvider } from './use-auth-actions'
@@ -39,8 +37,6 @@ type SignInPageProps = {
 export default function SignInPage({ destination, redirect, oauthError, providers, emailPassword }: SignInPageProps) {
   const navigate = useNavigate()
   const auth = useAuthActions({ destination, returnPath: '/login', initialError: AuthErrorMessages.oauth(oauthError) })
-  /** Set when the password was right but the email is not verified yet; sign-in just sent a new link. */
-  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
   const form = useForm({
     defaultValues: { email: '', password: '' },
     validators: { onSubmit: SignInSchema },
@@ -49,7 +45,8 @@ export default function SignInPage({ destination, redirect, oauthError, provider
         try {
           const email = value.email.trim()
           const { error } = await AuthSession.client.signIn.email({ email, password: value.password, callbackURL: '/verify-email' })
-          if (error?.code?.toUpperCase() === 'EMAIL_NOT_VERIFIED') return void setUnverifiedEmail(email)
+          // Right password, unverified email: the link from sign-up is still the one to use.
+          if (error?.code?.toUpperCase() === 'EMAIL_NOT_VERIFIED') return void (await navigate({ to: '/check-email', search: { email } }))
           if (error) return AuthErrorMessages.emailSignIn(error)
           await auth.finish()
         } catch {
@@ -87,25 +84,6 @@ export default function SignInPage({ destination, redirect, oauthError, provider
     })
 
   const signUp = { to: '/signup' as const, ...(redirect ? { redirect } : {}) }
-
-  if (unverifiedEmail) {
-    return (
-      <AuthShell
-        heading="Check your inbox"
-        subheading={`A verification link is on its way to ${unverifiedEmail}.`}
-        switchTo={{ prompt: 'New to OpenLink?', label: 'Sign up', ...signUp }}
-        illustration={<CheckInboxIllustration />}
-      >
-        <CheckInboxPanel
-          email={unverifiedEmail}
-          onBack={() => {
-            setUnverifiedEmail(null)
-            form.setFieldValue('password', '')
-          }}
-        />
-      </AuthShell>
-    )
-  }
 
   return (
     <AuthShell

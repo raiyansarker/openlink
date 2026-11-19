@@ -45,6 +45,10 @@
 			"class_name": "EmailWorkflow"
 		}
 	],
+	"triggers": {
+		// Hourly: delete rate-limit windows that have ended (src/server/scheduled.ts).
+		"crons": ["0 * * * *"]
+	},
 	"ratelimits": [
 		{
 			// Wrong-password attempts on protected links, per link and visitor IP.
