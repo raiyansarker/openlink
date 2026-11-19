@@ -2,10 +2,13 @@ import { type } from 'arktype'
 
 import { Email } from '../schema-utils'
 
+/** A display name: up to 100 characters, not only whitespace. The server trims it. */
+export const PersonName = type('string <= 100').and(/\S/)
+
 export const SignUpRequest = type({
   email: Email,
   password: 'string>=8',
-  name: 'string>0',
+  name: PersonName,
 })
 
 export const SignInRequest = type({

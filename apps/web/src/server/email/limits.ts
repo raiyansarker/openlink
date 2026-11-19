@@ -13,18 +13,19 @@ const rules = (...pairs: [window: number, max: number][]): RateRule[] => pairs.m
  * so nothing goes out more than once a minute to the same address.
  */
 const PER_RECIPIENT: Record<EmailTemplateName, RateRule[]> = {
-  'email-verification': rules([MINUTE, 1], [HOUR, 4], [DAY, 8]),
-  'password-reset': rules([MINUTE, 1], [HOUR, 4], [DAY, 8]),
-  'security-alert': rules([MINUTE, 1], [HOUR, 4], [DAY, 10]),
+  // Includes the link sent at sign-up: two more a day, a minute apart.
+  'email-verification': rules([MINUTE, 1], [DAY, 3]),
+  'password-reset': rules([MINUTE, 1], [DAY, 3]),
+  'security-alert': rules([MINUTE, 1], [DAY, 5]),
   'workspace-invite': rules([MINUTE, 1], [HOUR, 3], [DAY, 6]),
   welcome: rules([DAY, 1]),
 }
 
 /** Any template, per recipient: one address cannot be flooded by mixing email types. */
-const PER_RECIPIENT_TOTAL = rules([HOUR, 8], [DAY, 20])
+const PER_RECIPIENT_TOTAL = rules([HOUR, 5], [DAY, 12])
 
-/** Emails triggered from one client IP, across all recipients (sign-up, reset and resend requests). */
-const PER_IP = rules([MINUTE, 3], [HOUR, 15], [DAY, 40])
+/** Emails triggered from one client IP, across all recipients: sign-up, verification and reset requests. */
+const PER_IP = rules([MINUTE, 3], [HOUR, 10], [DAY, 20])
 
 /** Invitations sent from one workspace. */
 const PER_ORGANIZATION = rules([HOUR, 30], [DAY, 100])

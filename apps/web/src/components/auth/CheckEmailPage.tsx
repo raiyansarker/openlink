@@ -51,11 +51,11 @@ export default function CheckEmailPage({ email, resendAt: initialResendAt }: Che
     setPending(true)
     try {
       const { error } = await AuthSession.client.sendVerificationEmail({ email, callbackURL: '/verify-email' })
-      if (error?.status === 429) return void notify.error('Too many requests. Wait a minute, then try again.')
+      if (error?.status === 429) return void notify.error('Too many requests. Try again tomorrow.')
       if (error) return void notify.error('Could not send a new link. Please try again.')
       setResendAt(Date.now() + RESEND_INTERVAL_MS)
       // The server caps links per address and answers the same either way, so this cannot promise one went out.
-      notify.info('If your email still needs verifying, a new link is on its way. We send at most a few an hour.')
+      notify.info('If your email still needs verifying, a new link is on its way.')
     } catch {
       notify.error('Could not send a new link. Please try again.')
     } finally {

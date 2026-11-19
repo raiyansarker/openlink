@@ -1,8 +1,6 @@
 import { Effect } from 'effect'
 
 import { Bindings } from '#/server/effect/services/bindings'
-import { WorkerRequest } from '#/server/effect/services/request'
-import { clientIp } from '#/server/rate-limit/limiter'
 import type { Principal } from '#/server/effect/principal'
 import { EmailFormat } from '#/server/email/format'
 import { EmailDispatch } from '#/server/email/dispatch'
@@ -24,7 +22,6 @@ export function sendInviteEmail(input: {
   return Effect.gen(function* () {
     const bindings = yield* Bindings
     const emails = yield* EmailDispatch
-    const request = yield* WorkerRequest
     const org = yield* getOrganizationById(input.organizationId)
     // Key principals are not people, so the email names the workspace instead.
     const inviterName = input.inviter.apiKey ? `The ${org?.name ?? 'workspace'} team` : input.inviter.session.user.name
@@ -37,6 +34,7 @@ export function sendInviteEmail(input: {
         inviteUrl: new URL('/dashboard', bindings.BETTER_AUTH_URL).toString(),
         expiresAt: EmailFormat.date(input.invite.expiresAt),
       },
-    }, { ip: clientIp(request), organizationId: input.organizationId })
+    // Invites come from signed-in members, so the workspace limit applies rather than the per-IP one.
+    }, { organizationId: input.organizationId })
   }).pipe(Effect.catch(() => Effect.void))
 }

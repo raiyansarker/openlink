@@ -7,15 +7,18 @@ import { RateLimiter } from '../rate-limit/limiter'
 type RateLimitOptions = NonNullable<BetterAuthOptions['rateLimit']>
 
 /**
- * Per client IP, per endpoint, on `/api/auth/*`. Endpoints that send email or check a
- * password are tight; everything else keeps Better Auth's default (100 per 10 seconds).
+ * Per client IP, per endpoint, on `/api/auth/*`, counted in D1 (so long windows like a day
+ * work, unlike Cloudflare's rate-limit binding). Endpoints that send email or check a password
+ * are tight; everything else keeps Better Auth's default (100 per 10 seconds).
  * Outgoing email has its own per-address limits on top of these (see `email/limits.ts`).
  */
 const RULES: NonNullable<RateLimitOptions['customRules']> = {
   '/sign-in/email': { window: 60, max: 5 },
-  '/sign-up/email': { window: 60, max: 3 },
-  '/send-verification-email': { window: 60, max: 2 },
-  '/request-password-reset': { window: 60, max: 2 },
+  // Each sign-up sends an email and creates an account: two an hour from one IP.
+  '/sign-up/email': { window: 60 * 60, max: 2 },
+  // Asking for links: three a day from one IP, matching the per-address email limit.
+  '/send-verification-email': { window: 24 * 60 * 60, max: 3 },
+  '/request-password-reset': { window: 24 * 60 * 60, max: 3 },
   '/reset-password': { window: 60, max: 5 },
   '/verify-email': { window: 60, max: 10 },
 }

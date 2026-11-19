@@ -33,21 +33,28 @@ function setup() {
 }
 
 describe('authRateLimit', () => {
-  test('password reset requests are limited per IP, across instances', async () => {
+  test('password reset requests are limited to three a day per IP, across instances', async () => {
     const { first, second, post } = setup()
     const reset = { email: 'ada@example.com' }
     const statuses = [
       (await post(first, '/request-password-reset', reset, '203.0.113.9')).status,
       (await post(second, '/request-password-reset', reset, '203.0.113.9')).status,
       (await post(first, '/request-password-reset', reset, '203.0.113.9')).status,
+      (await post(second, '/request-password-reset', reset, '203.0.113.9')).status,
       (await post(second, '/request-password-reset', reset, '198.51.100.1')).status,
     ]
-    expect(statuses).toEqual([200, 200, 429, 200])
+    expect(statuses).toEqual([200, 200, 200, 429, 200])
+  })
+
+  test('two sign-ups an hour per IP', async () => {
+    const { first, post } = setup()
+    const signUp = (n: number) => post(first, '/sign-up/email', { email: `user${n}@example.com`, password: 'password-1234', name: 'User' }, '203.0.113.9')
+    expect([(await signUp(1)).status, (await signUp(2)).status, (await signUp(3)).status]).toEqual([200, 200, 429])
   })
 
   test('a refused request says when to retry', async () => {
     const { first, post } = setup()
-    for (let i = 0; i < 2; i++) await post(first, '/send-verification-email', { email: 'ada@example.com' }, '203.0.113.9')
+    for (let i = 0; i < 3; i++) await post(first, '/send-verification-email', { email: 'ada@example.com' }, '203.0.113.9')
     const refused = await post(first, '/send-verification-email', { email: 'ada@example.com' }, '203.0.113.9')
     expect(refused.status).toBe(429)
     expect(Number(refused.headers.get('x-retry-after'))).toBeGreaterThan(0)

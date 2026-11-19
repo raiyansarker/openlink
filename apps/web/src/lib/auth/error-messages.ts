@@ -30,7 +30,7 @@ export class AuthErrorMessages {
   /** Message for a failed email sign-up. */
   static emailSignUp(error: { status?: number; code?: string; message?: string } | null | undefined): string {
     if (!error) return 'Could not create the account. Please try again.'
-    if (error.status === 429) return 'Too many attempts. Wait a moment and try again.'
+    if (error.status === 429) return 'Too many sign-ups from this network. Try again later.'
     if (error.status && error.status >= 500) return 'Sign-up is unavailable right now. Please try again.'
     const code = error.code?.toUpperCase() ?? ''
     if (code.includes('ALREADY_EXISTS') || code.includes('USER_EXISTS')) {
@@ -48,7 +48,7 @@ export class AuthErrorMessages {
    */
   static requestReset(error: { status?: number } | null | undefined): string | null {
     if (!error) return null
-    if (error.status === 429) return 'Too many attempts. Wait a moment and try again.'
+    if (error.status === 429) return 'Too many reset requests. Try again tomorrow.'
     return 'Could not send the reset link. Please try again.'
   }
 
