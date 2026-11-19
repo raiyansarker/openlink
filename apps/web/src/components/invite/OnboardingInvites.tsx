@@ -28,7 +28,7 @@ export default function OnboardingInvites() {
           <ListItem
             key={invite.id}
             itemKey={invite.id}
-            startContent={<Avatar src={invite.organization.logoUrl} name={invite.organization.name} size={32} tooltip={false} />}
+            startContent={<Avatar src={invite.organization.logoUrl} name={invite.organization.name} size={32} shape="rounded" tooltip={false} />}
             label={
               <Text maxLines={2}>
                 {invite.invitedBy ? `${invite.invitedBy.name} invited you to join ` : 'You were invited to join '}

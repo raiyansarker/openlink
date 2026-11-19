@@ -90,7 +90,7 @@ export function PendingInvite({ invite }: { invite: MyInvite }) {
       subheading={`${inviter ? `${inviter} invited you` : 'You were invited'} to join as ${workspaceMemberRoleLabel(invite.role)}.`}
       illustration={
         <Center>
-          <Avatar src={invite.organization.logoUrl} name={invite.organization.name} size={64} tooltip={false} />
+          <Avatar src={invite.organization.logoUrl} name={invite.organization.name} size={64} shape="rounded" tooltip={false} />
         </Center>
       }
     >
