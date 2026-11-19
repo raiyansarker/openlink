@@ -11,7 +11,6 @@ import PasswordField from '#/components/common/PasswordField'
 import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
 import { fieldStatus, requiredEmail, requiredExact, submitWith } from '#/lib/forms/fields'
-import { VerificationSends } from '#/lib/auth/verification-sends'
 import AuthShell from './AuthShell'
 import ProviderButtons from './ProviderButtons'
 import { hasProviders } from './auth-providers'
@@ -53,8 +52,7 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
           if (!data?.token) {
             // Nothing typed (least of all the password) stays on the page after the account is made.
             form.reset()
-            VerificationSends.record(email)
-            return void (await navigate({ to: '/check-email', search: { email } }))
+            return void (await navigate({ to: '/check-email' }))
           }
           await auth.finish()
         } catch {

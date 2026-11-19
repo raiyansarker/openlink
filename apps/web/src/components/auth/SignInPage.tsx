@@ -46,7 +46,7 @@ export default function SignInPage({ destination, redirect, oauthError, provider
           const email = value.email.trim()
           const { error } = await AuthSession.client.signIn.email({ email, password: value.password, callbackURL: '/verify-email' })
           // Right password, unverified email: the link from sign-up is still the one to use.
-          if (error?.code?.toUpperCase() === 'EMAIL_NOT_VERIFIED') return void (await navigate({ to: '/check-email', search: { email } }))
+          if (error?.code?.toUpperCase() === 'EMAIL_NOT_VERIFIED') return void (await navigate({ to: '/check-email' }))
           if (error) return AuthErrorMessages.emailSignIn(error)
           await auth.finish()
         } catch {

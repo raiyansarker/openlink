@@ -22,8 +22,9 @@ const RULES: NonNullable<RateLimitOptions['customRules']> = {
 
 /**
  * Better Auth's limiter, stored in D1 so the count is shared by every Worker
- * isolate (its default in-memory store is per isolate). On in every environment. Locally
- * there is no `cf-connecting-ip`, so all requests share one bucket per endpoint. If D1 fails, requests are let through rather
+ * isolate (its default in-memory store is per isolate). On in every environment; under
+ * `vite dev` every request comes from `cf-connecting-ip: 127.0.0.1`, so local testing shares
+ * one IP's allowance. If D1 fails, requests are let through rather
  * than locking everyone out of sign-in; email still has its own limits.
  */
 export function authRateLimit(db: () => OpenLinkDb): RateLimitOptions {
