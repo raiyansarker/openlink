@@ -11,6 +11,7 @@ import { AuthSession } from '#/lib/auth/client'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
 import { fieldStatus, requiredExact, submitWith } from '#/lib/forms/fields'
 import { isPlainClick } from './auth-links'
+import { LinkExpiredIllustration, PasswordKeyIllustration } from './AuthIllustrations'
 import AuthShell from './AuthShell'
 import StatusPanel from './StatusPanel'
 
@@ -64,6 +65,7 @@ export default function ResetPasswordPage({ token, linkError }: ResetPasswordPag
       heading={linkIsUsable ? 'Choose a new password' : 'This link has expired'}
       subheading={linkIsUsable ? 'Use at least 8 characters.' : 'Reset links work once and expire after an hour.'}
       switchTo={{ prompt: 'Remembered it?', label: 'Log in', to: '/login' }}
+      illustration={linkIsUsable ? <PasswordKeyIllustration width={170} /> : <LinkExpiredIllustration />}
     >
       {linkIsUsable ? (
         <form method="post" noValidate onSubmit={submitWith(form)}>

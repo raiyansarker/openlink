@@ -33,7 +33,7 @@ import {
   listOrganizationsForUser,
 } from './service'
 import { isAdmin } from './permissions'
-import { queueInviteEmail } from './invite-email'
+import { sendInviteEmail } from './invite-email'
 import { createWorkspace, updateWorkspace } from './workspace'
 
 /** Map member-domain failures onto the typed API errors; spread only the ones an effect can raise. */
@@ -198,7 +198,7 @@ export const organizationsController = {
     const { invite, token } = yield* resendInvite(input.params.organizationId, input.params.inviteId).pipe(
       Effect.catchTags(onInviteNotFound(errors)),
     )
-    yield* queueInviteEmail({ organizationId: input.params.organizationId, invite, inviter: session })
+    yield* sendInviteEmail({ organizationId: input.params.organizationId, invite, inviter: session })
     const bindings = yield* Bindings
     return {
       ...toPendingInviteDto(invite),
@@ -232,7 +232,7 @@ export const organizationsController = {
       target: { type: 'invite', id: invite.id, label: invite.email },
       changes: [{ label: 'Role', from: '—', to: invite.role }],
     })
-    yield* queueInviteEmail({ organizationId: input.params.organizationId, invite, inviter: session })
+    yield* sendInviteEmail({ organizationId: input.params.organizationId, invite, inviter: session })
     const bindings = yield* Bindings
     return {
       id: invite.id,

@@ -1,4 +1,4 @@
-import type { WorkerBindings } from '../env'
+import { Context, Data, type Effect } from 'effect'
 
 /** A fully rendered email, ready for any provider to send. */
 export type OutgoingEmail = {
@@ -11,32 +11,26 @@ export type OutgoingEmail = {
 }
 
 /** A delivery that failed. `retryable` decides between another attempt and giving up. */
-export class EmailDeliveryError extends Error {
-  constructor(
-    message: string,
-    readonly retryable: boolean,
-  ) {
-    super(message)
-    this.name = 'EmailDeliveryError'
-  }
-}
+export class EmailDeliveryError extends Data.TaggedError('EmailDeliveryError')<{
+  message: string
+  retryable: boolean
+}> {}
+
+/** A provider that cannot be built because its credentials are missing. Selection moves on to the next one. */
+export class EmailProviderUnavailable extends Data.TaggedError('EmailProviderUnavailable')<{
+  provider: string
+}> {}
 
 /**
- * The only thing the rest of the email code knows about a provider.
- * `send` resolves once the provider has accepted the email, and throws an
+ * What the rest of the email code knows about a provider.
+ * `send` succeeds once the provider has accepted the email, and fails with an
  * `EmailDeliveryError` otherwise (`retryable` for rate limits, outages and network failures).
  */
-export interface EmailProvider {
+export type EmailProviderShape = {
   readonly name: string
   /** `idempotencyKey` is stable across retries of one message; use it if the provider supports it. */
-  send(email: OutgoingEmail, options: { idempotencyKey: string }): Promise<void>
+  send(email: OutgoingEmail, options: { idempotencyKey: string }): Effect.Effect<void, EmailDeliveryError>
 }
 
-/**
- * A way to build a provider from the Worker's bindings. `create` returns `null`
- * when the provider is not configured (its credentials are missing).
- */
-export type EmailProviderFactory = {
-  name: string
-  create(bindings: WorkerBindings): EmailProvider | null
-}
+/** The provider that delivers outgoing email. Built once from the Worker's bindings (see `providers/index.ts`). */
+export class EmailProvider extends Context.Service<EmailProvider, EmailProviderShape>()('openlink/EmailProvider') {}

@@ -11,9 +11,9 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   MEDIA: R2Bucket
   /** Caps password attempts on protected links (3 per minute per link and IP). */
   LINK_PASSWORD_LIMITER: RateLimit
-  /** Outgoing email. The producer enqueues here and the same Worker's `queue` handler sends. */
-  EMAIL_QUEUE?: Queue<EmailJob>
-  /** Resend API key (a Worker secret). Not needed under `vite dev`, which prints emails instead. */
+  /** Outgoing email. Callers start a run of this workflow (`EmailWorkflow`), which renders and sends. */
+  EMAIL_WORKFLOW?: Workflow<EmailJob>
+  /** Resend API key (a Worker secret). Not needed under `vite dev`, which sends to Mailtrap Local. */
   RESEND_API_KEY?: string
   /** Sender, e.g. `OpenLink <no-reply@example.com>`. Set in `wrangler.jsonc`; the domain must be verified with Resend. */
   EMAIL_FROM?: string

@@ -4,6 +4,7 @@ import type { customDomain, link } from '@openlink/db/schema'
 import { Context, Effect } from 'effect'
 import type { WorkerBindings } from '../env'
 import { Bindings } from '../effect/services/bindings'
+import { EmailDispatch } from '../email/dispatch'
 import type { OrganizationRole } from '../org/permissions'
 
 // Explicitly launched by authorization.test.ts, not discovered by `bun test src`.
@@ -109,7 +110,10 @@ const runHealthChecks = mock(() => Effect.die(new Error('Unexpected health check
 const testBindings = {
   DOMAIN_PROVIDER: 'memory', EXPOSE_INVITE_TOKENS_IN_API: 'false', BETTER_AUTH_URL: 'http://localhost',
 } as WorkerBindings
-const requestEffectContext = Effect.succeed(Context.make(Bindings, testBindings))
+// Email dispatch is a no-op here: the tests check authorization, not delivery.
+const requestEffectContext = Effect.succeed(
+  Context.make(Bindings, testBindings).pipe(Context.add(EmailDispatch, { send: () => Effect.void })),
+)
 
 mock.module('#/server/auth/session', () => ({ requireSession }))
 mock.module('#/server/auth/service', () => ({ signIn, signUp, signOut }))

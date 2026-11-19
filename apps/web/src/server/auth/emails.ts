@@ -1,6 +1,10 @@
+import { Effect, Layer } from 'effect'
+
+import { Bindings } from '../effect/services/bindings'
 import type { WorkerBindings } from '../env'
 import { EmailFormat } from '../email/format'
-import { EmailQueue } from '../email/queue'
+import { EmailDispatch, EmailDispatchLive } from '../email/dispatch'
+import type { EmailDraft } from '../email/job'
 
 type Recipient = { email: string; name?: string | null }
 
@@ -8,7 +12,7 @@ type Recipient = { email: string; name?: string | null }
 const LINK_LIFETIME = '1 hour'
 
 /**
- * The emails Better Auth triggers. Each one is queued, never sent inline,
+ * The emails Better Auth triggers. Each one goes through the email workflow, never sent inline,
  * so a slow provider cannot slow down sign-up or reset requests.
  */
 export class AuthEmails {
@@ -18,26 +22,37 @@ export class AuthEmails {
     return user.name?.trim() || user.email
   }
 
+  /** Better Auth's hooks are plain async code, so this runs the dispatch service outside the request runtime. */
+  private send(to: string, draft: EmailDraft): Promise<void> {
+    const bindings = this.bindings()
+    return Effect.runPromise(
+      Effect.gen(function* () {
+        const dispatch = yield* EmailDispatch
+        yield* dispatch.send(to, draft)
+      }).pipe(Effect.provide(EmailDispatchLive.pipe(Layer.provide(Layer.succeed(Bindings, bindings))))),
+    )
+  }
+
   private appUrl(path: string) {
     return new URL(path, this.bindings().BETTER_AUTH_URL).toString()
   }
 
   verifyEmail(user: Recipient, verifyUrl: string) {
-    return EmailQueue.send(this.bindings(), user.email, {
+    return this.send(user.email, {
       template: 'email-verification',
       props: { name: AuthEmails.greeting(user), verifyUrl, expiresIn: LINK_LIFETIME },
     })
   }
 
   resetPassword(user: Recipient, resetUrl: string) {
-    return EmailQueue.send(this.bindings(), user.email, {
+    return this.send(user.email, {
       template: 'password-reset',
       props: { name: AuthEmails.greeting(user), resetUrl, expiresIn: LINK_LIFETIME },
     })
   }
 
   welcome(user: Recipient) {
-    return EmailQueue.send(this.bindings(), user.email, {
+    return this.send(user.email, {
       template: 'welcome',
       props: { name: AuthEmails.greeting(user), dashboardUrl: this.appUrl('/dashboard') },
     })
@@ -46,7 +61,7 @@ export class AuthEmails {
   /** Sent after a password reset completes, so the owner notices if it was not them. */
   passwordChanged(user: Recipient, request: Request | undefined) {
     const cf = (request as unknown as { cf?: Record<string, unknown> } | undefined)?.cf
-    return EmailQueue.send(this.bindings(), user.email, {
+    return this.send(user.email, {
       template: 'security-alert',
       props: {
         name: AuthEmails.greeting(user),

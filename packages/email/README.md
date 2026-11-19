@@ -28,4 +28,4 @@ Each template accepts optional `baseUrl` and `logoUrl` props. `baseUrl` is used 
 
 ## Sending
 
-`renderEmail(message)` turns an `EmailMessage` (`{ template, props }`) into a subject, HTML and plain text. The web app never sends inline: it enqueues a job on the `openlink-email` Cloudflare queue, and the Worker's queue handler (`apps/web/src/server/email/`) renders and delivers it through Resend.
+`renderEmail(message)` turns an `EmailMessage` (`{ template, props }`) into a subject, HTML and plain text. The web app never sends inline: it starts a run of the `openlink-email` Cloudflare Workflow (`EmailWorkflow` in `apps/web/src/server/email/`), which renders the email and delivers it through Resend, retrying transient failures.

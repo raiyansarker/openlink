@@ -13,6 +13,8 @@ type AuthShellProps = {
   subheading: string
   /** The other page: "Sign up" on sign-in, "Log in" on sign-up. */
   switchTo: { prompt: string; label: string; to: '/login' | '/signup'; redirect?: string }
+  /** Optional artwork shown above the heading (status pages). */
+  illustration?: ReactNode
   children: ReactNode
 }
 
@@ -21,7 +23,7 @@ type AuthShellProps = {
  * switch to the other page, then the form centered on the page with nothing
  * around it (the Astryx `login` template).
  */
-export default function AuthShell({ heading, subheading, switchTo, children }: AuthShellProps) {
+export default function AuthShell({ heading, subheading, switchTo, illustration, children }: AuthShellProps) {
   const navigate = useNavigate()
   const search = switchTo.redirect ? { redirect: switchTo.redirect } : {}
   const href = switchTo.redirect ? `${switchTo.to}?redirect=${encodeURIComponent(switchTo.redirect)}` : switchTo.to
@@ -63,6 +65,7 @@ export default function AuthShell({ heading, subheading, switchTo, children }: A
         <VStack gap={4} hAlign="stretch" style={{ width: '100%', maxWidth: 400 }}>
           {/* Straight on the page, no card around it. */}
           <VStack gap={6} hAlign="stretch">
+            {illustration ? <Center>{illustration}</Center> : null}
             <VStack gap={1} hAlign="center">
               <Heading level={1} style={{ fontSize: 'var(--font-size-2xl)', letterSpacing: '-0.035em' }}>
                 {heading}

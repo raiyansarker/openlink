@@ -1,30 +1,33 @@
+import { Effect } from 'effect'
 import { Resend } from 'resend'
 
-import { EmailDeliveryError, type EmailProvider, type EmailProviderFactory } from '../provider'
+import { Bindings } from '../../effect/services/bindings'
+import { EmailDeliveryError, EmailProviderUnavailable, type EmailProviderShape } from '../provider'
 
 /** Retry rate limits, provider outages and network failures; anything else will fail again. */
 const isRetryable = (statusCode: number | null) => statusCode === null || statusCode === 429 || statusCode >= 500
 
-export const resendProvider: EmailProviderFactory = {
-  name: 'resend',
-  create(bindings) {
-    const apiKey = bindings.RESEND_API_KEY
-    if (!apiKey) return null
-    const client = new Resend(apiKey)
-    return {
-      name: 'resend',
-      async send(email, { idempotencyKey }) {
-        if (!email.from) throw new EmailDeliveryError('EMAIL_FROM is not set', false)
-        let result: Awaited<ReturnType<typeof client.emails.send>>
-        try {
-          result = await client.emails.send(email, { idempotencyKey })
-        } catch (error) {
-          throw new EmailDeliveryError(error instanceof Error ? error.message : 'Email request failed', true)
-        }
+export const resendProvider = Effect.gen(function* () {
+  const bindings = yield* Bindings
+  const apiKey = bindings.RESEND_API_KEY
+  if (!apiKey) return yield* new EmailProviderUnavailable({ provider: 'resend' })
+  const client = new Resend(apiKey)
+  return {
+    name: 'resend',
+    send: (email, { idempotencyKey }) =>
+      Effect.gen(function* () {
+        if (!email.from) return yield* new EmailDeliveryError({ message: 'EMAIL_FROM is not set', retryable: false })
+        const result = yield* Effect.tryPromise({
+          try: () => client.emails.send(email, { idempotencyKey }),
+          catch: (error) =>
+            new EmailDeliveryError({ message: error instanceof Error ? error.message : 'Email request failed', retryable: true }),
+        })
         if (result.error) {
-          throw new EmailDeliveryError(`${result.error.name}: ${result.error.message}`, isRetryable(result.error.statusCode))
+          return yield* new EmailDeliveryError({
+            message: `${result.error.name}: ${result.error.message}`,
+            retryable: isRetryable(result.error.statusCode),
+          })
         }
-      },
-    } satisfies EmailProvider
-  },
-}
+      }),
+  } satisfies EmailProviderShape
+})
