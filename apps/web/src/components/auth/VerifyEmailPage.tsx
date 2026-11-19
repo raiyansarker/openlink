@@ -8,19 +8,23 @@ import AuthShell from './AuthShell'
 import Confetti from './Confetti'
 import StatusPanel from './StatusPanel'
 
-/** Where the verification email lands. A good link has already signed the person in. */
-export default function VerifyEmailPage({ linkError }: { linkError?: string }) {
+/**
+ * Where the verification email lands. A good link has already signed the person in.
+ * `next` is where they were headed when they signed up (an invite), already sanitized.
+ */
+export default function VerifyEmailPage({ linkError, next = '/w' }: { linkError?: string; next?: string }) {
   const navigate = useNavigate()
+  const isInvite = next.startsWith('/invite/')
 
   // Verifying signs the person in, so the cached "signed out" state is stale.
   useEffect(() => {
     if (!linkError) AuthSession.invalidate()
   }, [linkError])
 
-  const go = (to: '/login' | '/w') => (event: React.MouseEvent) => {
+  const go = (href: string) => (event: React.MouseEvent) => {
     if (!isPlainClick(event)) return
     event.preventDefault()
-    void navigate({ to })
+    void navigate({ href })
   }
 
   return (
@@ -36,7 +40,11 @@ export default function VerifyEmailPage({ linkError }: { linkError?: string }) {
           Sign in with your email and password and we will send you a fresh verification link.
         </StatusPanel>
       ) : (
-        <StatusPanel actions={<Button variant="primary" label="Continue to OpenLink" width="100%" href="/w" onClick={go('/w')} />}>
+        <StatusPanel
+          actions={
+            <Button variant="primary" label={isInvite ? 'Continue to your invite' : 'Continue to OpenLink'} width="100%" href={next} onClick={go(next)} />
+          }
+        >
           Thanks for confirming your email address.
         </StatusPanel>
       )}

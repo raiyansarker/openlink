@@ -34,12 +34,6 @@ export function getDashboardNavGroups(orgSlug: string): DashboardNavGroup[] {
           href: path('activity'),
           description: 'Recent events',
         },
-        {
-          id: 'notifications',
-          label: 'Notifications',
-          href: path('notifications'),
-          description: 'Alerts and mentions',
-        },
       ],
     },
     {

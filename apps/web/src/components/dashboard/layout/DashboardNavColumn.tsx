@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Badge } from '@astryxdesign/core/Badge'
-import { useMyInvites } from '#/hooks/use-my-invites'
 import { useNavigate } from '@tanstack/react-router'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import {
@@ -16,7 +15,6 @@ import {
   BarChartIcon,
   GlobeIcon,
   ActivityIcon,
-  BellIcon,
   SettingsIcon,
 } from '#/components/icons/IcnMcp'
 import type { CSSProperties, ReactNode } from 'react'
@@ -60,7 +58,6 @@ const navLinkBaseStyle: CSSProperties = {
 const NAV_ICONS: Record<DashboardSection, ReactNode> = {
   overview: <DashboardIcon size={16} strokeWidth={1.2} />,
   activity: <ActivityIcon size={16} strokeWidth={1.2} />,
-  notifications: <BellIcon size={16} strokeWidth={1.2} />,
   links: <LinkIcon size={16} strokeWidth={1.2} />,
   analytics: <BarChartIcon size={16} strokeWidth={1.2} />,
   domains: <GlobeIcon size={16} strokeWidth={1.2} />,
@@ -74,7 +71,7 @@ function NavLinkItem({
 }: {
   item: DashboardNavItem
   isSelected: boolean
-  /** Shown as a badge when above zero (e.g. waiting notifications). */
+  /** Shown as a badge when above zero. */
   count?: number
 }) {
   const [hovered, setHovered] = useState(false)
@@ -140,7 +137,6 @@ export default function DashboardNavColumn() {
   const pathname = useActivePathname()
   const section = WorkspaceUrl.sectionOf(pathname, activeOrg.slug)
   const groups = getDashboardNavGroups(activeOrg.slug)
-  const waitingInvites = useMyInvites().data?.length ?? 0
   return (
     <div
       style={{
@@ -185,7 +181,7 @@ export default function DashboardNavColumn() {
                   key={item.id}
                   item={item}
                   isSelected={section === item.id}
-                  count={item.id === 'notifications' ? waitingInvites : 0}
+                  count={0}
                 />
               ))}
             </div>

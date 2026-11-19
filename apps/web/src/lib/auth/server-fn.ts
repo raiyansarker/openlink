@@ -29,3 +29,14 @@ export const fetchPendingVerification = createServerFn({ method: 'GET' }).handle
     return pending ? { email: pending.email, resendAt: PendingVerifications.resendAt(pending) } : null
   },
 )
+
+/** What `/invite/<id>` shows for the caller; see `server/account/invite-page.ts`. */
+export const fetchInvitePage = createServerFn({ method: 'GET' })
+  .validator((inviteId: unknown) => (typeof inviteId === 'string' ? inviteId.slice(0, 64) : ''))
+  .handler(async ({ data: inviteId }) => {
+    const [{ effectRuntime }, { readInvitePageFor }] = await Promise.all([
+      import('#/server/effect/runtime'),
+      import('#/server/account/invite-page'),
+    ])
+    return effectRuntime.runPromise(readInvitePageFor(getRequest(), inviteId))
+  })

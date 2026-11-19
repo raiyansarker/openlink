@@ -8,7 +8,7 @@ import { Effect } from 'effect'
 
 import { Db } from '#/server/effect/services/db'
 import { hashInviteToken } from '#/server/org/invites'
-import { acceptMemberInvite, createOrganizationForUser } from '#/server/org/service'
+import { acceptInviteById, createOrganizationForUser } from '#/server/org/service'
 import { createTestDatabase } from '#/server/testing/sqlite'
 import { Onboarding } from './onboarding'
 
@@ -68,7 +68,7 @@ describe('Onboarding', () => {
       id: 'i1', organizationId: org.id, email: 'bob@e.test', role: 'member', tokenHash: hashInviteToken('tok'),
       kind: 'member', expiresAt: new Date('2999-01-01'), createdAt: t.now,
     }).run()
-    await t.run(acceptMemberInvite({ userId: 'u2', userEmail: 'bob@e.test', token: 'tok' }))
+    await t.run(acceptInviteById({ inviteId: 'i1', userId: 'u2', userEmail: 'bob@e.test' }))
     expect(t.onboardedAt('u2')).not.toBeNull()
   })
 })

@@ -3,9 +3,10 @@ import { type } from 'arktype'
 import { oc, openapi } from '../oc'
 import { EmptyResponse } from '../system/schema'
 import {
-  AcceptInviteRequest,
   CreateOrganizationInviteRequest,
   CreateOrganizationRequest,
+  OrganizationSlugSuggestion,
+  OrganizationSlugSuggestionQuery,
   InviteIdPath,
   ListInvitesResponse,
   ListMembersResponse,
@@ -14,12 +15,25 @@ import {
   Organization,
   OrganizationIdPath,
   OrganizationInvite,
-  OrganizationMembership,
   TransferOwnershipRequest,
   UpdateMemberRoleRequest,
   UpdateOrganizationRequest,
   WorkspaceMember,
 } from './schema'
+
+export const suggestOrganizationSlug = oc
+  .meta(
+    openapi({
+      method: 'GET',
+      operationId: 'suggestOrganizationSlug',
+      path: '/organization-slugs/suggestion',
+      summary: 'A workspace URL that is free right now, made from a name',
+      inputStructure: 'detailed',
+      tags: ['Organizations'],
+    }),
+  )
+  .input(type({ query: OrganizationSlugSuggestionQuery }))
+  .output(OrganizationSlugSuggestion)
 
 export const listOrganizations = oc
   .meta(
@@ -46,19 +60,6 @@ export const createOrganization = oc
   )
   .input(type({ body: CreateOrganizationRequest }))
   .output(Organization)
-
-export const acceptOrganizationInvite = oc
-  .meta(
-    openapi({
-      method: 'POST',
-      operationId: 'acceptOrganizationInvite',
-      path: '/organizations/invites/accept',
-      inputStructure: 'detailed',
-      tags: ['Organizations'],
-    }),
-  )
-  .input(type({ body: AcceptInviteRequest }))
-  .output(OrganizationMembership)
 
 export const getOrganization = oc
   .meta(
@@ -176,8 +177,8 @@ export const revokeOrganizationInvite = orgOp(
 
 export const contract = {
   listOrganizations,
+  suggestOrganizationSlug,
   createOrganization,
-  acceptOrganizationInvite,
   getOrganization,
   updateOrganization,
   deleteOrganization,

@@ -11,6 +11,7 @@ import { Grid, GridSpan } from '@astryxdesign/core/Grid'
 import { Button } from '@astryxdesign/core/Button'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
+import { api } from '#/lib/api/orpc'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { SquareImage } from '#/lib/media/square-image'
 import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
@@ -71,12 +72,26 @@ function FormBlock({
   )
 }
 
+/** How long the name must stop changing before a free URL is looked up for it. */
+const SUGGEST_DELAY_MS = 300
+
+/** A URL for `name` that is free right now (`raiyans-workspace`, or with a suffix); null if the lookup fails. */
+async function suggestSlug(name: string): Promise<string | null> {
+  try {
+    return (await api.organizations.suggestOrganizationSlug({ query: { name } })).slug
+  } catch {
+    return null
+  }
+}
+
 type CreateOrganizationFormProps = {
   /** `onboarding` is the first workspace after sign-up: different copy and no way back. */
   variant?: 'create' | 'onboarding'
+  /** The starting name; onboarding passes one made from the person's name ("Raiyan's workspace"). */
+  defaultName?: string
 }
 
-export default function CreateOrganizationForm({ variant = 'create' }: CreateOrganizationFormProps) {
+export default function CreateOrganizationForm({ variant = 'create', defaultName = '' }: CreateOrganizationFormProps) {
   const isOnboarding = variant === 'onboarding'
   const { createOrganization } = useWorkspaceDirectory()
   const navigate = useNavigate()
@@ -87,19 +102,29 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
   const slugEdited = useRef(false)
   const [iconPreview, setIconPreview] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  /** The name to look up a free URL for; follows the name field until the URL is edited by hand. */
+  const [suggestFor, setSuggestFor] = useState(defaultName.trim())
 
   const form = useForm({
-    defaultValues: { name: '', slug: '' },
+    defaultValues: { name: defaultName, slug: slugifyOrganizationSlug(defaultName) },
     validators: {
       onSubmit: CreateOrganizationSchema,
       onSubmitAsync: async ({ value }) => {
         try {
           // Name, URL and logo go in one request: the workspace exists with all of them, or not at all.
-          const { organization: org } = await createOrganization({
-            name: value.name,
-            slug: value.slug,
-            logo: pendingIconFile.current,
-          })
+          const create = (slug: string) => createOrganization({ name: value.name, slug, logo: pendingIconFile.current })
+          let created
+          try {
+            created = await create(value.slug)
+          } catch (error) {
+            // A URL we suggested was taken in the meantime: pick another free one and go on.
+            // A URL typed by hand is the person's choice, so that error is shown instead.
+            const fresh = !slugEdited.current && error instanceof Error && error.message.includes('already taken') ? await suggestSlug(value.name) : null
+            if (!fresh || fresh === value.slug) throw error
+            form.setFieldValue('slug', fresh)
+            created = await create(fresh)
+          }
+          const { organization: org } = created
           ActiveWorkspace.remember(org.slug)
           void navigate({ to: WorkspaceUrl.build(org.slug), replace: true })
           return undefined
@@ -143,6 +168,23 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
     if (fileRef.current) fileRef.current.value = ''
   }
 
+  // Prefill a URL that is actually free, so nobody has to hunt for one. The field shows the
+  // plain slug at once and is replaced by the free one when the lookup returns.
+  useEffect(() => {
+    if (!suggestFor || slugEdited.current) return
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      void suggestSlug(suggestFor).then((slug) => {
+        if (!cancelled && slug && !slugEdited.current) form.setFieldValue('slug', slug)
+      })
+    }, SUGGEST_DELAY_MS)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestFor])
+
   return (
     <form noValidate onSubmit={submitWith(form)}>
     <VStack gap={8} hAlign="stretch" width="100%">
@@ -158,7 +200,7 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
         </VStack>
 
         <FormBlock title="Icon">
-          <HStack gap={4} vAlign="start" wrap="wrap" width="100%">
+          <HStack gap={4} vAlign="start" width="100%">
             <form.Subscribe selector={(state) => state.values.name.trim() || 'Organization'}>
               {(displayName) => (
                 <Avatar
@@ -170,7 +212,8 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
                 />
               )}
             </form.Subscribe>
-            <VStack gap={2} hAlign="start">
+            {/* Grows beside the icon, so the help text wraps next to it rather than below. */}
+            <VStack gap={2} hAlign="start" style={{ flex: 1, minWidth: 0 }}>
               <HStack gap={2} vAlign="center" wrap="wrap">
                 <Button
                   variant="secondary"
@@ -235,7 +278,10 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
                     onChange={(value) => {
                       field.handleChange(value)
                       // The slug follows the name until it is edited by hand.
-                      if (!slugEdited.current) form.setFieldValue('slug', slugifyOrganizationSlug(value))
+                      if (!slugEdited.current) {
+                        form.setFieldValue('slug', slugifyOrganizationSlug(value))
+                        setSuggestFor(value.trim())
+                      }
                     }}
                     status={fieldStatus(field.state.meta.errors)}
                     isRequired

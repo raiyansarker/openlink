@@ -7,6 +7,7 @@ export const apiErrorMap = {
   NOT_FOUND: { message: 'Resource not found' },
   BAD_REQUEST: { message: 'Bad request' },
   CONFLICT: { message: 'Conflict' },
+  TOO_MANY_REQUESTS: { message: 'Too many requests' },
   SERVICE_UNAVAILABLE: {
     message: 'One or more dependencies are unhealthy',
     data: HealthResponse,

@@ -12,7 +12,7 @@ import type { Db as DbService } from '../effect/services/db'
 import { canManageLinks, getMembership, isAdmin } from './access'
 import { hashInviteToken } from './invites'
 import {
-  acceptMemberInvite,
+  acceptInviteById,
   createMemberInvite,
   createOrganizationForUser,
   getOrganizationById,
@@ -131,9 +131,9 @@ const createInput = {
   slug: 'new-org',
 }
 const acceptInput = {
+  inviteId: 'invite-1',
   userId: 'user-1',
   userEmail: 'user@example.com',
-  token: 'token',
 }
 
 describe('Effect organization services with injected async SQLite', () => {
@@ -249,7 +249,7 @@ describe('Effect organization services with injected async SQLite', () => {
           organizationId: scenario === 'no-organization' ? null : 'org-1',
         })
       expect(
-        await run(Effect.flip(acceptMemberInvite(acceptInput))),
+        await run(Effect.flip(acceptInviteById(acceptInput))),
       ).toBeInstanceOf(InvalidInvite)
       expect(
         sqlite.query('SELECT id FROM organization_member').all(),
@@ -262,7 +262,7 @@ describe('Effect organization services with injected async SQLite', () => {
   test('email mismatch is a typed failure and does not consume the invite', async () => {
     seedInvite({ email: 'someone-else@example.com' })
     expect(
-      await run(Effect.flip(acceptMemberInvite(acceptInput))),
+      await run(Effect.flip(acceptInviteById(acceptInput))),
     ).toBeInstanceOf(InviteEmailMismatch)
     expect(inviteRow().accepted_at).toBeNull()
     expect(
@@ -272,20 +272,20 @@ describe('Effect organization services with injected async SQLite', () => {
 
   test('acceptance matches email case-insensitively and creates the invited role', async () => {
     seedInvite()
-    expect(await run(acceptMemberInvite(acceptInput))).toMatchObject({
+    expect(await run(acceptInviteById(acceptInput))).toMatchObject({
       org: { id: 'org-1' },
       member: { userId: 'user-1', role: 'admin' },
     })
     expect(inviteRow().accepted_at).toBeNumber()
     expect(
-      await run(Effect.flip(acceptMemberInvite(acceptInput))),
+      await run(Effect.flip(acceptInviteById(acceptInput))),
     ).toBeInstanceOf(InvalidInvite)
   })
 
   test('acceptance preserves an existing owner and consumes the invite without duplicating membership', async () => {
     seedMember()
     seedInvite()
-    expect(await run(acceptMemberInvite(acceptInput))).toMatchObject({
+    expect(await run(acceptInviteById(acceptInput))).toMatchObject({
       member: { id: 'member-1', role: 'owner' },
     })
     expect(
@@ -298,7 +298,7 @@ describe('Effect organization services with injected async SQLite', () => {
     ['org.getMembership', () => getMembership('user-1', 'org-1')],
     ['org.listOrganizationsForUser', () => listOrganizationsForUser('user-1')],
     ['org.getOrganizationById', () => getOrganizationById('org-1')],
-    ['org.findMemberInvite', () => acceptMemberInvite(acceptInput)],
+    ['org.findMemberInviteById', () => acceptInviteById(acceptInput)],
     [
       'access.getDomainInOrganization',
       () => getDomainInOrganization('domain-1', 'org-1'),
@@ -365,7 +365,7 @@ describe('Effect organization services with injected async SQLite', () => {
     seedInvite()
     failSql = (sql) => sql.startsWith('update "organization_invite"')
     expect(
-      await run(Effect.flip(acceptMemberInvite(acceptInput))),
+      await run(Effect.flip(acceptInviteById(acceptInput))),
     ).toMatchObject({
       _tag: 'BackendError',
       operation: 'org.acceptMemberInvite',

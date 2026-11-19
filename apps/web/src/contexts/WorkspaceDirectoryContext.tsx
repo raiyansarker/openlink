@@ -11,7 +11,8 @@ import { SquareImage } from '#/lib/media/square-image'
 
 export type CreateOrganizationInput = {
   name: string
-  slug: string
+  /** The workspace URL. Left out, the server generates a unique one from the name. */
+  slug?: string
   /** Sent in the same request; if the server refuses it, no workspace is created. */
   logo?: File | null
 }
@@ -68,14 +69,14 @@ export function WorkspaceDirectoryProvider({ children }: { children: ReactNode }
     async (input: CreateOrganizationInput) => {
       const name = input.name.trim()
       if (!name) throw new Error('Enter a workspace name.')
-      if (!isValidOrganizationSlug(input.slug)) {
+      if (input.slug !== undefined && !isValidOrganizationSlug(input.slug)) {
         throw new Error('Use a slug with lowercase letters, numbers, and hyphens (min. 2 characters).')
       }
       // Cropped and shrunk in the browser first; a picture that can't be used stops here.
       const logo = input.logo ? await SquareImage.fromFile(input.logo) : undefined
       let organization: Workspace
       try {
-        const created = await create.mutateAsync({ body: { name, slug: input.slug, ...(logo ? { logo } : {}) } })
+        const created = await create.mutateAsync({ body: { name, ...(input.slug ? { slug: input.slug } : {}), ...(logo ? { logo } : {}) } })
         // The creator becomes the owner.
         organization = { ...created, role: 'owner' }
       } catch (error) {

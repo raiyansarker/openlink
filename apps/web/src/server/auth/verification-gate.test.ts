@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import * as schema from '@openlink/db/schema'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { createEmailVerificationToken } from 'better-auth/api'
 import { createTestDatabase } from '../testing/sqlite'
 import { PENDING_VERIFICATION_COOKIE, PendingVerifications } from './pending-verification'
 import { VerificationGate } from './verification-gate'
@@ -23,17 +24,25 @@ function setup() {
     emailVerification: { sendOnSignUp: true, sendVerificationEmail: async ({ user }) => void sent.push(user.email) },
     logger: { disabled: true },
   })
-  const post = (path: string, body: object, cookie?: string) =>
+  const post = (path: string, body: object, cookie?: string, extraHeaders: Record<string, string> = {}) =>
     VerificationGate.around(
       new Request(`http://localhost/api/auth${path}`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', origin: 'http://localhost', ...(cookie ? { cookie } : {}) },
+        headers: { 'content-type': 'application/json', origin: 'http://localhost', ...(cookie ? { cookie } : {}), ...extraHeaders },
         body: JSON.stringify(body),
       }),
       SECRET,
       (request) => auth.handler(request),
     )
-  return { sent, post }
+  const verify = async (email: string, cookie?: string) => {
+    const token = await createEmailVerificationToken(SECRET, email, undefined, 3600)
+    return VerificationGate.around(
+      new Request(`http://localhost/api/auth/verify-email?token=${token}&callbackURL=%2Fverify-email`, { headers: cookie ? { cookie } : {} }),
+      SECRET,
+      (request) => auth.handler(request),
+    )
+  }
+  return { sent, post, verify }
 }
 
 /** The `name=value` pair of the pending-verification cookie a response set, if any. */
@@ -117,5 +126,31 @@ describe('VerificationGate', () => {
     const forged = `${btoa(JSON.stringify({ email: 'grace@example.com', sentAt: 1, expiresAt: Date.now() + 1e6 })).replace(/=+$/, '')}.${signature}`
     expect(await PendingVerifications.open(SECRET, new Request('http://x', { headers: { cookie: `${PENDING_VERIFICATION_COOKIE}=${forged}` } }))).toBeNull()
     expect(await PendingVerifications.open('another-secret', new Request('http://x', { headers: { cookie: `${PENDING_VERIFICATION_COOKIE}=${payload}.${signature}` } }))).toBeNull()
+  })
+
+  test('a destination asked for at sign-up survives verification, in the same browser', async () => {
+    const { post, verify } = setup()
+    const signUp = await post('/sign-up/email', account, undefined, { 'x-openlink-next': '/invite/abc' })
+    const cookie = pendingCookie(signUp)
+    expect((await pendingFrom(cookie))?.next).toBe('/invite/abc')
+    const verified = await verify('ada@example.com', cookie)
+    expect(verified.headers.get('location')).toBe('/verify-email?next=%2Finvite%2Fabc')
+  })
+
+  test('without the cookie, or with an off-site destination, verification lands on the plain page', async () => {
+    const { post, verify } = setup()
+    const signUp = await post('/sign-up/email', account, undefined, { 'x-openlink-next': '//evil.example' })
+    expect((await pendingFrom(pendingCookie(signUp)))?.next).toBeUndefined()
+    expect((await verify('ada@example.com')).headers.get('location')).toBe('/verify-email')
+  })
+
+  test('a verified sign-in is not redirected anywhere, so the app goes where it was headed', async () => {
+    const { post, verify } = setup()
+    await post('/sign-up/email', account)
+    await verify('ada@example.com')
+    const signIn = await post('/sign-in/email', { email: account.email, password: account.password }, undefined, { 'x-openlink-next': '/invite/abc' })
+    expect(signIn.status).toBe(200)
+    expect(signIn.headers.get('location')).toBeNull()
+    expect(((await signIn.json()) as { redirect?: boolean }).redirect).toBe(false)
   })
 })

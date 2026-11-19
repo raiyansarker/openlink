@@ -44,8 +44,7 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
             name: value.name.trim(),
             email,
             password: value.password,
-            callbackURL: '/verify-email',
-          })
+          }, { headers: { 'x-openlink-next': destination } })
           if (error) return AuthErrorMessages.emailSignUp(error)
           // Email accounts have no session until the address is verified.
           if (!data?.token) {

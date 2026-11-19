@@ -27,6 +27,7 @@ import { Route as CreateOrganizationRouteImport } from './routes/create/organiza
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardSplatRouteImport } from './routes/dashboard/$'
 import { Route as EditLinkRouteImport } from './routes/edit/link'
+import { Route as InviteInviteIdRouteImport } from './routes/invite/$inviteId'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as SettingsWorkspaceRouteRouteImport } from './routes/settings/_workspace/route'
 import { Route as SettingsAccountsRouteImport } from './routes/settings/accounts'
@@ -47,7 +48,6 @@ import { Route as WOrgSlugIndexRouteImport } from './routes/w/$orgSlug/index'
 import { Route as WOrgSlugActivityRouteImport } from './routes/w/$orgSlug/activity'
 import { Route as WOrgSlugAnalyticsRouteImport } from './routes/w/$orgSlug/analytics'
 import { Route as WOrgSlugDomainsRouteRouteImport } from './routes/w/$orgSlug/domains/route'
-import { Route as WOrgSlugNotificationsRouteImport } from './routes/w/$orgSlug/notifications'
 import { Route as WOrgSlugSettingsRouteRouteImport } from './routes/w/$orgSlug/settings/route'
 import { Route as WOrgSlugDomainsIndexRouteImport } from './routes/w/$orgSlug/domains/index'
 import { Route as WOrgSlugDomainsNewRouteImport } from './routes/w/$orgSlug/domains/new'
@@ -144,6 +144,11 @@ const DashboardSplatRoute = DashboardSplatRouteImport.update({
 const EditLinkRoute = EditLinkRouteImport.update({
   id: '/edit/link',
   path: '/edit/link',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteInviteIdRoute = InviteInviteIdRouteImport.update({
+  id: '/invite/$inviteId',
+  path: '/invite/$inviteId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
@@ -249,11 +254,6 @@ const WOrgSlugDomainsRouteRoute = WOrgSlugDomainsRouteRouteImport.update({
   path: '/domains',
   getParentRoute: () => WOrgSlugRouteRoute,
 } as any)
-const WOrgSlugNotificationsRoute = WOrgSlugNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => WOrgSlugRouteRoute,
-} as any)
 const WOrgSlugSettingsRouteRoute = WOrgSlugSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -309,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
+  '/invite/$inviteId': typeof InviteInviteIdRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/developers': typeof SettingsDevelopersRoute
@@ -328,7 +329,6 @@ export interface FileRoutesByFullPath {
   '/settings/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
-  '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -354,6 +354,7 @@ export interface FileRoutesByTo {
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
+  '/invite/$inviteId': typeof InviteInviteIdRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/developers': typeof SettingsDevelopersRoute
@@ -370,7 +371,6 @@ export interface FileRoutesByTo {
   '/settings/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
-  '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
   '/w/$orgSlug': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -400,6 +400,7 @@ export interface FileRoutesById {
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
+  '/invite/$inviteId': typeof InviteInviteIdRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/developers': typeof SettingsDevelopersRoute
@@ -419,7 +420,6 @@ export interface FileRoutesById {
   '/settings/_workspace/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
-  '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -449,6 +449,7 @@ export interface FileRouteTypes {
     | '/create/organization'
     | '/dashboard/$'
     | '/edit/link'
+    | '/invite/$inviteId'
     | '/settings/accounts'
     | '/settings/appearance'
     | '/settings/developers'
@@ -468,7 +469,6 @@ export interface FileRouteTypes {
     | '/settings/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
-    | '/w/$orgSlug/notifications'
     | '/w/$orgSlug/'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -494,6 +494,7 @@ export interface FileRouteTypes {
     | '/create/organization'
     | '/dashboard/$'
     | '/edit/link'
+    | '/invite/$inviteId'
     | '/settings/accounts'
     | '/settings/appearance'
     | '/settings/developers'
@@ -510,7 +511,6 @@ export interface FileRouteTypes {
     | '/settings/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
-    | '/w/$orgSlug/notifications'
     | '/w/$orgSlug'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -539,6 +539,7 @@ export interface FileRouteTypes {
     | '/create/organization'
     | '/dashboard/$'
     | '/edit/link'
+    | '/invite/$inviteId'
     | '/settings/accounts'
     | '/settings/appearance'
     | '/settings/developers'
@@ -558,7 +559,6 @@ export interface FileRouteTypes {
     | '/settings/_workspace/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
-    | '/w/$orgSlug/notifications'
     | '/w/$orgSlug/'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -586,6 +586,7 @@ export interface RootRouteChildren {
   CreateOrganizationRoute: typeof CreateOrganizationRoute
   DashboardSplatRoute: typeof DashboardSplatRoute
   EditLinkRoute: typeof EditLinkRoute
+  InviteInviteIdRoute: typeof InviteInviteIdRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiMediaSplatRoute: typeof ApiMediaSplatRoute
@@ -718,6 +719,13 @@ declare module '@tanstack/react-router' {
       path: '/edit/link'
       fullPath: '/edit/link'
       preLoaderRoute: typeof EditLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$inviteId': {
+      id: '/invite/$inviteId'
+      path: '/invite/$inviteId'
+      fullPath: '/invite/$inviteId'
+      preLoaderRoute: typeof InviteInviteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/': {
@@ -860,13 +868,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WOrgSlugDomainsRouteRouteImport
       parentRoute: typeof WOrgSlugRouteRoute
     }
-    '/w/$orgSlug/notifications': {
-      id: '/w/$orgSlug/notifications'
-      path: '/notifications'
-      fullPath: '/w/$orgSlug/notifications'
-      preLoaderRoute: typeof WOrgSlugNotificationsRouteImport
-      parentRoute: typeof WOrgSlugRouteRoute
-    }
     '/w/$orgSlug/settings': {
       id: '/w/$orgSlug/settings'
       path: '/settings'
@@ -996,7 +997,6 @@ interface WOrgSlugRouteRouteChildren {
   WOrgSlugSettingsRouteRoute: typeof WOrgSlugSettingsRouteRouteWithChildren
   WOrgSlugActivityRoute: typeof WOrgSlugActivityRoute
   WOrgSlugAnalyticsRoute: typeof WOrgSlugAnalyticsRoute
-  WOrgSlugNotificationsRoute: typeof WOrgSlugNotificationsRoute
   WOrgSlugIndexRoute: typeof WOrgSlugIndexRoute
   WOrgSlugLinksLinkIdRoute: typeof WOrgSlugLinksLinkIdRoute
   WOrgSlugLinksIndexRoute: typeof WOrgSlugLinksIndexRoute
@@ -1007,7 +1007,6 @@ const WOrgSlugRouteRouteChildren: WOrgSlugRouteRouteChildren = {
   WOrgSlugSettingsRouteRoute: WOrgSlugSettingsRouteRouteWithChildren,
   WOrgSlugActivityRoute: WOrgSlugActivityRoute,
   WOrgSlugAnalyticsRoute: WOrgSlugAnalyticsRoute,
-  WOrgSlugNotificationsRoute: WOrgSlugNotificationsRoute,
   WOrgSlugIndexRoute: WOrgSlugIndexRoute,
   WOrgSlugLinksLinkIdRoute: WOrgSlugLinksLinkIdRoute,
   WOrgSlugLinksIndexRoute: WOrgSlugLinksIndexRoute,
@@ -1048,6 +1047,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreateOrganizationRoute: CreateOrganizationRoute,
   DashboardSplatRoute: DashboardSplatRoute,
   EditLinkRoute: EditLinkRoute,
+  InviteInviteIdRoute: InviteInviteIdRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiMediaSplatRoute: ApiMediaSplatRoute,

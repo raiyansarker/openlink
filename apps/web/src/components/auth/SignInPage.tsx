@@ -44,7 +44,12 @@ export default function SignInPage({ destination, redirect, oauthError, provider
       auth.run('email', async () => {
         try {
           const email = value.email.trim()
-          const { error } = await AuthSession.client.signIn.email({ email, password: value.password, callbackURL: '/verify-email' })
+          // No callbackURL: Better Auth would redirect a successful sign-in to it. The destination
+          // travels as a header, kept for after verification if the address is not verified yet.
+          const { error } = await AuthSession.client.signIn.email(
+            { email, password: value.password },
+            { headers: { 'x-openlink-next': destination } },
+          )
           // Right password, unverified email: the link from sign-up is still the one to use.
           if (error?.code?.toUpperCase() === 'EMAIL_NOT_VERIFIED') return void (await navigate({ to: '/check-email' }))
           if (error) return AuthErrorMessages.emailSignIn(error)

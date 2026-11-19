@@ -7,6 +7,7 @@ import {
   ListDeviceSessionsResponse,
   ListMyInvitesResponse,
   MyInviteIdPath,
+  MyInviteLookup,
   MyProfile,
   RevokeOtherSessionsResponse,
   SessionIdPath,
@@ -47,6 +48,20 @@ export const revokeOtherDeviceSessions = oc
 export const listMyInvites = oc
   .meta(openapi({ method: 'GET', operationId: 'listMyInvites', path: '/me/invites', summary: 'Workspace invites sent to your email', tags: ['Account'] }))
   .output(ListMyInvitesResponse)
+
+export const getMyInvite = oc
+  .meta(
+    openapi({
+      method: 'GET',
+      operationId: 'getMyInvite',
+      path: '/me/invites/{inviteId}',
+      summary: 'One workspace invite sent to your email',
+      inputStructure: 'detailed',
+      tags: ['Account'],
+    }),
+  )
+  .input(type({ params: MyInviteIdPath }))
+  .output(MyInviteLookup)
 
 export const acceptMyInvite = oc
   .meta(
@@ -96,6 +111,7 @@ export const contract = {
   revokeDeviceSession,
   revokeOtherDeviceSessions,
   listMyInvites,
+  getMyInvite,
   acceptMyInvite,
   declineMyInvite,
   updateMyProfile,

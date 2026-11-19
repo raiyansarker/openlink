@@ -1,3 +1,5 @@
+import { LoginRedirect } from '#/lib/auth/redirect'
+
 import { ServerLog } from '../observability/server-log'
 import { PendingVerifications } from './pending-verification'
 
@@ -6,10 +8,24 @@ const AUTH_PREFIX = '/api/auth'
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } })
 
-async function emailFrom(request: Request): Promise<string | null> {
+type AuthBody = { email: string | null; next: string | undefined }
+
+/**
+ * Where the app goes once the address is verified, sent by sign-up and sign-in as this
+ * header (an invite page, say). Not Better Auth's `callbackURL`: on sign-in that is also
+ * where a successful sign-in redirects, which would send verified people to /verify-email.
+ */
+export const NEXT_HEADER = 'x-openlink-next'
+
+/** The address from a sign-up or sign-in body, and the destination header, if it is a same-origin path. */
+async function readBody(request: Request): Promise<AuthBody> {
   const body = (await request.clone().json().catch(() => null)) as { email?: unknown } | null
-  return typeof body?.email === 'string' && body.email.trim() ? body.email.trim().toLowerCase() : null
+  const email = typeof body?.email === 'string' && body.email.trim() ? body.email.trim().toLowerCase() : null
+  const safe = LoginRedirect.sanitize(request.headers.get(NEXT_HEADER), '')
+  return { email, next: safe && safe !== LoginRedirect.DEFAULT ? safe : undefined }
 }
+
+const emailFrom = async (request: Request) => (await readBody(request)).email
 
 function withCookie(response: Response, cookie: string) {
   const out = new Response(response.body, response)
@@ -26,7 +42,9 @@ function withCookie(response: Response, cookie: string) {
  * - resending a verification link requires it, for the same address. Without it the request
  *   is answered like a normal success and nothing is sent, so a stranger (another browser,
  *   incognito) cannot trigger emails or learn anything;
- * - a successful sign-in or a clicked verification link clears it.
+ * - a successful sign-in or a clicked verification link clears it. A destination the app
+ *   asked for at sign-up or sign-in (an invite page) is kept in it, and the verification
+ *   redirect carries it on as `/verify-email?next=…`.
  */
 export class VerificationGate {
   static async around(request: Request, secret: string, next: (request: Request) => Promise<Response>): Promise<Response> {
@@ -34,25 +52,26 @@ export class VerificationGate {
     const now = Date.now()
 
     if (request.method === 'POST' && path === '/sign-up/email') {
-      const email = await emailFrom(request)
+      const { email, next: destination } = await readBody(request)
       const response = await next(request)
       if (!email || !response.ok) return response
       const data = (await response.clone().json().catch(() => null)) as { token?: string | null } | null
       if (data?.token) return response
-      const sealed = await PendingVerifications.seal(secret, PendingVerifications.create(email, now, now))
+      const sealed = await PendingVerifications.seal(secret, PendingVerifications.create(email, now, now, destination))
       return withCookie(response, PendingVerifications.setCookie(request, sealed))
     }
 
     if (request.method === 'POST' && path === '/sign-in/email') {
-      const email = await emailFrom(request)
+      const { email, next: destination } = await readBody(request)
       const response = await next(request)
       if (response.ok) return withCookie(response, PendingVerifications.clearCookie(request))
       if (!email || response.status !== 403) return response
       const error = (await response.clone().json().catch(() => null)) as { code?: string } | null
       if (error?.code !== 'EMAIL_NOT_VERIFIED') return response
       const existing = await PendingVerifications.open(secret, request, now)
-      const sentAt = existing?.email === email ? existing.sentAt : 0
-      const sealed = await PendingVerifications.seal(secret, PendingVerifications.create(email, sentAt, now))
+      const same = existing?.email === email
+      const sentAt = same ? existing.sentAt : 0
+      const sealed = await PendingVerifications.seal(secret, PendingVerifications.create(email, sentAt, now, destination ?? (same ? existing.next : undefined)))
       return withCookie(response, PendingVerifications.setCookie(request, sealed))
     }
 
@@ -65,12 +84,19 @@ export class VerificationGate {
       }
       const response = await next(request)
       if (!response.ok) return response
-      const sealed = await PendingVerifications.seal(secret, PendingVerifications.create(email, now, now))
+      const sealed = await PendingVerifications.seal(secret, PendingVerifications.create(email, now, now, pending.next))
       return withCookie(response, PendingVerifications.setCookie(request, sealed))
     }
 
     if (request.method === 'GET' && path === '/verify-email') {
-      return withCookie(await next(request), PendingVerifications.clearCookie(request))
+      const pending = await PendingVerifications.open(secret, request, now)
+      const response = withCookie(await next(request), PendingVerifications.clearCookie(request))
+      // Verified in the browser that signed up: carry on to where they were going (an invite).
+      const location = response.headers.get('location')
+      if (pending?.next && location === '/verify-email' && response.status >= 300 && response.status < 400) {
+        response.headers.set('location', `/verify-email?next=${encodeURIComponent(pending.next)}`)
+      }
+      return response
     }
 
     return next(request)

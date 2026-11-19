@@ -7,7 +7,6 @@ import {
   toWorkspaceMemberDto,
 } from '#/server/api/serializers'
 import { requireOrgAdminEffect, requireOrgMemberEffect, requireOrgOwnerEffect } from '#/server/effect/access'
-import { Bindings } from '#/server/effect/services/bindings'
 import { principalUserId } from '#/server/effect/principal'
 import { requireAuthSession } from '#/server/effect/session'
 import { audit } from '#/server/activity/audit'
@@ -27,14 +26,13 @@ import {
   updateMemberRole,
 } from './members'
 import {
-  acceptMemberInvite,
   createMemberInvite,
   getOrganizationById,
   listOrganizationsForUser,
 } from './service'
 import { isAdmin } from './permissions'
 import { sendInviteEmail } from './invite-email'
-import { createWorkspace, updateWorkspace } from './workspace'
+import { createWorkspace, suggestWorkspaceSlug, updateWorkspace } from './workspace'
 
 /** Map member-domain failures onto the typed API errors; spread only the ones an effect can raise. */
 const onMemberNotFound = (errors: ErrorFactories) => ({
@@ -53,6 +51,11 @@ const memberErrors = (errors: ErrorFactories) => ({
 })
 
 export const organizationsController = {
+  suggestOrganizationSlug: os.organizations.suggestOrganizationSlug.effect(function* ({ input }) {
+    yield* requireAuthSession
+    return { slug: yield* suggestWorkspaceSlug(input.query.name) }
+  }),
+
   listOrganizations: os.organizations.listOrganizations.effect(function* () {
     const session = yield* requireAuthSession
     const rows = yield* listOrganizationsForUser(session.session.user.id)
@@ -69,25 +72,6 @@ export const organizationsController = {
       }),
     )
     return toOrganizationDto(org)
-  }),
-
-  acceptOrganizationInvite: os.organizations.acceptOrganizationInvite.effect(function* ({ input, errors }) {
-    const session = yield* requireAuthSession
-    const { org, member } = yield* acceptMemberInvite({
-      userId: session.session.user.id,
-      userEmail: session.session.user.email,
-      token: input.body.token,
-    }).pipe(Effect.catchTags({
-      InviteEmailMismatch: () => Effect.fail(errors.FORBIDDEN({ message: 'This invite was sent to a different email address' })),
-      InvalidInvite: () => Effect.fail(errors.BAD_REQUEST({ message: 'Invalid or expired invite' })),
-      BackendError: () => Effect.fail(errors.BAD_REQUEST({ message: 'Invalid or expired invite' })),
-    }))
-    yield* audit(session, {
-      organizationId: org.id,
-      action: 'member.joined',
-      target: { type: 'member', id: session.session.user.id, label: session.session.user.name || session.session.user.email },
-    })
-    return toMembershipDto(org, member)
   }),
 
   getOrganization: os.organizations.getOrganization.effect(function* ({ input, errors }) {
@@ -195,15 +179,16 @@ export const organizationsController = {
 
   resendOrganizationInvite: os.organizations.resendOrganizationInvite.effect(function* ({ input, errors }) {
     const { session } = yield* requireOrgAdminEffect(input.params.organizationId)
-    const { invite, token } = yield* resendInvite(input.params.organizationId, input.params.inviteId).pipe(
+    const { invite } = yield* resendInvite(input.params.organizationId, input.params.inviteId).pipe(
       Effect.catchTags(onInviteNotFound(errors)),
     )
+    yield* audit(session, {
+      organizationId: input.params.organizationId,
+      action: 'invite.resent',
+      target: { type: 'invite', id: invite.id, label: invite.email },
+    })
     yield* sendInviteEmail({ organizationId: input.params.organizationId, invite, inviter: session })
-    const bindings = yield* Bindings
-    return {
-      ...toPendingInviteDto(invite),
-      ...(bindings.EXPOSE_INVITE_TOKENS_IN_API === 'true' ? { token } : {}),
-    }
+    return toPendingInviteDto(invite)
   }),
 
   revokeOrganizationInvite: os.organizations.revokeOrganizationInvite.effect(function* ({ input, errors }) {
@@ -221,7 +206,7 @@ export const organizationsController = {
 
   createOrganizationInvite: os.organizations.createOrganizationInvite.effect(function* ({ input }) {
     const { session } = yield* requireOrgAdminEffect(input.params.organizationId)
-    const { invite, token } = yield* createMemberInvite({
+    const { invite } = yield* createMemberInvite({
       organizationId: input.params.organizationId,
       ...input.body,
       createdByUserId: principalUserId(session),
@@ -233,14 +218,12 @@ export const organizationsController = {
       changes: [{ label: 'Role', from: '—', to: invite.role }],
     })
     yield* sendInviteEmail({ organizationId: input.params.organizationId, invite, inviter: session })
-    const bindings = yield* Bindings
     return {
       id: invite.id,
       organizationId: invite.organizationId!,
       email: invite.email,
       role: invite.role,
       expiresAt: invite.expiresAt.toISOString(),
-      ...(bindings.EXPOSE_INVITE_TOKENS_IN_API === 'true' ? { token } : {}),
     }
   }),
 }

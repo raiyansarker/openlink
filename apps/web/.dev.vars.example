@@ -14,8 +14,6 @@ GOOGLE_CLIENT_SECRET=
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 
-# Invite create responses include the raw token only when this is "true" (keep it off in production).
-EXPOSE_INVITE_TOKENS_IN_API=true
 
 # Custom domains: "memory" needs no credentials. Use "cloudflare" with the CF_* values to test SaaS hostnames.
 DOMAIN_PROVIDER=memory

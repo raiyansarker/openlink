@@ -90,7 +90,6 @@ const updateLinkRecord = mock((existing: typeof linkRow, input: { title?: string
   passwordHash: input.password ? 'hashed-password' : existing.passwordHash,
 }))
 const deleteLinkRecord = mock((_linkId: string) => Effect.void)
-const acceptMemberInvite = mock((_input: unknown) => Effect.die(new Error('Unexpected invite acceptance')))
 const myInviteRow = {
   id: 'invite-9', role: 'admin' as const, expiresAt: now, createdAt: now,
   organizationId: 'org-other', organizationName: 'Other Co', organizationSlug: 'other', organizationLogoKey: null,
@@ -100,6 +99,7 @@ const listInvitesForEmail = mock((_email: string) => Effect.succeed([myInviteRow
 const acceptInviteById = mock((_input: unknown) =>
   Effect.succeed({ org: { ...org, id: 'org-other', name: 'Other Co', slug: 'other' }, member: { id: 'm-9', organizationId: 'org-other', userId: 'user-1', role: 'admin' as const, joinedAt: now } }),
 )
+const findInviteForEmail = mock((_input: unknown) => Effect.succeed<{ status: 'pending'; row: typeof myInviteRow } | { status: 'accepted' } | null>({ status: 'pending', row: myInviteRow }))
 const declineInviteForEmail = mock((_input: unknown) => Effect.succeed({ id: 'invite-9', email: 'user@example.com', organizationId: 'org-other' }))
 const createOrganizationForUser = mock((_input: unknown) => Effect.die(new Error('Unexpected organization creation')))
 const signIn = mock((_input: unknown) => Effect.die(new Error('Unexpected sign in')))
@@ -108,7 +108,7 @@ const signOut = mock((_request: Request) => Effect.die(new Error('Unexpected sig
 const runHealthChecks = mock(() => Effect.die(new Error('Unexpected health check')))
 // Boundary workflows are mocked, so infrastructure bindings are intentionally absent.
 const testBindings = {
-  DOMAIN_PROVIDER: 'memory', EXPOSE_INVITE_TOKENS_IN_API: 'false', BETTER_AUTH_URL: 'http://localhost',
+  DOMAIN_PROVIDER: 'memory', BETTER_AUTH_URL: 'http://localhost',
 } as WorkerBindings
 // Email dispatch is a no-op here: the tests check authorization, not delivery.
 const requestEffectContext = Effect.succeed(
@@ -127,8 +127,8 @@ mock.module('#/server/domain/domain-links', () => ({
 mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, getLinkInOrganization, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
 mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
-  acceptMemberInvite, createOrganizationForUser,
-  listInvitesForEmail, acceptInviteById, declineInviteForEmail,
+  createOrganizationForUser,
+  listInvitesForEmail, acceptInviteById, declineInviteForEmail, findInviteForEmail,
 }))
 mock.module('#/server/org/members', () => ({
   listMembers, updateMemberRole, removeMember, transferOwnership, updateOrganization,
@@ -149,6 +149,11 @@ mock.module('#/server/apikeys/service', () => ({
 }))
 const updateProfile = mock((_userId: string, _input: unknown) => Effect.succeed({ name: 'User', imageUrl: '/api/media/avatars/user-1/new.webp' as string | null }))
 mock.module('#/server/account/profile', () => ({ Profile: { update: updateProfile } }))
+// The verified-email check and per-user limit are covered in invite-guard.test.ts.
+mock.module('#/server/account/invite-guard', async () => {
+  const { requireAuthSession } = await import('#/server/effect/session')
+  return { requireInvitee: requireAuthSession.pipe(Effect.map((session) => ({ ok: true as const, session }))) }
+})
 // Share-card image storage is tested in links/preview-images.test.ts; here it only has to stay out of the way.
 const storePreviewImage = mock((_organizationId: string, _file: Blob) => Effect.succeed('/api/media/previews/org-1/card.png'))
 mock.module('#/server/links/preview-images', () => ({
@@ -195,7 +200,7 @@ const { apiFailure, isRetryable } = await import('#/lib/api/errors')
 const sideEffects = [
   createMemberInvite, registerCustomDomain, removeCustomDomain, refreshCustomDomain,
   createLinkRecord, updateLinkRecord, deleteLinkRecord,
-  acceptMemberInvite, createOrganizationForUser, signIn, signUp, signOut, runHealthChecks,
+  createOrganizationForUser, signIn, signUp, signOut, runHealthChecks,
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
   moveLinks, addTagsToLinks, deleteLinks,
@@ -857,9 +862,9 @@ describe('requests authenticated with an API key', () => {
     asKey('admin')
     authenticated = false
     expect((await request('GET', '/organizations', undefined, bearer)).status).toBe(401)
-    expect((await request('POST', '/organizations/invites/accept', { token: 'x' }, bearer)).status).toBe(401)
+    expect((await request('POST', '/me/invites/invite-9/accept', undefined, bearer)).status).toBe(401)
     expect(listOrganizationsForUser).not.toHaveBeenCalled()
-    expect(acceptMemberInvite).not.toHaveBeenCalled()
+    expect(acceptInviteById).not.toHaveBeenCalled()
   })
 
   test('non-OpenLink bearer tokens fall through to the cookie session', async () => {
@@ -933,7 +938,7 @@ describe('frontend API client against the real server', () => {
   })
 })
 
-describe('your invites (notifications)', () => {
+describe('your invites', () => {
   test('lists invites sent to your signed-in email, with workspace and sender', async () => {
     role = null
     const response = await request('GET', '/me/invites')
@@ -946,6 +951,23 @@ describe('your invites (notifications)', () => {
         invitedBy: { name: 'Grace', imageUrl: 'https://example.com/grace.png' },
       }],
     })
+  })
+
+  test('one invite: pending with its details, accepted as a bare status, anything else 404', async () => {
+    role = null
+    const pending = await request('GET', '/me/invites/invite-9')
+    expect(pending.status).toBe(200)
+    expect(findInviteForEmail).toHaveBeenCalledWith({ inviteId: 'invite-9', email: 'user@example.com' })
+    expect(await pending.json()).toMatchObject({ status: 'pending', invite: { id: 'invite-9', organization: { name: 'Other Co' } } })
+
+    findInviteForEmail.mockImplementationOnce(() => Effect.succeed({ status: 'accepted' as const }))
+    const accepted = await request('GET', '/me/invites/invite-9')
+    expect(await accepted.json()).toEqual({ status: 'accepted' })
+
+    findInviteForEmail.mockImplementationOnce(() => Effect.succeed(null))
+    const missing = await request('GET', '/me/invites/invite-x')
+    expect(missing.status).toBe(404)
+    expect(await missing.text()).not.toContain('invite-x')
   })
 
   test('accepting joins the workspace by invite id and records it there', async () => {
@@ -974,7 +996,7 @@ describe('your invites (notifications)', () => {
 
   test('signed-out callers and API keys get nothing', async () => {
     authenticated = false
-    for (const [method, path] of [['GET', '/me/invites'], ['POST', '/me/invites/i/accept'], ['DELETE', '/me/invites/i']] as const) {
+    for (const [method, path] of [['GET', '/me/invites'], ['GET', '/me/invites/i'], ['POST', '/me/invites/i/accept'], ['DELETE', '/me/invites/i']] as const) {
       expect((await request(method, path)).status).toBe(401)
     }
     keyPrincipal = { id: 'key-1', organizationId: org.id, role: 'admin', name: 'CI' }
@@ -1202,21 +1224,6 @@ const typedFailures = [
     name: 'organization backend failure', workflow: createOrganizationForUser,
     path: '/organizations', body: { name: org.name, slug: org.slug },
     tag: 'BackendError', status: 409, code: 'CONFLICT', message: 'Unable to create organization',
-  },
-  {
-    name: 'invite email mismatch', workflow: acceptMemberInvite,
-    path: '/organizations/invites/accept', body: { token: 'invite-token' },
-    tag: 'InviteEmailMismatch', status: 403, code: 'FORBIDDEN', message: 'This invite was sent to a different email address',
-  },
-  {
-    name: 'invalid invite', workflow: acceptMemberInvite,
-    path: '/organizations/invites/accept', body: { token: 'invalid-token' },
-    tag: 'InvalidInvite', status: 400, code: 'BAD_REQUEST', message: 'Invalid or expired invite',
-  },
-  {
-    name: 'invite backend failure', workflow: acceptMemberInvite,
-    path: '/organizations/invites/accept', body: { token: 'invite-token' },
-    tag: 'BackendError', status: 400, code: 'BAD_REQUEST', message: 'Invalid or expired invite',
   },
   {
     name: 'domain backend failure', workflow: registerCustomDomain,
