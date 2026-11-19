@@ -32,5 +32,7 @@ describe('EmailJobSeal', () => {
     const flipped = `${data.slice(0, -2)}${data.at(-2) === 'A' ? 'B' : 'A'}${data.at(-1)}`
     expect(await EmailJobSeal.open(SECRET, { ...sealed, sealed: `${version}.${iv}.${flipped}` })).toBeNull()
     expect(await EmailJobSeal.open(SECRET, { ...sealed, sealed: 'v0.x.y' })).toBeNull()
+    // A run started before params were sealed carries the plain job.
+    expect(await EmailJobSeal.open(SECRET, job as never)).toBeNull()
   })
 })

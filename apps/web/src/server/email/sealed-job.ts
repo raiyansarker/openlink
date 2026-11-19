@@ -43,8 +43,9 @@ export class EmailJobSeal {
     return { template: job.message.template, sealed: `${VERSION}.${toBase64url(iv)}.${toBase64url(data)}` }
   }
 
-  /** The job, or null if it was not sealed with this secret or was altered. */
+  /** The job, or null if it was not sealed with this secret, was altered, or is not a sealed job at all. */
   static async open(secret: string, sealed: SealedEmailJob): Promise<EmailJob | null> {
+    if (typeof sealed?.sealed !== 'string') return null
     const [version, iv, data] = sealed.sealed.split('.')
     if (version !== VERSION || !iv || !data) return null
     try {
