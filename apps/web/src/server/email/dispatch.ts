@@ -8,6 +8,7 @@ import { ServerLog } from '../observability/server-log'
 import { type RateDecision, RateLimiter } from '../rate-limit/limiter'
 import type { EmailDraft, EmailJob } from './job'
 import { type EmailOrigin, emailLimits } from './limits'
+import { EmailJobSeal } from './sealed-job'
 
 /** Add the app URL and logo that every template shares. */
 export function brandEmail(bindings: Pick<WorkerBindings, 'BETTER_AUTH_URL'>, draft: EmailDraft): EmailMessage {
@@ -76,7 +77,7 @@ export const EmailDispatchLive = Layer.effect(
           if (!to.trim()) return ServerLog.warn('email.no_recipient', { template: draft.template })
           if (!(yield* withinLimits(to, draft, origin))) return
           const job: EmailJob = { to: to.trim(), message: brandEmail(bindings, draft) }
-          yield* Effect.tryPromise(() => workflow.create({ params: job })).pipe(
+          yield* Effect.tryPromise(async () => workflow.create({ params: await EmailJobSeal.seal(bindings.BETTER_AUTH_SECRET, job) })).pipe(
             Effect.catch((error) => Effect.sync(() => ServerLog.error('email.dispatch_failed', error, { template: draft.template }))),
           )
         }),

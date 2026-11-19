@@ -5,14 +5,22 @@ import { Db } from '../effect/services/db'
 import { createTestDatabase } from '../testing/sqlite'
 import { EmailDispatch, EmailDispatchLive } from './dispatch'
 import type { EmailJob } from './job'
+import { EmailJobSeal, type SealedEmailJob } from './sealed-job'
 import type { EmailOrigin } from './limits'
 
 function setup() {
   const { db } = createTestDatabase()
+  const params: SealedEmailJob[] = []
   const jobs: EmailJob[] = []
   const bindings = {
     BETTER_AUTH_URL: 'https://app.example.com/some/path',
-    EMAIL_WORKFLOW: { create: async ({ params }: { params: EmailJob }) => void jobs.push(params) },
+    BETTER_AUTH_SECRET: 'test-secret-that-is-at-least-32-characters-long',
+    EMAIL_WORKFLOW: {
+      create: async ({ params: sealed }: { params: SealedEmailJob }) => {
+        params.push(sealed)
+        jobs.push((await EmailJobSeal.open(bindings.BETTER_AUTH_SECRET, sealed))!)
+      },
+    },
   }
   const layer = EmailDispatchLive.pipe(
     Layer.provide(Layer.mergeAll(Layer.succeed(Bindings, bindings as never), Layer.succeed(Db, db))),
@@ -31,14 +39,17 @@ function setup() {
         yield* dispatch.send(to, { template: 'password-reset', props: { name: 'Ada', resetUrl: 'https://r', expiresIn: '1 hour' } }, origin)
       }).pipe(Effect.provide(layer)),
     )
-  return { jobs, verify, reset }
+  return { params, jobs, verify, reset }
 }
 
 describe('EmailDispatch', () => {
   test('starts a workflow run with the app URL and logo filled in', async () => {
-    const { jobs, verify } = setup()
+    const { params, jobs, verify } = setup()
     await verify('  ada@example.com ')
     expect(jobs).toHaveLength(1)
+    // The run's params (shown in the dashboard) hold no address or link.
+    expect(params[0].template).toBe('email-verification')
+    expect(JSON.stringify(params[0])).not.toMatch(/ada@example\.com|https:/)
     expect(jobs[0].to).toBe('ada@example.com')
     expect(jobs[0].message.props).toMatchObject({ baseUrl: 'https://app.example.com', logoUrl: 'https://app.example.com/logo192.png' })
   })

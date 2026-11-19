@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers'
 import type { AnalyticsEngineDataset, D1Database } from '@cloudflare/workers-types'
 import type { OpenLinkDomainEnv } from '@openlink/domain'
 
-import type { EmailJob } from './email/job'
+import type { SealedEmailJob } from './email/sealed-job'
 
 export type WorkerBindings = OpenLinkDomainEnv & {
   DB: D1Database
@@ -12,7 +12,7 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   /** Caps password attempts on protected links (3 per minute per link and IP). */
   LINK_PASSWORD_LIMITER: RateLimit
   /** Outgoing email. Callers start a run of this workflow (`EmailWorkflow`), which renders and sends. */
-  EMAIL_WORKFLOW?: Workflow<EmailJob>
+  EMAIL_WORKFLOW?: Workflow<SealedEmailJob>
   /** Amazon SES credentials (Worker secrets) for production email. Not needed under `vite dev`, which sends to Mailtrap Local. */
   AWS_SES_ACCESS_KEY_ID?: string
   AWS_SES_SECRET_ACCESS_KEY?: string
