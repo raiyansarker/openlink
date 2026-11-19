@@ -32,7 +32,7 @@ import {
 } from './service'
 import { isAdmin } from './permissions'
 import { sendInviteEmail } from './invite-email'
-import { createWorkspace, updateWorkspace } from './workspace'
+import { createWorkspace, suggestWorkspaceSlug, updateWorkspace } from './workspace'
 
 /** Map member-domain failures onto the typed API errors; spread only the ones an effect can raise. */
 const onMemberNotFound = (errors: ErrorFactories) => ({
@@ -51,6 +51,11 @@ const memberErrors = (errors: ErrorFactories) => ({
 })
 
 export const organizationsController = {
+  suggestOrganizationSlug: os.organizations.suggestOrganizationSlug.effect(function* ({ input }) {
+    yield* requireAuthSession
+    return { slug: yield* suggestWorkspaceSlug(input.query.name) }
+  }),
+
   listOrganizations: os.organizations.listOrganizations.effect(function* () {
     const session = yield* requireAuthSession
     const rows = yield* listOrganizationsForUser(session.session.user.id)

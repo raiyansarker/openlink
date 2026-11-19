@@ -10,7 +10,7 @@ import { Db } from '#/server/effect/services/db'
 import { FakeBucket, IMAGES } from '#/server/media/test-support'
 import { createTestDatabase } from '#/server/testing/sqlite'
 
-import { createWorkspace, updateWorkspace } from './workspace'
+import { createWorkspace, suggestWorkspaceSlug, updateWorkspace } from './workspace'
 
 const databases: Database[] = []
 afterEach(() => {
@@ -57,6 +57,13 @@ describe('a generated workspace URL', () => {
   test('a name with no usable letters becomes "workspace"', async () => {
     const t = setup()
     expect((await t.run(createWorkspace({ userId: 'u1', name: '📎' }))).slug).toBe('workspace')
+  })
+
+  test('the suggestion is the plain slug when free, a suffixed one when taken', async () => {
+    const t = setup()
+    expect(await t.run(suggestWorkspaceSlug("Raiyan's workspace"))).toBe('raiyans-workspace')
+    // 'acme' belongs to the seeded workspace.
+    expect(await t.run(suggestWorkspaceSlug('Acme'))).toMatch(/^acme-[a-z0-9]{5}$/)
   })
 
   test('a chosen slug that is taken is a conflict, not a generated one', async () => {

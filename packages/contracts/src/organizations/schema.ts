@@ -34,6 +34,10 @@ export const CreateOrganizationRequest = type({
   'logo?': OrganizationLogo,
 })
 
+/** A free workspace URL for a name, at the time of asking: `raiyans-workspace`, or with a suffix. */
+export const OrganizationSlugSuggestionQuery = type({ name: 'string <= 200' })
+export const OrganizationSlugSuggestion = type({ slug: 'string' })
+
 export const CreateOrganizationInviteRequest = type({
   email: Email,
   role: OrganizationInviteRole,

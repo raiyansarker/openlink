@@ -5,6 +5,8 @@ import { EmptyResponse } from '../system/schema'
 import {
   CreateOrganizationInviteRequest,
   CreateOrganizationRequest,
+  OrganizationSlugSuggestion,
+  OrganizationSlugSuggestionQuery,
   InviteIdPath,
   ListInvitesResponse,
   ListMembersResponse,
@@ -18,6 +20,20 @@ import {
   UpdateOrganizationRequest,
   WorkspaceMember,
 } from './schema'
+
+export const suggestOrganizationSlug = oc
+  .meta(
+    openapi({
+      method: 'GET',
+      operationId: 'suggestOrganizationSlug',
+      path: '/organization-slugs/suggestion',
+      summary: 'A workspace URL that is free right now, made from a name',
+      inputStructure: 'detailed',
+      tags: ['Organizations'],
+    }),
+  )
+  .input(type({ query: OrganizationSlugSuggestionQuery }))
+  .output(OrganizationSlugSuggestion)
 
 export const listOrganizations = oc
   .meta(
@@ -161,6 +177,7 @@ export const revokeOrganizationInvite = orgOp(
 
 export const contract = {
   listOrganizations,
+  suggestOrganizationSlug,
   createOrganization,
   getOrganization,
   updateOrganization,

@@ -1,4 +1,9 @@
+import { organization } from '@openlink/db/schema'
+import { inArray } from 'drizzle-orm'
 import { Data, Effect } from 'effect'
+
+import { operation } from '#/server/effect/operations'
+import { Db } from '#/server/effect/services/db'
 
 import { workspaceSlugBase, withRandomSuffix } from '#/lib/organization/default-workspace'
 import { MediaStore } from '#/server/media/media-store'
@@ -14,6 +19,24 @@ class WorkspaceGone extends Data.TaggedError('WorkspaceGone')<{}> {}
 /** Check and store a logo sent with the request; null when none was sent. */
 const storeLogo = (organizationId: string, logo: Blob | null | undefined) =>
   logo ? MediaUploads.storeImage('logos', organizationId, logo) : Effect.succeed(null)
+
+/**
+ * A workspace URL that is free right now, for the create form to prefill: the name as a
+ * slug, or that with a random suffix. One query checks every candidate. Someone else can
+ * still take it before the form is sent; the form then asks again.
+ */
+export function suggestWorkspaceSlug(name: string) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const base = workspaceSlugBase(name)
+    const candidates = [base, ...Array.from({ length: GENERATED_SLUG_ATTEMPTS - 1 }, () => withRandomSuffix(base))]
+    const taken = yield* operation('org.suggestSlug', () =>
+      db.select({ slug: organization.slug }).from(organization).where(inArray(organization.slug, candidates)),
+    )
+    const used = new Set(taken.map((row) => row.slug))
+    return candidates.find((slug) => !used.has(slug)) ?? withRandomSuffix(base)
+  })
+}
 
 /** Generated URLs tried before giving up: the plain one, then random suffixes. */
 const GENERATED_SLUG_ATTEMPTS = 6
