@@ -7,6 +7,10 @@ import { DeviceSessions } from '#/server/devices/sessions'
 import { acceptInviteById, declineInviteForEmail, findInviteForEmail, listInvitesForEmail } from '#/server/org/service'
 import { os } from '#/server/orpc/implement'
 
+import { WorkerRequest } from '#/server/effect/services/request'
+import { sendInviteAcceptedEmail } from '#/server/org/invite-email'
+import { clientIp } from '#/server/rate-limit/limiter'
+
 import { requireInvitee, type InviteGuardFailure } from './invite-guard'
 import { Profile } from './profile'
 
@@ -78,6 +82,8 @@ export const accountController = {
       action: 'member.joined',
       target: { type: 'member', id: session.session.user.id, label: session.session.user.name || session.session.user.email },
     })
+    const request = yield* WorkerRequest
+    yield* sendInviteAcceptedEmail({ inviteId: input.params.inviteId, memberUserId: session.session.user.id, ip: clientIp(request) })
     return toMembershipDto(org, member)
   }),
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import {
   Body,
   Container,
@@ -113,11 +113,23 @@ export function EmailButton({
   );
 }
 
-export function DetailRow({ label, value }: { label: string; value: string }) {
+export function DetailRow({ label, value, isLast = false }: { label: string; value: string; isLast?: boolean }) {
   return (
-    <Section style={styles.detailRow}>
+    <Section style={isLast ? { ...styles.detailRow, borderBottom: "none" } : styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{value}</Text>
+    </Section>
+  );
+}
+
+/** Detail rows in one box with slightly rounded corners. */
+export function DetailTable({ children }: { children: ReactNode }) {
+  const rows = Children.toArray(children).filter(isValidElement)
+  return (
+    <Section style={styles.detailTable}>
+      {rows.map((row, index) =>
+        cloneElement(row as ReactElement<{ isLast?: boolean }>, { isLast: index === rows.length - 1 }),
+      )}
     </Section>
   );
 }
@@ -193,6 +205,13 @@ const styles = {
     margin: "8px 0 16px",
     padding: "12px 18px",
     textDecoration: "none",
+  },
+  detailTable: {
+    border: `1px solid ${colors.border}`,
+    borderCollapse: "separate" as const,
+    borderRadius: "8px",
+    margin: "24px 0",
+    overflow: "hidden",
   },
   detailRow: {
     backgroundColor: colors.accentSoft,

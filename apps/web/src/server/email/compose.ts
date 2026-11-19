@@ -1,8 +1,8 @@
 import type { OpenLinkDb } from '@openlink/db'
-import { organization, organizationInvite, user, verification } from '@openlink/db/schema'
+import { organization, organizationInvite, organizationMember, user, verification } from '@openlink/db/schema'
 import type { EmailMessage } from '@openlink/email'
 import { createEmailVerificationToken } from 'better-auth/api'
-import { and, desc, eq, gt, like } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, like } from 'drizzle-orm'
 
 import type { WorkerBindings } from '../env'
 import type { EmailEvent } from './events'
@@ -20,7 +20,16 @@ const RESET_CALLBACK = '/reset-password'
 export type ComposedEmail = { to: string; message: EmailMessage }
 
 /** Why an event became no email. Logged; never an error, since nothing is wrong. */
-export type SkipReason = 'user_deleted' | 'already_verified' | 'no_reset_token' | 'invite_gone' | 'invite_accepted' | 'invite_expired'
+export type SkipReason =
+  | 'user_deleted'
+  | 'already_verified'
+  | 'no_reset_token'
+  | 'invite_gone'
+  | 'invite_accepted'
+  | 'invite_expired'
+  /** Accepted-invite notices: no person sent it (an API key), they are gone or left, or the joiner left. */
+  | 'no_inviter'
+  | 'member_gone'
 
 type Env = Pick<WorkerBindings, 'BETTER_AUTH_URL' | 'BETTER_AUTH_SECRET'>
 
@@ -86,6 +95,8 @@ export async function composeEmail(db: OpenLinkDb, env: Env, event: EmailEvent, 
     }
   }
 
+  if (event.type === 'invite-accepted') return composeInviteAccepted(db, env, event)
+
   const person = await findUser(db, event.userId)
   if (!person) return 'user_deleted'
   const name = greeting(person)
@@ -127,5 +138,53 @@ export async function composeEmail(db: OpenLinkDb, env: Env, event: EmailEvent, 
           },
         }),
       }
+  }
+}
+
+/**
+ * "Ada joined Acme", to whoever sent the invite. Only while the invite was really accepted
+ * by that person, the inviter is still in the workspace, and the new member still is too.
+ */
+async function composeInviteAccepted(
+  db: OpenLinkDb,
+  env: Env,
+  event: Extract<EmailEvent, { type: 'invite-accepted' }>,
+): Promise<ComposedEmail | SkipReason> {
+  const [invite] = await db
+    .select({ organizationId: organizationInvite.organizationId, inviterId: organizationInvite.createdByUserId, acceptedAt: organizationInvite.acceptedAt })
+    .from(organizationInvite)
+    .where(eq(organizationInvite.id, event.inviteId))
+    .limit(1)
+  if (!invite?.organizationId || !invite.acceptedAt) return 'invite_gone'
+  if (!invite.inviterId || invite.inviterId === event.memberUserId) return 'no_inviter'
+  const organizationId = invite.organizationId
+
+  const memberships = await db
+    .select({ userId: organizationMember.userId, role: organizationMember.role })
+    .from(organizationMember)
+    .where(and(eq(organizationMember.organizationId, organizationId), inArray(organizationMember.userId, [invite.inviterId, event.memberUserId])))
+  const joined = memberships.find((row) => row.userId === event.memberUserId)
+  if (!joined) return 'member_gone'
+  if (!memberships.some((row) => row.userId === invite.inviterId)) return 'no_inviter'
+
+  const [inviter, member, [workspace]] = await Promise.all([
+    findUser(db, invite.inviterId),
+    findUser(db, event.memberUserId),
+    db.select({ name: organization.name, slug: organization.slug }).from(organization).where(eq(organization.id, organizationId)).limit(1),
+  ])
+  if (!inviter) return 'no_inviter'
+  if (!member || !workspace) return 'member_gone'
+  return {
+    to: inviter.email,
+    message: brandEmail(env, {
+      template: 'member-joined',
+      props: {
+        recipientName: inviter.name?.trim() || undefined,
+        memberName: greeting(member),
+        workspaceName: workspace.name,
+        role: EmailFormat.role(joined.role),
+        workspaceUrl: new URL(`/w/${workspace.slug}`, env.BETTER_AUTH_URL).toString(),
+      },
+    }),
   }
 }
