@@ -3,6 +3,9 @@ import type { ReactElement } from "react";
 import EmailVerificationEmail, {
   type EmailVerificationEmailProps,
 } from "../emails/email-verification";
+import MemberJoinedEmail, {
+  type MemberJoinedEmailProps,
+} from "../emails/member-joined";
 import PasswordResetEmail, {
   type PasswordResetEmailProps,
 } from "../emails/password-reset";
@@ -20,7 +23,8 @@ export type EmailMessage =
   | { template: "workspace-invite"; props: WorkspaceInviteEmailProps }
   | { template: "email-verification"; props: EmailVerificationEmailProps }
   | { template: "password-reset"; props: PasswordResetEmailProps }
-  | { template: "security-alert"; props: SecurityAlertEmailProps };
+  | { template: "security-alert"; props: SecurityAlertEmailProps }
+  | { template: "member-joined"; props: MemberJoinedEmailProps };
 
 export type EmailTemplateName = EmailMessage["template"];
 
@@ -42,6 +46,8 @@ function subjectFor(message: EmailMessage): string {
       return "Reset your OpenLink password";
     case "security-alert":
       return `Security alert: ${message.props.event}`;
+    case "member-joined":
+      return `${message.props.memberName} joined ${message.props.workspaceName}`;
   }
 }
 
@@ -57,6 +63,8 @@ function elementFor(message: EmailMessage): ReactElement {
       return <PasswordResetEmail {...message.props} />;
     case "security-alert":
       return <SecurityAlertEmail {...message.props} />;
+    case "member-joined":
+      return <MemberJoinedEmail {...message.props} />;
   }
 }
 

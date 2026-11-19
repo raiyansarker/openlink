@@ -8,6 +8,8 @@ export { default as PasswordResetEmail } from "../emails/password-reset";
 export type { PasswordResetEmailProps } from "../emails/password-reset";
 export { default as SecurityAlertEmail } from "../emails/security-alert";
 export type { SecurityAlertEmailProps } from "../emails/security-alert";
+export { default as MemberJoinedEmail } from "../emails/member-joined";
+export type { MemberJoinedEmailProps } from "../emails/member-joined";
 export type { EmailLayoutProps } from "./email-ui";
 export { renderEmail } from "./render";
 export type {

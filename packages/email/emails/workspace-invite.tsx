@@ -1,10 +1,11 @@
-import { Section, Text } from "@react-email/components";
+import { Text } from "@react-email/components";
 import {
   EmailButton,
   EmailHeading,
   EmailLayout,
   emailStyles,
   DetailRow,
+  DetailTable,
 } from "../src/email-ui";
 
 export type WorkspaceInviteEmailProps = {
@@ -59,17 +60,13 @@ export default function WorkspaceInviteEmail(
         {inviterName} invited you to collaborate in OpenLink. You’ll be able to
         create and manage short links with the rest of the workspace.
       </Text>
-      <Section style={{ margin: "24px 0" }}>
+      <DetailTable>
         <DetailRow label="Workspace" value={workspaceName} />
         <DetailRow label="Invited by" value={inviterName} />
         <DetailRow label="Your role" value={role} />
         <DetailRow label="Expires" value={expiresAt} />
-      </Section>
+      </DetailTable>
       <EmailButton href={inviteUrl}>Accept invitation</EmailButton>
-      <Text style={emailStyles.mutedText}>
-        If the button doesn’t work, copy this link into your browser:{" "}
-        {inviteUrl}
-      </Text>
     </EmailLayout>
   );
 }

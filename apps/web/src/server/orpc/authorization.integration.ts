@@ -149,6 +149,8 @@ mock.module('#/server/apikeys/service', () => ({
 }))
 const updateProfile = mock((_userId: string, _input: unknown) => Effect.succeed({ name: 'User', imageUrl: '/api/media/avatars/user-1/new.webp' as string | null }))
 mock.module('#/server/account/profile', () => ({ Profile: { update: updateProfile } }))
+const sendInviteAcceptedEmail = mock((_input: unknown) => Effect.void)
+mock.module('#/server/org/invite-email', () => ({ sendInviteEmail: () => Effect.void, sendInviteAcceptedEmail }))
 // The verified-email check and per-user limit are covered in invite-guard.test.ts.
 mock.module('#/server/account/invite-guard', async () => {
   const { requireAuthSession } = await import('#/server/effect/session')
@@ -975,6 +977,7 @@ describe('your invites', () => {
     const response = await request('POST', '/me/invites/invite-9/accept')
     expect(response.status).toBe(200)
     expect(acceptInviteById).toHaveBeenCalledWith({ inviteId: 'invite-9', userId: 'user-1', userEmail: 'user@example.com' })
+    expect(sendInviteAcceptedEmail).toHaveBeenCalledWith({ inviteId: 'invite-9', memberUserId: 'user-1', ip: null })
     expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ organizationId: 'org-other', action: 'member.joined' }))
   })
 

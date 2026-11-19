@@ -19,6 +19,8 @@ const PER_RECIPIENT: Record<EmailTemplateName, RateRule[]> = {
   'security-alert': rules([MINUTE, 1], [DAY, 5]),
   'workspace-invite': rules([MINUTE, 1], [HOUR, 3], [DAY, 6]),
   welcome: rules([DAY, 1]),
+  // An inviter adding a team hears about each join, but not more than a few an hour.
+  'member-joined': rules([HOUR, 5], [DAY, 20]),
 }
 
 /** Any template, per recipient: one address cannot be flooded by mixing email types. */

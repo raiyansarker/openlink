@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { organization, organizationInvite, user, verification } from '@openlink/db/schema'
+import { organization, organizationInvite, organizationMember, user, verification } from '@openlink/db/schema'
+import { eq } from 'drizzle-orm'
 import { createTestDatabase } from '../testing/sqlite'
 import { composeEmail, type ComposedEmail } from './compose'
 
@@ -75,5 +76,33 @@ describe('composeEmail', () => {
     expect(await composeEmail(db, env, { type: 'workspace-invite', inviteId: 'i2', inviterUserId: 'u1' }, NOW)).toBe('invite_accepted')
     expect(await composeEmail(db, env, { type: 'workspace-invite', inviteId: 'i3', inviterUserId: 'u1' }, NOW)).toBe('invite_expired')
     expect(await composeEmail(db, env, { type: 'workspace-invite', inviteId: 'revoked', inviterUserId: 'u1' }, NOW)).toBe('invite_gone')
+  })
+
+  test('invite accepted: tells the inviter, while both are still in the workspace', async () => {
+    const db = await setup()
+    await db.insert(user).values({ id: 'u2', name: 'Grace Hopper', email: 'grace@example.com', emailVerified: true, createdAt: NOW, updatedAt: NOW })
+    const invite = { organizationId: 'o1', email: 'grace@example.com', role: 'member' as const, kind: 'member' as const, createdAt: NOW, expiresAt: new Date(NOW.getTime() + HOUR) }
+    await db.insert(organizationInvite).values([
+      { ...invite, id: 'i1', tokenHash: 'h1', createdByUserId: 'u1', acceptedAt: NOW },
+      { ...invite, id: 'i2', tokenHash: 'h2', createdByUserId: null, acceptedAt: NOW },
+      { ...invite, id: 'i3', tokenHash: 'h3', createdByUserId: 'u1' },
+    ])
+    await db.insert(organizationMember).values([
+      { id: 'm1', organizationId: 'o1', userId: 'u1', role: 'owner', joinedAt: NOW },
+      { id: 'm2', organizationId: 'o1', userId: 'u2', role: 'member', joinedAt: NOW },
+    ])
+    const email = await composeEmail(db, env, { type: 'invite-accepted', inviteId: 'i1', memberUserId: 'u2' }, NOW)
+    expect(typeof email !== 'string' && email.to).toBe('ada@example.com')
+    expect(props(email)).toMatchObject({ recipientName: 'Ada', memberName: 'Grace Hopper', workspaceName: 'Acme', role: 'Member', workspaceUrl: 'https://app.example.com/w/acme' })
+    // An API key sent it, or it was never accepted.
+    expect(await composeEmail(db, env, { type: 'invite-accepted', inviteId: 'i2', memberUserId: 'u2' }, NOW)).toBe('no_inviter')
+    expect(await composeEmail(db, env, { type: 'invite-accepted', inviteId: 'i3', memberUserId: 'u2' }, NOW)).toBe('invite_gone')
+    // The new member left before it went out.
+    await db.delete(organizationMember).where(eq(organizationMember.id, 'm2'))
+    expect(await composeEmail(db, env, { type: 'invite-accepted', inviteId: 'i1', memberUserId: 'u2' }, NOW)).toBe('member_gone')
+    // The inviter left.
+    await db.insert(organizationMember).values({ id: 'm3', organizationId: 'o1', userId: 'u2', role: 'member', joinedAt: NOW })
+    await db.delete(organizationMember).where(eq(organizationMember.id, 'm1'))
+    expect(await composeEmail(db, env, { type: 'invite-accepted', inviteId: 'i1', memberUserId: 'u2' }, NOW)).toBe('no_inviter')
   })
 })

@@ -5,6 +5,7 @@ import {
   EmailLayout,
   emailStyles,
   DetailRow,
+  DetailTable,
   colors,
 } from "../src/email-ui";
 
@@ -79,11 +80,11 @@ export default function SecurityAlertEmail(
           {event}
         </Text>
       </Section>
-      <Section style={{ margin: "24px 0" }}>
+      <DetailTable>
         <DetailRow label="Device" value={device} />
         <DetailRow label="Location" value={location} />
         <DetailRow label="Time" value={occurredAt} />
-      </Section>
+      </DetailTable>
       <EmailButton href={securityUrl}>Review account security</EmailButton>
       <Text style={emailStyles.mutedText}>
         You can review active sessions and passkeys from your OpenLink account
