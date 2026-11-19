@@ -1,16 +1,10 @@
 import type { EmailMessage } from '@openlink/email'
 
-/** The body of one message on the email queue. Rendering and sending happen in the consumer. */
-export type EmailJob = {
-  to: string
-  message: EmailMessage
-}
-
 type Branding = 'baseUrl' | 'logoUrl'
 
 /**
- * An email as callers describe it. The app URL and logo are the same for every
- * email, so the queue producer fills them in.
+ * An email as `compose.ts` builds it. The app URL and logo are the same for every
+ * email, so `brandEmail` fills them in.
  */
 export type EmailDraft = EmailMessage extends infer M
   ? M extends EmailMessage
