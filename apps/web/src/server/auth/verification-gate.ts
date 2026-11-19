@@ -11,19 +11,18 @@ const json = (body: unknown, status = 200) =>
 type AuthBody = { email: string | null; next: string | undefined }
 
 /**
- * The address and the post-verification destination from a sign-up or sign-in body. The
- * app asks for `callbackURL: /verify-email?next=/invite/…`; only a same-origin path counts.
+ * Where the app goes once the address is verified, sent by sign-up and sign-in as this
+ * header (an invite page, say). Not Better Auth's `callbackURL`: on sign-in that is also
+ * where a successful sign-in redirects, which would send verified people to /verify-email.
  */
+export const NEXT_HEADER = 'x-openlink-next'
+
+/** The address from a sign-up or sign-in body, and the destination header, if it is a same-origin path. */
 async function readBody(request: Request): Promise<AuthBody> {
-  const body = (await request.clone().json().catch(() => null)) as { email?: unknown; callbackURL?: unknown } | null
+  const body = (await request.clone().json().catch(() => null)) as { email?: unknown } | null
   const email = typeof body?.email === 'string' && body.email.trim() ? body.email.trim().toLowerCase() : null
-  let next: string | undefined
-  if (typeof body?.callbackURL === 'string') {
-    const raw = new URL(body.callbackURL, 'http://openlink.invalid').searchParams.get('next')
-    const safe = LoginRedirect.sanitize(raw, '')
-    next = safe && safe !== LoginRedirect.DEFAULT ? safe : undefined
-  }
-  return { email, next }
+  const safe = LoginRedirect.sanitize(request.headers.get(NEXT_HEADER), '')
+  return { email, next: safe && safe !== LoginRedirect.DEFAULT ? safe : undefined }
 }
 
 const emailFrom = async (request: Request) => (await readBody(request)).email

@@ -24,11 +24,11 @@ function setup() {
     emailVerification: { sendOnSignUp: true, sendVerificationEmail: async ({ user }) => void sent.push(user.email) },
     logger: { disabled: true },
   })
-  const post = (path: string, body: object, cookie?: string) =>
+  const post = (path: string, body: object, cookie?: string, extraHeaders: Record<string, string> = {}) =>
     VerificationGate.around(
       new Request(`http://localhost/api/auth${path}`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', origin: 'http://localhost', ...(cookie ? { cookie } : {}) },
+        headers: { 'content-type': 'application/json', origin: 'http://localhost', ...(cookie ? { cookie } : {}), ...extraHeaders },
         body: JSON.stringify(body),
       }),
       SECRET,
@@ -130,7 +130,7 @@ describe('VerificationGate', () => {
 
   test('a destination asked for at sign-up survives verification, in the same browser', async () => {
     const { post, verify } = setup()
-    const signUp = await post('/sign-up/email', { ...account, callbackURL: '/verify-email?next=%2Finvite%2Fabc' })
+    const signUp = await post('/sign-up/email', account, undefined, { 'x-openlink-next': '/invite/abc' })
     const cookie = pendingCookie(signUp)
     expect((await pendingFrom(cookie))?.next).toBe('/invite/abc')
     const verified = await verify('ada@example.com', cookie)
@@ -139,8 +139,18 @@ describe('VerificationGate', () => {
 
   test('without the cookie, or with an off-site destination, verification lands on the plain page', async () => {
     const { post, verify } = setup()
-    const signUp = await post('/sign-up/email', { ...account, callbackURL: '/verify-email?next=%2F%2Fevil.example' })
+    const signUp = await post('/sign-up/email', account, undefined, { 'x-openlink-next': '//evil.example' })
     expect((await pendingFrom(pendingCookie(signUp)))?.next).toBeUndefined()
     expect((await verify('ada@example.com')).headers.get('location')).toBe('/verify-email')
+  })
+
+  test('a verified sign-in is not redirected anywhere, so the app goes where it was headed', async () => {
+    const { post, verify } = setup()
+    await post('/sign-up/email', account)
+    await verify('ada@example.com')
+    const signIn = await post('/sign-in/email', { email: account.email, password: account.password }, undefined, { 'x-openlink-next': '/invite/abc' })
+    expect(signIn.status).toBe(200)
+    expect(signIn.headers.get('location')).toBeNull()
+    expect(((await signIn.json()) as { redirect?: boolean }).redirect).toBe(false)
   })
 })
