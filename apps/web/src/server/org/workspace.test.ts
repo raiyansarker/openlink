@@ -38,6 +38,33 @@ function setup() {
 
 const image = (bytes: Uint8Array, type = 'image/webp') => new Blob([bytes], { type })
 
+describe('a generated workspace URL', () => {
+  test('is the name as a slug when it is free', async () => {
+    const t = setup()
+    const created = await t.run(createWorkspace({ userId: 'u1', name: "Raiyan's workspace" }))
+    expect(created.slug).toBe('raiyans-workspace')
+  })
+
+  test('gets a random suffix when the plain one is taken, every time', async () => {
+    const t = setup()
+    const first = await t.run(createWorkspace({ userId: 'u1', name: 'Acme' }))
+    const second = await t.run(createWorkspace({ userId: 'u1', name: 'Acme' }))
+    expect(first.slug).toMatch(/^acme-[a-z0-9]{5}$/)
+    expect(second.slug).toMatch(/^acme-[a-z0-9]{5}$/)
+    expect(second.slug).not.toBe(first.slug)
+  })
+
+  test('a name with no usable letters becomes "workspace"', async () => {
+    const t = setup()
+    expect((await t.run(createWorkspace({ userId: 'u1', name: '📎' }))).slug).toBe('workspace')
+  })
+
+  test('a chosen slug that is taken is a conflict, not a generated one', async () => {
+    const t = setup()
+    expect(await t.flip(createWorkspace({ userId: 'u1', name: 'Acme', slug: 'acme' }))).toMatchObject({ _tag: 'OrganizationConflict' })
+  })
+})
+
 describe('creating a workspace with its logo', () => {
   test('stores the image and saves its key on the new workspace, with its owner', async () => {
     const t = setup()

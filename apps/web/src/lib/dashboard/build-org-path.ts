@@ -1,7 +1,6 @@
 export type DashboardSection =
   | 'overview'
   | 'activity'
-  | 'notifications'
   | 'links'
   | 'analytics'
   | 'domains'
@@ -10,7 +9,6 @@ export type DashboardSection =
 const sectionSegment: Record<DashboardSection, string | null> = {
   overview: null,
   activity: 'activity',
-  notifications: 'notifications',
   links: 'links',
   analytics: 'analytics',
   domains: 'domains',

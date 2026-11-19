@@ -9,6 +9,7 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import PasswordField from '#/components/common/PasswordField'
 import { AuthSession } from '#/lib/auth/client'
+import { LoginRedirect } from '#/lib/auth/redirect'
 import { AuthErrorMessages } from '#/lib/auth/error-messages'
 import { fieldStatus, requiredEmail, requiredExact, requiredText, submitWith } from '#/lib/forms/fields'
 import AuthShell from './AuthShell'
@@ -44,7 +45,7 @@ export default function SignUpPage({ destination, redirect, oauthError, provider
             name: value.name.trim(),
             email,
             password: value.password,
-            callbackURL: '/verify-email',
+            callbackURL: LoginRedirect.verifyCallback(destination),
           })
           if (error) return AuthErrorMessages.emailSignUp(error)
           // Email accounts have no session until the address is verified.

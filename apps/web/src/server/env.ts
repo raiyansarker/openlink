@@ -31,8 +31,6 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   GOOGLE_CLIENT_SECRET?: string
   GITHUB_CLIENT_ID?: string
   GITHUB_CLIENT_SECRET?: string
-  /** When `"true"`, create-invite responses include the raw token (local dev only). */
-  EXPOSE_INVITE_TOKENS_IN_API?: string
 }
 
 export function getBindings(): WorkerBindings {

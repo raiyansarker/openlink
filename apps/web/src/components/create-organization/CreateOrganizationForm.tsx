@@ -29,6 +29,9 @@ const CreateOrganizationSchema = type({
   ),
 })
 
+/** Onboarding asks only for a name; the server picks a unique URL from it. */
+const OnboardingSchema = type({ name: requiredText('Enter a workspace name.'), slug: 'string' })
+
 function MutedCaption({ children }: { children: ReactNode }) {
   return (
     <Text type="supporting" color="secondary">
@@ -72,11 +75,16 @@ function FormBlock({
 }
 
 type CreateOrganizationFormProps = {
-  /** `onboarding` is the first workspace after sign-up: different copy and no way back. */
+  /**
+   * `onboarding` is the first workspace after sign-up: different copy, no way back, a
+   * prefilled name ("Raiyan's workspace") and no URL field, since the server picks one.
+   */
   variant?: 'create' | 'onboarding'
+  /** The starting name, for onboarding. */
+  defaultName?: string
 }
 
-export default function CreateOrganizationForm({ variant = 'create' }: CreateOrganizationFormProps) {
+export default function CreateOrganizationForm({ variant = 'create', defaultName = '' }: CreateOrganizationFormProps) {
   const isOnboarding = variant === 'onboarding'
   const { createOrganization } = useWorkspaceDirectory()
   const navigate = useNavigate()
@@ -89,15 +97,15 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   const form = useForm({
-    defaultValues: { name: '', slug: '' },
+    defaultValues: { name: defaultName, slug: '' },
     validators: {
-      onSubmit: CreateOrganizationSchema,
+      onSubmit: variant === 'onboarding' ? OnboardingSchema : CreateOrganizationSchema,
       onSubmitAsync: async ({ value }) => {
         try {
           // Name, URL and logo go in one request: the workspace exists with all of them, or not at all.
           const { organization: org } = await createOrganization({
             name: value.name,
-            slug: value.slug,
+            ...(isOnboarding ? {} : { slug: value.slug }),
             logo: pendingIconFile.current,
           })
           ActiveWorkspace.remember(org.slug)
@@ -221,7 +229,11 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
 
         <FormBlock
           title="Workspace"
-          description="The name is shown across the dashboard. The slug appears in URLs."
+          description={
+            isOnboarding
+              ? 'The name is shown across the dashboard. You can change it, and its URL, later in settings.'
+              : 'The name is shown across the dashboard. The slug appears in URLs.'
+          }
         >
           <Grid columns={2} gap={4} width="100%">
             <GridSpan columns="full">
@@ -243,25 +255,27 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
                 )}
               </form.Field>
             </GridSpan>
-            <GridSpan columns="full">
-              <form.Field name="slug">
-                {(field) => (
-                  <TextInput
-                    label="Slug"
-                    width="100%"
-                    placeholder={SLUG_PLACEHOLDER}
-                    value={field.state.value}
-                    onChange={(value) => {
-                      slugEdited.current = true
-                      field.handleChange(slugifyOrganizationSlug(value))
-                    }}
-                    description={`Your workspace URL: /w/${field.state.value.trim() || SLUG_PLACEHOLDER}`}
-                    status={fieldStatus(field.state.meta.errors)}
-                    isRequired
-                  />
-                )}
-              </form.Field>
-            </GridSpan>
+            {isOnboarding ? null : (
+              <GridSpan columns="full">
+                <form.Field name="slug">
+                  {(field) => (
+                    <TextInput
+                      label="Slug"
+                      width="100%"
+                      placeholder={SLUG_PLACEHOLDER}
+                      value={field.state.value}
+                      onChange={(value) => {
+                        slugEdited.current = true
+                        field.handleChange(slugifyOrganizationSlug(value))
+                      }}
+                      description={`Your workspace URL: /w/${field.state.value.trim() || SLUG_PLACEHOLDER}`}
+                      status={fieldStatus(field.state.meta.errors)}
+                      isRequired
+                    />
+                  )}
+                </form.Field>
+              </GridSpan>
+            )}
           </Grid>
         </FormBlock>
 
@@ -284,13 +298,15 @@ export default function CreateOrganizationForm({ variant = 'create' }: CreateOrg
               onClick={() => void navigate({ to: '/w' })}
             />
           )}
-          <form.Subscribe selector={(state) => [state.isSubmitting, state.values.name.trim() !== '' && state.values.slug.trim() !== ''] as const}>
+          <form.Subscribe
+            selector={(state) => [state.isSubmitting, state.values.name.trim() !== '' && (isOnboarding || state.values.slug.trim() !== '')] as const}
+          >
             {([isSubmitting, isFilled]) => (
               <Button
                 variant={isOnboarding ? 'primary' : 'secondary'}
                 size="sm"
                 type="submit"
-                label={isSubmitting ? 'Creating…' : isOnboarding ? 'Continue' : 'Create organization'}
+                label={isSubmitting ? 'Creating…' : isOnboarding ? 'Create workspace' : 'Create organization'}
                 isDisabled={isSubmitting || !isFilled}
               />
             )}

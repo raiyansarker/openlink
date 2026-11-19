@@ -28,7 +28,8 @@ export const OrganizationLogo = type.instanceOf(Blob)
 
 export const CreateOrganizationRequest = type({
   name: 'string',
-  slug: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+  /** The workspace URL. Left out, one is generated from the name and made unique. */
+  'slug?': /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
   /** Stored with the workspace in the same request; a bad image creates nothing. */
   'logo?': OrganizationLogo,
 })
@@ -38,17 +39,12 @@ export const CreateOrganizationInviteRequest = type({
   role: OrganizationInviteRole,
 })
 
-export const AcceptInviteRequest = type({
-  token: 'string',
-})
-
 export const OrganizationInvite = type({
   id: 'string',
   organizationId: 'string',
   email: Email,
   role: OrganizationInviteRole,
   expiresAt: 'string',
-  'token?': 'string',
 })
 
 export const OrganizationIdPath = type({ organizationId: 'string' })

@@ -4,10 +4,14 @@ import { toDeviceSessionDto, toMembershipDto, toMyInviteDto } from '#/server/api
 import { requireAuthSession } from '#/server/effect/session'
 import { audit } from '#/server/activity/audit'
 import { DeviceSessions } from '#/server/devices/sessions'
-import { acceptInviteById, declineInviteForEmail, listInvitesForEmail } from '#/server/org/service'
+import { acceptInviteById, declineInviteForEmail, findInviteForEmail, listInvitesForEmail } from '#/server/org/service'
 import { os } from '#/server/orpc/implement'
 
+import { requireInvitee, type InviteGuardFailure } from './invite-guard'
 import { Profile } from './profile'
+
+/** Not yours, gone, expired or unverified: one answer for all, so invite ids can't be probed. */
+const INVITE_UNAVAILABLE = 'This invite is no longer available'
 
 export const accountController = {
   // Cookie sessions only: an API key is not a device and must not sign people out.
@@ -49,16 +53,25 @@ export const accountController = {
     return { items: rows.map(toMyInviteDto) }
   }),
 
+  getMyInvite: os.account.getMyInvite.effect(function* ({ input, errors }) {
+    const guard = yield* requireInvitee
+    if (!guard.ok) return yield* Effect.fail(inviteGuardError(errors, guard.failure))
+    const found = yield* findInviteForEmail({ inviteId: input.params.inviteId, email: guard.session.session.user.email })
+    if (!found) return yield* Effect.fail(errors.NOT_FOUND({ message: INVITE_UNAVAILABLE }))
+    return found.status === 'accepted' ? { status: 'accepted' as const } : { status: 'pending' as const, invite: toMyInviteDto(found.row) }
+  }),
+
   acceptMyInvite: os.account.acceptMyInvite.effect(function* ({ input, errors }) {
-    const session = yield* requireAuthSession
+    const guard = yield* requireInvitee
+    if (!guard.ok) return yield* Effect.fail(inviteGuardError(errors, guard.failure))
+    const session = guard.session
     const { org, member } = yield* acceptInviteById({
       inviteId: input.params.inviteId,
       userId: session.session.user.id,
       userEmail: session.session.user.email,
     }).pipe(Effect.catchTags({
-      // Not yours, gone or expired: all look the same, so ids can't be probed.
-      InviteEmailMismatch: () => Effect.fail(errors.NOT_FOUND({ message: 'This invite is no longer available' })),
-      InvalidInvite: () => Effect.fail(errors.NOT_FOUND({ message: 'This invite is no longer available' })),
+      InviteEmailMismatch: () => Effect.fail(errors.NOT_FOUND({ message: INVITE_UNAVAILABLE })),
+      InvalidInvite: () => Effect.fail(errors.NOT_FOUND({ message: INVITE_UNAVAILABLE })),
     }))
     yield* audit(session, {
       organizationId: org.id,
@@ -69,9 +82,11 @@ export const accountController = {
   }),
 
   declineMyInvite: os.account.declineMyInvite.effect(function* ({ input, errors }) {
-    const session = yield* requireAuthSession
+    const guard = yield* requireInvitee
+    if (!guard.ok) return yield* Effect.fail(inviteGuardError(errors, guard.failure))
+    const session = guard.session
     const declined = yield* declineInviteForEmail({ inviteId: input.params.inviteId, userEmail: session.session.user.email }).pipe(
-      Effect.catchTags({ InvalidInvite: () => Effect.fail(errors.NOT_FOUND({ message: 'This invite is no longer available' })) }),
+      Effect.catchTags({ InvalidInvite: () => Effect.fail(errors.NOT_FOUND({ message: INVITE_UNAVAILABLE })) }),
     )
     yield* audit(session, {
       organizationId: declined.organizationId,
@@ -92,4 +107,13 @@ export const accountController = {
     )
     return { name: profile.name, ...(profile.imageUrl ? { imageUrl: profile.imageUrl } : {}) }
   }),
+}
+
+function inviteGuardError(
+  errors: { NOT_FOUND: (options: { message: string }) => unknown; TOO_MANY_REQUESTS: (options: { message: string }) => unknown },
+  failure: InviteGuardFailure,
+) {
+  return failure === 'rate_limited'
+    ? errors.TOO_MANY_REQUESTS({ message: 'Too many requests. Try again in a minute.' })
+    : errors.NOT_FOUND({ message: INVITE_UNAVAILABLE })
 }

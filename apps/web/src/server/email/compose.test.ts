@@ -69,7 +69,7 @@ describe('composeEmail', () => {
     ])
     const email = await composeEmail(db, env, { type: 'workspace-invite', inviteId: 'i1', inviterUserId: 'u1' }, NOW)
     expect(typeof email !== 'string' && email.to).toBe('grace@example.com')
-    expect(props(email)).toMatchObject({ workspaceName: 'Acme', inviterName: 'Ada', inviteUrl: 'https://app.example.com/dashboard' })
+    expect(props(email)).toMatchObject({ workspaceName: 'Acme', inviterName: 'Ada', inviteUrl: 'https://app.example.com/invite/i1' })
     // An API key (or a deleted inviter) is named as the workspace team.
     expect(props(await composeEmail(db, env, { type: 'workspace-invite', inviteId: 'i1', inviterUserId: null }, NOW)).inviterName).toBe('The Acme team')
     expect(await composeEmail(db, env, { type: 'workspace-invite', inviteId: 'i2', inviterUserId: 'u1' }, NOW)).toBe('invite_accepted')

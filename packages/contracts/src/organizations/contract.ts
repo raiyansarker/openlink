@@ -3,7 +3,6 @@ import { type } from 'arktype'
 import { oc, openapi } from '../oc'
 import { EmptyResponse } from '../system/schema'
 import {
-  AcceptInviteRequest,
   CreateOrganizationInviteRequest,
   CreateOrganizationRequest,
   InviteIdPath,
@@ -14,7 +13,6 @@ import {
   Organization,
   OrganizationIdPath,
   OrganizationInvite,
-  OrganizationMembership,
   TransferOwnershipRequest,
   UpdateMemberRoleRequest,
   UpdateOrganizationRequest,
@@ -46,19 +44,6 @@ export const createOrganization = oc
   )
   .input(type({ body: CreateOrganizationRequest }))
   .output(Organization)
-
-export const acceptOrganizationInvite = oc
-  .meta(
-    openapi({
-      method: 'POST',
-      operationId: 'acceptOrganizationInvite',
-      path: '/organizations/invites/accept',
-      inputStructure: 'detailed',
-      tags: ['Organizations'],
-    }),
-  )
-  .input(type({ body: AcceptInviteRequest }))
-  .output(OrganizationMembership)
 
 export const getOrganization = oc
   .meta(
@@ -177,7 +162,6 @@ export const revokeOrganizationInvite = orgOp(
 export const contract = {
   listOrganizations,
   createOrganization,
-  acceptOrganizationInvite,
   getOrganization,
   updateOrganization,
   deleteOrganization,

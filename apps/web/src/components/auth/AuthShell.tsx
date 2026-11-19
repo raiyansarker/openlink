@@ -11,8 +11,8 @@ import OpenLinkAppMark from '#/components/dashboard/icons/OpenLinkAppMark'
 type AuthShellProps = {
   heading: string
   subheading: string
-  /** The other page: "Sign up" on sign-in, "Log in" on sign-up. */
-  switchTo: { prompt: string; label: string; to: '/login' | '/signup'; redirect?: string }
+  /** The other page: "Sign up" on sign-in, "Log in" on sign-up. Left out on pages for signed-in people. */
+  switchTo?: { prompt: string; label: string; to: '/login' | '/signup'; redirect?: string }
   /** Optional artwork shown above the heading (status pages). */
   illustration?: ReactNode
   children: ReactNode
@@ -25,8 +25,8 @@ type AuthShellProps = {
  */
 export default function AuthShell({ heading, subheading, switchTo, illustration, children }: AuthShellProps) {
   const navigate = useNavigate()
-  const search = switchTo.redirect ? { redirect: switchTo.redirect } : {}
-  const href = switchTo.redirect ? `${switchTo.to}?redirect=${encodeURIComponent(switchTo.redirect)}` : switchTo.to
+  const search = switchTo?.redirect ? { redirect: switchTo.redirect } : {}
+  const href = switchTo ? (switchTo.redirect ? `${switchTo.to}?redirect=${encodeURIComponent(switchTo.redirect)}` : switchTo.to) : ''
   return (
     <VStack
       as="main"
@@ -42,23 +42,25 @@ export default function AuthShell({ heading, subheading, switchTo, illustration,
             OpenLink
           </Text>
         </HStack>
-        <HStack gap={3} vAlign="center">
-          <Text type="supporting" color="secondary">
-            {switchTo.prompt}
-          </Text>
-          <Button
-            variant="secondary"
-            size="sm"
-            label={switchTo.label}
-            href={href}
-            onClick={(event) => {
-              // A real link (new tab, copy), but plain clicks stay in the app.
-              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-              event.preventDefault()
-              void navigate({ to: switchTo.to, search })
-            }}
-          />
-        </HStack>
+        {switchTo ? (
+          <HStack gap={3} vAlign="center">
+            <Text type="supporting" color="secondary">
+              {switchTo.prompt}
+            </Text>
+            <Button
+              variant="secondary"
+              size="sm"
+              label={switchTo.label}
+              href={href}
+              onClick={(event) => {
+                // A real link (new tab, copy), but plain clicks stay in the app.
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                event.preventDefault()
+                void navigate({ to: switchTo.to, search })
+              }}
+            />
+          </HStack>
+        ) : null}
       </HStack>
 
       <Center axis="both" padding={6} style={{ flex: 1 }}>

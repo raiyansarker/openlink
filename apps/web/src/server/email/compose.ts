@@ -78,8 +78,8 @@ export async function composeEmail(db: OpenLinkDb, env: Env, event: EmailEvent, 
           // Keys are not people, and a deleted inviter has no name: name the workspace instead.
           inviterName: inviter?.name?.trim() || `The ${invite.workspace} team`,
           role: EmailFormat.role(invite.role),
-          // The link opens the app; invites are matched by address and shown after sign-in.
-          inviteUrl: new URL('/dashboard', env.BETTER_AUTH_URL).toString(),
+          // The invite's own page. It shows nothing until the invited address signs in.
+          inviteUrl: new URL(`/invite/${encodeURIComponent(event.inviteId)}`, env.BETTER_AUTH_URL).toString(),
           expiresAt: EmailFormat.date(invite.expiresAt),
         },
       }),

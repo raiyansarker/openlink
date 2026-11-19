@@ -145,30 +145,6 @@ export function createMemberInvite(input: {
   })
 }
 
-export function acceptMemberInvite(input: {
-  userId: string
-  userEmail: string
-  token: string
-}) {
-  return Effect.gen(function* () {
-    const db = yield* Db
-    const [invite] = yield* operation('org.findMemberInvite', () =>
-      db
-        .select()
-        .from(organizationInvite)
-        .where(
-          and(
-            eq(organizationInvite.tokenHash, hashInviteToken(input.token)),
-            eq(organizationInvite.kind, 'member'),
-            isNull(organizationInvite.acceptedAt),
-          ),
-        )
-        .limit(1),
-    )
-    return yield* joinFromInvite(invite, input)
-  })
-}
-
 /** Accepts an invite from the invitee's inbox, where they see its id and not its token. */
 export function acceptInviteById(input: { inviteId: string; userId: string; userEmail: string }) {
   return Effect.gen(function* () {
@@ -225,13 +201,51 @@ export function listInvitesForEmail(email: string) {
   })
 }
 
+/**
+ * One invite, only for the address it was sent to: `pending` with what the invitee sees,
+ * `accepted` once used, or null for anything else (someone else's, revoked, declined,
+ * expired or unknown), so a caller cannot tell those apart.
+ */
+export function findInviteForEmail(input: { inviteId: string; email: string }) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const now = new Date()
+    const [row] = yield* operation('org.findInviteForEmail', () =>
+      db
+        .select({
+          id: organizationInvite.id,
+          email: organizationInvite.email,
+          role: organizationInvite.role,
+          expiresAt: organizationInvite.expiresAt,
+          acceptedAt: organizationInvite.acceptedAt,
+          createdAt: organizationInvite.createdAt,
+          organizationId: organization.id,
+          organizationName: organization.name,
+          organizationSlug: organization.slug,
+          organizationLogoKey: organization.logoKey,
+          invitedByName: user.name,
+          invitedByImage: user.image,
+        })
+        .from(organizationInvite)
+        .innerJoin(organization, eq(organization.id, organizationInvite.organizationId))
+        .leftJoin(user, eq(user.id, organizationInvite.createdByUserId))
+        .where(and(eq(organizationInvite.id, input.inviteId), eq(organizationInvite.kind, 'member')))
+        .limit(1),
+    )
+    if (!row || !inviteEmailMatches(row.email, input.email)) return null
+    if (row.acceptedAt) return { status: 'accepted' as const }
+    if (row.expiresAt <= now) return null
+    return { status: 'pending' as const, row }
+  })
+}
+
 /** The invitee turns an invite down: it is removed, as if revoked. */
 export function declineInviteForEmail(input: { inviteId: string; userEmail: string }) {
   return Effect.gen(function* () {
     const db = yield* Db
     const [invite] = yield* operation('org.findInviteToDecline', () =>
       db
-        .select({ id: organizationInvite.id, email: organizationInvite.email, organizationId: organizationInvite.organizationId })
+        .select({ id: organizationInvite.id, email: organizationInvite.email, organizationId: organizationInvite.organizationId, expiresAt: organizationInvite.expiresAt })
         .from(organizationInvite)
         .where(
           and(
@@ -242,8 +256,8 @@ export function declineInviteForEmail(input: { inviteId: string; userEmail: stri
         )
         .limit(1),
     )
-    // Someone else's invite looks the same as a missing one.
-    if (!invite || !invite.organizationId || !inviteEmailMatches(invite.email, input.userEmail)) {
+    // Someone else's invite, or an expired one, looks the same as a missing one.
+    if (!invite || !invite.organizationId || invite.expiresAt <= new Date() || !inviteEmailMatches(invite.email, input.userEmail)) {
       return yield* Effect.fail(new InvalidInvite())
     }
     yield* operation('org.declineInvite', () => db.delete(organizationInvite).where(eq(organizationInvite.id, invite.id)))

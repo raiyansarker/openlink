@@ -26,4 +26,13 @@ export class LoginRedirect {
     if (url.pathname === '/login' || url.pathname === '/signup' || url.pathname.startsWith('/api/')) return fallback
     return value
   }
+
+  /**
+   * The `callbackURL` sign-up and sign-in send: the verification page, carrying where to
+   * go once verified when that is not the default (an invite page, say).
+   */
+  static verifyCallback(destination: string): string {
+    const next = LoginRedirect.sanitize(destination)
+    return next === LoginRedirect.DEFAULT ? '/verify-email' : `/verify-email?next=${encodeURIComponent(next)}`
+  }
 }

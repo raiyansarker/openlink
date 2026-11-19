@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import * as schema from '@openlink/db/schema'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { createEmailVerificationToken } from 'better-auth/api'
 import { createTestDatabase } from '../testing/sqlite'
 import { PENDING_VERIFICATION_COOKIE, PendingVerifications } from './pending-verification'
 import { VerificationGate } from './verification-gate'
@@ -33,7 +34,15 @@ function setup() {
       SECRET,
       (request) => auth.handler(request),
     )
-  return { sent, post }
+  const verify = async (email: string, cookie?: string) => {
+    const token = await createEmailVerificationToken(SECRET, email, undefined, 3600)
+    return VerificationGate.around(
+      new Request(`http://localhost/api/auth/verify-email?token=${token}&callbackURL=%2Fverify-email`, { headers: cookie ? { cookie } : {} }),
+      SECRET,
+      (request) => auth.handler(request),
+    )
+  }
+  return { sent, post, verify }
 }
 
 /** The `name=value` pair of the pending-verification cookie a response set, if any. */
@@ -117,5 +126,21 @@ describe('VerificationGate', () => {
     const forged = `${btoa(JSON.stringify({ email: 'grace@example.com', sentAt: 1, expiresAt: Date.now() + 1e6 })).replace(/=+$/, '')}.${signature}`
     expect(await PendingVerifications.open(SECRET, new Request('http://x', { headers: { cookie: `${PENDING_VERIFICATION_COOKIE}=${forged}` } }))).toBeNull()
     expect(await PendingVerifications.open('another-secret', new Request('http://x', { headers: { cookie: `${PENDING_VERIFICATION_COOKIE}=${payload}.${signature}` } }))).toBeNull()
+  })
+
+  test('a destination asked for at sign-up survives verification, in the same browser', async () => {
+    const { post, verify } = setup()
+    const signUp = await post('/sign-up/email', { ...account, callbackURL: '/verify-email?next=%2Finvite%2Fabc' })
+    const cookie = pendingCookie(signUp)
+    expect((await pendingFrom(cookie))?.next).toBe('/invite/abc')
+    const verified = await verify('ada@example.com', cookie)
+    expect(verified.headers.get('location')).toBe('/verify-email?next=%2Finvite%2Fabc')
+  })
+
+  test('without the cookie, or with an off-site destination, verification lands on the plain page', async () => {
+    const { post, verify } = setup()
+    const signUp = await post('/sign-up/email', { ...account, callbackURL: '/verify-email?next=%2F%2Fevil.example' })
+    expect((await pendingFrom(pendingCookie(signUp)))?.next).toBeUndefined()
+    expect((await verify('ada@example.com')).headers.get('location')).toBe('/verify-email')
   })
 })

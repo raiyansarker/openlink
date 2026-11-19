@@ -22,6 +22,8 @@ export type PendingVerification = {
   sentAt: number
   /** When the cookie stops counting (epoch ms). */
   expiresAt: number
+  /** Where to go once verified (a same-origin path, e.g. `/invite/…`); absent means the app. */
+  next?: string
 }
 
 const encoder = new TextEncoder()
@@ -59,15 +61,16 @@ export class PendingVerifications {
       if (!valid) return null
       const value = JSON.parse(new TextDecoder().decode(fromBase64url(payload))) as Partial<PendingVerification>
       if (typeof value.email !== 'string' || typeof value.sentAt !== 'number' || typeof value.expiresAt !== 'number') return null
-      return value.expiresAt > now ? { email: value.email, sentAt: value.sentAt, expiresAt: value.expiresAt } : null
+      if (value.expiresAt <= now) return null
+      return { email: value.email, sentAt: value.sentAt, expiresAt: value.expiresAt, ...(typeof value.next === 'string' ? { next: value.next } : {}) }
     } catch {
       return null
     }
   }
 
   /** A fresh value for `email`, valid for an hour from `now`. */
-  static create(email: string, sentAt: number, now = Date.now()): PendingVerification {
-    return { email: email.trim().toLowerCase(), sentAt, expiresAt: now + MAX_AGE_SECONDS * 1000 }
+  static create(email: string, sentAt: number, now = Date.now(), next?: string): PendingVerification {
+    return { email: email.trim().toLowerCase(), sentAt, expiresAt: now + MAX_AGE_SECONDS * 1000, ...(next ? { next } : {}) }
   }
 
   static setCookie(request: Request, sealed: string) {

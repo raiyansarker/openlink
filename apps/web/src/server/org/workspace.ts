@@ -1,9 +1,11 @@
 import { Data, Effect } from 'effect'
 
+import { workspaceSlugBase, withRandomSuffix } from '#/lib/organization/default-workspace'
 import { MediaStore } from '#/server/media/media-store'
 import { MediaUploads } from '#/server/media/uploads'
 
 import { updateOrganization } from './members'
+import { OrganizationConflict } from './errors'
 import { createOrganizationForUser, getOrganizationById } from './service'
 
 /** The workspace was deleted between reading and saving it. */
@@ -13,18 +15,34 @@ class WorkspaceGone extends Data.TaggedError('WorkspaceGone')<{}> {}
 const storeLogo = (organizationId: string, logo: Blob | null | undefined) =>
   logo ? MediaUploads.storeImage('logos', organizationId, logo) : Effect.succeed(null)
 
+/** Generated URLs tried before giving up: the plain one, then random suffixes. */
+const GENERATED_SLUG_ATTEMPTS = 6
+
 /**
  * Create a workspace together with its logo. The image is checked and stored first,
  * because the row holds its key; if the workspace is then not created, the image is
  * deleted again. The caller gets both or neither.
+ *
+ * Without a `slug`, the URL is generated from the name: `raiyans-workspace`, or with a
+ * random suffix (`raiyans-workspace-k3x9q`) when that is taken. The database's unique
+ * index decides, so two people creating workspaces at once never get the same URL.
  */
-export function createWorkspace(input: { userId: string; name: string; slug: string; logo?: Blob | undefined }) {
+export function createWorkspace(input: { userId: string; name: string; slug?: string | undefined; logo?: Blob | undefined }) {
   return Effect.gen(function* () {
     const id = crypto.randomUUID()
     const logoKey = yield* storeLogo(id, input.logo)
-    return yield* createOrganizationForUser({ id, userId: input.userId, name: input.name, slug: input.slug, logoKey }).pipe(
-      Effect.onError(() => MediaStore.removeQuietly(logoKey)),
-    )
+    const create = (slug: string) => createOrganizationForUser({ id, userId: input.userId, name: input.name, slug, logoKey })
+
+    const attempt = (n: number): ReturnType<typeof create> => {
+      if (input.slug) return create(input.slug)
+      const base = workspaceSlugBase(input.name)
+      return create(n === 0 ? base : withRandomSuffix(base)).pipe(
+        Effect.catchTag('OrganizationConflict', (conflict) =>
+          n + 1 < GENERATED_SLUG_ATTEMPTS ? attempt(n + 1) : Effect.fail<OrganizationConflict>(conflict),
+        ),
+      )
+    }
+    return yield* attempt(0).pipe(Effect.onError(() => MediaStore.removeQuietly(logoKey)))
   })
 }
 
