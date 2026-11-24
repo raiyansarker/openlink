@@ -46,16 +46,15 @@ const CAPSULE_PAD_PX = 5
  *  it reads as the row's primary action, the way iOS sizes it. */
 const PLUS_CIRCLE_PX = 54
 
-/** The shared chrome surface: solid enough to read as a bar — 88% body
- *  fill at a light blur keeps a trace of frost without thinning any ink
- *  sitting on it. Hairline border and one soft shadow lift it off the
- *  page. */
-const GLASS_STYLE: CSSProperties = {
-  backgroundColor: 'color-mix(in oklab, var(--color-background-body) 88%, transparent)',
-  backdropFilter: 'blur(14px) saturate(1.3)',
-  WebkitBackdropFilter: 'blur(14px) saturate(1.3)',
-  border: '1px solid light-dark(rgba(15, 17, 21, 0.1), rgba(255, 255, 255, 0.14))',
-  boxShadow: '0 10px 28px rgba(0, 0, 0, 0.14)',
+/** The shared chrome surface: opaque, no compositing tricks. Frozen
+ *  glass (backdrop-filter) is how the tab glyphs were disappearing on
+ *  real phones — the blur layer can mask its own subtree on mobile
+ *  renderers — so the bar is now a plain solid surface with a hairline
+ *  border and one soft shadow. It can always paint what sits on it. */
+const NAV_SURFACE_STYLE: CSSProperties = {
+  backgroundColor: 'var(--color-background-surface)',
+  border: '1px solid var(--color-border)',
+  boxShadow: '0 10px 24px rgba(0, 0, 0, 0.12)',
 }
 
 const TABS = [
@@ -80,12 +79,12 @@ type MobileDashboardShellProps = {
  *   ┌────────────────────────────┐
  *   │ Workspace v          [👤]  │  flat switcher → sheet; account menu
  *   ├────────────────────────────┤
- *   │          content            │  full-bleed, scrolls under the glass,
+ *   │          content            │  full-bleed, scrolls under the bar,
  *   │                            │  padded past the floating capsule
  *   │                            │
- *   │  ╭◌ ◌ ◌ ◌ ◌╮         (＋)  │  two pieces of frosted glass: the tab
- *   │  ╰▁ ▁ ▁ ▁ ▁╯               │  capsule (icon + micro label) docks left,
- *   └──┴──────────┴──────────────┘  the matching create circle docks right
+ *   │  ╭◌ ◌ ◌ ◌ ◌ ◌╮        (＋)  │  two solid capsules: the tab strip
+ *   │  ╰▁ ▁ ▁ ▁ ▁▁╯              │  (icon + micro label) docks left, the
+ *   └──┴───────────┴──────────────┘  matching create circle docks right
  *
  * Workspace switching is an iOS bottom sheet opened from the header; the
  * account avatar mirrors it (profile, settings, sign out).
@@ -181,7 +180,7 @@ export default function MobileDashboardShell({
           minHeight: 0,
           overflowY: 'auto',
           // Clears the floating bar (12px offset + 58px of capsule) plus
-          // air, so the last of every page scrolls out from behind the glass.
+          // air, so the last of every page scrolls out from behind it.
           paddingBlockEnd: 'calc(96px + env(safe-area-inset-bottom))',
           borderRadius: 0,
           border: 'none',
@@ -191,11 +190,10 @@ export default function MobileDashboardShell({
         {children}
       </div>
 
-      {/* Floating chrome, the new iOS style: two pieces of frosted glass
-          on one row — a compact capsule holding only the tabs, and a
-          separate create circle beside it. The capsule anchors to the
-          left edge, the circle to the right; content keeps scrolling
-          under the blur. */}
+      {/* Floating chrome, two solid capsules on one row — the tab
+          capsule anchoring the left edge, a separate create circle
+          anchored to the right. The bar floats over content with its
+          own shadow; nothing is blurred behind it. */}
       <div
         style={{
           position: 'absolute',
@@ -206,19 +204,20 @@ export default function MobileDashboardShell({
           display: 'flex',
           flexDirection: 'row',
           alignItems: 'center',
-          // Docked split: tabs hug the left inset, the glass circle hugs
+          // Docked split: tabs hug the left inset, the create circle hugs
           // the right — like the iOS split between navigation and action.
           justifyContent: 'space-between',
-          // The wrapper spans the full inset strip, but only the glass is
-          // tappable — touches on the gaps pass through to the page.
+          // The wrapper spans the full inset strip, but only the capsules
+          // are tappable — touches on the gaps pass through to the page.
           pointerEvents: 'none',
         }}
       >
-        {/* Tab capsule: five fixed slots of icon + micro label. */}
+        {/* Tab capsule: solid strip of five fixed slots, icon + micro
+            label each. */}
         <nav
           aria-label="Sections"
           style={{
-            ...GLASS_STYLE,
+            ...NAV_SURFACE_STYLE,
             position: 'relative',
             display: 'flex',
             flexDirection: 'row',
@@ -283,9 +282,9 @@ export default function MobileDashboardShell({
                 {/* Micro label under the icon: a plain span, NOT the
                     Text component — Text resolves its own StyleX colour
                     and fights the inherit, which rendered the label
-                    invisible over the glass. Explicit inherit makes the
-                    label ride the same ink crossfade as the icon; nowrap
-                    keeps wide words on one line. */}
+                    invisible. Explicit inherit makes the label ride the
+                    same ink crossfade as the icon; nowrap keeps wide
+                    words on one line. */}
                 <span
                   style={{
                     fontSize: 11,
@@ -305,10 +304,10 @@ export default function MobileDashboardShell({
           })}
         </nav>
 
-        {/* Create is its own piece of glass, not a tab: a separate circle
-            docked to the right edge of the row, wearing the exact same
-            glass and ink as the capsule — only the plus glyph marks it
-            as the action. Link writers only. */}
+        {/* Create is not a tab: a separate circle docked to the right
+            edge of the row, wearing the exact same surface and ink as
+            the capsule — only the plus glyph marks it as the action.
+            Link writers only. */}
         {canManageLinks ? (
           <button
             className="ol-focus-ring"
@@ -316,7 +315,7 @@ export default function MobileDashboardShell({
             aria-label="Create link"
             onClick={() => go('/create/link')}
             style={{
-              ...GLASS_STYLE,
+              ...NAV_SURFACE_STYLE,
               // No accent tint: identical fill, hairline and ink as the
               // capsule, so the row reads as one family of chrome.
               flexShrink: 0,
