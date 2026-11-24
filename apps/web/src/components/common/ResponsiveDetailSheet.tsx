@@ -75,10 +75,14 @@ export default function ResponsiveDetailSheet({
             now a plain flex sibling below the scroll (physically pinned)
             and paints NOTHING itself: the hairline is its only chrome, so
             it can never mismatch the sheet's surface. */}
+        {/* height: 100%, not maxHeight — a capped sheet's region is tall,
+            and only a wrapper that FILLS it can push the action bar down
+            to the sheet's bottom edge. */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
+            height: '100%',
             maxHeight: '100%',
           }}
         >

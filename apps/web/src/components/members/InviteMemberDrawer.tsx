@@ -3,6 +3,7 @@ import { useForm } from '@tanstack/react-form'
 import { type } from 'arktype'
 import { Button } from '@astryxdesign/core/Button'
 import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
+import { useIsPhone } from '#/hooks/use-is-phone'
 import { HStack } from '@astryxdesign/core/HStack'
 import {
   SegmentedControl,
@@ -39,6 +40,8 @@ export default function InviteMemberDrawer({
 }: InviteMemberDrawerProps) {
   // Admins may only invite members and viewers; owners may invite admins too.
   const { assignableRoles } = usePermissions()
+  // Phone sheet: scrim, backdrag and Esc cancel — the footer needs only Send.
+  const isPhone = useIsPhone()
   const form = useForm({
     defaultValues: { email: '', role: 'member' as Role },
     validators: {
@@ -72,18 +75,14 @@ export default function InviteMemberDrawer({
       purpose="form"
       hasFooterDivider
       footer={
-        <HStack gap={2} hAlign="end" width="100%" wrap="wrap">
-          <Button
-            variant="ghost"
-            size="sm"
-            label="Cancel"
-            onClick={() => onOpenChange(false)}
-          />
+        isPhone ? (
+          /* Phone: Cancel is gone — the scrim, the backdrag and Escape all
+             dismiss — and the lone primary fills the row, pinned at the
+             sheet's bottom (grid-row: Send invite only). */
           <form.Subscribe selector={(state) => [state.values.email, state.isSubmitting] as const}>
             {([email, isSubmitting]) => (
               <Button
                 variant="primary"
-                size="sm"
                 label="Send invite"
                 isDisabled={!email.trim()}
                 isLoading={isSubmitting}
@@ -91,7 +90,28 @@ export default function InviteMemberDrawer({
               />
             )}
           </form.Subscribe>
-        </HStack>
+        ) : (
+          <HStack gap={2} hAlign="end" width="100%" wrap="wrap">
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Cancel"
+              onClick={() => onOpenChange(false)}
+            />
+            <form.Subscribe selector={(state) => [state.values.email, state.isSubmitting] as const}>
+              {([email, isSubmitting]) => (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  label="Send invite"
+                  isDisabled={!email.trim()}
+                  isLoading={isSubmitting}
+                  onClick={() => void form.handleSubmit()}
+                />
+              )}
+            </form.Subscribe>
+          </HStack>
+        )
       }
     >
       <form
