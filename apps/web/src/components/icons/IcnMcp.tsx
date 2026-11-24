@@ -343,3 +343,14 @@ export function FolderIcon({ size = 16, ...p }: SvgProps) {
     </svg>
   )
 }
+
+/** iconmcp: menu (three bars) */
+export function MenuIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M2.5 4.25 H13.5" />
+      <path d="M2.5 8 H13.5" />
+      <path d="M2.5 11.75 H13.5" />
+    </svg>
+  )
+}

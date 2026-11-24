@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
+import { useMediaQuery } from '@astryxdesign/core/hooks'
 import type { Workspace } from '#/lib/api/types'
 import OrganizationIconRail from './OrganizationIconRail'
 import DashboardNavColumn from './DashboardNavColumn'
+import MobileDashboardNav from './MobileDashboardNav'
 import {
   DASHBOARD_CONTENT_PANEL_BG,
   DASHBOARD_CONTENT_PANEL_BORDER,
@@ -16,34 +18,49 @@ type ThreeColumnDashboardLayoutProps = {
   children: ReactNode
 }
 
+/**
+ * Responsive contract:
+ *   ≥ 768px: three regions — org rail | nav column | content.
+ *   < 768px: one region — content. The app bar + slide-in drawer in
+ *            MobileDashboardNav take the rail's and the nav column's place
+ *            (useMediaQuery swaps them). Tables scroll horizontally inside
+ *            the panel on their own.
+ */
+const IS_PHONE = '(max-width: 767px)'
+
 export default function ThreeColumnDashboardLayout({
   organizations,
   activeOrgSlug,
   children,
 }: ThreeColumnDashboardLayoutProps) {
+  const isPhone = useMediaQuery(IS_PHONE)
+
   return (
     <div
       style={{
         display: 'flex',
+        flexDirection: isPhone ? 'column' : 'row',
         width: '100%',
         height: '100dvh',
         overflow: 'hidden',
         backgroundColor: DASHBOARD_SURFACE_BG,
       }}
     >
-      <OrganizationIconRail
-        organizations={organizations}
-        activeOrgSlug={activeOrgSlug}
-      />
-
-      <DashboardNavColumn />
+      {isPhone ? (
+        <MobileDashboardNav organizations={organizations} activeOrgSlug={activeOrgSlug} />
+      ) : (
+        <>
+          <OrganizationIconRail organizations={organizations} activeOrgSlug={activeOrgSlug} />
+          <DashboardNavColumn />
+        </>
+      )}
 
       <div
         style={{
           flex: 1,
           minWidth: 0,
           height: '100%',
-          padding: 10,
+          padding: isPhone ? 0 : 10,
           paddingLeft: 0,
           boxSizing: 'border-box',
           display: 'flex',
@@ -61,6 +78,7 @@ export default function ThreeColumnDashboardLayout({
             borderRadius: DASHBOARD_CONTENT_PANEL_RADIUS,
             border: DASHBOARD_CONTENT_PANEL_BORDER,
             boxShadow: DASHBOARD_CONTENT_PANEL_SHADOW,
+            borderTop: isPhone ? 'none' : undefined,
           }}
         >
           {children}

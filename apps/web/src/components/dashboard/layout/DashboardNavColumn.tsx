@@ -63,8 +63,9 @@ const NAV_ICONS: Record<DashboardSection, ReactNode> = {
   domains: <GlobeIcon size={16} strokeWidth={1.2} />,
   settings: <SettingsIcon size={16} strokeWidth={1.2} />,
 }
+export { NAV_ICONS }
 
-function NavLinkItem({
+export function NavLinkItem({
   item,
   isSelected,
   count = 0,
