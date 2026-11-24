@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
 import SettingsSkeleton from '#/components/settings/SettingsSkeleton'
 import { useOrganization } from '#/contexts/OrganizationContext'
+import { usePermissions } from '#/hooks/use-permissions'
 import { apiErrorMessage } from '#/lib/api/errors'
 import { orpc } from '#/lib/api/orpc'
 import { useNotify } from '#/hooks/use-notify'
@@ -28,7 +29,7 @@ export default function ApiKeysSettingsFields() {
   const { activeOrg } = useOrganization()
   const queryClient = useQueryClient()
   // The server only lets signed-in owners and admins manage keys.
-  const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
+  const canManage = usePermissions().canManageApiKeys
   const organizationId = activeOrg.id
   const input = { params: { organizationId } }
   const queryKey = orpc.apiKeys.listApiKeys.queryKey({ input })

@@ -9,6 +9,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { clickableRows } from '#/lib/tables/clickable-rows'
 import { PlusIcon } from '#/components/icons/IcnMcp'
+import { usePermissions } from '#/hooks/use-permissions'
 import CreateWebhookDrawer from '#/components/settings/CreateWebhookDrawer'
 import WebhookDetailSheet from '#/components/settings/WebhookDetailSheet'
 import WebhookRowMenu from '#/components/settings/WebhookRowMenu'
@@ -74,6 +75,20 @@ export default function IntegrationsSettingsFields() {
     () => ({ open: clickableRows<WebhookRow>((row) => setSelectedId(row.id), (row) => `Open ${row.name}`) }),
     [],
   )
+
+  // Webhooks change workspace behaviour: owners and admins only.
+  const canManage = usePermissions().canManageWorkspace
+
+  if (!canManage) {
+    return (
+      <VStack gap={2} hAlign="start" width="100%">
+        <Heading level={1}>Webhooks</Heading>
+        <Text type="supporting" color="secondary" role="status">
+          Only workspace owners and admins can view and manage webhooks.
+        </Text>
+      </VStack>
+    )
+  }
 
   return (
     <VStack gap={6} hAlign="stretch" width="100%">

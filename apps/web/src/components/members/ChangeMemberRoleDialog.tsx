@@ -10,6 +10,7 @@ import {
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useOpenSession } from '#/hooks/use-open-session'
+import { usePermissions } from '#/hooks/use-permissions'
 import type { Role } from '#/lib/api/types'
 import type { Person } from '#/lib/members/people'
 import {
@@ -53,6 +54,13 @@ function ChangeMemberRoleForm({
   const [selectedRole, setSelectedRole] = useState<Role>(() =>
     defaultAssignableRole(member),
   )
+  // Admins may only offer the roles they can hand out (member, viewer);
+  // owners offer every assignable role. The member's current role always stays
+  // in the list so the control keeps a valid value.
+  const { assignableRoles } = usePermissions()
+  const options = Array.from(new Set([...assignableRoles, member.role])).filter(
+    (role) => role !== 'owner',
+  )
 
   const unchanged = selectedRole === member.role
 
@@ -84,7 +92,7 @@ function ChangeMemberRoleForm({
                   }
                   layout="fill"
                 >
-                  {ASSIGNABLE_WORKSPACE_ROLES.map((option) => (
+                  {options.map((option) => (
                     <SegmentedControlItem
                       key={option}
                       value={option}

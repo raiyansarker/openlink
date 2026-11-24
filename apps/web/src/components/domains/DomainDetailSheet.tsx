@@ -14,6 +14,7 @@ import {
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
+import { usePermissions } from '#/hooks/use-permissions'
 import type { Domain } from '#/lib/api/types'
 import { buildDomainTimeline } from '#/lib/domains/domain-timeline'
 import { formatShortDate } from '#/lib/format/short-date'
@@ -37,6 +38,8 @@ export default function DomainDetailSheet({
   onOpenChange,
 }: DomainDetailSheetProps) {
   const { getDomainById, verifyDomain, removeDomain } = useDomainsWorkspace()
+  // Members and viewers read the records and timeline; only owners and admins see the write actions.
+  const { canManageDomains } = usePermissions()
   const [removeAlertOpen, setRemoveAlertOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
@@ -121,7 +124,7 @@ export default function DomainDetailSheet({
                         domainHostname={custom.hostname}
                         records={custom.dnsRecords}
                       />
-                      {custom.readiness !== 'active' ? (
+                      {canManageDomains && custom.readiness !== 'active' ? (
                         <Button
                           variant="primary"
                           size="sm"
@@ -156,7 +159,7 @@ export default function DomainDetailSheet({
             </LayoutContent>
           }
           footer={
-            custom ? (
+            canManageDomains && custom ? (
               <LayoutFooter>
                 <HStack hAlign="start" width="100%">
                   <Button

@@ -12,6 +12,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import ActivityDetailSheet from '#/components/activity/ActivityDetailSheet'
 import { useOrganization } from '#/contexts/OrganizationContext'
+import { usePermissions } from '#/hooks/use-permissions'
 import { useMemberActivity } from '#/hooks/use-activity'
 import { apiErrorMessage } from '#/lib/api/errors'
 import type { ActivityEvent, Role } from '#/lib/api/types'
@@ -61,7 +62,7 @@ export default function MemberDetailDrawer({
   if (current && current !== member) setMember(current)
   const isOpen = current != null
   const { activeOrg } = useOrganization()
-  const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
+  const canManage = usePermissions().canManageMembers
   const userId = member?.kind === 'member' ? member.userId : null
   // What this person did most recently: their latest actions, filtered on the server.
   const activityQuery = useMemberActivity(activeOrg.id, userId, ACTIVITY_LIMIT)

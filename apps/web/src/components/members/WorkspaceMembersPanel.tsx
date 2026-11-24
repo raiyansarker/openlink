@@ -15,6 +15,7 @@ import type { Role } from '#/lib/api/types'
 import { usePeopleMutations, useWorkspacePeople } from '#/hooks/use-members'
 import type { Person } from '#/lib/members/people'
 import { useOrganization } from '#/contexts/OrganizationContext'
+import { usePermissions } from '#/hooks/use-permissions'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import InviteMemberDrawer from './InviteMemberDrawer'
 import MemberDetailDrawer from './MemberDetailDrawer'
@@ -33,7 +34,7 @@ export default function WorkspaceMembersPanel() {
   const { activeOrg } = useOrganization()
   const organizationId = activeOrg.id
   // Owners and admins manage people and see pending invites; everyone else gets a read-only list.
-  const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
+  const canManage = usePermissions().canManageMembers
   const query = useWorkspacePeople(organizationId, { includeInvites: canManage })
   const members = query.people
   const mutations = usePeopleMutations(organizationId)
