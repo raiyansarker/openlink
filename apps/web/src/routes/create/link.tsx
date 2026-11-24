@@ -1,7 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Navigate } from '@tanstack/react-router'
 import CreateLinkForm from '#/components/create-link/CreateLinkForm'
 import { AuthSession } from '#/lib/auth/client'
-import { OrganizationProvider } from '#/contexts/OrganizationContext'
+import { OrganizationProvider, useOrganization } from '#/contexts/OrganizationContext'
+import { usePermissions } from '#/hooks/use-permissions'
 import { createPageHead } from '#/lib/page-title'
 
 type CreateLinkSearch = {
@@ -28,7 +29,17 @@ function CreateLinkPage() {
   const { org, folder } = Route.useSearch()
   return (
     <OrganizationProvider orgSlugFromRoute={org}>
-      <CreateLinkForm initialFolderId={folder ?? null} />
+      <CreateLinkGate folderId={folder ?? null} />
     </OrganizationProvider>
   )
+}
+
+/** Viewers can't create links; deep links bounce back to the workspace. */
+function CreateLinkGate({ folderId }: { folderId: string | null }) {
+  const { activeOrg } = useOrganization()
+  const { canManageLinks } = usePermissions()
+  if (!canManageLinks) {
+    return <Navigate to="/w/$orgSlug/links" params={{ orgSlug: activeOrg.slug }} />
+  }
+  return <CreateLinkForm initialFolderId={folderId} />
 }

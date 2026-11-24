@@ -22,6 +22,7 @@ import DomainStatus from '#/components/domains/DomainStatus'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
 import { useOrganization } from '#/contexts/OrganizationContext'
+import { usePermissions } from '#/hooks/use-permissions'
 import type { Domain } from '#/lib/api/types'
 import {
   DOMAIN_STATUS_FILTER_OPTIONS,
@@ -43,6 +44,8 @@ export default function DashboardDomainsPanel() {
     consumeDetailRequest,
   } = useDomainsWorkspace()
   const navigate = useNavigate()
+  // Members and viewers browse domains; adding and removing stay hidden for them.
+  const { canManageDomains } = usePermissions()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<DomainStatusFilter>('all')
   const [sheetTarget, setSheetTarget] = useState<DomainSheetTarget | null>(null)
@@ -118,13 +121,15 @@ export default function DashboardDomainsPanel() {
             Hostnames that serve short links for {activeOrg.name}.
           </Text>
         </VStack>
-        <Button
-          variant="secondary"
-          size="sm"
-          label="Add domain"
-          icon={<PlusIcon size={14} style={{ display: 'flex' }} />}
-          onClick={goToAddDomain}
-        />
+        {canManageDomains ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            label="Add domain"
+            icon={<PlusIcon size={14} style={{ display: 'flex' }} />}
+            onClick={goToAddDomain}
+          />
+        ) : null}
       </HStack>
 
       {customDomains.length === 0 ? (
@@ -133,14 +138,20 @@ export default function DashboardDomainsPanel() {
           headingLevel={4}
           icon={<DomainIllustration state="add" width={180} />}
           title="Use your own domain"
-          description="Add a domain like go.yourbrand.com to serve your short links from it."
+          description={
+            canManageDomains
+              ? 'Add a domain like go.yourbrand.com to serve your short links from it.'
+              : 'An owner or an admin can add a domain like go.yourbrand.com to serve short links from it.'
+          }
           actions={
-            <Button
-              variant="secondary"
-              size="sm"
-              label="Add domain"
-              onClick={goToAddDomain}
-            />
+            canManageDomains ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                label="Add domain"
+                onClick={goToAddDomain}
+              />
+            ) : undefined
           }
         />
       ) : (
@@ -224,15 +235,16 @@ export default function DashboardDomainsPanel() {
                   header: '',
                   width: pixel(56),
                   align: 'end',
-                  renderCell: (row) => (
-                    <DomainRowMenu
-                      domain={row}
-                      onOpen={openCustomDomain}
-                      onVerify={(id) => run(() => verifyDomain(id))}
-                      // The dialog shows a failure and stays open.
-                      onRemove={removeDomain}
-                    />
-                  ),
+                  renderCell: (row) =>
+                    canManageDomains ? (
+                      <DomainRowMenu
+                        domain={row}
+                        onOpen={openCustomDomain}
+                        onVerify={(id) => run(() => verifyDomain(id))}
+                        // The dialog shows a failure and stays open.
+                        onRemove={removeDomain}
+                      />
+                    ) : null,
                 },
               ]}
             />

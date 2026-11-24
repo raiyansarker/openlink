@@ -6,7 +6,10 @@ import {
   SETTINGS_USER_SECTIONS,
   SETTINGS_WORKSPACE_SECTIONS,
   type SettingsSection,
+  type SettingsWorkspaceSection,
 } from '#/lib/settings/sections'
+import { isAdmin } from '#/lib/perms/permissions'
+import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 import { SETTINGS_SECTION_ICONS } from './settings-nav-icons'
 import { LogOutIcon } from '#/components/icons/IcnMcp'
 import {
@@ -147,6 +150,12 @@ export default function SettingsNavColumn() {
   const { organizations, status } = useWorkspaceDirectory()
   // Hide workspace sections only once we know there are none (not while loading).
   const hasNoWorkspaces = status === 'ready' && organizations.length === 0
+  // Integration and API-key settings manage the workspace itself: owners and
+  // admins only, decided by the active workspace's role.
+  const activeOrg = ActiveWorkspace.pick(organizations)
+  const sectionVisible = (section: SettingsWorkspaceSection) =>
+    section !== 'integrations' && section !== 'api-keys' ? true : activeOrg?.role ? isAdmin(activeOrg.role) : false
+  const workspaceSections = SETTINGS_WORKSPACE_SECTIONS.filter((section) => sectionVisible(section.id))
 
   const signOut = async () => {
     try {
@@ -221,7 +230,7 @@ export default function SettingsNavColumn() {
 
         {!hasNoWorkspaces ? (
           <NavGroup label="Workspace">
-            {SETTINGS_WORKSPACE_SECTIONS.map((item) => (
+            {workspaceSections.map((item) => (
               <SettingsNavLink
                 key={item.id}
                 section={item.id}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu'
 import { IconButton } from '@astryxdesign/core/IconButton'
 import { MoreHorizontalIcon } from '#/components/icons/IcnMcp'
+import { usePermissions } from '#/hooks/use-permissions'
 import type { Role } from '#/lib/api/types'
 import type { Person } from '#/lib/members/people'
 import ChangeMemberRoleDialog from '#/components/members/ChangeMemberRoleDialog'
@@ -20,8 +21,14 @@ export default function MemberRowMenu({
   onRemove,
 }: MemberRowMenuProps) {
   const [roleDialogOpen, setRoleDialogOpen] = useState(false)
+  const { canManageMember } = usePermissions()
   const isOwner = member.role === 'owner'
   const isPending = member.kind === 'invite'
+  // Admins cannot change or remove peers: only the member roles they may manage.
+  // Pending invites keep resend and cancel (any admin accepts those at the
+  // server); their role changes only by cancelling and re-inviting.
+  const canChangeRole = !isPending && !isOwner && canManageMember(member.role)
+  const canRemove = isPending || canChangeRole
 
   const items = [
     ...(isPending
@@ -33,20 +40,30 @@ export default function MemberRowMenu({
           },
         ]
       : []),
-    {
-      id: 'change-role',
-      label: 'Change role',
-      onClick: () => setRoleDialogOpen(true),
-      isDisabled: isOwner,
-    },
-    { type: 'divider' as const },
-    {
-      id: 'remove',
-      label: isPending ? 'Cancel invite' : 'Remove member',
-      onClick: () => onRemove(member),
-      isDisabled: isOwner,
-    },
+    ...(canChangeRole
+      ? [
+          {
+            id: 'change-role',
+            label: 'Change role',
+            onClick: () => setRoleDialogOpen(true),
+          },
+        ]
+      : []),
+    ...(canChangeRole || isPending ? [{ type: 'divider' as const }] : []),
+    ...(canRemove
+      ? [
+          {
+            id: 'remove',
+            label: isPending ? 'Cancel invite' : 'Remove member',
+            onClick: () => onRemove(member),
+          },
+        ]
+      : []),
   ]
+
+  // Nothing this member may do with the target (for example an admin viewing a
+  // peer admin): no menu at all.
+  if (items.length === 0) return null
 
   return (
     <>
@@ -68,7 +85,7 @@ export default function MemberRowMenu({
         )}
         items={items}
       />
-      {!isOwner ? (
+      {canChangeRole ? (
         <ChangeMemberRoleDialog
           member={member}
           isOpen={roleDialogOpen}

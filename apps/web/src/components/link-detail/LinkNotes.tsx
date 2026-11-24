@@ -26,6 +26,8 @@ type LinkNotesProps = {
   lastEdit?: NotesEdit
   /** Rejects with an Error carrying a message to show. */
   onSave: (notes: string) => Promise<void>
+  /** Read-only for roles that cannot save notes (viewers): no editing affordances. */
+  isReadOnly?: boolean
 }
 
 const AVATAR_PX = 32
@@ -45,7 +47,43 @@ function exactTime(iso: string): string {
 }
 
 /** The notes as text, like a comment. Clicking anywhere on it starts editing. */
-function NotesView({ notes, lastEdit, onEdit }: { notes: string; lastEdit?: NotesEdit; onEdit: () => void }) {
+function NotesView({
+  notes,
+  lastEdit,
+  onEdit,
+  isReadOnly,
+}: {
+  notes: string
+  lastEdit?: NotesEdit
+  onEdit: () => void
+  isReadOnly: boolean
+}) {
+  // Viewers read notes but cannot add or change them: plain, non-interactive text.
+  if (isReadOnly) {
+    if (!notes) {
+      return <Text type="supporting" color="secondary">No notes yet.</Text>
+    }
+    return (
+      <VStack gap={2} hAlign="stretch" width="100%">
+        {lastEdit ? (
+          <HStack gap={2} vAlign="center" wrap="wrap">
+            <Avatar src={lastEdit.imageUrl} name={lastEdit.actor} size={AVATAR_PX} tooltip={false} />
+            <VStack gap={0} hAlign="start">
+              <Text weight="semibold">{lastEdit.actor}</Text>
+              <Text type="supporting" color="secondary">
+                <time dateTime={lastEdit.at} title={exactTime(lastEdit.at)}>
+                  {timeAgo(lastEdit.at)}
+                </time>
+              </Text>
+            </VStack>
+          </HStack>
+        ) : (
+          <Text weight="semibold">Notes</Text>
+        )}
+        <Text style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>{notes}</Text>
+      </VStack>
+    )
+  }
   if (!notes) {
     return (
       <ClickableCard label="Add notes" variant="muted" padding={4} width="100%" onClick={onEdit}>
@@ -187,7 +225,7 @@ function NotesEditor({
  * Team notes on a link: why it exists, where it's shared, when it can go.
  * Read like a comment; click it to edit. Changes show up in History.
  */
-export default function LinkNotes({ notes, lastEdit, onSave }: LinkNotesProps) {
+export default function LinkNotes({ notes, lastEdit, onSave, isReadOnly = false }: LinkNotesProps) {
   const [isEditing, setIsEditing] = useState(false)
 
   return (
@@ -202,7 +240,7 @@ export default function LinkNotes({ notes, lastEdit, onSave }: LinkNotesProps) {
       {isEditing ? (
         <NotesEditor notes={notes} onSave={onSave} onClose={() => setIsEditing(false)} />
       ) : (
-        <NotesView notes={notes} lastEdit={lastEdit} onEdit={() => setIsEditing(true)} />
+        <NotesView notes={notes} lastEdit={lastEdit} onEdit={() => setIsEditing(true)} isReadOnly={isReadOnly} />
       )}
     </VStack>
   )

@@ -14,10 +14,8 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import type { Role } from '#/lib/api/types'
 import { fieldStatus, requiredEmail, submitWith } from '#/lib/forms/fields'
-import {
-  ASSIGNABLE_WORKSPACE_ROLES,
-  WORKSPACE_MEMBER_ROLE_HELP,
-} from '#/lib/members/role-help'
+import { usePermissions } from '#/hooks/use-permissions'
+import { WORKSPACE_MEMBER_ROLE_HELP } from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import {
   FLOATING_END_DRAWER_PADDING,
@@ -26,7 +24,8 @@ import {
 
 const InviteSchema = type({
   email: requiredEmail({ required: 'Enter an email address.', invalid: 'Enter a valid email address.' }),
-  role: "'member' | 'admin' | 'owner'",
+  /** Invitable roles. Owners join by transfer, not by invite. */
+  role: "'member' | 'admin' | 'viewer'",
 })
 
 type InviteMemberDrawerProps = {
@@ -43,6 +42,8 @@ export default function InviteMemberDrawer({
   workspaceName,
   onSubmit,
 }: InviteMemberDrawerProps) {
+  // Admins may only invite members and viewers; owners may invite admins too.
+  const { assignableRoles } = usePermissions()
   const form = useForm({
     defaultValues: { email: '', role: 'member' as Role },
     validators: {
@@ -126,7 +127,7 @@ export default function InviteMemberDrawer({
                         layout="fill"
                         size="sm"
                       >
-                        {ASSIGNABLE_WORKSPACE_ROLES.map((option) => (
+                        {assignableRoles.map((option) => (
                           <SegmentedControlItem
                             key={option}
                             value={option}

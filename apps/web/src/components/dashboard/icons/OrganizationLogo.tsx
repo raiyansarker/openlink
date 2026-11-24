@@ -9,20 +9,32 @@ type OrganizationLogoProps = {
   customImageUrl?: string
 }
 
-/** Tile colour behind a workspace's initials when it has no uploaded logo. */
-const INITIALS_ACCENT = '#64748b'
+/**
+ * Tile for workspaces without an uploaded logo — a light grey gradient (the
+ * shell's zinc family, 50→200) with the initials in zinc-700. Neutral in both
+ * light and dark shells; the tile reads as a light chip on the dark org rail.
+ */
+const TILE_GRADIENT = { from: '#FAFAFA', to: '#E4E4E7' }
+const TILE_TEXT = '#3F3F46'
 
 function InitialsGlyph({ initials }: { initials: string }) {
   return (
     <svg viewBox="0 0 40 40" width="100%" height="100%" aria-hidden>
-      <rect width="40" height="40" rx="10" fill={INITIALS_ACCENT} />
+      <defs>
+        <linearGradient id="org-tile-grey" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={TILE_GRADIENT.from} />
+          <stop offset="1" stopColor={TILE_GRADIENT.to} />
+        </linearGradient>
+      </defs>
+      <rect width="40" height="40" rx="11" fill="url(#org-tile-grey)" />
       <text
         x="20"
-        y="24"
+        y="24.5"
         textAnchor="middle"
-        fill="#ffffff"
-        fontSize="14"
-        fontWeight="600"
+        fill={TILE_TEXT}
+        fontSize="15"
+        fontWeight="700"
+        letterSpacing="0.02em"
         fontFamily="Geist Variable, sans-serif"
       >
         {initials}
@@ -31,7 +43,7 @@ function InitialsGlyph({ initials }: { initials: string }) {
   )
 }
 
-/** The workspace's uploaded logo, or its initials. */
+/** The workspace's uploaded logo, or its initials on a named-hue gradient tile. */
 export default function OrganizationLogo({
   name,
   size = 40,

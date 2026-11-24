@@ -22,9 +22,16 @@ import {
 
 /** Gap around the rail, matching the content panel's inset. */
 const RAIL_INSET = 10
+const RAIL_COLUMN_WIDTH = 52
 const ORG_CONTROL_SIZE = 34
 const ORG_LOGO_SIZE = 28
 const ORG_CONTROL_RADIUS = 9
+/** Vertical gap between org buttons in the switcher list. */
+const ORG_LIST_GAP = 6
+/** One org slot down the list — the active indicator slides in these units. */
+const ORG_STRIDE = ORG_CONTROL_SIZE + ORG_LIST_GAP
+/** Height of the active-org indicator bar, centred on its slot. */
+const ORG_INDICATOR_HEIGHT = 18
 /** Concentric corners: the logo's radius is the control's minus the gap between them. */
 const ORG_LOGO_RADIUS = ORG_CONTROL_RADIUS - (ORG_CONTROL_SIZE - ORG_LOGO_SIZE) / 2
 
@@ -68,10 +75,6 @@ function OrgSwitchButton({
       ? DASHBOARD_RAIL_HOVER_BG
       : 'transparent'
 
-  const boxShadow = isActive
-    ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.28)'
-    : 'none'
-
   return (
     <Tooltip content={orgName} placement="end">
       <button
@@ -83,7 +86,6 @@ function OrgSwitchButton({
         style={{
           ...orgControlBase,
           backgroundColor,
-          boxShadow,
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -150,7 +152,8 @@ export default function OrganizationIconRail({
   function handleCreateOrganization() {
     void navigate({ to: '/create/organization' })
   }
-
+  /** Which slot the active org sits in — the indicator slides to it. */
+  const activeOrgIndex = organizations.findIndex((org) => org.slug === activeOrgSlug)
   return (
     <div
       style={{
@@ -165,15 +168,15 @@ export default function OrganizationIconRail({
     >
       <div
         style={{
-          width: 52,
-          minWidth: 52,
+          width: RAIL_COLUMN_WIDTH,
+          minWidth: RAIL_COLUMN_WIDTH,
           height: '100%',
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           // Same inset above the first org as on its sides, so it doesn't touch the rounded top.
-          paddingTop: (52 - ORG_CONTROL_SIZE) / 2,
+          paddingTop: (RAIL_COLUMN_WIDTH - ORG_CONTROL_SIZE) / 2,
           paddingBottom: 10,
           backgroundColor: DASHBOARD_RAIL_BG,
           borderRadius: DASHBOARD_CONTENT_PANEL_RADIUS,
@@ -208,10 +211,11 @@ export default function OrganizationIconRail({
         <div
           className="focus-inset"
           style={{
+            position: 'relative',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 6,
+            gap: ORG_LIST_GAP,
             width: '100%',
             flex: 1,
             minHeight: 0,
@@ -219,6 +223,23 @@ export default function OrganizationIconRail({
             overflowX: 'hidden',
           }}
         >
+          {activeOrgIndex >= 0 ? (
+            // One bar at the rail's very left edge, sliding between org slots.
+            <span
+              aria-hidden
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: (ORG_CONTROL_SIZE - ORG_INDICATOR_HEIGHT) / 2,
+                width: 3,
+                height: ORG_INDICATOR_HEIGHT,
+                borderRadius: 3,
+                backgroundColor: 'var(--openlink-brand)',
+                transform: `translateY(${activeOrgIndex * ORG_STRIDE}px)`,
+                transition: 'transform 0.22s cubic-bezier(0.2, 0, 0, 1)',
+              }}
+            />
+          ) : null}
           {organizations.map((org) => {
             const target = WorkspaceUrl.replaceOrg(pathname, org.slug)
             const isActive = org.slug === activeOrgSlug

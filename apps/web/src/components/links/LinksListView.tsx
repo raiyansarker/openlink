@@ -11,6 +11,7 @@ import {
   type ItemMenus,
 } from '#/components/links/links-browser-types'
 import { useOrganization } from '#/contexts/OrganizationContext'
+import { usePermissions } from '#/hooks/use-permissions'
 import type { ShortLink } from '#/lib/api/types'
 import { formatCompactNumber } from '#/lib/format/compact-number'
 import { formatShortDate } from '#/lib/format/short-date'
@@ -36,6 +37,8 @@ export default function LinksListView({
     [onOpenLink],
   )
   const { shortUrlFor } = useOrganization()
+  // Dragging moves a link; viewers have the menu and rows, but no drag handle.
+  const { canManageLinks } = usePermissions()
 
   return (
     <VStack gap={3} hAlign="stretch" width="100%">
@@ -56,8 +59,9 @@ export default function LinksListView({
               renderCell: (row) => (
                 // Drag the name onto a folder tile or breadcrumb to move the link.
                 <span
-                  draggable
+                  draggable={canManageLinks}
                   onDragStart={(e: DragEvent) => {
+                    if (!canManageLinks) return
                     e.dataTransfer.setData(DRAG_MIME, `link:${row.id}`)
                     e.dataTransfer.effectAllowed = 'move'
                   }}
@@ -143,9 +147,13 @@ export default function LinksListView({
               header: '',
               width: pixel(48),
               align: 'end',
-              renderCell: (row) => (
-                <ItemMenuButton label={linkTitle(row)} items={linkMenu(row)} />
-              ),
+              // A lone "Open details" item repeats the row click: no menu to open.
+              renderCell: (row) => {
+                const items = linkMenu(row)
+                return items.length > 1 ? (
+                  <ItemMenuButton label={linkTitle(row)} items={items} />
+                ) : null
+              },
             },
           ]}
         />
