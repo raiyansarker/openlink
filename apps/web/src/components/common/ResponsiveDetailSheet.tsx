@@ -68,17 +68,31 @@ export default function ResponsiveDetailSheet({
         purpose={purpose}
         height="capped"
       >
-        <VStack gap={6} hAlign="stretch" width="100%">
-          {children}
-
+        {/* The sheet's body is split in two: a scrollable content region
+            and the action bar OUTSIDE it. Sticky positioning inside the
+            sheet's own scroller proved unreliable on phones and the bar's
+            filled background showed as a mismatched band — so the bar is
+            now a plain flex sibling below the scroll (physically pinned)
+            and paints NOTHING itself: the hairline is its only chrome, so
+            it can never mismatch the sheet's surface. */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: '100%',
+          }}
+        >
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <VStack gap={6} hAlign="stretch" width="100%">
+              {children}
+            </VStack>
+          </div>
           {footer ? (
-            /* Pinned, blurred CTA bar with full-width stacked buttons
-               (see `.ol-sheet-footer` in styles.css). */
             <div className="ol-sheet-footer">
               <div className="ol-sheet-footer-actions">{footer}</div>
             </div>
           ) : null}
-        </VStack>
+        </div>
       </BottomSheet>
     )
   }

@@ -368,14 +368,15 @@ body {
  * hug-width buttons), so the rules here override those inline styles.
  */
 .ol-sheet-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
+  /* A flex sibling BELOW the sheet's scroll region (see
+     ResponsiveDetailSheet) — physically pinned, so no sticky tricks, and
+     transparent by design: nothing here can paint a band that mismatches
+     the sheet's own surface. The hairline is the entire footer chrome. */
+  flex-shrink: 0;
   margin: 8px 0 0;
-  padding: 2px 0 6px;
-  /* Same surface the sheet already paints — no blur, no hairline. The
-     buttons themselves are the bar; nothing announces a footer. */
-  background: var(--color-background-popover);
+  padding: 10px 0 calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-border);
+  background: transparent;
 }
 .ol-sheet-footer-actions {
   display: flex !important;
