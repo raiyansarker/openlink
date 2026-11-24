@@ -195,6 +195,10 @@ export default function MobileDashboardShell({
           anchored to the right. The bar floats over content with its
           own shadow; nothing is blurred behind it. */}
       <div
+        // Bumped whenever the nav changes shape. With stale-bundle
+        // debugging this answers "which build am I actually looking at"
+        // in one devtools glance.
+        data-nav-build="solid-v2-labels"
         style={{
           position: 'absolute',
           left: 16,
