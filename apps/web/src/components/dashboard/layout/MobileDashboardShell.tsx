@@ -45,15 +45,16 @@ const CAPSULE_PAD_PX = 5
  *  it reads as the row's primary action, the way iOS sizes it. */
 const PLUS_CIRCLE_PX = 54
 
-/** The shared "liquid glass" recipe for the floating chrome: translucent
- *  above the scrolling page, a heavy blur with saturation for the frost, a
- *  hairline border and one deep shadow so the pieces lift off the content. */
+/** The shared "liquid glass" recipe for the floating chrome: a thin tint
+ *  (42% body — any more and it reads opaque over body-coloured content)
+ *  floating on a heavy blur with saturation boost for the frost, capped by
+ *  a hairline border and one soft shadow so the pieces lift off the page. */
 const GLASS_STYLE: CSSProperties = {
-  backgroundColor: 'color-mix(in oklab, var(--color-background-body) 64%, transparent)',
-  backdropFilter: 'blur(24px) saturate(1.8)',
-  WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
+  backgroundColor: 'color-mix(in oklab, var(--color-background-body) 42%, transparent)',
+  backdropFilter: 'blur(30px) saturate(1.8)',
+  WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
   border: '1px solid light-dark(rgba(15, 17, 21, 0.1), rgba(255, 255, 255, 0.14))',
-  boxShadow: '0 10px 32px rgba(0, 0, 0, 0.16)',
+  boxShadow: '0 10px 28px rgba(0, 0, 0, 0.14)',
 }
 
 const TABS = [
@@ -81,10 +82,9 @@ type MobileDashboardShellProps = {
  *   │          content            │  full-bleed, scrolls under the glass,
  *   │                            │  padded past the floating capsule
  *   │                            │
- *   │     ╭ ◌ ◌ ◌ ◌ ◌ ╮  (＋)   │  two pieces of frosted glass, one row:
- *   └─────┴─────────────┴──┴────┘  compact icon tab capsule with the
- *                                   sliding pill, and a separate create
- *                                   circle beside it (writers only)
+ *   │  ╭ ◌ ◌ ◌ ◌ ◌ ╮        (＋) │  two pieces of frosted glass: the compact
+ *   └──┴─────────────┴──────────┴┘  tab capsule docks left, the brand-tinted
+                                     create circle docks right (writers only)
  *
  * Workspace switching is an iOS bottom sheet opened from the header; the
  * account avatar mirrors it (profile, settings, sign out).
@@ -192,8 +192,9 @@ export default function MobileDashboardShell({
 
       {/* Floating chrome, the new iOS style: two pieces of frosted glass
           on one row — a compact capsule holding only the tabs, and a
-          separate create circle beside it. The strips stay centred as a
-          group; content keeps scrolling under the blur. */}
+          separate create circle beside it. The capsule anchors to the
+          left edge, the circle to the right; content keeps scrolling
+          under the blur. */}
       <div
         style={{
           position: 'absolute',
@@ -204,8 +205,9 @@ export default function MobileDashboardShell({
           display: 'flex',
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'center',
-          gap: 10,
+          // Docked split: tabs hug the left inset, the glass circle hugs
+          // the right — like the iOS split between navigation and action.
+          justifyContent: 'space-between',
           // The wrapper spans the full inset strip, but only the glass is
           // tappable — touches on the gaps pass through to the page.
           pointerEvents: 'none',
@@ -281,8 +283,10 @@ export default function MobileDashboardShell({
         </nav>
 
         {/* Create is its own piece of glass, not a tab: a separate circle
-            beside the capsule on the same row. Brand ink alone marks it as
-            the primary action — no divider, no label. Link writers only. */}
+            docked to the right edge of the row. The frost is brand-tinted —
+            the accent lives in the glass, iOS style — so it stays
+            translucent like the capsule while reading as the primary
+            action. Link writers only. */}
         {canManageLinks ? (
           <button
             className="ol-focus-ring"
@@ -291,6 +295,11 @@ export default function MobileDashboardShell({
             onClick={() => go('/create/link')}
             style={{
               ...GLASS_STYLE,
+              // Same frost, accent ink: the brand tint replaces the neutral
+              // fill so the circle stays see-through, matching iOS accent
+              // glass. The hairline border follows the tint.
+              backgroundColor: 'color-mix(in oklab, var(--openlink-brand) 20%, transparent)',
+              borderColor: 'color-mix(in oklab, var(--openlink-brand) 32%, transparent)',
               flexShrink: 0,
               width: PLUS_CIRCLE_PX,
               height: PLUS_CIRCLE_PX,
