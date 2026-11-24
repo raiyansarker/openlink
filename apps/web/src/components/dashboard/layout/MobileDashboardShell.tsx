@@ -46,13 +46,13 @@ const CAPSULE_PAD_PX = 5
 const PLUS_CIRCLE_PX = 54
 
 /** The shared chrome surface — canonical frosted glass: the container's
- *  own background is only a light wash (40% alpha); the frost is produced
- *  by the backdrop blur + saturation acting on whatever scrolls beneath.
- *  Raising the tint instead kills the blur — the wash must stay light. */
+ *  own background is a light wash (50% alpha) and the frost comes from a
+ *  moderate backdrop blur + saturation picking up whatever scrolls beneath.
+ *  A heavier blur muddies everything to a flat smear, so it stays tame. */
 const NAV_SURFACE_STYLE: CSSProperties = {
-  backgroundColor: 'color-mix(in oklab, var(--color-background-surface) 40%, transparent)',
-  backdropFilter: 'blur(28px) saturate(1.8)',
-  WebkitBackdropFilter: 'blur(28px) saturate(1.8)',
+  backgroundColor: 'color-mix(in oklab, var(--color-background-surface) 50%, transparent)',
+  backdropFilter: 'blur(16px) saturate(1.8)',
+  WebkitBackdropFilter: 'blur(16px) saturate(1.8)',
   border: '1px solid var(--color-border)',
   boxShadow: '0 10px 24px rgba(0, 0, 0, 0.12)',
 }
@@ -288,8 +288,8 @@ export default function MobileDashboardShell({
         </nav>
 
         {/* Create is not a tab: a separate circle docked to the right
-            edge of the row, wearing the exact same surface and ink as
-            the capsule — only the plus glyph marks it as the action.
+            edge, wearing the exact same frosted surface as the capsule —
+            the brand-inked plus glyph is what marks it as the action.
             Link writers only. */}
         {canManageLinks ? (
           <button
@@ -299,8 +299,8 @@ export default function MobileDashboardShell({
             onClick={() => go('/create/link')}
             style={{
               ...NAV_SURFACE_STYLE,
-              // No accent tint: identical fill, hairline and ink as the
-              // capsule, so the row reads as one family of chrome.
+              // Same wash, hairline and blur as the capsule — one family
+              // of chrome; only the ink differs (brand = primary action).
               flexShrink: 0,
               width: PLUS_CIRCLE_PX,
               height: PLUS_CIRCLE_PX,
@@ -310,7 +310,7 @@ export default function MobileDashboardShell({
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: SHELL_NAV_TEXT_PRIMARY,
+              color: BRAND,
               transition: 'color 0.22s ease',
               pointerEvents: 'auto',
             }}
