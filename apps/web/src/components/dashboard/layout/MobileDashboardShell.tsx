@@ -34,9 +34,10 @@ import {
 /** The app's brand accent: active tab, active workspace, create button. */
 const BRAND = 'var(--openlink-brand)'
 
-/** One icon slot inside the tab capsule. Fixed, not flexed — the capsule
- *  shrinks to fit its five tabs instead of stretching edge-to-edge, so the
- *  row reads as one compact group and the create circle sits beside it. */
+/** One tab slot inside the capsule: icon over a micro label, stacked
+ *  vertically. Fixed, not flexed — the capsule shrinks to fit its five
+ *  tabs instead of stretching edge-to-edge, so the create circle can dock
+ *  to the opposite edge. */
 const TAB_SLOT_PX = 52
 /** Padding inside the tab capsule; the sliding pill is inset by the same
  *  amount so it tracks the slots exactly. */
@@ -82,9 +83,9 @@ type MobileDashboardShellProps = {
  *   │          content            │  full-bleed, scrolls under the glass,
  *   │                            │  padded past the floating capsule
  *   │                            │
- *   │  ╭ ◌ ◌ ◌ ◌ ◌ ╮        (＋) │  two pieces of frosted glass: the compact
- *   └──┴─────────────┴──────────┴┘  tab capsule docks left, the brand-tinted
-                                     create circle docks right (writers only)
+ *   │  ╭◌ ◌ ◌ ◌ ◌╮         (＋)  │  two pieces of frosted glass: the tab
+ *   │  ╰▁ ▁ ▁ ▁ ▁╯               │  capsule (icon + micro label) docks left,
+ *   └──┴──────────┴──────────────┘  the brand-tinted create circle docks right
  *
  * Workspace switching is an iOS bottom sheet opened from the header; the
  * account avatar mirrors it (profile, settings, sign out).
@@ -213,7 +214,7 @@ export default function MobileDashboardShell({
           pointerEvents: 'none',
         }}
       >
-        {/* Tab capsule: five fixed slots, no labels, compact by design. */}
+        {/* Tab capsule: five fixed slots of icon + micro label. */}
         <nav
           aria-label="Sections"
           style={{
@@ -254,29 +255,41 @@ export default function MobileDashboardShell({
                 className="ol-focus-ring"
                 type="button"
                 aria-current={isActive ? 'page' : undefined}
-                // Icon-only in the capsule; the label stays with screen
-                // readers via aria-label.
-                aria-label={tab.label}
+                // Icon above a micro label — the full iOS tab signatures.
+                // The label doubles as the accessible name.
                 onClick={() => go(WorkspaceUrl.build(activeOrgSlug, tab.id))}
                 style={{
                   width: TAB_SLOT_PX,
                   height: 48,
                   border: 'none',
-                  padding: 0,
+                  padding: '4px 1px',
+                  boxSizing: 'border-box',
                   borderRadius: 999,
                   // The sliding pill lives behind the row; the button
                   // itself stays transparent and only its ink crossfades.
                   position: 'relative',
                   background: 'transparent',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  gap: 1,
                   cursor: 'pointer',
                   color: isActive ? BRAND : SHELL_NAV_TEXT_SECONDARY,
                   transition: 'color 0.22s ease',
                 }}
               >
                 {tab.icon}
+                {/* Micro label: small enough to keep the capsule at tap
+                    height, `inherit` so it rides the same ink crossfade
+                    as the icon above, medium → semibold when selected. */}
+                <Text
+                  weight={isActive ? 'semibold' : 'medium'}
+                  maxLines={1}
+                  style={{ fontSize: 10, lineHeight: 12, color: 'inherit' }}
+                >
+                  {tab.label}
+                </Text>
               </button>
             )
           })}
