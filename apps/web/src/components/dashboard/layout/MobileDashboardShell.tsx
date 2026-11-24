@@ -62,16 +62,17 @@ type MobileDashboardShellProps = {
  * Phone-width app shell (≤ 767px), swapped in by ThreeColumnDashboardLayout:
  *
  *   ┌────────────────────────────┐
- *   │ [💎 Acme v]          [👤]  │  workspace pill → bottom sheet; account menu
+ *   │ Workspace v          [👤]  │  flat switcher → sheet; account menu
  *   ├────────────────────────────┤
- *   │          content           │  full-bleed, scrolls, safe distance from the FAB
- *   │                       (＋) │  floating create (writers only)
- *   ├────────────────────────────┤
- *   │ Home Activity Links ...    │  bottom tabs, brand-tinted active state
- *   └────────────────────────────┘
+ *   │          content            │  full-bleed, scrolls under the glass,
+ *   │                            │  padded past the floating capsule
+ *   │                            │
+ *   │  ╭─ ◌◌◌◌◌◌◌◌◌ | ＋ ─╮    │  frosted-glass capsule: icon-only tabs,
+ *   └──┴──────────────────────┴──┘  sliding active pill, hairline-separated
+ *                                     brand-tinted create (writers only)
  *
- * Workspace switching is a native-looking bottom sheet, not a drawer — the
- * pill in the header is the only switcher affordance.
+ * Workspace switching is an iOS bottom sheet opened from the header; the
+ * account avatar mirrors it (profile, settings, sign out).
  */
 export default function MobileDashboardShell({
   organizations,
