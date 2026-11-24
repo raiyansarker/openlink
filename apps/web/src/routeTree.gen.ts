@@ -42,7 +42,6 @@ import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
 import { Route as SettingsWorkspaceApiKeysRouteImport } from './routes/settings/_workspace/api-keys'
 import { Route as SettingsWorkspaceGeneralRouteImport } from './routes/settings/_workspace/general'
-import { Route as SettingsWorkspaceIntegrationsRouteImport } from './routes/settings/_workspace/integrations'
 import { Route as SettingsWorkspaceMembersRouteImport } from './routes/settings/_workspace/members'
 import { Route as WOrgSlugIndexRouteImport } from './routes/w/$orgSlug/index'
 import { Route as WOrgSlugActivityRouteImport } from './routes/w/$orgSlug/activity'
@@ -222,12 +221,6 @@ const SettingsWorkspaceGeneralRoute =
     path: '/general',
     getParentRoute: () => SettingsWorkspaceRouteRoute,
   } as any)
-const SettingsWorkspaceIntegrationsRoute =
-  SettingsWorkspaceIntegrationsRouteImport.update({
-    id: '/integrations',
-    path: '/integrations',
-    getParentRoute: () => SettingsWorkspaceRouteRoute,
-  } as any)
 const SettingsWorkspaceMembersRoute =
   SettingsWorkspaceMembersRouteImport.update({
     id: '/members',
@@ -325,7 +318,6 @@ export interface FileRoutesByFullPath {
   '/api/v1/$': typeof ApiV1SplatRoute
   '/settings/api-keys': typeof SettingsWorkspaceApiKeysRoute
   '/settings/general': typeof SettingsWorkspaceGeneralRoute
-  '/settings/integrations': typeof SettingsWorkspaceIntegrationsRoute
   '/settings/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
@@ -367,7 +359,6 @@ export interface FileRoutesByTo {
   '/api/v1/$': typeof ApiV1SplatRoute
   '/settings/api-keys': typeof SettingsWorkspaceApiKeysRoute
   '/settings/general': typeof SettingsWorkspaceGeneralRoute
-  '/settings/integrations': typeof SettingsWorkspaceIntegrationsRoute
   '/settings/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
@@ -416,7 +407,6 @@ export interface FileRoutesById {
   '/api/v1/$': typeof ApiV1SplatRoute
   '/settings/_workspace/api-keys': typeof SettingsWorkspaceApiKeysRoute
   '/settings/_workspace/general': typeof SettingsWorkspaceGeneralRoute
-  '/settings/_workspace/integrations': typeof SettingsWorkspaceIntegrationsRoute
   '/settings/_workspace/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
@@ -465,7 +455,6 @@ export interface FileRouteTypes {
     | '/api/v1/$'
     | '/settings/api-keys'
     | '/settings/general'
-    | '/settings/integrations'
     | '/settings/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
@@ -507,7 +496,6 @@ export interface FileRouteTypes {
     | '/api/v1/$'
     | '/settings/api-keys'
     | '/settings/general'
-    | '/settings/integrations'
     | '/settings/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
@@ -555,7 +543,6 @@ export interface FileRouteTypes {
     | '/api/v1/$'
     | '/settings/_workspace/api-keys'
     | '/settings/_workspace/general'
-    | '/settings/_workspace/integrations'
     | '/settings/_workspace/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
@@ -826,13 +813,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsWorkspaceGeneralRouteImport
       parentRoute: typeof SettingsWorkspaceRouteRoute
     }
-    '/settings/_workspace/integrations': {
-      id: '/settings/_workspace/integrations'
-      path: '/integrations'
-      fullPath: '/settings/integrations'
-      preLoaderRoute: typeof SettingsWorkspaceIntegrationsRouteImport
-      parentRoute: typeof SettingsWorkspaceRouteRoute
-    }
     '/settings/_workspace/members': {
       id: '/settings/_workspace/members'
       path: '/members'
@@ -923,7 +903,6 @@ declare module '@tanstack/react-router' {
 interface SettingsWorkspaceRouteRouteChildren {
   SettingsWorkspaceApiKeysRoute: typeof SettingsWorkspaceApiKeysRoute
   SettingsWorkspaceGeneralRoute: typeof SettingsWorkspaceGeneralRoute
-  SettingsWorkspaceIntegrationsRoute: typeof SettingsWorkspaceIntegrationsRoute
   SettingsWorkspaceMembersRoute: typeof SettingsWorkspaceMembersRoute
 }
 
@@ -931,7 +910,6 @@ const SettingsWorkspaceRouteRouteChildren: SettingsWorkspaceRouteRouteChildren =
   {
     SettingsWorkspaceApiKeysRoute: SettingsWorkspaceApiKeysRoute,
     SettingsWorkspaceGeneralRoute: SettingsWorkspaceGeneralRoute,
-    SettingsWorkspaceIntegrationsRoute: SettingsWorkspaceIntegrationsRoute,
     SettingsWorkspaceMembersRoute: SettingsWorkspaceMembersRoute,
   }
 
@@ -1056,12 +1034,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

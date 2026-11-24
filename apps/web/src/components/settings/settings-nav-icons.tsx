@@ -6,7 +6,6 @@ import {
   AllInOneIcon,
   BuildingIcon,
   UsersIcon,
-  AppIntegrationIcon,
   CodeWindowIcon,
 } from '#/components/icons/IcnMcp'
 
@@ -21,6 +20,5 @@ export const SETTINGS_SECTION_ICONS: Record<SettingsSection, ReactNode> = {
   devices: <AllInOneIcon {...navIconProps} />,
   general: <BuildingIcon {...navIconProps} />,
   members: <UsersIcon {...navIconProps} />,
-  integrations: <AppIntegrationIcon {...navIconProps} />,
   'api-keys': <CodeWindowIcon {...navIconProps} />,
 }
