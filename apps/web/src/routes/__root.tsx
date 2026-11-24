@@ -10,7 +10,6 @@ import NotFoundPage from '#/components/not-found/NotFoundPage'
 import { appConfig } from '#/config/app'
 import { OG_IMAGE, SITE_DESCRIPTION } from '#/lib/page-title'
 import { COLOR_MODE_BOOTSTRAP_SCRIPT } from '#/lib/settings/color-mode-bootstrap'
-import { SHELL_PAINT_HOLD_SCRIPT } from '#/lib/dashboard/shell-paint-hold'
 
 import appCss from '../styles.css?url'
 
@@ -68,9 +67,6 @@ function RootDocument({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <script dangerouslySetInnerHTML={{ __html: COLOR_MODE_BOOTSTRAP_SCRIPT }} />
-        {/* Holds the phone shell's paint until hydration picks the right
-            tree — without it a reload flashes desktop, then snaps mobile. */}
-        <script dangerouslySetInnerHTML={{ __html: SHELL_PAINT_HOLD_SCRIPT }} />
         <HeadContent />
       </head>
       <body>

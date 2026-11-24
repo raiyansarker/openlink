@@ -117,7 +117,6 @@ export default function MobileDashboardShell({
 
   return (
     <VStack
-      data-dashboard-shell="phone"
       gap={0}
       hAlign="stretch"
       width="100%"
