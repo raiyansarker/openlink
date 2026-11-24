@@ -45,7 +45,7 @@ const chipBaseStyle: CSSProperties = {
  * desktop 35% nav column — on a phone that column strangles the content.
  *
  * Section visibility matches SettingsNavColumn: workspace sections hide once
- * we know there are no workspaces, and webhooks/API keys are admin-only.
+ * we know there are no workspaces, and API keys are admin-only.
  */
 export default function SettingsTabStrip() {
   const pathname = useActivePathname()
@@ -55,11 +55,7 @@ export default function SettingsTabStrip() {
   const hasNoWorkspaces = status === 'ready' && organizations.length === 0
   const activeOrg = ActiveWorkspace.pick(organizations)
   const sectionVisible = (section: SettingsWorkspaceSection) =>
-    section !== 'integrations' && section !== 'api-keys'
-      ? true
-      : activeOrg?.role
-        ? isAdmin(activeOrg.role)
-        : false
+    section !== 'api-keys' ? true : activeOrg?.role ? isAdmin(activeOrg.role) : false
 
   const items: { label: string; section: SettingsSection }[] = [
     ...SETTINGS_USER_SECTIONS,
