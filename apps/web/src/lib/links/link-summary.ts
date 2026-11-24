@@ -91,10 +91,7 @@ export function linkSettingsRows(
     { label: 'Folder', value: folderPathLabel(folders, link.folderId ?? null) },
     link.cloaked
       ? { label: 'Delivery', value: 'Cloaked — URL stays short' }
-      : {
-          label: 'Redirect',
-          value: `${link.redirectStatus ?? 302} ${(link.redirectStatus ?? 302) === 301 || link.redirectStatus === 308 ? 'permanent' : 'temporary'}`,
-        },
+      : { label: 'Delivery', value: '302 temporary redirect' },
   ]
   if (link.hold) {
     rows.push({

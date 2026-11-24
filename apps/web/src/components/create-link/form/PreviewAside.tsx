@@ -93,10 +93,7 @@ function rulesOf(draft: CreateLinkDraft, folders: LinkFolder[]): PreviewRule[] {
     { label: 'Folder', value: folderPathLabel(folders, draft.folderId) },
     draft.cloakEnabled
       ? { label: 'Delivery', value: 'Cloaked — URL stays short' }
-      : {
-          label: 'Redirect',
-          value: `${draft.redirectStatus} ${draft.redirectStatus === 301 || draft.redirectStatus === 308 ? 'permanent' : 'temporary'}`,
-        },
+      : { label: 'Delivery', value: '302 temporary redirect' },
     ...(draft.holdEnabled
       ? [
           {

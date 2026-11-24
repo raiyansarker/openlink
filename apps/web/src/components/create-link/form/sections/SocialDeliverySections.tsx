@@ -1,9 +1,5 @@
 import { memo, useCallback, useMemo, useState } from 'react'
 import { Banner } from '@astryxdesign/core/Banner'
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from '@astryxdesign/core/SegmentedControl'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -14,7 +10,6 @@ import FormSection, {
 import PreviewImageField from '#/components/create-link/PreviewImageField'
 import { useFrameCheck } from '#/hooks/use-frame-check'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { RedirectStatus } from '#/lib/api/types'
 import {
   MAX_PREVIEW_DESCRIPTION,
   MAX_PREVIEW_IMAGE_BYTES,
@@ -159,67 +154,6 @@ export const SocialPreviewSection = memo(function SocialPreviewSection() {
   )
 })
 
-const REDIRECT_OPTIONS: {
-  value: RedirectStatus
-  label: string
-  help: string
-}[] = [
-  {
-    value: 302,
-    label: '302 · Temporary',
-    help: 'Default. Browsers re-check every visit, so you can change the destination any time and every click is counted.',
-  },
-  {
-    value: 301,
-    label: '301 · Permanent',
-    help: 'Best for SEO when the destination will never change. Browsers may cache it and skip the short link on repeat visits.',
-  },
-  {
-    value: 307,
-    label: '307',
-    help: 'Temporary, and keeps the request method and body (e.g. form POSTs).',
-  },
-  {
-    value: 308,
-    label: '308',
-    help: 'Permanent, and keeps the request method and body.',
-  },
-]
-
-const RedirectType = memo(function RedirectType() {
-  const { set } = useLinkForm()
-  const redirectStatus = useDraftValue('redirectStatus')
-  const cloakEnabled = useDraftValue('cloakEnabled')
-  const onChange = useCallback(
-    (value: string) => set('redirectStatus', Number(value) as RedirectStatus),
-    [set],
-  )
-  return (
-    <VStack gap={3} hAlign="stretch" width="100%">
-      <SegmentedControl
-        label="Redirect type"
-        value={String(redirectStatus)}
-        onChange={onChange}
-        layout="fill"
-        isDisabled={cloakEnabled}
-      >
-        {REDIRECT_OPTIONS.map((option) => (
-          <SegmentedControlItem
-            key={option.value}
-            value={String(option.value)}
-            label={option.label}
-          />
-        ))}
-      </SegmentedControl>
-      <Text type="supporting" color="secondary">
-        {cloakEnabled
-          ? 'Redirect type isn’t used while link cloaking is on.'
-          : REDIRECT_OPTIONS.find((o) => o.value === redirectStatus)?.help}
-      </Text>
-    </VStack>
-  )
-})
-
 /** Plain-language "how it works" list used by the cloaking option. */
 const HowItWorks = memo(function HowItWorks({ steps }: { steps: string[] }) {
   return (
@@ -323,8 +257,10 @@ const CloakOption = memo(function CloakOption() {
 
 export const DeliverySection = memo(function DeliverySection() {
   return (
-    <FormSection title="Delivery" description="How visitors get to the destination.">
-      <RedirectType />
+    <FormSection
+      title="Delivery"
+      description="Every short link sends a 302 (temporary) redirect — visitors are never served a permanent one, so nothing gets stuck in browser caches. The only delivery choice is cloaking."
+    >
       <CloakOption />
     </FormSection>
   )

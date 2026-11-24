@@ -5,7 +5,7 @@ import { toLinkDto } from './serializers'
 const now = new Date('2026-01-01T00:00:00Z')
 const row = (overrides: Partial<typeof link.$inferSelect> = {}): typeof link.$inferSelect => ({
   id: 'l1', organizationId: 'o1', domainId: 'd1', folderId: null, slug: 's', alias: null, title: null,
-  description: null, destinationUrl: 'https://example.com', redirectStatus: 302, status: 'active',
+  description: null, destinationUrl: 'https://example.com', status: 'active',
   enabled: true, activateAt: null, expiresAt: null, maxClicks: null, clickCount: 0, passwordHash: null,
   expiredDestinationUrl: null, fallbackDestinationUrl: null, tagsJson: '[]', utmJson: null,
   metadataJson: null, createdByUserId: null, createdAt: now, updatedAt: now, ...overrides,

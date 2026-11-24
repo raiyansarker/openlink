@@ -39,7 +39,6 @@ function setup() {
       destinationUrl: 'https://example.com/original',
       title: 'Original title',
       description: 'Original description',
-      redirectStatus: 307,
       status: 'paused',
       enabled: true,
       activateAt: new Date('2024-01-01'),
@@ -109,7 +108,6 @@ describe('Effect-native link services', () => {
       domainId: createInput.domainId,
       destinationUrl: createInput.destinationUrl,
       createdByUserId: 'user-1',
-      redirectStatus: 302,
       status: 'active',
       enabled: true,
       passwordHash: null,
@@ -132,7 +130,6 @@ describe('Effect-native link services', () => {
       slug: 'custom',
       title: '',
       description: 'Description',
-      redirectStatus: 308,
       activateAt,
       expiresAt,
       maxClicks: 10,
@@ -144,7 +141,7 @@ describe('Effect-native link services', () => {
       metadata: { nested: { enabled: true } },
     }))
     expect(row).toMatchObject({
-      slug: 'custom', title: '', description: 'Description', redirectStatus: 308,
+      slug: 'custom', title: '', description: 'Description',
       status: 'scheduled', activateAt, expiresAt, maxClicks: 10,
       expiredDestinationUrl: 'https://example.com/expired',
       fallbackDestinationUrl: 'https://example.com/fallback',
@@ -258,7 +255,7 @@ describe('Effect-native link services', () => {
     const expiresAt = new Date('2028-01-01')
     const updated = await run(updateLinkRecord(existing, {
       destinationUrl: 'https://example.com/updated',
-      title: '', description: '', redirectStatus: 301, status: 'disabled', enabled: false,
+      title: '', description: '', status: 'disabled', enabled: false,
       activateAt: activateAt.toISOString(), expiresAt: expiresAt.toISOString(), maxClicks: 1,
       clearPassword: true, password: 'must-not-be-hashed',
       expiredDestinationUrl: 'https://example.com/expired-new',
@@ -268,7 +265,7 @@ describe('Effect-native link services', () => {
     expect(updated).toMatchObject({
       id: existing.id, slug: existing.slug, createdAt: existing.createdAt,
       destinationUrl: 'https://example.com/updated',
-      title: '', description: '', redirectStatus: 301, status: 'disabled', enabled: false,
+      title: '', description: '', status: 'disabled', enabled: false,
       activateAt, expiresAt, maxClicks: 1, passwordHash: null,
       expiredDestinationUrl: 'https://example.com/expired-new',
       fallbackDestinationUrl: 'https://example.com/fallback-new',

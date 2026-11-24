@@ -4,7 +4,6 @@ import type {
   HoldPageId,
   LinkHold,
   LinkTargeting,
-  RedirectStatus,
   ShortLink,
   SocialPreview,
   UpdateLinkBody,
@@ -15,7 +14,6 @@ import type {
 export const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/
 export const MAX_SLUG_LENGTH = 64
 export const MIN_PASSWORD_LENGTH = 4
-export const DEFAULT_REDIRECT_STATUS: RedirectStatus = 302
 
 const SLUG_ALPHABET =
   'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -113,7 +111,6 @@ export type CreateLinkDraft = {
   tags: string[]
   utmEnabled: boolean
   utm: UtmParameters
-  redirectStatus: RedirectStatus
   scheduleEnabled: boolean
   /** Local "YYYY-MM-DDTHH:mm" from DateTimeInput. */
   activateAt: string | undefined
@@ -158,7 +155,6 @@ export function emptyDraft(folderId: string | null): CreateLinkDraft {
     tags: [],
     utmEnabled: false,
     utm: {},
-    redirectStatus: DEFAULT_REDIRECT_STATUS,
     scheduleEnabled: false,
     activateAt: undefined,
     expiryEnabled: false,
@@ -436,7 +432,6 @@ function draftSettings(draft: CreateLinkDraft) {
     /** Falls back to the destination's host; the caller adds the back-half as a last resort. */
     title: draft.title.trim() || host,
     description: draft.description.trim() || undefined,
-    redirectStatus: draft.redirectStatus,
     activateAt: activateAt?.toISOString(),
     expiresAt: expiresAt?.toISOString(),
     maxClicks: draft.clickLimitEnabled ? (draft.maxClicks ?? undefined) : undefined,
@@ -520,7 +515,6 @@ export function linkToDraft(link: ShortLink): CreateLinkDraft {
     tags: [...(link.tags ?? [])],
     utmEnabled: !!link.utm,
     utm: { ...link.utm },
-    redirectStatus: link.redirectStatus ?? DEFAULT_REDIRECT_STATUS,
     scheduleEnabled: !!link.activateAt,
     activateAt: isoToLocalInput(link.activateAt),
     expiryEnabled: !!link.expiresAt,

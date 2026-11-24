@@ -13,7 +13,6 @@ function linkRow(overrides: Partial<typeof link.$inferSelect>): typeof link.$inf
     title: null,
     description: null,
     destinationUrl: 'https://example.com',
-    redirectStatus: 302,
     status: 'active',
     enabled: true,
     activateAt: null,

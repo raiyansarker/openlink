@@ -34,7 +34,7 @@ function setup() {
   const linkWith = (organizationId: string, imageUrl: string | null) => {
     const id = `l${++n}`
     adapter.insert(link).values({
-      id, organizationId, domainId: null, slug: id, destinationUrl: 'https://example.com', redirectStatus: 302, status: 'active',
+      id, organizationId, domainId: null, slug: id, destinationUrl: 'https://example.com', status: 'active',
       enabled: true, clickCount: 0, tagsJson: '[]', createdAt: now, updatedAt: now,
       deliveryJson: imageUrl ? JSON.stringify({ socialPreview: { title: 'Card', imageUrl } }) : null,
     } as never).run()

@@ -48,7 +48,6 @@ const TRACKED: { label: string; read: (row: LinkRow) => string }[] = [
   { label: 'Destination', read: (r) => show(r.destinationUrl) },
   { label: 'Title', read: (r) => show(r.title) },
   { label: 'Notes', read: (r) => show(r.description) },
-  { label: 'Redirect status', read: (r) => show(r.redirectStatus) },
   { label: 'Status', read: (r) => show(r.status) },
   { label: 'Enabled', read: (r) => (r.enabled ? 'yes' : 'no') },
   { label: 'Activates', read: (r) => showDate(r.activateAt) },
