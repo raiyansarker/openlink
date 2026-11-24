@@ -12,7 +12,7 @@ import { createClient, errorMessage } from '../lib/client'
 import { OVERLAY_COMMAND } from '../lib/overlay'
 import { loadSettings, normalizeOrigin, originPattern, updateSettings } from '../lib/settings'
 
-type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'ok'; message: string } | { kind: 'error'; message: string }
+type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'ok'; message: string } | { kind: 'warning'; message: string } | { kind: 'error'; message: string }
 
 /** Whether the browser holds a sign-in session for the app. */
 type Session = 'checking' | 'signed-in' | 'signed-out'
@@ -61,12 +61,11 @@ export default function OptionsApp() {
       try {
         await createClient(normalized).organizations.listOrganizations()
         setSession('signed-in')
-        setStatus({ kind: 'ok', message: `Connected to ${new URL(normalized).host}.` })
+        setStatus({ kind: 'ok', message: `Signed in — connected to ${new URL(normalized).host}.` })
       } catch {
-        // Connected, but the extension works through the browser's sign-in
-        // session — take the user straight to where they can create one.
+        // No session for the app: say so and take the user to where they can create one.
         setSession('signed-out')
-        setStatus({ kind: 'ok', message: 'Connected — finish signing in to the app in the tab that opened.' })
+        setStatus({ kind: 'warning', message: 'Not signed in — the login page opened in a new tab.' })
         await chrome.tabs.create({ url: `${normalized}/login` })
       }
     } catch (error) {
@@ -99,6 +98,7 @@ export default function OptionsApp() {
             <TextInput label="App URL" type="url" placeholder="https://links.example.com" value={origin} onChange={setOrigin} width="100%" isRequired />
             <Button type="submit" variant="primary" size="lg" label="Connect" width="100%" isLoading={status.kind === 'busy'} />
             {status.kind === 'ok' && <Banner status="success" title={status.message} />}
+            {status.kind === 'warning' && <Banner status="warning" title={status.message} />}
             {status.kind === 'error' && <Banner status="error" title={status.message} />}
           </VStack>
         </form>
