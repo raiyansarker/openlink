@@ -390,3 +390,15 @@ body {
 .ol-sheet-footer-actions a {
   width: 100% !important;
 }
+
+/*
+ * Pills glide, chrome stays clean: strip scrollbars (settings tabs, chips)
+ * hide entirely while native scrolling keeps working. Opt-in by class.
+ */
+.ol-hide-scrollbar {
+  scrollbar-width: none;
+}
+
+.ol-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

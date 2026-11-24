@@ -140,8 +140,9 @@ export default function MobileDashboardShell({
         }}
       >
         {/* Switcher chrome is flat text, not a pill — the sheet below
-            carries the logos, names and roles. The current workspace still
-            rides along for screen readers. */}
+            carries the logos, names and roles. The label is the
+            workspace's own NAME (never the literal word "Workspace");
+            truncation is one ellipsis, the chevron stays put. */}
         <button
           className="ol-focus-ring"
           type="button"
@@ -162,7 +163,7 @@ export default function MobileDashboardShell({
           }}
         >
           <Text weight="semibold" maxLines={1}>
-            Workspace
+            {activeOrg.name}
           </Text>
           <span style={{ display: 'flex', flexShrink: 0, color: SHELL_NAV_TEXT_SECONDARY }}>
             <ChevronDownIcon size={14} />

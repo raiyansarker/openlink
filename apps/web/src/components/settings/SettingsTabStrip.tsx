@@ -80,7 +80,15 @@ export default function SettingsTabStrip() {
         backgroundColor: 'transparent',
       }}
     >
-      <ScrollableArea axis="inline" label="Settings sections" width="fill" paddingInline={4}>
+      <ScrollableArea
+        axis="inline"
+        label="Settings sections"
+        width="fill"
+        paddingInline={4}
+        // Scrollbar hidden on purpose (see .ol-hide-scrollbar): the pills
+        // glide, the chrome stays clean. Scrolling itself is untouched.
+        className="ol-hide-scrollbar"
+      >
         <HStack gap={2}>
           {items.map((item) => {
             const active = isActive(`/settings/${item.section}`)
