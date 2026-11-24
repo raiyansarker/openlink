@@ -6,11 +6,9 @@ import { contract } from '@openlink/contracts'
 export type OpenLinkClient = ContractRouterClient<typeof contract>
 
 /**
- * Runs the request in the background service worker, which reads the app's
- * session cookie from the extension's cookie store and sends it with the
- * request. Every surface uses the same path — the popup, the options page and
- * the overlay framed inside other sites — so authentication behaves the same
- * everywhere.
+ * Runs the request in the background service worker, framed safely away from
+ * page contexts. Requests are authenticated by the API key they carry — no
+ * cookies are read or sent. The whole response comes back over messaging.
  */
 async function fetchViaBackground(url: string, init: RequestInit): Promise<Response> {
   const headers = init.headers instanceof Headers ? Object.fromEntries(init.headers.entries()) : ((init.headers ?? {}) as Record<string, string>)
@@ -27,14 +25,14 @@ async function fetchViaBackground(url: string, init: RequestInit): Promise<Respo
   return new Response(answer.body, { status: answer.status, statusText: answer.statusText, headers: new Headers((answer.headers ?? []) as [string, string][]) })
 }
 
-/** Typed client for the OpenLink API. With an API key it acts as that key's
- * workspace bearer-token client; without one, over the user's sign-in session
- * (Better Auth). Requests still run through the worker bridge either way. */
-export function createClient(origin: string, apiKey?: string): OpenLinkClient {
+/** Typed client for the OpenLink API, acting as an API key's workspace:
+ * the key rides as a bearer token, and requests run through the worker
+ * bridge so every surface — popup, options, overlay — behaves the same. */
+export function createClient(origin: string, apiKey: string): OpenLinkClient {
   const link = new OpenAPILink(contract, {
     origin: () => origin,
     url: '/api/v1',
-    headers: () => (apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+    headers: () => ({ authorization: `Bearer ${apiKey}` }),
     fetch: (url: string, init: RequestInit) => fetchViaBackground(url, init),
   })
   return createORPCClient(link) as OpenLinkClient
