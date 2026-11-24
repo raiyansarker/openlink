@@ -319,14 +319,26 @@ body {
   --focus-outline-offset: 0px;
 }
 
-/* Member activity events: a plain button around the event, with a rounded hover like activity rows. */
+/*
+ * Member activity events: a plain button around the event, with a rounded
+ * hover like activity rows.
+ *
+ * MEASURED (CDP): the old full-bleed trick (margin-inline: -spacing-2 and
+ * width: calc(100% + 2 * spacing-2)) pushed this row 8px past the border
+ * box of BOTH surfaces it lives in — the sheet's scroller and the drawer's
+ * content scroller. That is real scroll-overflow (scrollWidth 474 vs
+ * clientWidth 466): it unlocked sideways panning, and once the scroller
+ * clipped, it chopped the hover pill's rounded corner mid-way — the
+ * "radius gone on hover" artifact. A row must never intentionally cross a
+ * scroller's edge, so the pill instead stays entirely inside its column:
+ * its radius renders whole everywhere and nothing pans.
+ */
 .ol-timeline-event {
   display: block;
   margin: 0;
   padding: var(--spacing-2);
   margin-block-start: calc(-1 * var(--spacing-2));
-  margin-inline: calc(-1 * var(--spacing-2));
-  width: calc(100% + 2 * var(--spacing-2));
+  width: 100%;
   border: none;
   border-radius: 9px;
   background: transparent;

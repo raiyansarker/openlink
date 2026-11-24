@@ -89,12 +89,15 @@ export default function ResponsiveDetailSheet({
             style={{
               flex: 1,
               minHeight: 0,
-              // overflow-y alone computes overflow-x to auto, and the
-              // sheet's own region scrolls 'both' — one wide row and the
-              // phone could pan sideways. Detail sheets are column
-              // documents: horizontal is always a bug, so it clips here.
+              // overflow-y alone computes overflow-x to auto, so a wide row
+              // would let the phone pan sideways. That must be fixed at the
+              // source instead of clipping here: overflow-x: hidden once
+              // sat on this line and squashed the timeline row's rounded
+              // hover against the scroller's edge (the pill bled 8px out).
+              // The bleed is gone (see .ol-timeline-event in styles.css),
+              // and any future row that overflows gets the same treatment —
+              // keep it inside its column, never clip the scroller.
               overflowY: 'auto',
-              overflowX: 'hidden',
               WebkitOverflowScrolling: 'touch',
             }}
           >
