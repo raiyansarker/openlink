@@ -45,13 +45,12 @@ const CAPSULE_PAD_PX = 5
  *  it reads as the row's primary action, the way iOS sizes it. */
 const PLUS_CIRCLE_PX = 54
 
-/** The shared chrome surface: the iOS recipe — a nearly-opaque fill on a
- *  heavy blur. 72% body keeps the bar reading solid and glassy at rest;
- *  the 28px blur + saturation only reveals itself as content edges smear
- *  past underneath. (The blur was never the vanish-bug; the unitless
- *  lineHeight was.) */
+/** The shared chrome surface — canonical frosted glass: the container's
+ *  own background is only a light wash (40% alpha); the frost is produced
+ *  by the backdrop blur + saturation acting on whatever scrolls beneath.
+ *  Raising the tint instead kills the blur — the wash must stay light. */
 const NAV_SURFACE_STYLE: CSSProperties = {
-  backgroundColor: 'color-mix(in oklab, var(--color-background-surface) 72%, transparent)',
+  backgroundColor: 'color-mix(in oklab, var(--color-background-surface) 40%, transparent)',
   backdropFilter: 'blur(28px) saturate(1.8)',
   WebkitBackdropFilter: 'blur(28px) saturate(1.8)',
   border: '1px solid var(--color-border)',
