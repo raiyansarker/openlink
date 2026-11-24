@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { usePageInsetSteps } from '#/hooks/use-is-phone'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Section } from '@astryxdesign/core/Section'
@@ -21,11 +22,16 @@ export const Route = createFileRoute('/w/$orgSlug/links/')({
 
 function DashboardLinksPage() {
   const { folder } = Route.useSearch()
+  const inset = usePageInsetSteps()
   const navigate = useNavigate({ from: Route.fullPath })
 
   return (
     // Same frame as the other dashboard pages (Overview, Activity, Domains, Analytics).
-    <Section paddingInline={8} paddingBlockStart={8} paddingBlockEnd={10}>
+    <Section
+      paddingInline={inset.inline}
+      paddingBlockStart={inset.block}
+      paddingBlockEnd={10}
+    >
       <VStack gap={8} width="fill">
         <HStack hAlign="between" vAlign="center" gap={4} wrap="wrap" width="fill">
           <VStack gap={2}>

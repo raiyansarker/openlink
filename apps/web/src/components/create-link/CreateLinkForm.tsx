@@ -5,6 +5,7 @@ import { Banner } from '@astryxdesign/core/Banner'
 import { Heading } from '@astryxdesign/core/Heading'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import { Collapsible } from '@astryxdesign/core/Collapsible'
 import { firstError } from '#/lib/forms/fields'
 import { useShortcut } from '#/hooks/use-shortcut'
 import { useMediaQuery } from '@astryxdesign/core/hooks'
@@ -93,24 +94,51 @@ const SubmitErrorBanner = memo(function SubmitErrorBanner() {
   return message ? <Banner status="error" title={message} /> : null
 })
 
-/** The sections are static elements: React skips them when the root re-renders. */
+/**
+ * The sections are static elements: React skips them when the root re-renders.
+ *
+ * On stacked (phone/tablet) widths the form keeps the essentials —
+ * destination, short link, password, details — and folds the seven optional
+ * sections (targeting, tracking, social, delivery, hold, availability,
+ * advanced) behind one "More options" disclosure, Apple-style progressive
+ * disclosure. Desktop shows every section, as before.
+ */
 const FormBody = memo(function FormBody({ editLink }: { editLink?: ShortLink }) {
+  const isStacked = useMediaQuery('(max-width: 959px)')
+  const coreSections = (
+    <>
+      <DestinationSection />
+      <ShortLinkSection />
+      <PasswordSection />
+      <DetailsSection />
+    </>
+  )
+  const optionalSections = (
+    <>
+      <TargetingSection />
+      <UtmSection />
+      <SocialPreviewSection />
+      <DeliverySection />
+      <HoldSection />
+      <AvailabilitySection />
+      <AdvancedSection />
+    </>
+  )
   return (
     <VStack gap={8} hAlign="stretch" width="100%">
       <FormHeader editLink={editLink} />
       <SubmitErrorBanner />
       <VStack gap={0} hAlign="stretch" width="100%">
-        <DestinationSection />
-        <ShortLinkSection />
-        <PasswordSection />
-        <DetailsSection />
-        <TargetingSection />
-        <UtmSection />
-        <SocialPreviewSection />
-        <DeliverySection />
-        <HoldSection />
-        <AvailabilitySection />
-        <AdvancedSection />
+        {coreSections}
+        {isStacked ? (
+          <Collapsible defaultIsOpen={false} trigger="More options">
+            <VStack gap={0} hAlign="stretch" width="100%">
+              {optionalSections}
+            </VStack>
+          </Collapsible>
+        ) : (
+          optionalSections
+        )}
       </VStack>
     </VStack>
   )

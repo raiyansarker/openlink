@@ -22,6 +22,7 @@ import DomainStatus from '#/components/domains/DomainStatus'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
 import { useOrganization } from '#/contexts/OrganizationContext'
+import { usePageInsetSteps } from '#/hooks/use-is-phone'
 import { usePermissions } from '#/hooks/use-permissions'
 import type { Domain } from '#/lib/api/types'
 import {
@@ -36,6 +37,7 @@ type DomainRow = Domain & Record<string, unknown>
 
 export default function DashboardDomainsPanel() {
   const { activeOrg } = useOrganization()
+  const inset = usePageInsetSteps()
   const {
     customDomains,
     detailRequestDomainId,
@@ -103,8 +105,8 @@ export default function DashboardDomainsPanel() {
       gap={8}
       hAlign="stretch"
       width="fill"
-      paddingBlockStart={8}
-      paddingInline={8}
+      paddingBlockStart={inset.block}
+      paddingInline={inset.inline}
       paddingBlockEnd={10}
     >
       {actionError ? <Banner status="error" title={actionError} /> : null}

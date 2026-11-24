@@ -6,6 +6,7 @@ import { VStack } from '@astryxdesign/core/VStack'
 import AnalyticsReportView from '#/components/analytics/AnalyticsReportView'
 import AnalyticsToolbar from '#/components/analytics/AnalyticsToolbar'
 import { useOrganization } from '#/contexts/OrganizationContext'
+import { usePageInsetSteps } from '#/hooks/use-is-phone'
 import { useAnalyticsReport } from '#/hooks/use-analytics'
 import type { AnalyticsView } from '#/lib/analytics/search'
 import { formatReportWindow as windowLabel } from '#/lib/analytics/format'
@@ -20,6 +21,7 @@ type DashboardAnalyticsPanelProps = {
 
 export default function DashboardAnalyticsPanel({ view, onViewChange }: DashboardAnalyticsPanelProps) {
   const { activeOrg, links } = useOrganization()
+  const inset = usePageInsetSteps()
   const { range, linkId, isComparing } = view
   const query = useAnalyticsReport(activeOrg.id, range, linkId)
   const report = query.data
@@ -38,13 +40,18 @@ export default function DashboardAnalyticsPanel({ view, onViewChange }: Dashboar
       gap={6}
       hAlign="stretch"
       width="fill"
-      paddingBlockStart={8}
-      paddingInline={8}
+      paddingBlockStart={inset.block}
+      paddingInline={inset.inline}
       paddingBlockEnd={10}
     >
       <VStack gap={2} hAlign="start" width="fill">
         <Heading level={1}>Analytics</Heading>
-        <Text color="secondary" type="supporting">
+        <Text
+          color="secondary"
+          type="supporting"
+          // Drilled-in links print a URL; break anywhere rather than overflow.
+          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+        >
           {selectedLink
             ? `/${selectedLink.slug} → ${selectedLink.destination}`
             : `How people reach and use ${activeOrg.name}'s short links`}

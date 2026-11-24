@@ -6,6 +6,7 @@ import { Button } from '@astryxdesign/core/Button'
 import { Text } from '@astryxdesign/core/Text'
 import CreateLinkChromeButton from '#/components/dashboard/CreateLinkChromeButton'
 import { useNavigate } from '@tanstack/react-router'
+import { usePageInsetSteps } from '#/hooks/use-is-phone'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import DashboardOverviewMetrics from './DashboardOverviewMetrics'
@@ -13,13 +14,18 @@ import DashboardRecentLinksTable from './DashboardRecentLinksTable'
 
 export default function DashboardOverview() {
   const { stats, activeOrg } = useOrganization()
+  const inset = usePageInsetSteps()
   const navigate = useNavigate()
   const linksPath = WorkspaceUrl.build(activeOrg.slug, 'links')
   const analyticsPath = WorkspaceUrl.build(activeOrg.slug, 'analytics')
 
   return (
     // A Section (not a padded stack) so the recent-links table bleeds to its edges, like the links page.
-    <Section paddingInline={8} paddingBlockStart={8} paddingBlockEnd={10}>
+    <Section
+      paddingInline={inset.inline}
+      paddingBlockStart={inset.block}
+      paddingBlockEnd={10}
+    >
     <VStack gap={10} width="fill">
       <HStack hAlign="between" vAlign="center" gap={4} wrap="wrap" width="fill">
         <VStack gap={2}>
