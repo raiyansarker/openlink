@@ -354,3 +354,12 @@ export function MenuIcon({ size = 16, ...p }: SvgProps) {
     </svg>
   )
 }
+
+/** iconmcp: chevron-down */
+export function ChevronDownIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M4 6 L8 10 L12 6" />
+    </svg>
+  )
+}
