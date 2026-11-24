@@ -45,6 +45,34 @@ export default function OptionsApp() {
     })
   }, [checkSession])
 
+  /**
+   * A sign-in that happens in another tab (the login page Connect opened, say)
+   * must show up here without a reload. Cookie-store events for the app's
+   * domain — and coming back to this tab — re-check the session, debounced
+   * because a sign-in touches several cookies at once.
+   */
+  useEffect(() => {
+    if (!origin || !normalizeOrigin(origin)) return
+    const host = new URL(origin).hostname
+    let retry: number | undefined
+    const recheck = () => {
+      window.clearTimeout(retry)
+      retry = window.setTimeout(() => void checkSession(origin), 300)
+    }
+    const onCookieChange = (change: chrome.cookies.CookieChangeInfo) => {
+      const domain = change.cookie.domain.replace(/^\./, '')
+      if (host === domain || host.endsWith(`.${domain}`)) recheck()
+    }
+    const onFocus = () => recheck()
+    chrome.cookies.onChanged.addListener(onCookieChange)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      window.clearTimeout(retry)
+      chrome.cookies.onChanged.removeListener(onCookieChange)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [origin, checkSession])
+
   /** Grants host access to the app (its cookies make the requests), then verifies
    * the session: signed in says connected; signed out opens the app's login page. */
   async function connect(event: FormEvent) {
