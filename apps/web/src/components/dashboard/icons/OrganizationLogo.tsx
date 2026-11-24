@@ -10,47 +10,28 @@ type OrganizationLogoProps = {
 }
 
 /**
- * Tile palettes for workspaces without an uploaded logo — a light pastel
- * gradient with initials in its deeper hue, so the tile reads as a light chip
- * on the dark org rail. The name picks the palette, so a workspace keeps its
- * colour across loads and orgs sit distinguishably.
+ * Tile for workspaces without an uploaded logo — a light grey gradient (the
+ * shell's zinc family, 50→200) with the initials in zinc-700. Neutral in both
+ * light and dark shells; the tile reads as a light chip on the dark org rail.
  */
-const ORG_TILE_PALETTES = [
-  { from: '#DBEAFE', to: '#BFDBFE', text: '#1D4ED8' }, // blue
-  { from: '#E0E7FF', to: '#C7D2FE', text: '#4338CA' }, // indigo
-  { from: '#EDE9FE', to: '#DDD6FE', text: '#6D28D9' }, // violet
-  { from: '#FCE7F3', to: '#FBCFE8', text: '#BE185D' }, // pink
-  { from: '#FEF3C7', to: '#FDE68A', text: '#B45309' }, // amber
-  { from: '#DCFCE7', to: '#BBF7D0', text: '#15803D' }, // green
-  { from: '#CCFBF1', to: '#99F6E4', text: '#0F766E' }, // teal
-  { from: '#F1F5F9', to: '#E2E8F0', text: '#475569' }, // slate
-] as const
+const TILE_GRADIENT = { from: '#FAFAFA', to: '#E4E4E7' }
+const TILE_TEXT = '#3F3F46'
 
-/** Stable palette index for a workspace name. */
-function tileHueIndex(name: string): number {
-  let hash = 0
-  for (const char of name.toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) | 0
-  return Math.abs(hash) % ORG_TILE_PALETTES.length
-}
-
-function InitialsGlyph({ initials, hueIndex }: { initials: string; hueIndex: number }) {
-  const palette = ORG_TILE_PALETTES[hueIndex]
-  // Same palette ⇒ same id everywhere, so repeated ids define identical gradients.
-  const gradientId = `org-tile-${hueIndex}`
+function InitialsGlyph({ initials }: { initials: string }) {
   return (
     <svg viewBox="0 0 40 40" width="100%" height="100%" aria-hidden>
       <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={palette.from} />
-          <stop offset="1" stopColor={palette.to} />
+        <linearGradient id="org-tile-grey" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={TILE_GRADIENT.from} />
+          <stop offset="1" stopColor={TILE_GRADIENT.to} />
         </linearGradient>
       </defs>
-      <rect width="40" height="40" rx="11" fill={`url(#${gradientId})`} />
+      <rect width="40" height="40" rx="11" fill="url(#org-tile-grey)" />
       <text
         x="20"
         y="24.5"
         textAnchor="middle"
-        fill={palette.text}
+        fill={TILE_TEXT}
         fontSize="15"
         fontWeight="700"
         letterSpacing="0.02em"
@@ -92,7 +73,7 @@ export default function OrganizationLogo({
   // The tile is drawn with its own corners; clipping makes it use `radius`.
   return (
     <VStack width={size} height={size} hAlign="center" vAlign="center" style={{ borderRadius: radius, overflow: 'hidden' }}>
-      <InitialsGlyph initials={organizationInitials(name)} hueIndex={tileHueIndex(name)} />
+      <InitialsGlyph initials={organizationInitials(name)} />
     </VStack>
   )
 }
