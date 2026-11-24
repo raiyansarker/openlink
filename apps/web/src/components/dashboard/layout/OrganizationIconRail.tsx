@@ -68,10 +68,6 @@ function OrgSwitchButton({
       ? DASHBOARD_RAIL_HOVER_BG
       : 'transparent'
 
-  const boxShadow = isActive
-    ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.28)'
-    : 'none'
-
   return (
     <Tooltip content={orgName} placement="end">
       <button
@@ -82,8 +78,8 @@ function OrgSwitchButton({
         onClick={onClick}
         style={{
           ...orgControlBase,
+          position: 'relative',
           backgroundColor,
-          boxShadow,
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -91,6 +87,22 @@ function OrgSwitchButton({
         onBlur={() => setHovered(false)}
       >
         {children}
+        {/* The active workspace: a brand-orange bar hugging the button's left edge. */}
+        {isActive ? (
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: '50%',
+              width: 3,
+              height: 18,
+              marginTop: -9,
+              borderRadius: 3,
+              backgroundColor: 'var(--openlink-brand)',
+            }}
+          />
+        ) : null}
       </button>
     </Tooltip>
   )
