@@ -47,12 +47,13 @@ const PLUS_CIRCLE_PX = 54
 
 /** The shared chrome surface — canonical frosted glass: the container's
  *  own background is a light wash (50% alpha) and the frost comes from a
- *  moderate backdrop blur + saturation picking up whatever scrolls beneath.
- *  A heavier blur muddies everything to a flat smear, so it stays tame. */
+ *  gentle backdrop blur + saturation picking up whatever scrolls beneath.
+ *  At 8px the blur only softens edges — a whisper of frost, all but
+ *  imperceptible at rest. */
 const NAV_SURFACE_STYLE: CSSProperties = {
   backgroundColor: 'color-mix(in oklab, var(--color-background-surface) 50%, transparent)',
-  backdropFilter: 'blur(16px) saturate(1.8)',
-  WebkitBackdropFilter: 'blur(16px) saturate(1.8)',
+  backdropFilter: 'blur(8px) saturate(1.8)',
+  WebkitBackdropFilter: 'blur(8px) saturate(1.8)',
   border: '1px solid var(--color-border)',
   boxShadow: '0 10px 24px rgba(0, 0, 0, 0.12)',
 }
