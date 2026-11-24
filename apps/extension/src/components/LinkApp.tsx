@@ -14,7 +14,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 
 import { createClient, errorMessage, isUnauthorized, type OpenLinkClient } from '../lib/client'
 import { clearCache, loadCache, saveCache, type LinkCache } from '../lib/cache'
-import { hasSessionCookie } from '../lib/session'
 import { loadSettings, updateSettings, type ConnectedWorkspace } from '../lib/settings'
 import FolderPicker, { ROOT, folderPath, type Folder } from './FolderPicker'
 import { CheckIcon, ChevronRightIcon, CloseIcon, CopyIcon, FolderIcon, SettingsIcon } from './icons'
@@ -29,11 +28,9 @@ const LOGO_URL = chrome.runtime.getURL('images/icon-48.png')
 type Session =
   | { state: 'loading' }
   | { state: 'unconfigured' }
-  /** Signed out of the app: the extension rides the browser's sign-in session. */
-  | { state: 'signed-out'; origin: string }
-  | { state: 'signed-in-empty'; origin: string }
-  | { state: 'unreachable'; origin: string; message: string }
-  | { state: 'ready'; origin: string; workspaces: ConnectedWorkspace[]; organizationId: string; initial?: LinkCache; apiKey?: string }
+  /** No API key connected: the extension has nothing to act with. */
+  | { state: 'no-key' }
+  | { state: 'ready'; origin: string; workspaces: ConnectedWorkspace[]; organizationId: string; initial?: LinkCache; apiKey: string }
 
 export type LinkAppProps = {
   /** The page being shortened: the active tab, or the page the shortcut was pressed on. */
@@ -41,10 +38,6 @@ export type LinkAppProps = {
   initialTitle: string
   /** Set when shown over a page; adds a close button. */
   onClose?: () => void
-}
-
-function toWorkspace(m: { organization: { id: string; name: string; slug: string }; role: ConnectedWorkspace['role'] }): ConnectedWorkspace {
-  return { organizationId: m.organization.id, name: m.organization.name, slug: m.organization.slug, role: m.role }
 }
 
 /** Shorten a page: pick workspace, folder and domain, then create. Used by the popup and the page overlay. */
@@ -61,76 +54,42 @@ export default function LinkApp(props: LinkAppProps) {
     }
     const saved = await loadSettings()
     if (seq !== loadSeq.current) return
-    if (!saved.origin) return apply({ state: 'unconfigured' })
-    // API-key mode: the key names its workspace, so the panel paints at once and
-    // quietly re-verifies; a revoked key removes itself and re-routes to the session flow.
-    if (saved.apiKeyWorkspace) {
-      const keyed = saved.apiKeyWorkspace
-      const cache = await loadCache()
-      if (seq !== loadSeq.current) return
-      apply({
-        state: 'ready',
-        origin: saved.origin,
-        workspaces: [keyed],
-        organizationId: keyed.organizationId,
-        apiKey: keyed.apiKey,
-        ...(cache && cache.organizationId === keyed.organizationId ? { initial: cache } : {}),
-      })
-      try {
-        const info = await createClient(saved.origin, keyed.apiKey).apiKeys.getCurrentApiKey()
-        if (seq !== loadSeq.current) return
-        // Track renames and role changes of the key's workspace.
-        if (info.organization.name !== keyed.name || info.organization.slug !== keyed.slug || info.role !== keyed.role) {
-          await updateSettings((current) => ({
-            ...current,
-            apiKeyWorkspace: { ...keyed, name: info.organization.name, slug: info.organization.slug, role: info.role },
-          }))
-          if (seq !== loadSeq.current) return
-        }
-        return
-      } catch (e) {
-        if (seq !== loadSeq.current) return
-        if (!isUnauthorized(e)) return // Unreachable now: keep the key state; the server stays the judge when it answers.
-        // The key was rejected (revoked or rotated): drop it — the settings
-        // change restarts this load through the session flow.
-        void clearCache()
-        await updateSettings((current) => ({ ...current, apiKeyWorkspace: undefined }))
-        return
-      }
-    }
-    // Session mode continues below.
-    // No session cookie means signed out, immediately: no stale cache paints, no wait.
-    if (!(await hasSessionCookie(saved.origin))) {
-      void clearCache()
-      return apply({ state: 'signed-out', origin: saved.origin })
-    }
-    // Paint the last known state at once; the server's answer below is the truth.
+    if (!saved.origin || !saved.apiKeyWorkspace) return apply({ state: saved.origin ? 'no-key' : 'unconfigured' })
+    // API-key mode, the only mode: the key names its workspace, so the panel
+    // paints at once and quietly re-verifies against the server.
+    const keyed = saved.apiKeyWorkspace
+    const origin = saved.origin
     const cache = await loadCache()
     if (seq !== loadSeq.current) return
-    if (cache && cache.origin === saved.origin && cache.workspaces.length > 0) {
-      const active = cache.workspaces.find((w) => w.organizationId === saved.activeOrganizationId) ?? cache.workspaces[0]!
-      apply({ state: 'ready', origin: saved.origin, workspaces: cache.workspaces, organizationId: active.organizationId, initial: cache })
-    }
-    const client = createClient(saved.origin)
+    apply({
+      state: 'ready',
+      origin,
+      workspaces: [keyed],
+      organizationId: keyed.organizationId,
+      apiKey: keyed.apiKey,
+      ...(cache && cache.organizationId === keyed.organizationId ? { initial: cache } : {}),
+    })
     try {
-      const { items } = await client.organizations.listOrganizations()
+      const info = await createClient(origin, keyed.apiKey).apiKeys.getCurrentApiKey()
       if (seq !== loadSeq.current) return
-      const workspaces = items.map(toWorkspace)
-      if (workspaces.length === 0) {
-        void clearCache()
-        return apply({ state: 'signed-in-empty', origin: saved.origin })
+      // Track renames and role changes of the key's workspace.
+      if (info.organization.name !== keyed.name || info.organization.slug !== keyed.slug || info.role !== keyed.role) {
+        await updateSettings((current) => ({
+          ...current,
+          apiKeyWorkspace: { ...keyed, name: info.organization.name, slug: info.organization.slug, role: info.role },
+        }))
+        if (seq !== loadSeq.current) return
       }
-      const active = workspaces.find((w) => w.organizationId === saved.activeOrganizationId) ?? workspaces[0]!
-      apply({ state: 'ready', origin: saved.origin, workspaces, organizationId: active.organizationId, ...(cache ? { initial: cache } : {}) })
+      return
     } catch (e) {
       if (seq !== loadSeq.current) return
-      // The server always wins over the cache: a refused request means signed
-      // out, an unreachable app means unreachable — never show the stale form.
-      if (isUnauthorized(e)) {
-        void clearCache()
-        return apply({ state: 'signed-out', origin: saved.origin })
-      }
-      apply({ state: 'unreachable', origin: saved.origin, message: errorMessage(e, 'Could not reach the app.') })
+      // Unreachable for now: keep the painted state; the server stays the judge.
+      if (!isUnauthorized(e)) return
+      // Rejected (revoked or rotated): drop the key and say so — the settings
+      // change restarts this load, landing on the no-key panel.
+      void clearCache()
+      await updateSettings((current) => ({ ...current, apiKeyWorkspace: undefined }))
+      return apply({ state: 'no-key' })
     }
   }, [])
 
@@ -170,30 +129,11 @@ export default function LinkApp(props: LinkAppProps) {
           <Button variant="primary" size="lg" label="Open settings" onClick={() => void chrome.runtime.openOptionsPage()} />
         </Panel>
       )
-    case 'signed-out':
+    case 'no-key':
       return (
         <Panel onClose={props.onClose}>
-          <Text type="supporting">
-            The extension uses the browser's sign-in session for {session.origin}. Sign in there once and reopen this panel.
-          </Text>
-          <Button variant="primary" size="lg" label="Open the app" onClick={() => void chrome.tabs.create({ url: session.origin })} />
-        </Panel>
-      )
-    case 'signed-in-empty':
-      return (
-        <Panel onClose={props.onClose}>
-          <Text type="supporting">Create a workspace in the app first; the extension files short links into it.</Text>
-          <Button variant="primary" size="lg" label="Open the app" onClick={() => void chrome.tabs.create({ url: session.origin })} />
-        </Panel>
-      )
-    case 'unreachable':
-      return (
-        <Panel onClose={props.onClose}>
-          <Banner status="error" title={session.message} description={`Check that ${session.origin} is the right app URL, then retry.`} />
-          <HStack gap={2}>
-            <Button label="Retry" onClick={() => void load()} />
-            <Button label="Settings" onClick={() => void chrome.runtime.openOptionsPage()} />
-          </HStack>
+          <Text type="supporting">The extension acts through an API key, and none is connected yet. Add one in settings.</Text>
+          <Button variant="primary" size="lg" label="Open settings" onClick={() => void chrome.runtime.openOptionsPage()} />
         </Panel>
       )
     case 'ready': {
@@ -206,8 +146,8 @@ export default function LinkApp(props: LinkAppProps) {
           origin={session.origin}
           workspaces={session.workspaces}
           workspace={workspace}
+          apiKey={session.apiKey}
           {...(session.initial ? { initial: session.initial } : {})}
-          {...(session.apiKey ? { apiKey: session.apiKey } : {})}
           onSelectWorkspace={(id) => void selectWorkspace(id)}
         />
       )
@@ -267,8 +207,8 @@ function Shortener({
   workspace: ConnectedWorkspace
   /** Last shown state for this workspace; lets the form paint instantly. */
   initial?: LinkCache
-  /** Set in the API-key mode: requests act as this key's workspace. */
-  apiKey?: string
+  /** The connected key; requests act as this key's workspace. */
+  apiKey: string
   onSelectWorkspace: (id: string) => void
 }) {
   const { organizationId } = workspace
@@ -392,15 +332,9 @@ function Shortener({
       await copy(url).catch(() => undefined)
       void refreshRecentQuietly()
     } catch (e) {
-      setError(
-        isUnauthorized(e)
-          ? apiKey
-            ? 'That API key was not accepted — it may have been revoked. Connect again in settings.'
-            : 'The session was not accepted. Sign in to the app again, then retry.'
-          : errorMessage(e, 'Could not create the link.'),
-      )
-      // A rejected key routes the panel back to the session flow by removing itself.
-      if (isUnauthorized(e) && apiKey) await updateSettings((current) => ({ ...current, apiKeyWorkspace: undefined }))
+      setError(isUnauthorized(e) ? 'The API key was not accepted — it may have been revoked. Connect again in settings.' : errorMessage(e, 'Could not create the link.'))
+      // A rejected key removes itself and routes the panel to the no-key state.
+      if (isUnauthorized(e)) await updateSettings((current) => ({ ...current, apiKeyWorkspace: undefined }))
     } finally {
       setBusy(false)
     }
@@ -446,7 +380,7 @@ function Shortener({
       <form onSubmit={onSubmit}>
         <VStack gap={3} hAlign="stretch" width="100%">
           {workspace.role === 'viewer' && (
-            <Banner status="warning" title="Viewers can’t create links" description="Ask a workspace admin for a member or admin role." />
+            <Banner status="warning" title="This key is read only" description="Ask for a member or admin key to create links." />
           )}
           <Selector
             label="Workspace"
