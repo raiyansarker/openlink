@@ -150,14 +150,14 @@ export default function MobileDashboardShell({
         <DashboardAccountMenu />
       </HStack>
 
-      {/* Content: full-bleed, keeps its distance from the FAB */}
+      {/* Content: full-bleed — pages carry their own Section inset, so the
+          horizontal padding stays a single 6–8px, not two stacked ones. */}
       <div
         className="settings-content-scroll"
         style={{
           flex: 1,
           minHeight: 0,
           overflowY: 'auto',
-          paddingInline: 12,
           paddingBlockEnd: 84,
           borderRadius: 0,
           border: 'none',
