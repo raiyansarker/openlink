@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 
 import { createClient, errorMessage, isUnauthorized, type OpenLinkClient } from '../lib/client'
 import { clearCache, loadCache, saveCache, type LinkCache } from '../lib/cache'
+import { hasSessionCookie } from '../lib/session'
 import { loadSettings, updateSettings, type ConnectedWorkspace } from '../lib/settings'
 import FolderPicker, { ROOT, folderPath, type Folder } from './FolderPicker'
 import { CheckIcon, ChevronRightIcon, CloseIcon, CopyIcon, FolderIcon, SettingsIcon } from './icons'
@@ -61,6 +62,11 @@ export default function LinkApp(props: LinkAppProps) {
     const saved = await loadSettings()
     if (seq !== loadSeq.current) return
     if (!saved.origin) return apply({ state: 'unconfigured' })
+    // No session cookie means signed out, immediately: no stale cache paints, no wait.
+    if (!(await hasSessionCookie(saved.origin))) {
+      void clearCache()
+      return apply({ state: 'signed-out', origin: saved.origin })
+    }
     // Paint the last known state at once; the server's answer below is the truth.
     const cache = await loadCache()
     if (seq !== loadSeq.current) return
