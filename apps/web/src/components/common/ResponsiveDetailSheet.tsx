@@ -68,21 +68,36 @@ export default function ResponsiveDetailSheet({
         purpose={purpose}
         height="capped"
       >
-        {/* Astryx's sheet body is the scroller (its own design intent) and
-            sticky positions against it — measured: with a nested scroller,
-            phones showed a second scrollbar INSIDE the content ("something
-            overflowing"); the native region alone scrolls the whole body.
-            The sticky bar paints --color-background-surface, which is the
-            sheet panel's exact fill, so content scrolls under it with no
-            color band at the seam. */}
-        <VStack gap={6} hAlign="stretch" width="100%">
-          {children}
+        {/* The wrapper FILLS the capped region (height: 100%) — that is what
+            keeps the action bar at the sheet's bottom edge for SHORT forms
+            like the invite (a sticky bar only pins once content overflows).
+            The body scrolls inside; its scrollbar is hidden (.ol-hide-
+            scrollbar) because on phones a second bar inside the content
+            reads as "something overflowing" — the region itself never
+            scrolls (measured), so nothing else moves. The footer sits BELOW
+            the scroller as a flex sibling: pinned on every content length. */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            maxHeight: '100%',
+          }}
+        >
+          <div
+            className="ol-hide-scrollbar"
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+          >
+            <VStack gap={6} hAlign="stretch" width="100%">
+              {children}
+            </VStack>
+          </div>
           {footer ? (
             <div className="ol-sheet-footer">
               <div className="ol-sheet-footer-actions">{footer}</div>
             </div>
           ) : null}
-        </VStack>
+        </div>
       </BottomSheet>
     )
   }

@@ -368,17 +368,14 @@ body {
  * hug-width buttons), so the rules here override those inline styles.
  */
 .ol-sheet-footer {
-  /* Sticky inside the sheet's OWN scroller (measured: Astryx's sheet body
-     is the scroll boundary and honors sheet-local sticky). The fill is
-     --color-background-surface — the sheet panel's exact computed color —
-     so long content drifts under the bar with no seam. No divider: the
-     buttons ARE the footer chrome. */
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
+  /* A flex sibling BELOW the sheet's inner scroller (see
+     ResponsiveDetailSheet): pinned by layout on EVERY content length —
+     sticky needs overflow, which short forms like the invite never have.
+     Transparent: the sheet paints itself behind it, nothing shows a seam. */
+  flex-shrink: 0;
   margin: 8px 0 0;
   padding: 10px 0 calc(12px + env(safe-area-inset-bottom));
-  background: var(--color-background-surface);
+  background: transparent;
 }
 .ol-sheet-footer-actions {
   /* One action row: two buttons split 50/50 side by side — a lone button
