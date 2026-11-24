@@ -34,10 +34,9 @@ import {
 /** The app's brand accent: active tab, active workspace, create button. */
 const BRAND = 'var(--openlink-brand)'
 
-/** One tab slot inside the capsule: icon over a micro label, stacked
- *  vertically. Fixed, not flexed — the capsule shrinks to fit its five
- *  tabs instead of stretching edge-to-edge, so the create circle can dock
- *  to the opposite edge. */
+/** One icon slot inside the capsule. Fixed, not flexed — the capsule
+ *  shrinks to fit its five tabs instead of stretching edge-to-edge, so
+ *  the create circle can dock to the opposite edge. */
 const TAB_SLOT_PX = 52
 /** Padding inside the tab capsule; the sliding pill is inset by the same
  *  amount so it tracks the slots exactly. */
@@ -46,23 +45,23 @@ const CAPSULE_PAD_PX = 5
  *  it reads as the row's primary action, the way iOS sizes it. */
 const PLUS_CIRCLE_PX = 54
 
-/** The shared chrome surface: opaque, no compositing tricks. Frozen
- *  glass (backdrop-filter) is how the tab glyphs were disappearing on
- *  real phones — the blur layer can mask its own subtree on mobile
- *  renderers — so the bar is now a plain solid surface with a hairline
- *  border and one soft shadow. It can always paint what sits on it. */
+/** The shared chrome surface: solid-ish fill on a gentle backdrop blur
+ *  — frosted, but 78% opaque so every ink on it stays crisp. (The blur
+ *  was never the vanish-bug; the unitless lineHeight was.) */
 const NAV_SURFACE_STYLE: CSSProperties = {
-  backgroundColor: 'var(--color-background-surface)',
+  backgroundColor: 'color-mix(in oklab, var(--color-background-surface) 78%, transparent)',
+  backdropFilter: 'blur(16px) saturate(1.4)',
+  WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
   border: '1px solid var(--color-border)',
   boxShadow: '0 10px 24px rgba(0, 0, 0, 0.12)',
 }
 
 const TABS = [
-  { id: 'overview', label: 'Home', icon: <DashboardIcon size={22} strokeWidth={1.6} style={{ flexShrink: 0 }} /> },
-  { id: 'activity', label: 'Activity', icon: <ActivityIcon size={22} strokeWidth={1.6} style={{ flexShrink: 0 }} /> },
-  { id: 'links', label: 'Links', icon: <LinkIcon size={22} strokeWidth={1.6} style={{ flexShrink: 0 }} /> },
-  { id: 'domains', label: 'Domains', icon: <GlobeIcon size={22} strokeWidth={1.6} style={{ flexShrink: 0 }} /> },
-  { id: 'analytics', label: 'Analytics', icon: <BarChartIcon size={22} strokeWidth={1.6} style={{ flexShrink: 0 }} /> },
+  { id: 'overview', label: 'Home', icon: <DashboardIcon size={22} strokeWidth={1.2} style={{ flexShrink: 0 }} /> },
+  { id: 'activity', label: 'Activity', icon: <ActivityIcon size={22} strokeWidth={1.2} style={{ flexShrink: 0 }} /> },
+  { id: 'links', label: 'Links', icon: <LinkIcon size={22} strokeWidth={1.2} style={{ flexShrink: 0 }} /> },
+  { id: 'domains', label: 'Domains', icon: <GlobeIcon size={22} strokeWidth={1.2} style={{ flexShrink: 0 }} /> },
+  { id: 'analytics', label: 'Analytics', icon: <BarChartIcon size={22} strokeWidth={1.2} style={{ flexShrink: 0 }} /> },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -82,8 +81,8 @@ type MobileDashboardShellProps = {
  *   │          content            │  full-bleed, scrolls under the bar,
  *   │                            │  padded past the floating capsule
  *   │                            │
- *   │  ╭◌ ◌ ◌ ◌ ◌ ◌╮        (＋)  │  two solid capsules: the tab strip
- *   │  ╰▁ ▁ ▁ ▁ ▁▁╯              │  (icon + micro label) docks left, the
+ *   │  ╭ ◌ ◌ ◌ ◌ ◌ ╮        (＋) │  two frosted capsules: the icon-only
+ *   │  ╰────────────╯             │  tab strip docks left, the
  *   └──┴───────────┴──────────────┘  matching create circle docks right
  *
  * Workspace switching is an iOS bottom sheet opened from the header; the
@@ -258,6 +257,8 @@ export default function MobileDashboardShell({
                 className="ol-focus-ring"
                 type="button"
                 aria-current={isActive ? 'page' : undefined}
+                // Icon-only — the name rides along for screen readers.
+                aria-label={tab.label}
                 // Icon above a micro label — the full iOS tab signatures.
                 // The label doubles as the accessible name.
                 onClick={() => go(WorkspaceUrl.build(activeOrgSlug, tab.id))}
@@ -265,44 +266,21 @@ export default function MobileDashboardShell({
                   width: TAB_SLOT_PX,
                   height: 48,
                   border: 'none',
-                  padding: '4px 1px',
-                  boxSizing: 'border-box',
+                  padding: 0,
                   borderRadius: 999,
                   // The sliding pill lives behind the row; the button
                   // itself stays transparent and only its ink crossfades.
                   position: 'relative',
                   background: 'transparent',
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 1,
                   cursor: 'pointer',
                   color: isActive ? BRAND : SHELL_NAV_TEXT_PRIMARY,
                   transition: 'color 0.22s ease',
                 }}
               >
                 {tab.icon}
-                {/* Micro label under the icon: a plain span, NOT the
-                    Text component — Text resolves its own StyleX colour
-                    and fights the inherit, which rendered the label
-                    invisible. Explicit inherit makes the label ride the
-                    same ink crossfade as the icon; nowrap keeps wide
-                    words on one line. */}
-                <span
-                  style={{
-                    fontSize: 11,
-                    lineHeight: '13px',
-                    fontWeight: isActive ? 600 : 500,
-                    color: 'inherit',
-                    whiteSpace: 'nowrap',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {tab.label}
-                </span>
               </button>
             )
           })}
