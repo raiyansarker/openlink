@@ -128,6 +128,38 @@ body {
     top: 0;
     z-index: 2;
   }
+
+  /*
+   * Apple-style stacked form: modal nav bar pinned above (back on the left,
+   * centered title) and the primary action pinned below, over a translucent
+   * blurred surface with a hairline rule — iOS sheet chrome.
+   */
+  .ol-create-navbar {
+    padding: 10px 16px !important;
+    border-bottom: 1px solid light-dark(var(--color-border), rgba(255, 255, 255, 0.11));
+    background: color-mix(in oklab, var(--color-background-body) 78%, transparent) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    backdrop-filter: blur(20px) saturate(1.6);
+  }
+  .ol-create-footer {
+    order: 3;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom)) !important;
+    border-top: 1px solid light-dark(var(--color-border), rgba(255, 255, 255, 0.11));
+    background: color-mix(in oklab, var(--color-background-body) 78%, transparent) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    backdrop-filter: blur(20px) saturate(1.6);
+  }
+
+  /* Apple's standard content margin, with room for the sticky bars. */
+  .ol-create-form-pad {
+    padding: 16px 16px 32px !important;
+  }
+  .ol-create-aside-pad {
+    padding: 16px 16px 20px !important;
+  }
 }
 
 /* Link preview — a lasso leaves the short link, wanders, and closes around the destination. */
