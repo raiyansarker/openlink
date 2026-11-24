@@ -80,7 +80,11 @@ function SheetRow({
 }) {
   return (
     <button className="ol-focus-ring" type="button" onClick={onClick} style={sheetRowStyle}>
-      <span style={{ display: 'flex', color: SHELL_NAV_TEXT_SECONDARY }}>{icon}</span>
+      {/* 2px of optical seat: top-align leaves the 18px glyph a hair
+          above where the label's first line visually starts. */}
+      <span style={{ display: 'flex', paddingTop: 2, color: SHELL_NAV_TEXT_SECONDARY }}>
+        {icon}
+      </span>
       <VStack gap={0} hAlign="start" style={{ flex: 1, minWidth: 0 }}>
         <Text weight="medium">{label}</Text>
         {detail ? (
@@ -237,7 +241,7 @@ export default function DashboardAccountMenu({
               onClick={go(() => void signOut())}
               style={sheetRowStyle}
             >
-              <span style={{ display: 'flex', color: 'var(--color-text-error)' }}>
+              <span style={{ display: 'flex', paddingTop: 2, color: 'var(--color-text-error)' }}>
                 <LogOutIcon size={18} />
               </span>
               <Text weight="medium" style={{ color: 'var(--color-text-error)' }}>
