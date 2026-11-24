@@ -34,8 +34,13 @@ import {
 /** The app's brand accent: active tab, active workspace, create button. */
 const BRAND = 'var(--openlink-brand)'
 
-/** The FAB rides just above the capsule's top edge, aligned to its insets. */
-const FAB_BOTTOM = 'calc(82px + env(safe-area-inset-bottom))'
+/** Horizontal chrome the tab slots don't cover: the capsule's own padding
+ *  (2 × 5px) plus the separator zone (15px) and the plus button (46px).
+ *  The sliding pill sizes its slots against this. */
+const TAB_STRIP_INSET_WRITER_PX = 71
+const TAB_STRIP_INSET_VIEWER_PX = 10
+const TAB_STRIP_DIVIDER_ZONE_PX = 15
+const TAB_STRIP_PLUS_PX = 46
 
 const TABS = [
   { id: 'overview', label: 'Home', icon: <DashboardIcon size={21} strokeWidth={1.2} /> },
@@ -81,6 +86,9 @@ export default function MobileDashboardShell({
   const activeTab = WorkspaceUrl.sectionOf(pathname, activeOrgSlug) as TabId | 'settings'
   // Index of the selected tab; -1 when the path is outside the five tabs.
   const activeTabIndex = TABS.findIndex((tab) => tab.id === activeTab)
+  // Viewers get a five-slot capsule (no create action), so the sliding
+  // pill sizes its slots against a different inset than writers.
+  const tabStripInset = canManageLinks ? TAB_STRIP_INSET_WRITER_PX : TAB_STRIP_INSET_VIEWER_PX
 
   const go = (to: string) => void navigate({ to })
   const switchOrg = (org: Workspace) => {
@@ -158,9 +166,9 @@ export default function MobileDashboardShell({
           flex: 1,
           minHeight: 0,
           overflowY: 'auto',
-          // Clears the floating bar (12px offset + 76px of bar) plus air, so
-          // the last of every page scrolls out from behind the glass.
-          paddingBlockEnd: 'calc(108px + env(safe-area-inset-bottom))',
+          // Clears the floating bar (12px offset + 58px of capsule) plus
+          // air, so the last of every page scrolls out from behind the glass.
+          paddingBlockEnd: 'calc(96px + env(safe-area-inset-bottom))',
           borderRadius: 0,
           border: 'none',
           backgroundColor: DASHBOARD_CONTENT_PANEL_BG,
@@ -194,7 +202,8 @@ export default function MobileDashboardShell({
       >
         {/* The active pill is one element that glides between tabs —
             the iOS slide — instead of per-tab backgrounds cutting in and
-            out. cubic-bezier(0.32, 0.72, 0, 1) is the iOS sheet curve. */}
+            out. cubic-bezier(0.32, 0.72, 0, 1) is the iOS sheet curve.
+            The slots exclude the capsule's padding and the plus zone. */}
         {activeTabIndex >= 0 ? (
           <span
             aria-hidden
@@ -202,8 +211,8 @@ export default function MobileDashboardShell({
               position: 'absolute',
               top: 5,
               bottom: 5,
-              left: `calc(5px + (100% - 10px) / ${TABS.length} * ${activeTabIndex})`,
-              width: `calc((100% - 10px) / ${TABS.length})`,
+              left: `calc(5px + (100% - ${tabStripInset}px) / ${TABS.length} * ${activeTabIndex})`,
+              width: `calc((100% - ${tabStripInset}px) / ${TABS.length})`,
               borderRadius: 999,
               backgroundColor: DASHBOARD_NAV_SELECTED_BG,
               transition: 'left 0.38s cubic-bezier(0.32, 0.72, 0, 1)',
@@ -218,10 +227,13 @@ export default function MobileDashboardShell({
               className="ol-focus-ring"
               type="button"
               aria-current={isActive ? 'page' : undefined}
+              // Icon-only in the capsule; the label stays with screen
+              // readers via aria-label.
+              aria-label={tab.label}
               onClick={() => go(WorkspaceUrl.build(activeOrgSlug, tab.id))}
               style={{
                 flex: 1,
-                minHeight: 52,
+                minHeight: 48,
                 border: 'none',
                 padding: 0,
                 borderRadius: 999,
@@ -230,55 +242,59 @@ export default function MobileDashboardShell({
                 position: 'relative',
                 background: 'transparent',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 2,
                 cursor: 'pointer',
                 color: isActive ? BRAND : SHELL_NAV_TEXT_SECONDARY,
                 transition: 'color 0.22s ease',
               }}
             >
-              <span style={{ display: 'flex' }}>{tab.icon}</span>
-              <span style={{ fontSize: 10.5, fontWeight: 600 }}>{tab.label}</span>
+              {tab.icon}
             </button>
           )
         })}
+        {/* Create lives in the capsule but stays separated: a hairline
+            divides it from navigation, and the brand tint marks it as an
+            action, not a tab. Link writers only. */}
+        {canManageLinks ? (
+          <>
+            <span
+              aria-hidden
+              style={{
+                width: 1,
+                height: 22,
+                margin: `0 ${(TAB_STRIP_DIVIDER_ZONE_PX - 1) / 2}px`,
+                alignSelf: 'center',
+                flexShrink: 0,
+                backgroundColor: 'light-dark(rgba(15, 17, 21, 0.12), rgba(255, 255, 255, 0.16))',
+              }}
+            />
+            <button
+              className="ol-focus-ring"
+              type="button"
+              aria-label="Create link"
+              onClick={() => go('/create/link')}
+              style={{
+                  width: TAB_STRIP_PLUS_PX,
+                minHeight: 48,
+                flexShrink: 0,
+                border: 'none',
+                padding: 0,
+                borderRadius: 999,
+                background: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: BRAND,
+                transition: 'color 0.22s ease',
+              }}
+            >
+              <PlusIcon size={22} strokeWidth={1.8} />
+            </button>
+          </>
+        ) : null}
       </nav>
-
-      {/* Floating create button — link writers only. iOS-style glass: the
-          same frosted circle as the tab bar, with the brand colour carried
-          by the glyph instead of a filled button. Aligned to the capsule's
-          right inset, hovering just above it. */}
-      {canManageLinks ? (
-        <button
-          className="ol-focus-ring"
-          type="button"
-          aria-label="Create link"
-          onClick={() => go('/create/link')}
-          style={{
-            position: 'absolute',
-            right: 16,
-            bottom: FAB_BOTTOM,
-            width: 56,
-            height: 56,
-            borderRadius: 999,
-            padding: 0,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'color-mix(in oklab, var(--color-background-body) 68%, transparent)',
-            backdropFilter: 'blur(24px) saturate(1.8)',
-            WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
-            border: '1px solid light-dark(rgba(15, 17, 21, 0.1), rgba(255, 255, 255, 0.14))',
-            color: BRAND,
-            boxShadow: '0 10px 32px rgba(0, 0, 0, 0.18)',
-          }}
-        >
-          <PlusIcon size={24} strokeWidth={1.8} />
-        </button>
-      ) : null}
 
       {/* Workspace switcher: rises from the bottom, like an app */}
       <BottomSheet
