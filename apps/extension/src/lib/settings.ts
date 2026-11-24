@@ -6,11 +6,19 @@ export type ConnectedWorkspace = {
   role: 'owner' | 'admin' | 'member' | 'viewer'
 }
 
+/** A workspace reached through one of the app's API keys, not the session. */
+export type KeyWorkspace = ConnectedWorkspace & {
+  /** The `sk_…` secret; sent as a bearer token. */
+  apiKey: string
+}
+
 export type Settings = {
   /** Origin of the OpenLink app, e.g. `https://links.example.com`. */
   origin?: string
   /** Last workspace picked in the popup or overlay. */
   activeOrganizationId?: string
+  /** The API-key mode, when connected with a key instead of the browser session. */
+  apiKeyWorkspace?: KeyWorkspace
 }
 
 const KEY = 'settings'

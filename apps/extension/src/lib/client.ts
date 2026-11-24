@@ -27,11 +27,14 @@ async function fetchViaBackground(url: string, init: RequestInit): Promise<Respo
   return new Response(answer.body, { status: answer.status, statusText: answer.statusText, headers: new Headers((answer.headers ?? []) as [string, string][]) })
 }
 
-/** Typed client for the OpenLink API over the user's sign-in session (Better Auth). */
-export function createClient(origin: string): OpenLinkClient {
+/** Typed client for the OpenLink API. With an API key it acts as that key's
+ * workspace bearer-token client; without one, over the user's sign-in session
+ * (Better Auth). Requests still run through the worker bridge either way. */
+export function createClient(origin: string, apiKey?: string): OpenLinkClient {
   const link = new OpenAPILink(contract, {
     origin: () => origin,
     url: '/api/v1',
+    headers: () => (apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
     fetch: (url: string, init: RequestInit) => fetchViaBackground(url, init),
   })
   return createORPCClient(link) as OpenLinkClient
