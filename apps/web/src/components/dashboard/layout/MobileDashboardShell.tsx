@@ -85,7 +85,7 @@ type MobileDashboardShellProps = {
  *   │                            │
  *   │  ╭◌ ◌ ◌ ◌ ◌╮         (＋)  │  two pieces of frosted glass: the tab
  *   │  ╰▁ ▁ ▁ ▁ ▁╯               │  capsule (icon + micro label) docks left,
- *   └──┴──────────┴──────────────┘  the brand-tinted create circle docks right
+ *   └──┴──────────┴──────────────┘  the matching create circle docks right
  *
  * Workspace switching is an iOS bottom sheet opened from the header; the
  * account avatar mirrors it (profile, settings, sign out).
@@ -275,31 +275,40 @@ export default function MobileDashboardShell({
                   justifyContent: 'center',
                   gap: 1,
                   cursor: 'pointer',
-                  color: isActive ? BRAND : SHELL_NAV_TEXT_SECONDARY,
+                  color: isActive ? BRAND : SHELL_NAV_TEXT_PRIMARY,
                   transition: 'color 0.22s ease',
                 }}
               >
                 {tab.icon}
-                {/* Micro label: small enough to keep the capsule at tap
-                    height, `inherit` so it rides the same ink crossfade
-                    as the icon above, medium → semibold when selected. */}
-                <Text
-                  weight={isActive ? 'semibold' : 'medium'}
-                  maxLines={1}
-                  style={{ fontSize: 10, lineHeight: 12, color: 'inherit' }}
+                {/* Micro label under the icon: a plain span, NOT the
+                    Text component — Text resolves its own StyleX colour
+                    and fights the inherit, which rendered the label
+                    invisible over the glass. Explicit inherit makes the
+                    label ride the same ink crossfade as the icon; nowrap
+                    keeps wide words on one line. */}
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    lineHeight: 12,
+                    fontWeight: isActive ? 600 : 500,
+                    color: 'inherit',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
                 >
                   {tab.label}
-                </Text>
+                </span>
               </button>
             )
           })}
         </nav>
 
         {/* Create is its own piece of glass, not a tab: a separate circle
-            docked to the right edge of the row. The frost is brand-tinted —
-            the accent lives in the glass, iOS style — so it stays
-            translucent like the capsule while reading as the primary
-            action. Link writers only. */}
+            docked to the right edge of the row, wearing the exact same
+            glass and ink as the capsule — only the plus glyph marks it
+            as the action. Link writers only. */}
         {canManageLinks ? (
           <button
             className="ol-focus-ring"
@@ -308,11 +317,8 @@ export default function MobileDashboardShell({
             onClick={() => go('/create/link')}
             style={{
               ...GLASS_STYLE,
-              // Same chill, accent ink: the brand tint replaces the neutral
-              // fill, kept as translucent as the capsule's — accent glass,
-              // not a solid button. The hairline border follows the tint.
-              backgroundColor: 'color-mix(in oklab, var(--openlink-brand) 32%, transparent)',
-              borderColor: 'color-mix(in oklab, var(--openlink-brand) 42%, transparent)',
+              // No accent tint: identical fill, hairline and ink as the
+              // capsule, so the row reads as one family of chrome.
               flexShrink: 0,
               width: PLUS_CIRCLE_PX,
               height: PLUS_CIRCLE_PX,
@@ -322,7 +328,7 @@ export default function MobileDashboardShell({
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: BRAND,
+              color: SHELL_NAV_TEXT_PRIMARY,
               transition: 'color 0.22s ease',
               pointerEvents: 'auto',
             }}
