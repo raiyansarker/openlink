@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { useMediaQuery } from '@astryxdesign/core/hooks'
+import { releaseShellPaintHold } from '#/lib/dashboard/shell-paint-hold'
 import type { Workspace } from '#/lib/api/types'
 import OrganizationIconRail from './OrganizationIconRail'
 import DashboardNavColumn from './DashboardNavColumn'
@@ -33,6 +35,16 @@ export default function ThreeColumnDashboardLayout({
 }: ThreeColumnDashboardLayoutProps) {
   const isPhone = useMediaQuery(IS_PHONE)
 
+  // Portraits-on-reload: the SSR'd desktop tree hydrates first, then this
+  // watch swaps trees. The head script holds the shell's paint across that
+  // gap (see shell-paint-hold.ts); the hold lifts HERE — but only once the
+  // PHONE tree has committed. An unguarded lift would release while the
+  // desktop tree is still on-screen, right before the swap — the flash
+  // again, one hook later.
+  useEffect(() => {
+    if (isPhone) releaseShellPaintHold()
+  }, [isPhone])
+
   if (isPhone) {
     return (
       <MobileDashboardShell organizations={organizations} activeOrgSlug={activeOrgSlug}>
@@ -43,6 +55,7 @@ export default function ThreeColumnDashboardLayout({
 
   return (
     <div
+      data-dashboard-shell="desktop"
       style={{
         display: 'flex',
         flexDirection: isPhone ? 'column' : 'row',

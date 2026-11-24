@@ -417,3 +417,18 @@ body {
 .ol-hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/*
+ * Phone reload paint-hold: the server renders the DESKTOP shell (it cannot
+ * know the viewport), and the mobile shell only takes over once hydration
+ * runs the media query — the desktop→mobile flash on every phone reload.
+ * The inline head script (shell-paint-hold.ts) flags <html> before first
+ * paint on phone widths; this rule holds the fitted shell's paint until
+ * the committed shell releases the hold. The hold has two escape hatches:
+ * the script adds nothing on desktop widths, and it self-lifts after 3s
+ * even if hydration crashes. `visibility` (not display) keeps layout so
+ * the swap stays put; only the paint is held.
+ */
+html.ol-shell-hold [data-dashboard-shell] {
+  visibility: hidden;
+}
