@@ -319,14 +319,26 @@ body {
   --focus-outline-offset: 0px;
 }
 
-/* Member activity events: a plain button around the event, with a rounded hover like activity rows. */
+/*
+ * Member activity events: a plain button around the event, with a rounded
+ * hover like activity rows.
+ *
+ * MEASURED (CDP): the old full-bleed trick (margin-inline: -spacing-2 and
+ * width: calc(100% + 2 * spacing-2)) pushed this row 8px past the border
+ * box of BOTH surfaces it lives in — the sheet's scroller and the drawer's
+ * content scroller. That is real scroll-overflow (scrollWidth 474 vs
+ * clientWidth 466): it unlocked sideways panning, and once the scroller
+ * clipped, it chopped the hover pill's rounded corner mid-way — the
+ * "radius gone on hover" artifact. A row must never intentionally cross a
+ * scroller's edge, so the pill instead stays entirely inside its column:
+ * its radius renders whole everywhere and nothing pans.
+ */
 .ol-timeline-event {
   display: block;
   margin: 0;
   padding: var(--spacing-2);
   margin-block-start: calc(-1 * var(--spacing-2));
-  margin-inline: calc(-1 * var(--spacing-2));
-  width: calc(100% + 2 * var(--spacing-2));
+  width: 100%;
   border: none;
   border-radius: 9px;
   background: transparent;
@@ -368,27 +380,30 @@ body {
  * hug-width buttons), so the rules here override those inline styles.
  */
 .ol-sheet-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
+  /* A flex sibling BELOW the sheet's inner scroller (see
+     ResponsiveDetailSheet): pinned by layout on EVERY content length —
+     sticky needs overflow, which short forms like the invite never have.
+     Transparent: the sheet paints itself behind it, nothing shows a seam. */
+  flex-shrink: 0;
   margin: 8px 0 0;
-  padding: 2px 0 6px;
-  /* Same surface the sheet already paints — no blur, no hairline. The
-     buttons themselves are the bar; nothing announces a footer. */
-  background: var(--color-background-popover);
+  padding: 10px 0 calc(12px + env(safe-area-inset-bottom));
+  background: transparent;
 }
 .ol-sheet-footer-actions {
+  /* One action row: two buttons split 50/50 side by side — a lone button
+     flexes to full width. The old stacked full-width column made a
+     Cancel/Send pair taller than it needed to be. */
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: stretch !important;
-  justify-content: stretch !important;
   gap: 8px !important;
   width: 100% !important;
 }
 .ol-sheet-footer-actions button,
 .ol-sheet-footer-actions [role='button'],
 .ol-sheet-footer-actions a {
-  width: 100% !important;
+  flex: 1 1 0 !important;
+  width: auto !important;
 }
 
 /*

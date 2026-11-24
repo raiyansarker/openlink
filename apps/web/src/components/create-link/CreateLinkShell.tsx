@@ -209,7 +209,17 @@ export default function CreateLinkShell({
         </div>
         <div
           className="settings-content-scroll"
-          style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            // Scroll anchoring off: with it, opening "More options" while
+            // scrolled down kept the BOTTOM of the page pinned and expanded
+            // the new sections above the viewport. The expected motion is the
+            // opposite — the tapped trigger stays put and the revealed
+            // content pushes what's below it DOWN out of the way.
+            overflowAnchor: 'none',
+          }}
         >
           <div className="ol-create-form-pad" style={{ padding: '8px 32px 48px' }}>
             <div

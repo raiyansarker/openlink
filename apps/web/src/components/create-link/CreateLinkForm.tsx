@@ -5,7 +5,7 @@ import { Banner } from '@astryxdesign/core/Banner'
 import { Heading } from '@astryxdesign/core/Heading'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import { Collapsible } from '@astryxdesign/core/Collapsible'
+import { ChevronDownIcon } from '#/components/icons/IcnMcp'
 import { firstError } from '#/lib/forms/fields'
 import { useShortcut } from '#/hooks/use-shortcut'
 import { useMediaQuery } from '@astryxdesign/core/hooks'
@@ -103,6 +103,71 @@ const SubmitErrorBanner = memo(function SubmitErrorBanner() {
  * advanced) behind one "More options" disclosure, Apple-style progressive
  * disclosure. Desktop shows every section, as before.
  */
+
+/**
+ * Phone-width "More options" disclosure — custom, deliberately NOT the
+ * Astryx Collapsible: that one's measurement-based animation kept
+ * re-pinning the scroll on phones (content appeared to expand ABOVE the
+ * viewport when opened near the bottom). This one's only moving part is a
+ * `grid-template-rows: 0fr -> 1fr` transition — pure CSS, no heights read,
+ * no focus juggling; whatever the browser does with scroll, the trigger
+ * keeps its place and the revealed sections push everything below down.
+ * (Browsers without the 0fr/1fr transition snap instead of animating —
+ * still correct.)
+ */
+const MoreOptionsDisclosure = memo(function MoreOptionsDisclosure({ children }: { children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false)
+  return (
+    <div style={{ width: '100%' }}>
+      <button
+        className="ol-focus-ring"
+        type="button"
+        aria-expanded={isOpen}
+        aria-controls="ol-more-options-panel"
+        onClick={() => setIsOpen((open) => !open)}
+        style={{
+          width: '100%',
+          // Row chrome to match the section borders above it.
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          padding: '14px 2px',
+          border: 'none',
+          borderTop: '1px solid var(--color-border)',
+          background: 'transparent',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          color: 'var(--color-text-primary)',
+        }}
+      >
+        <Text weight="semibold">More options</Text>
+        <span
+          aria-hidden
+          style={{
+            display: 'flex',
+            color: 'var(--color-text-secondary)',
+            transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          }}
+        >
+          <ChevronDownIcon size={16} />
+        </span>
+      </button>
+      <div
+        id="ol-more-options-panel"
+        style={{
+          display: 'grid',
+          gridTemplateRows: isOpen ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.38s cubic-bezier(0.32, 0.72, 0, 1)',
+        }}
+      >
+        <div style={{ minHeight: 0, overflow: 'hidden' }}>{children}</div>
+      </div>
+    </div>
+  )
+})
+
 const FormBody = memo(function FormBody({ editLink }: { editLink?: ShortLink }) {
   const isStacked = useMediaQuery('(max-width: 959px)')
   const coreSections = (
@@ -131,7 +196,7 @@ const FormBody = memo(function FormBody({ editLink }: { editLink?: ShortLink }) 
       <VStack gap={0} hAlign="stretch" width="100%">
         {coreSections}
         {isStacked ? (
-          <Collapsible defaultIsOpen={false} trigger="More options">
+          <MoreOptionsDisclosure>
             {/* The gap between the disclosure and the first optional
                 section (Targeting) needs to FEEL opened — a hairline gap
                 reads like a rendering mistake, so this inner stack starts
@@ -139,7 +204,7 @@ const FormBody = memo(function FormBody({ editLink }: { editLink?: ShortLink }) 
             <VStack gap={0} hAlign="stretch" width="100%" style={{ paddingTop: 28 }}>
               {optionalSections}
             </VStack>
-          </Collapsible>
+          </MoreOptionsDisclosure>
         ) : (
           optionalSections
         )}

@@ -68,17 +68,49 @@ export default function ResponsiveDetailSheet({
         purpose={purpose}
         height="capped"
       >
-        <VStack gap={6} hAlign="stretch" width="100%">
-          {children}
-
+        {/* The wrapper FILLS the capped region (height: 100%) — that is what
+            keeps the action bar at the sheet's bottom edge for SHORT forms
+            like the invite (a sticky bar only pins once content overflows).
+            The body scrolls inside; its scrollbar is hidden (.ol-hide-
+            scrollbar) because on phones a second bar inside the content
+            reads as "something overflowing" — the region itself never
+            scrolls (measured), so nothing else moves. The footer sits BELOW
+            the scroller as a flex sibling: pinned on every content length. */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            maxHeight: '100%',
+          }}
+        >
+          <div
+            className="ol-hide-scrollbar"
+            style={{
+              flex: 1,
+              minHeight: 0,
+              // overflow-y alone computes overflow-x to auto, so a wide row
+              // would let the phone pan sideways. That must be fixed at the
+              // source instead of clipping here: overflow-x: hidden once
+              // sat on this line and squashed the timeline row's rounded
+              // hover against the scroller's edge (the pill bled 8px out).
+              // The bleed is gone (see .ol-timeline-event in styles.css),
+              // and any future row that overflows gets the same treatment —
+              // keep it inside its column, never clip the scroller.
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            <VStack gap={6} hAlign="stretch" width="100%">
+              {children}
+            </VStack>
+          </div>
           {footer ? (
-            /* Pinned, blurred CTA bar with full-width stacked buttons
-               (see `.ol-sheet-footer` in styles.css). */
             <div className="ol-sheet-footer">
               <div className="ol-sheet-footer-actions">{footer}</div>
             </div>
           ) : null}
-        </VStack>
+        </div>
       </BottomSheet>
     )
   }

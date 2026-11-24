@@ -100,7 +100,11 @@ export default function MemberDetailDrawer({
                       size={72}
                       tooltip={false}
                     />
-                    <VStack gap={1} hAlign="start">
+                    {/* minWidth: 0 or the column keeps the email's
+                        min-content width and the row overflows the sheet,
+                        unlocking the region's horizontal scroll. The
+                        maxLines clamps now actually engage. */}
+                    <VStack gap={1} hAlign="start" style={{ minWidth: 0 }}>
                       <Text weight="semibold">{member.name}</Text>
                       <Text type="supporting" color="secondary" maxLines={2}>
                         {member.email}
