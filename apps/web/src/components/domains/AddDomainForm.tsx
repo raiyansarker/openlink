@@ -22,12 +22,24 @@ const HostnameField = checkedText((value) => {
   return isValidCustomHostname(host) ? null : 'Use a valid hostname (e.g. links.example.com).'
 })
 
-export default function AddDomainForm() {
+/**
+ * `onClose` switches the form to sheet mode (phones): Cancel and a
+ * successful submit close the sheet instead of navigating — the panel that
+ * opened it is already the domains list. Without it, the form is the
+ * full-page flow.
+ */
+export default function AddDomainForm({ onClose }: { onClose?: () => void } = {}) {
   const { activeOrg } = useOrganization()
   const { addDomain } = useDomainsWorkspace()
   const navigate = useNavigate()
 
-  const backToDomains = () => void navigate({ to: '/w/$orgSlug/domains', params: { orgSlug: activeOrg.slug } })
+  const backToDomains = () => {
+    if (onClose) {
+      onClose()
+      return
+    }
+    void navigate({ to: '/w/$orgSlug/domains', params: { orgSlug: activeOrg.slug } })
+  }
 
   const form = useForm({
     defaultValues: { hostname: '' },
@@ -74,7 +86,16 @@ export default function AddDomainForm() {
             )}
           </form.Field>
 
-          <HStack gap={3} hAlign="end" width="100%" wrap="wrap">
+          {/* Sheet mode reuses the sheet actions styling: stacked, full-width
+              buttons (see .ol-sheet-footer-actions in styles.css). The
+              full-page flow keeps the compact desktop row. */}
+          <HStack
+            gap={3}
+            hAlign="end"
+            width="100%"
+            wrap="wrap"
+            className={onClose ? 'ol-sheet-footer-actions' : undefined}
+          >
             <Button variant="secondary" label="Cancel" onClick={backToDomains} />
             <form.Subscribe selector={(state) => state.isSubmitting}>
               {(isSubmitting) => <Button variant="primary" type="submit" label="Continue" isLoading={isSubmitting} />}

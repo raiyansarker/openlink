@@ -25,6 +25,7 @@ import DashboardAccountMenu from './DashboardAccountMenu'
 import {
   DASHBOARD_CONTENT_PANEL_BG,
   DASHBOARD_NAV_SELECTED_BG,
+  DASHBOARD_SURFACE_BG,
   SHELL_CHROME_BORDER,
   SHELL_NAV_TEXT_SECONDARY,
   SHELL_NAV_TEXT_PRIMARY,
@@ -124,6 +125,9 @@ export default function MobileDashboardShell({
           boxSizing: 'border-box',
           borderBottom: SHELL_CHROME_BORDER,
           flexShrink: 0,
+          // The chrome sits on its own surface, a step away from the
+          // content's panel colour — the bar reads as app chrome, not page.
+          backgroundColor: DASHBOARD_SURFACE_BG,
         }}
       >
         <button

@@ -1,5 +1,6 @@
-import { VStack } from '@astryxdesign/core/VStack'
+import { Grid } from '@astryxdesign/core/Grid'
 import { HStack } from '@astryxdesign/core/HStack'
+import { VStack } from '@astryxdesign/core/VStack'
 import { useIsPhone } from '#/hooks/use-is-phone'
 import ThemePreviewCard, { type ThemePreviewMode } from '#/components/settings/ThemePreviewCard'
 import { useAppearancePreference } from '#/contexts/AppearancePreferenceContext'
@@ -30,9 +31,10 @@ export default function AppearanceSettingsFields() {
   return (
     <VStack paddingBlockStart={3} hAlign="start" width="fill">
       {isPhone ? (
-        <VStack gap={2} width="fill" role="radiogroup" aria-label="Color mode">
+        /* Three-up: equal thirds filling the screen, one visual row. */
+        <Grid columns={3} gap={2} width="fill" role="radiogroup" aria-label="Color mode">
           {cards}
-        </VStack>
+        </Grid>
       ) : (
         <HStack
           gap={4}

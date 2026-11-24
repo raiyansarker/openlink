@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { usePageInsetSteps } from '#/hooks/use-is-phone'
+import { useIsPhone, usePageInsetSteps } from '#/hooks/use-is-phone'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Section } from '@astryxdesign/core/Section'
@@ -23,6 +23,9 @@ export const Route = createFileRoute('/w/$orgSlug/links/')({
 function DashboardLinksPage() {
   const { folder } = Route.useSearch()
   const inset = usePageInsetSteps()
+  // The floating create button already lives in the shell's bottom-right; a
+  // second one on the header crowded the phone title area.
+  const isPhone = useIsPhone()
   const navigate = useNavigate({ from: Route.fullPath })
 
   return (
@@ -38,8 +41,11 @@ function DashboardLinksPage() {
             <Heading level={1}>Links</Heading>
             <Text color="secondary">Organize short links into folders.</Text>
           </VStack>
-          {/* Creates in the folder you're viewing. */}
-          <CreateLinkChromeButton layout="hug" folderId={folder ?? null} />
+          {/* Creates in the folder you're viewing. On phones the FAB owns
+              creation, so the header stays title + description only. */}
+          {isPhone ? null : (
+            <CreateLinkChromeButton layout="hug" folderId={folder ?? null} />
+          )}
         </HStack>
         <LinksBrowser
           folderId={folder}
