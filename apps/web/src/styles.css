@@ -361,3 +361,34 @@ body {
 .astryx-table {
   --focus-outline-offset: calc(-1 * var(--focus-outline-width));
 }
+
+/*
+ * Phone bottom sheets (ResponsiveDetailSheet): the actions bar pins to the
+ * bottom of the sheet and the buttons stack full-width, like an iOS sheet
+ * CTA. The footer nodes were authored for the desktop drawer (HStack,
+ * hug-width buttons), so the rules here override those inline styles.
+ */
+.ol-sheet-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 8px 0 0;
+  padding: 10px 0 12px;
+  background: color-mix(in oklab, var(--color-background-body) 84%, transparent);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border-top: var(--border-width) solid var(--color-border);
+}
+.ol-sheet-footer-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+.ol-sheet-footer-actions button,
+.ol-sheet-footer-actions [role='button'],
+.ol-sheet-footer-actions a {
+  width: 100% !important;
+}

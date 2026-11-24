@@ -3,33 +3,12 @@ import { BottomSheet } from '@astryxdesign/core/BottomSheet'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import type { DialogPurpose } from '@astryxdesign/core/Dialog'
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
-import { HStack } from '@astryxdesign/core/HStack'
-import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
 import { useIsPhone } from '#/hooks/use-is-phone'
-
-/** App-standard close ("×") for the phone sheet header. */
-function CloseIcon() {
-  return (
-    <svg
-      width={16}
-      height={16}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.35}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M4.5 4.5l7 7m0-7l-7 7" />
-    </svg>
-  )
-}
 
 type ResponsiveDetailSheetProps = {
   isOpen: boolean
@@ -78,6 +57,9 @@ export default function ResponsiveDetailSheet({
   const isPhone = useIsPhone()
 
   if (isPhone) {
+    // No nav bar: iOS sheets aren't titled — the content identifies itself,
+    // and a header that scrolls away (or doesn't) reads as a bug. Escape,
+    // the scrim and the grab bar all dismiss; actions pin to the bottom.
     return (
       <BottomSheet
         isOpen={isOpen}
@@ -87,53 +69,14 @@ export default function ResponsiveDetailSheet({
         height="capped"
       >
         <VStack gap={6} hAlign="stretch" width="100%">
-          <HStack hAlign="between" vAlign="center" gap={4} width="fill">
-            <VStack gap={0} hAlign="start" style={{ minWidth: 0 }}>
-              <Text weight="semibold">{title}</Text>
-              {subtitle ? (
-                <Text type="supporting" color="secondary">
-                  {subtitle}
-                </Text>
-              ) : null}
-            </VStack>
-            <button
-              className="ol-focus-ring"
-              type="button"
-              aria-label="Close"
-              onClick={() => onOpenChange(false)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 30,
-                height: 30,
-                borderRadius: 999,
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                backgroundColor: 'transparent',
-                color: 'inherit',
-                flexShrink: 0,
-              }}
-            >
-              <CloseIcon />
-            </button>
-          </HStack>
-
           {children}
 
           {footer ? (
-            <VStack
-              gap={3}
-              hAlign="stretch"
-              width="fill"
-              style={{
-                borderTop: 'var(--border-width) solid var(--color-border)',
-                paddingTop: 12,
-              }}
-            >
-              {footer}
-            </VStack>
+            /* Pinned, blurred CTA bar with full-width stacked buttons
+               (see `.ol-sheet-footer` in styles.css). */
+            <div className="ol-sheet-footer">
+              <div className="ol-sheet-footer-actions">{footer}</div>
+            </div>
           ) : null}
         </VStack>
       </BottomSheet>

@@ -24,10 +24,12 @@ const BRAND = 'var(--openlink-brand)'
 const chipBaseStyle: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
-  padding: '6px 12px',
-  // Borderless, App-Store-style chips: the active state is the brand-tinted
-  // fill, not a border. Hairlines read as "sharp boxes" once focus moves around.
-  border: '1px solid transparent',
+  height: 32,
+  padding: '0 14px',
+  borderRadius: 999,
+  // Borderless pills, App-Store style: the active state is the brand-tinted
+  // fill, the inactive one a soft grey pill. No hairline boxes.
+  border: 'none',
   cursor: 'pointer',
   fontFamily: 'inherit',
   fontSize: 12.5,
@@ -91,7 +93,9 @@ export default function SettingsTabStrip() {
                 style={{
                   ...chipBaseStyle,
                   color: active ? BRAND : SHELL_NAV_TEXT_SECONDARY,
-                  backgroundColor: active ? DASHBOARD_NAV_SELECTED_BG : 'transparent',
+                  backgroundColor: active
+                    ? DASHBOARD_NAV_SELECTED_BG
+                    : 'color-mix(in oklab, var(--color-text-secondary) 10%, transparent)',
                 }}
               >
                 {item.label}

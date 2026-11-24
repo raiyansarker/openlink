@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { VStack } from '@astryxdesign/core/VStack'
 import { HStack } from '@astryxdesign/core/HStack'
 import { CircleCheckSolidIcon } from '#/components/icons/IcnMcp'
@@ -33,16 +33,23 @@ type ThemePreviewCardProps = {
   label: string
   isSelected: boolean
   onSelect: () => void
+  /**
+   * Fill the parent's width — the phone appearance page uses this so the
+   * theme previews don't read as a narrow column with unused space beside
+   * them. Every measured dimension below scales with the measured width,
+   * so the art grows instead of letterboxing.
+   */
+  fill?: boolean
 }
 
 type HalfTheme = 'light' | 'dark'
 
-function PreviewHalf({ theme, width }: { theme: HalfTheme; width: number }) {
+function PreviewHalf({ theme, width, scale = 1 }: { theme: HalfTheme; width: number; scale?: number }) {
   const isLight = theme === 'light'
   const outerBg = isLight ? LIGHT_OUTER : DARK_OUTER
   const panelBg = isLight ? LIGHT_PANEL : DARK_PANEL
   const textColor = isLight ? '#333333' : '#f5f5f5'
-  const panelLeft = Math.round(PANEL_LEFT * (width / OUTER_W))
+  const panelLeft = Math.round(PANEL_LEFT * scale)
   const panelW = width - panelLeft
 
   const panelStyle: CSSProperties = {
@@ -50,8 +57,8 @@ function PreviewHalf({ theme, width }: { theme: HalfTheme; width: number }) {
     left: panelLeft,
     bottom: 0,
     width: panelW,
-    height: PANEL_H,
-    borderRadius: `${RADIUS_PANEL}px ${RADIUS_PANEL}px ${RADIUS_PANEL}px 0`,
+    height: Math.round(PANEL_H * scale),
+    borderRadius: `${Math.round(RADIUS_PANEL * scale)}px ${Math.round(RADIUS_PANEL * scale)}px ${Math.round(RADIUS_PANEL * scale)}px 0`,
     backgroundColor: panelBg,
   }
 
@@ -65,7 +72,7 @@ function PreviewHalf({ theme, width }: { theme: HalfTheme; width: number }) {
       style={{
         position: 'relative',
         width,
-        height: OUTER_H,
+        height: Math.round(OUTER_H * scale),
         backgroundColor: outerBg,
         overflow: 'hidden',
         flexShrink: 0,
@@ -76,8 +83,8 @@ function PreviewHalf({ theme, width }: { theme: HalfTheme; width: number }) {
           aria-hidden
           style={{
             display: 'block',
-            padding: `${AA_PAD}px ${AA_PAD}px 0`,
-            fontSize: AA_SIZE,
+            padding: `${Math.round(AA_PAD * scale)}px ${Math.round(AA_PAD * scale)}px 0`,
+            fontSize: Math.round(AA_SIZE * scale),
             fontWeight: 400,
             lineHeight: 1.1,
             color: textColor,
@@ -91,63 +98,67 @@ function PreviewHalf({ theme, width }: { theme: HalfTheme; width: number }) {
   )
 }
 
-function SinglePreview({ theme }: { theme: HalfTheme }) {
+function SinglePreview({ theme, width, scale = 1 }: { theme: HalfTheme; width: number; scale?: number }) {
   return (
     <VStack
       gap={0}
       style={{
         position: 'relative',
-        width: OUTER_W,
-        height: OUTER_H,
-        borderRadius: RADIUS_OUTER,
+        width,
+        height: Math.round(OUTER_H * scale),
+        borderRadius: Math.round(RADIUS_OUTER * scale),
         backgroundColor: theme === 'light' ? LIGHT_OUTER : DARK_OUTER,
         overflow: 'hidden',
         flexShrink: 0,
       }}
     >
-      <PreviewHalf theme={theme} width={OUTER_W} />
+      <PreviewHalf theme={theme} width={width} scale={scale} />
     </VStack>
   )
 }
 
-function SystemPreview() {
-  const halfW = Math.floor((OUTER_W - DIVIDER_W) / 2)
+function SystemPreview({ width, scale = 1 }: { width: number; scale?: number }) {
+  const halfW = Math.floor((width - DIVIDER_W) / 2)
 
   return (
     <HStack
       gap={0}
       style={{
-        width: OUTER_W,
-        height: OUTER_H,
-        borderRadius: RADIUS_OUTER,
+        width,
+        height: Math.round(OUTER_H * scale),
+        borderRadius: Math.round(RADIUS_OUTER * scale),
         overflow: 'hidden',
         flexShrink: 0,
       }}
     >
-      <PreviewHalf theme="light" width={halfW} />
+      <PreviewHalf theme="light" width={halfW} scale={scale} />
       <span
         aria-hidden
         style={{
           width: DIVIDER_W,
-          height: OUTER_H,
+          height: Math.round(OUTER_H * scale),
           flexShrink: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.2)',
         }}
       />
-      <PreviewHalf theme="dark" width={halfW} />
+      <PreviewHalf theme="dark" width={halfW} scale={scale} />
     </HStack>
   )
 }
 
-function PreviewArt({ mode }: { mode: ThemePreviewMode }) {
-  if (mode === 'system') return <SystemPreview />
-  return <SinglePreview theme={mode} />
+function PreviewArt({ mode, width, scale }: { mode: ThemePreviewMode; width: number; scale: number }) {
+  if (mode === 'system') return <SystemPreview width={width} scale={scale} />
+  return <SinglePreview theme={mode} width={width} scale={scale} />
 }
 
 function PreviewFrame({
+  width,
+  scale,
   children,
   showTick,
 }: {
+  width: number
+  scale: number
   children: ReactNode
   showTick: boolean
 }) {
@@ -157,9 +168,9 @@ function PreviewFrame({
       className="ol-theme-card__frame"
       style={{
         position: 'relative',
-        width: OUTER_W,
-        height: OUTER_H,
-        borderRadius: RADIUS_OUTER,
+        width,
+        height: Math.round(OUTER_H * scale),
+        borderRadius: Math.round(RADIUS_OUTER * scale),
         flexShrink: 0,
       }}
     >
@@ -188,9 +199,33 @@ export default function ThemePreviewCard({
   label,
   isSelected,
   onSelect,
+  fill = false,
 }: ThemePreviewCardProps) {
+  // The art's intrinsic width (used for SSR and the desktop row layout).
+  const [width, setWidth] = useState(OUTER_W)
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+
+  // `fill`: measure this button (it's width: 100% of the row) and rescale
+  // every dimension of the preview art by width / OUTER_W.
+  useEffect(() => {
+    if (!fill) return
+    const el = buttonRef.current
+    if (!el) return
+    const measure = () => {
+      const measured = el.clientWidth
+      if (measured > 0) setWidth(measured)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [fill])
+
+  const scale = width / OUTER_W
+
   return (
     <button
+      ref={buttonRef}
       className="ol-theme-card"
       type="button"
       role="radio"
@@ -205,18 +240,19 @@ export default function ThemePreviewCard({
         cursor: 'pointer',
         textAlign: 'center',
         fontFamily: 'inherit',
+        ...(fill ? { width: '100%' } : {}),
       }}
     >
       <VStack gap={0} hAlign="center" vAlign="start">
-        <PreviewFrame showTick={isSelected}>
-          <PreviewArt mode={mode} />
+        <PreviewFrame width={width} scale={scale} showTick={isSelected}>
+          <PreviewArt mode={mode} width={width} scale={scale} />
         </PreviewFrame>
         <span
           style={{
             display: 'block',
-            width: OUTER_W,
-            marginTop: LABEL_GAP,
-            fontSize: LABEL_SIZE,
+            width,
+            marginTop: Math.round(LABEL_GAP * scale),
+            fontSize: Math.round(LABEL_SIZE * scale),
             lineHeight: 1.25,
             fontWeight: isSelected ? 600 : 400,
             color: isSelected

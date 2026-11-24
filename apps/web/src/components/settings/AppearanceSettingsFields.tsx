@@ -22,6 +22,8 @@ export default function AppearanceSettingsFields() {
       label={label}
       isSelected={colorMode === mode}
       onSelect={() => setColorMode(mode)}
+      // Fills the row's width so the art stretches with the phone screen.
+      fill={isPhone}
     />
   ))
 
