@@ -79,6 +79,8 @@ export default function MobileDashboardShell({
   const { activeOrg } = useOrganization()
   const { canManageLinks } = usePermissions()
   const activeTab = WorkspaceUrl.sectionOf(pathname, activeOrgSlug) as TabId | 'settings'
+  // Index of the selected tab; -1 when the path is outside the five tabs.
+  const activeTabIndex = TABS.findIndex((tab) => tab.id === activeTab)
 
   const go = (to: string) => void navigate({ to })
   const switchOrg = (org: Workspace) => {
@@ -190,6 +192,24 @@ export default function MobileDashboardShell({
           boxShadow: '0 10px 32px rgba(0, 0, 0, 0.16)',
         }}
       >
+        {/* The active pill is one element that glides between tabs —
+            the iOS slide — instead of per-tab backgrounds cutting in and
+            out. cubic-bezier(0.32, 0.72, 0, 1) is the iOS sheet curve. */}
+        {activeTabIndex >= 0 ? (
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: 5,
+              bottom: 5,
+              left: `calc(5px + (100% - 10px) / ${TABS.length} * ${activeTabIndex})`,
+              width: `calc((100% - 10px) / ${TABS.length})`,
+              borderRadius: 999,
+              backgroundColor: DASHBOARD_NAV_SELECTED_BG,
+              transition: 'left 0.38s cubic-bezier(0.32, 0.72, 0, 1)',
+            }}
+          />
+        ) : null}
         {TABS.map((tab) => {
           const isActive = tab.id === activeTab
           return (
@@ -205,9 +225,10 @@ export default function MobileDashboardShell({
                 border: 'none',
                 padding: 0,
                 borderRadius: 999,
-                // Active tab: brand-tinted pill inside the glass — the
-                // capsule keeps its frost and the pill marks the section.
-                background: isActive ? DASHBOARD_NAV_SELECTED_BG : 'transparent',
+                // The sliding pill lives behind the row; the button itself
+                // stays transparent and only its ink crossfades.
+                position: 'relative',
+                background: 'transparent',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -215,7 +236,7 @@ export default function MobileDashboardShell({
                 gap: 2,
                 cursor: 'pointer',
                 color: isActive ? BRAND : SHELL_NAV_TEXT_SECONDARY,
-                transition: 'background-color 0.15s ease',
+                transition: 'color 0.22s ease',
               }}
             >
               <span style={{ display: 'flex' }}>{tab.icon}</span>
