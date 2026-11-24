@@ -15,9 +15,7 @@ type DashboardOverviewMetricsProps = {
 export default function DashboardOverviewMetrics({
   stats,
 }: DashboardOverviewMetricsProps) {
-  // Phones: three count tiles on one row (Clicks this week | Clicks today
-  // | Short links) with Top referrer full-width beneath — two short rows
-  // instead of a tall stack. Desktop keeps the responsive 4-up grid.
+  // Phones: tiles pair up 2-up with tighter padding; desktop keeps the 4-up card feel.
   const isPhone = useIsPhone()
   const metrics = [
     {
@@ -48,7 +46,7 @@ export default function DashboardOverviewMetrics({
       }}
     >
       <Grid
-        columns={isPhone ? 3 : { minWidth: 180, max: 4 }}
+        columns={{ minWidth: isPhone ? 150 : 180, max: 4 }}
         gap={isPhone ? 2 : 3}
         width="100%"
       >
@@ -85,12 +83,7 @@ export default function DashboardOverviewMetrics({
             gap={4}
             padding={isPhone ? 4 : 5}
             vAlign="between"
-            style={{
-              minWidth: 0,
-              // Top referrer claims the whole second phone row — its
-              // hostname needs the runway far more than a number does.
-              ...(isPhone && metric.label === 'Top referrer' ? { gridColumn: '1 / -1' } : null),
-            }}
+            style={{ minWidth: 0 }}
           >
             <Text type="supporting" color="secondary">
               {metric.label}

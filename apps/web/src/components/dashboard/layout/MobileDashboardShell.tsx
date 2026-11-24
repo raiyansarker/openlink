@@ -46,24 +46,24 @@ const CAPSULE_PAD_PX = 5
  *  it reads as the row's primary action, the way iOS sizes it. */
 const PLUS_CIRCLE_PX = 54
 
-/** The shared glass recipe for the floating chrome: a majority fill
- *  (62% body — legible over any content but still a touch see-through)
- *  over a moderate blur with saturated frosting, capped by a hairline
- *  border and one soft shadow so the pieces lift off the page. */
+/** The shared chrome surface: solid enough to read as a bar — 88% body
+ *  fill at a light blur keeps a trace of frost without thinning any ink
+ *  sitting on it. Hairline border and one soft shadow lift it off the
+ *  page. */
 const GLASS_STYLE: CSSProperties = {
-  backgroundColor: 'color-mix(in oklab, var(--color-background-body) 62%, transparent)',
-  backdropFilter: 'blur(18px) saturate(1.5)',
-  WebkitBackdropFilter: 'blur(18px) saturate(1.5)',
+  backgroundColor: 'color-mix(in oklab, var(--color-background-body) 88%, transparent)',
+  backdropFilter: 'blur(14px) saturate(1.3)',
+  WebkitBackdropFilter: 'blur(14px) saturate(1.3)',
   border: '1px solid light-dark(rgba(15, 17, 21, 0.1), rgba(255, 255, 255, 0.14))',
   boxShadow: '0 10px 28px rgba(0, 0, 0, 0.14)',
 }
 
 const TABS = [
-  { id: 'overview', label: 'Home', icon: <DashboardIcon size={21} strokeWidth={1.2} /> },
-  { id: 'activity', label: 'Activity', icon: <ActivityIcon size={21} strokeWidth={1.2} /> },
-  { id: 'links', label: 'Links', icon: <LinkIcon size={21} strokeWidth={1.2} /> },
-  { id: 'domains', label: 'Domains', icon: <GlobeIcon size={21} strokeWidth={1.2} /> },
-  { id: 'analytics', label: 'Analytics', icon: <BarChartIcon size={21} strokeWidth={1.2} /> },
+  { id: 'overview', label: 'Home', icon: <DashboardIcon size={22} strokeWidth={1.6} /> },
+  { id: 'activity', label: 'Activity', icon: <ActivityIcon size={22} strokeWidth={1.6} /> },
+  { id: 'links', label: 'Links', icon: <LinkIcon size={22} strokeWidth={1.6} /> },
+  { id: 'domains', label: 'Domains', icon: <GlobeIcon size={22} strokeWidth={1.6} /> },
+  { id: 'analytics', label: 'Analytics', icon: <BarChartIcon size={22} strokeWidth={1.6} /> },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -288,8 +288,8 @@ export default function MobileDashboardShell({
                     keeps wide words on one line. */}
                 <span
                   style={{
-                    fontSize: 10.5,
-                    lineHeight: 12,
+                    fontSize: 11,
+                    lineHeight: 13,
                     fontWeight: isActive ? 600 : 500,
                     color: 'inherit',
                     whiteSpace: 'nowrap',
