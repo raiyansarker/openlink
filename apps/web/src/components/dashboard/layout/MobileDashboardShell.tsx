@@ -58,11 +58,11 @@ const NAV_SURFACE_STYLE: CSSProperties = {
 }
 
 const TABS = [
-  { id: 'overview', label: 'Home', icon: <DashboardIcon size={22} strokeWidth={1.6} /> },
-  { id: 'activity', label: 'Activity', icon: <ActivityIcon size={22} strokeWidth={1.6} /> },
-  { id: 'links', label: 'Links', icon: <LinkIcon size={22} strokeWidth={1.6} /> },
-  { id: 'domains', label: 'Domains', icon: <GlobeIcon size={22} strokeWidth={1.6} /> },
-  { id: 'analytics', label: 'Analytics', icon: <BarChartIcon size={22} strokeWidth={1.6} /> },
+  { id: 'overview', label: 'Home', icon: <DashboardIcon size={22} strokeWidth={1.6} style={{ flexShrink: 0 }} /> },
+  { id: 'activity', label: 'Activity', icon: <ActivityIcon size={22} strokeWidth={1.6} style={{ flexShrink: 0 }} /> },
+  { id: 'links', label: 'Links', icon: <LinkIcon size={22} strokeWidth={1.6} style={{ flexShrink: 0 }} /> },
+  { id: 'domains', label: 'Domains', icon: <GlobeIcon size={22} strokeWidth={1.6} style={{ flexShrink: 0 }} /> },
+  { id: 'analytics', label: 'Analytics', icon: <BarChartIcon size={22} strokeWidth={1.6} style={{ flexShrink: 0 }} /> },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -292,7 +292,7 @@ export default function MobileDashboardShell({
                 <span
                   style={{
                     fontSize: 11,
-                    lineHeight: 13,
+                    lineHeight: '13px',
                     fontWeight: isActive ? 600 : 500,
                     color: 'inherit',
                     whiteSpace: 'nowrap',
