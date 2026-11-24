@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { BottomSheet } from '@astryxdesign/core/BottomSheet'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -34,13 +34,27 @@ import {
 /** The app's brand accent: active tab, active workspace, create button. */
 const BRAND = 'var(--openlink-brand)'
 
-/** Horizontal chrome the tab slots don't cover: the capsule's own padding
- *  (2 × 5px) plus the separator zone (15px) and the plus button (46px).
- *  The sliding pill sizes its slots against this. */
-const TAB_STRIP_INSET_WRITER_PX = 71
-const TAB_STRIP_INSET_VIEWER_PX = 10
-const TAB_STRIP_DIVIDER_ZONE_PX = 15
-const TAB_STRIP_PLUS_PX = 46
+/** One icon slot inside the tab capsule. Fixed, not flexed — the capsule
+ *  shrinks to fit its five tabs instead of stretching edge-to-edge, so the
+ *  row reads as one compact group and the create circle sits beside it. */
+const TAB_SLOT_PX = 52
+/** Padding inside the tab capsule; the sliding pill is inset by the same
+ *  amount so it tracks the slots exactly. */
+const CAPSULE_PAD_PX = 5
+/** Width (and height) of the separate create circle. Taller than a slot so
+ *  it reads as the row's primary action, the way iOS sizes it. */
+const PLUS_CIRCLE_PX = 54
+
+/** The shared "liquid glass" recipe for the floating chrome: translucent
+ *  above the scrolling page, a heavy blur with saturation for the frost, a
+ *  hairline border and one deep shadow so the pieces lift off the content. */
+const GLASS_STYLE: CSSProperties = {
+  backgroundColor: 'color-mix(in oklab, var(--color-background-body) 64%, transparent)',
+  backdropFilter: 'blur(24px) saturate(1.8)',
+  WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
+  border: '1px solid light-dark(rgba(15, 17, 21, 0.1), rgba(255, 255, 255, 0.14))',
+  boxShadow: '0 10px 32px rgba(0, 0, 0, 0.16)',
+}
 
 const TABS = [
   { id: 'overview', label: 'Home', icon: <DashboardIcon size={21} strokeWidth={1.2} /> },
@@ -67,9 +81,10 @@ type MobileDashboardShellProps = {
  *   │          content            │  full-bleed, scrolls under the glass,
  *   │                            │  padded past the floating capsule
  *   │                            │
- *   │  ╭─ ◌◌◌◌◌◌◌◌◌ | ＋ ─╮    │  frosted-glass capsule: icon-only tabs,
- *   └──┴──────────────────────┴──┘  sliding active pill, hairline-separated
- *                                     brand-tinted create (writers only)
+ *   │     ╭ ◌ ◌ ◌ ◌ ◌ ╮  (＋)   │  two pieces of frosted glass, one row:
+ *   └─────┴─────────────┴──┴────┘  compact icon tab capsule with the
+ *                                   sliding pill, and a separate create
+ *                                   circle beside it (writers only)
  *
  * Workspace switching is an iOS bottom sheet opened from the header; the
  * account avatar mirrors it (profile, settings, sign out).
@@ -87,9 +102,6 @@ export default function MobileDashboardShell({
   const activeTab = WorkspaceUrl.sectionOf(pathname, activeOrgSlug) as TabId | 'settings'
   // Index of the selected tab; -1 when the path is outside the five tabs.
   const activeTabIndex = TABS.findIndex((tab) => tab.id === activeTab)
-  // Viewers get a five-slot capsule (no create action), so the sliding
-  // pill sizes its slots against a different inset than writers.
-  const tabStripInset = canManageLinks ? TAB_STRIP_INSET_WRITER_PX : TAB_STRIP_INSET_VIEWER_PX
 
   const go = (to: string) => void navigate({ to })
   const switchOrg = (org: Workspace) => {
@@ -178,10 +190,11 @@ export default function MobileDashboardShell({
         {children}
       </div>
 
-      {/* Floating tab bar, the new iOS style: detached capsule of frosted
-          glass hovering at the safe area, content passing under the blur. */}
-      <nav
-        aria-label="Sections"
+      {/* Floating chrome, the new iOS style: two pieces of frosted glass
+          on one row — a compact capsule holding only the tabs, and a
+          separate create circle beside it. The strips stay centred as a
+          group; content keeps scrolling under the blur. */}
+      <div
         style={{
           position: 'absolute',
           left: 16,
@@ -190,112 +203,112 @@ export default function MobileDashboardShell({
           zIndex: 20,
           display: 'flex',
           flexDirection: 'row',
-          padding: '5px',
-          borderRadius: 999,
-          // Frosted glass: translucent above the scrolling page colour,
-          // with the blur doing the "frost".
-          backgroundColor: 'color-mix(in oklab, var(--color-background-body) 64%, transparent)',
-          backdropFilter: 'blur(24px) saturate(1.8)',
-          WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
-          border: '1px solid light-dark(rgba(15, 17, 21, 0.1), rgba(255, 255, 255, 0.14))',
-          boxShadow: '0 10px 32px rgba(0, 0, 0, 0.16)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          // The wrapper spans the full inset strip, but only the glass is
+          // tappable — touches on the gaps pass through to the page.
+          pointerEvents: 'none',
         }}
       >
-        {/* The active pill is one element that glides between tabs —
-            the iOS slide — instead of per-tab backgrounds cutting in and
-            out. cubic-bezier(0.32, 0.72, 0, 1) is the iOS sheet curve.
-            The slots exclude the capsule's padding and the plus zone. */}
-        {activeTabIndex >= 0 ? (
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute',
-              top: 5,
-              bottom: 5,
-              left: `calc(5px + (100% - ${tabStripInset}px) / ${TABS.length} * ${activeTabIndex})`,
-              width: `calc((100% - ${tabStripInset}px) / ${TABS.length})`,
-              borderRadius: 999,
-              backgroundColor: DASHBOARD_NAV_SELECTED_BG,
-              transition: 'left 0.38s cubic-bezier(0.32, 0.72, 0, 1)',
-            }}
-          />
-        ) : null}
-        {TABS.map((tab) => {
-          const isActive = tab.id === activeTab
-          return (
-            <button
-              key={tab.id}
-              className="ol-focus-ring"
-              type="button"
-              aria-current={isActive ? 'page' : undefined}
-              // Icon-only in the capsule; the label stays with screen
-              // readers via aria-label.
-              aria-label={tab.label}
-              onClick={() => go(WorkspaceUrl.build(activeOrgSlug, tab.id))}
-              style={{
-                flex: 1,
-                minHeight: 48,
-                border: 'none',
-                padding: 0,
-                borderRadius: 999,
-                // The sliding pill lives behind the row; the button itself
-                // stays transparent and only its ink crossfades.
-                position: 'relative',
-                background: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: isActive ? BRAND : SHELL_NAV_TEXT_SECONDARY,
-                transition: 'color 0.22s ease',
-              }}
-            >
-              {tab.icon}
-            </button>
-          )
-        })}
-        {/* Create lives in the capsule but stays separated: a hairline
-            divides it from navigation, and the brand tint marks it as an
-            action, not a tab. Link writers only. */}
-        {canManageLinks ? (
-          <>
+        {/* Tab capsule: five fixed slots, no labels, compact by design. */}
+        <nav
+          aria-label="Sections"
+          style={{
+            ...GLASS_STYLE,
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'row',
+            padding: CAPSULE_PAD_PX,
+            borderRadius: 999,
+            pointerEvents: 'auto',
+          }}
+        >
+          {/* The active pill is one element that glides between tabs —
+              the iOS slide — instead of per-tab backgrounds cutting in
+              and out. cubic-bezier(0.32, 0.72, 0, 1) is the iOS sheet
+              curve. Fixed slots keep the math flat: left is just the
+              capsule padding plus slot width × index. */}
+          {activeTabIndex >= 0 ? (
             <span
               aria-hidden
               style={{
-                width: 1,
-                height: 22,
-                margin: `0 ${(TAB_STRIP_DIVIDER_ZONE_PX - 1) / 2}px`,
-                alignSelf: 'center',
-                flexShrink: 0,
-                backgroundColor: 'light-dark(rgba(15, 17, 21, 0.12), rgba(255, 255, 255, 0.16))',
+                position: 'absolute',
+                top: CAPSULE_PAD_PX,
+                bottom: CAPSULE_PAD_PX,
+                left: `${CAPSULE_PAD_PX + TAB_SLOT_PX * activeTabIndex}px`,
+                width: TAB_SLOT_PX,
+                borderRadius: 999,
+                backgroundColor: DASHBOARD_NAV_SELECTED_BG,
+                transition: 'left 0.38s cubic-bezier(0.32, 0.72, 0, 1)',
               }}
             />
-            <button
-              className="ol-focus-ring"
-              type="button"
-              aria-label="Create link"
-              onClick={() => go('/create/link')}
-              style={{
-                  width: TAB_STRIP_PLUS_PX,
-                minHeight: 48,
-                flexShrink: 0,
-                border: 'none',
-                padding: 0,
-                borderRadius: 999,
-                background: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: BRAND,
-                transition: 'color 0.22s ease',
-              }}
-            >
-              <PlusIcon size={22} strokeWidth={1.8} />
-            </button>
-          </>
+          ) : null}
+          {TABS.map((tab) => {
+            const isActive = tab.id === activeTab
+            return (
+              <button
+                key={tab.id}
+                className="ol-focus-ring"
+                type="button"
+                aria-current={isActive ? 'page' : undefined}
+                // Icon-only in the capsule; the label stays with screen
+                // readers via aria-label.
+                aria-label={tab.label}
+                onClick={() => go(WorkspaceUrl.build(activeOrgSlug, tab.id))}
+                style={{
+                  width: TAB_SLOT_PX,
+                  height: 48,
+                  border: 'none',
+                  padding: 0,
+                  borderRadius: 999,
+                  // The sliding pill lives behind the row; the button
+                  // itself stays transparent and only its ink crossfades.
+                  position: 'relative',
+                  background: 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: isActive ? BRAND : SHELL_NAV_TEXT_SECONDARY,
+                  transition: 'color 0.22s ease',
+                }}
+              >
+                {tab.icon}
+              </button>
+            )
+          })}
+        </nav>
+
+        {/* Create is its own piece of glass, not a tab: a separate circle
+            beside the capsule on the same row. Brand ink alone marks it as
+            the primary action — no divider, no label. Link writers only. */}
+        {canManageLinks ? (
+          <button
+            className="ol-focus-ring"
+            type="button"
+            aria-label="Create link"
+            onClick={() => go('/create/link')}
+            style={{
+              ...GLASS_STYLE,
+              flexShrink: 0,
+              width: PLUS_CIRCLE_PX,
+              height: PLUS_CIRCLE_PX,
+              padding: 0,
+              borderRadius: 999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: BRAND,
+              transition: 'color 0.22s ease',
+              pointerEvents: 'auto',
+            }}
+          >
+            <PlusIcon size={22} strokeWidth={1.8} />
+          </button>
         ) : null}
-      </nav>
+      </div>
 
       {/* Workspace switcher: rises from the bottom, like an app */}
       <BottomSheet
