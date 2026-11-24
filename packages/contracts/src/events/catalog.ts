@@ -1,10 +1,8 @@
-import { type } from 'arktype'
-
 export type WorkspaceEventGroup = 'links' | 'clicks' | 'domains' | 'members' | 'developers' | 'workspace'
 
 type EventDefinition = {
   group: WorkspaceEventGroup
-  /** Short name, e.g. for a webhook event picker. */
+  /** Short display name. */
   label: string
   /** When it fires. */
   description: string
@@ -12,8 +10,8 @@ type EventDefinition = {
 
 /**
  * Every event a workspace can produce. The activity feed records the ones
- * people cause; webhooks will subscribe to any of them. Add new events here
- * first; names are part of the public API, so never rename one.
+ * people cause. Add new events here first; names are part of the public API,
+ * so never rename one.
  */
 const DEFINITIONS = {
   'link.created': { group: 'links', label: 'Link created', description: 'A short link is created' },
@@ -85,6 +83,3 @@ export class WorkspaceEvents {
     return (WorkspaceEvents.CLICK_MILESTONES as readonly number[]).includes(count)
   }
 }
-
-/** Validates an event name from outside (e.g. a webhook subscription). */
-export const WorkspaceEventType = type.enumerated(...WorkspaceEvents.TYPES)
