@@ -69,22 +69,30 @@ function toggleOverlay(base: string, message: string) {
   frame.id = ID
   frame.src = `${base}?url=${encodeURIComponent(location.href)}&title=${encodeURIComponent(document.title)}`
   frame.setAttribute('allow', 'clipboard-write')
+  // Starts collapsed and transparent: the real height comes from the page's
+  // first report, so the card never visibly resizes after appearing.
   frame.style.cssText = [
     'position:fixed',
     'top:16px',
     'right:16px',
     'width:380px',
-    'height:240px',
+    'height:0px',
     'max-height:calc(100vh - 32px)',
     'border:0',
     'border-radius:14px',
     'box-shadow:0 0 0 1px rgba(128,128,128,.25),0 12px 40px rgba(0,0,0,.28)',
     'z-index:2147483647',
     'overflow:hidden',
+    'opacity:0',
+    'transition:height 140ms ease,opacity 140ms ease',
     'color-scheme:normal',
   ].join(';')
 
+  let shown = false
+  let revealTimeout: number | undefined
+
   const close = () => {
+    window.clearTimeout(revealTimeout)
     window.removeEventListener('message', onMessage)
     document.removeEventListener('keydown', onKey, true)
     document.removeEventListener('mousedown', onOutside, true)
@@ -93,7 +101,14 @@ function toggleOverlay(base: string, message: string) {
   const onMessage = (event: MessageEvent) => {
     if (event.source !== frame.contentWindow || event.data?.source !== message) return
     if (event.data.type === 'close') close()
-    if (event.data.type === 'resize' && typeof event.data.height === 'number') frame.style.height = `${event.data.height}px`
+    if (event.data.type === 'resize' && typeof event.data.height === 'number') {
+      frame.style.height = `${event.data.height}px`
+      if (!shown) {
+        shown = true
+        window.clearTimeout(revealTimeout)
+        frame.style.opacity = '1'
+      }
+    }
   }
   const onKey = (event: KeyboardEvent) => event.key === 'Escape' && close()
   const onOutside = (event: MouseEvent) => event.target !== frame && close()
@@ -104,6 +119,10 @@ function toggleOverlay(base: string, message: string) {
   document.addEventListener('mousedown', onOutside, true)
   document.documentElement.append(frame)
   frame.focus()
+  // If the page inside never reports in (blocked or broken), remove the invisible frame.
+  revealTimeout = window.setTimeout(() => {
+    if (!shown) close()
+  }, 1500)
 }
 
 chrome.commands.onCommand.addListener(async (command) => {
