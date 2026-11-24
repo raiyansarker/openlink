@@ -8,35 +8,20 @@ type FetchRequest = {
   body?: string
 }
 
-/** The app's cookies for one request, sent in the order a browser uses. */
-async function cookieHeaderFor(url: string): Promise<string> {
-  try {
-    const cookies = await chrome.cookies.getAll({ url })
-    return [...cookies].sort((a, b) => b.path.length - a.path.length).map((c) => `${c.name}=${c.value}`).join('; ')
-  } catch {
-    return ''
-  }
-}
-
 /**
- * All OpenLink API calls run here, in the extension's own process, so the app's
- * sign-in cookie is attached the same way from every surface — including the
- * overlay, which is framed inside other sites and cannot rely on cookies
- * following it there. The whole response comes back over messaging.
+ * All OpenLink API calls run here, in the extension's own process, so framed
+ * pages (the overlay on other sites) behave exactly like the popup. Requests
+ * carry the caller's API key themselves; no cookies are read or sent, ever.
+ * The whole response comes back over messaging.
  */
 function handleFetch(message: FetchRequest, sendResponse: (answer: Record<string, unknown>) => void): boolean {
   void (async () => {
     try {
-      const cookie = await cookieHeaderFor(message.url)
-      const headers: Record<string, string> = { ...(message.headers ?? {}) }
-      if (cookie) headers['cookie'] = cookie
       const response = await fetch(message.url, {
         method: message.method ?? 'GET',
-        headers,
+        headers: { ...(message.headers ?? {}) },
         ...(message.body !== undefined ? { body: message.body } : {}),
-        // The service worker's own fetch also carries the app's cookie jar for
-        // granted origins; identical duplicates are harmless to the app.
-        credentials: 'include',
+        credentials: 'omit',
       })
       const [body, headerEntries] = await Promise.all([response.text(), Promise.resolve([...response.headers])])
       sendResponse({ status: response.status, statusText: response.statusText, headers: headerEntries, body })

@@ -11,8 +11,8 @@
     "48": "images/icon-48.png",
     "128": "images/icon-128.png"
   },
-  "chromium:permissions": ["activeTab", "storage", "tabs", "scripting", "cookies"],
-  "firefox:permissions": ["activeTab", "storage", "tabs", "cookies"],
+  "chromium:permissions": ["activeTab", "storage", "tabs", "scripting"],
+  "firefox:permissions": ["activeTab", "storage", "tabs"],
   "commands": {
     "open-overlay": {
       "suggested_key": { "default": "Alt+Shift+L" },
