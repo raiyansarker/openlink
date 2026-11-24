@@ -214,6 +214,10 @@ GitHub Actions (`.github/workflows/ci.yml`) on `main`, `backend`, and pull reque
 2. `bun run check-types`
 3. `bun run lint`
 
+## Docs
+
+- [Workspace roles & permissions](docs/roles.md) — what each role (owner, admin, member, viewer) can do, what the UI shows them, and how to change a permission
+
 ## Stack reference
 
 | Layer        | Choice |
