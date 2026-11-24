@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { BottomSheet } from '@astryxdesign/core/BottomSheet'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -46,21 +46,6 @@ const TABS = [
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
-
-const pillButtonStyle: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 8,
-  padding: '7px 12px 7px 8px',
-  border: SHELL_CHROME_BORDER,
-  borderRadius: 999,
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  backgroundColor: 'transparent',
-  maxWidth: '100%',
-  minWidth: 0,
-  color: SHELL_NAV_TEXT_PRIMARY,
-}
 
 type MobileDashboardShellProps = {
   organizations: Workspace[]
@@ -130,21 +115,30 @@ export default function MobileDashboardShell({
           backgroundColor: DASHBOARD_SURFACE_BG,
         }}
       >
+        {/* Switcher chrome is flat text, not a pill — the sheet below
+            carries the logos, names and roles. The current workspace still
+            rides along for screen readers. */}
         <button
           className="ol-focus-ring"
           type="button"
           aria-label={`Switch workspace (current: ${activeOrg.name})`}
           onClick={() => setIsSheetOpen(true)}
-          style={pillButtonStyle}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '4px 8px 4px 0',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            backgroundColor: 'transparent',
+            maxWidth: '100%',
+            minWidth: 0,
+            color: SHELL_NAV_TEXT_PRIMARY,
+          }}
         >
-          <OrganizationLogo
-            name={activeOrg.name}
-            size={24}
-            radius={7}
-            customImageUrl={activeOrg.logoUrl}
-          />
           <Text weight="semibold" maxLines={1}>
-            {activeOrg.name}
+            Workspace
           </Text>
           <span style={{ display: 'flex', flexShrink: 0, color: SHELL_NAV_TEXT_SECONDARY }}>
             <ChevronDownIcon size={14} />
