@@ -22,9 +22,12 @@ import {
 
 /** Gap around the rail, matching the content panel's inset. */
 const RAIL_INSET = 10
+const RAIL_COLUMN_WIDTH = 52
 const ORG_CONTROL_SIZE = 34
 const ORG_LOGO_SIZE = 28
 const ORG_CONTROL_RADIUS = 9
+/** Low-edge of the active-org indicator: the rail's very left, in the button's gutter. */
+const ORG_INDICATOR_OFFSET = -(RAIL_COLUMN_WIDTH - ORG_CONTROL_SIZE) / 2
 /** Concentric corners: the logo's radius is the control's minus the gap between them. */
 const ORG_LOGO_RADIUS = ORG_CONTROL_RADIUS - (ORG_CONTROL_SIZE - ORG_LOGO_SIZE) / 2
 
@@ -87,13 +90,13 @@ function OrgSwitchButton({
         onBlur={() => setHovered(false)}
       >
         {children}
-        {/* The active workspace: a brand-orange bar hugging the button's left edge. */}
+        {/* The active workspace: a brand-orange bar at the rail's very left edge. */}
         {isActive ? (
           <span
             aria-hidden
             style={{
               position: 'absolute',
-              left: 0,
+              left: ORG_INDICATOR_OFFSET,
               top: '50%',
               width: 3,
               height: 18,
@@ -177,8 +180,8 @@ export default function OrganizationIconRail({
     >
       <div
         style={{
-          width: 52,
-          minWidth: 52,
+          width: RAIL_COLUMN_WIDTH,
+          minWidth: RAIL_COLUMN_WIDTH,
           height: '100%',
           boxSizing: 'border-box',
           display: 'flex',
