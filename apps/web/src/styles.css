@@ -368,15 +368,17 @@ body {
  * hug-width buttons), so the rules here override those inline styles.
  */
 .ol-sheet-footer {
-  /* A flex sibling BELOW the sheet's scroll region (see
-     ResponsiveDetailSheet) — physically pinned, so no sticky tricks, and
-     transparent by design: nothing here can paint a band that mismatches
-     the sheet's own surface. No divider either: the buttons ARE the
-     footer chrome, nothing announces them. */
-  flex-shrink: 0;
+  /* Sticky inside the sheet's OWN scroller (measured: Astryx's sheet body
+     is the scroll boundary and honors sheet-local sticky). The fill is
+     --color-background-surface — the sheet panel's exact computed color —
+     so long content drifts under the bar with no seam. No divider: the
+     buttons ARE the footer chrome. */
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   margin: 8px 0 0;
   padding: 10px 0 calc(12px + env(safe-area-inset-bottom));
-  background: transparent;
+  background: var(--color-background-surface);
 }
 .ol-sheet-footer-actions {
   /* One action row: two buttons split 50/50 side by side — a lone button

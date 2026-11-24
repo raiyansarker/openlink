@@ -68,35 +68,21 @@ export default function ResponsiveDetailSheet({
         purpose={purpose}
         height="capped"
       >
-        {/* The sheet's body is split in two: a scrollable content region
-            and the action bar OUTSIDE it. Sticky positioning inside the
-            sheet's own scroller proved unreliable on phones and the bar's
-            filled background showed as a mismatched band — so the bar is
-            now a plain flex sibling below the scroll (physically pinned)
-            and paints NOTHING itself: the hairline is its only chrome, so
-            it can never mismatch the sheet's surface. */}
-        {/* height: 100%, not maxHeight — a capped sheet's region is tall,
-            and only a wrapper that FILLS it can push the action bar down
-            to the sheet's bottom edge. */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-            maxHeight: '100%',
-          }}
-        >
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <VStack gap={6} hAlign="stretch" width="100%">
-              {children}
-            </VStack>
-          </div>
+        {/* Astryx's sheet body is the scroller (its own design intent) and
+            sticky positions against it — measured: with a nested scroller,
+            phones showed a second scrollbar INSIDE the content ("something
+            overflowing"); the native region alone scrolls the whole body.
+            The sticky bar paints --color-background-surface, which is the
+            sheet panel's exact fill, so content scrolls under it with no
+            color band at the seam. */}
+        <VStack gap={6} hAlign="stretch" width="100%">
+          {children}
           {footer ? (
             <div className="ol-sheet-footer">
               <div className="ol-sheet-footer-actions">{footer}</div>
             </div>
           ) : null}
-        </div>
+        </VStack>
       </BottomSheet>
     )
   }

@@ -4,6 +4,7 @@ import { ClickableCard } from '@astryxdesign/core/ClickableCard'
 import { ContextMenu } from '@astryxdesign/core/ContextMenu'
 import { Grid } from '@astryxdesign/core/Grid'
 import { HStack } from '@astryxdesign/core/HStack'
+import { useIsPhone } from '#/hooks/use-is-phone'
 import { Text } from '@astryxdesign/core/Text'
 import { FolderIcon } from '#/components/icons/IcnMcp'
 import ItemMenuButton from '#/components/links/ItemMenuButton'
@@ -102,6 +103,7 @@ function FolderTile({
   onDropItem: (itemKey: string, destinationId: string | null) => void
 }) {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null)
+  const isPhone = useIsPhone()
   const highlighted = dropTargetId === folder.id || isSelected
 
   const select = () => onSelect(folder.id)
@@ -129,8 +131,10 @@ function FolderTile({
         const dragged = e.dataTransfer.getData(DRAG_MIME)
         if (dragged) onDropItem(dragged, folder.id)
       }}
-      // detail === 0 is keyboard activation: open instead of select.
-      onClick={(e) => (e.detail === 0 ? onOpenFolder(folder.id) : select())}
+      // detail === 0 is keyboard activation: open instead of select. On a
+      // phone there is no bulk-selection flow, and a tap that only
+      // "selects" a folder leaves no way inside it — so single-tap opens.
+      onClick={(e) => (isPhone || e.detail === 0 ? onOpenFolder(folder.id) : select())}
       onDoubleClick={() => onOpenFolder(folder.id)}
       style={{
         backgroundColor: FOLDER_CHIP_BG,
