@@ -34,8 +34,8 @@ import {
 /** The app's brand accent: active tab, active workspace, create button. */
 const BRAND = 'var(--openlink-brand)'
 
-/** FAB clearance above the tab bar (72px) plus room to breathe (12px + safe area). */
-const FAB_BOTTOM = 'calc(72px + env(safe-area-inset-bottom))'
+/** The FAB hovers above the capsule: bar (72px incl. padding) + 12px offset + air. */
+const FAB_BOTTOM = 'calc(84px + env(safe-area-inset-bottom))'
 
 const TABS = [
   { id: 'overview', label: 'Home', icon: <DashboardIcon size={21} strokeWidth={1.2} /> },
@@ -162,7 +162,9 @@ export default function MobileDashboardShell({
           flex: 1,
           minHeight: 0,
           overflowY: 'auto',
-          paddingBlockEnd: 84,
+          // Clears the floating bar (12px offset + 76px of bar) plus air, so
+          // the last of every page scrolls out from behind the glass.
+          paddingBlockEnd: 'calc(108px + env(safe-area-inset-bottom))',
           borderRadius: 0,
           border: 'none',
           backgroundColor: DASHBOARD_CONTENT_PANEL_BG,
@@ -171,16 +173,27 @@ export default function MobileDashboardShell({
         {children}
       </div>
 
-      {/* Bottom tab bar */}
+      {/* Floating tab bar, the new iOS style: detached capsule of frosted
+          glass hovering at the safe area, content passing under the blur. */}
       <nav
         aria-label="Sections"
         style={{
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: 'calc(12px + env(safe-area-inset-bottom))',
+          zIndex: 20,
           display: 'flex',
           flexDirection: 'row',
-          flexShrink: 0,
-          borderTop: SHELL_CHROME_BORDER,
-          backgroundColor: DASHBOARD_CONTENT_PANEL_BG,
-          paddingBottom: 'env(safe-area-inset-bottom)',
+          padding: '5px',
+          borderRadius: 999,
+          // Frosted glass: translucent above the scrolling page colour,
+          // with the blur doing the "frost".
+          backgroundColor: 'color-mix(in oklab, var(--color-background-body) 64%, transparent)',
+          backdropFilter: 'blur(24px) saturate(1.8)',
+          WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
+          border: '1px solid light-dark(rgba(15, 17, 21, 0.1), rgba(255, 255, 255, 0.14))',
+          boxShadow: '0 10px 32px rgba(0, 0, 0, 0.16)',
         }}
       >
         {TABS.map((tab) => {
@@ -194,17 +207,21 @@ export default function MobileDashboardShell({
               onClick={() => go(WorkspaceUrl.build(activeOrgSlug, tab.id))}
               style={{
                 flex: 1,
-                minHeight: 56,
+                minHeight: 52,
                 border: 'none',
                 padding: 0,
-                background: 'transparent',
+                borderRadius: 999,
+                // Active tab: brand-tinted pill inside the glass — the
+                // capsule keeps its frost and the pill marks the section.
+                background: isActive ? DASHBOARD_NAV_SELECTED_BG : 'transparent',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 3,
+                gap: 2,
                 cursor: 'pointer',
                 color: isActive ? BRAND : SHELL_NAV_TEXT_SECONDARY,
+                transition: 'background-color 0.15s ease',
               }}
             >
               <span style={{ display: 'flex' }}>{tab.icon}</span>
