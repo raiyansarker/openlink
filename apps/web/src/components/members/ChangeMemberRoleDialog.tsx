@@ -3,15 +3,21 @@ import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from '@astryxdesign/core/SegmentedControl'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useOpenSession } from '#/hooks/use-open-session'
 import { usePermissions } from '#/hooks/use-permissions'
-import type { AssignableRole } from '#/lib/perms/permissions'
 import type { Role } from '#/lib/api/types'
 import type { Person } from '#/lib/members/people'
-import { ASSIGNABLE_WORKSPACE_ROLES } from '#/lib/members/role-help'
-import RolePickerField from './RolePickerField'
+import {
+  ASSIGNABLE_WORKSPACE_ROLES,
+  WORKSPACE_MEMBER_ROLE_HELP,
+} from '#/lib/members/role-help'
+import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 
 type ChangeMemberRoleDialogProps = {
   member: Person
@@ -20,7 +26,7 @@ type ChangeMemberRoleDialogProps = {
   onConfirm: (member: Person, role: Role) => void
 }
 
-function defaultAssignableRole(member: Person): AssignableRole {
+function defaultAssignableRole(member: Person): Role {
   if (member.role === 'owner') return 'admin'
   if (ASSIGNABLE_WORKSPACE_ROLES.includes(member.role)) return member.role
   return 'member'
@@ -45,7 +51,7 @@ function ChangeMemberRoleForm({
   onOpenChange,
   onConfirm,
 }: ChangeMemberRoleDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<AssignableRole>(() =>
+  const [selectedRole, setSelectedRole] = useState<Role>(() =>
     defaultAssignableRole(member),
   )
   // Admins may only offer the roles they can hand out (member, viewer);
@@ -53,7 +59,7 @@ function ChangeMemberRoleForm({
   // in the list so the control keeps a valid value.
   const { assignableRoles } = usePermissions()
   const options = Array.from(new Set([...assignableRoles, member.role])).filter(
-    (role): role is AssignableRole => role !== 'owner',
+    (role) => role !== 'owner',
   )
 
   const unchanged = selectedRole === member.role
@@ -76,11 +82,28 @@ function ChangeMemberRoleForm({
               <Text type="supporting" color="secondary">
                 Choose a workspace role for {member.name}.
               </Text>
-              <RolePickerField
-                value={selectedRole}
-                onChange={setSelectedRole}
-                options={options}
-              />
+              <VStack gap={2} hAlign="stretch" width="100%">
+                <Text weight="semibold">Workspace role</Text>
+                <SegmentedControl
+                  label="Workspace role"
+                  value={selectedRole}
+                  onChange={(value) =>
+                    setSelectedRole(value as Role)
+                  }
+                  layout="fill"
+                >
+                  {options.map((option) => (
+                    <SegmentedControlItem
+                      key={option}
+                      value={option}
+                      label={workspaceMemberRoleLabel(option)}
+                    />
+                  ))}
+                </SegmentedControl>
+                <Text type="supporting" color="secondary">
+                  {WORKSPACE_MEMBER_ROLE_HELP[selectedRole]}
+                </Text>
+              </VStack>
             </VStack>
           </LayoutContent>
         }

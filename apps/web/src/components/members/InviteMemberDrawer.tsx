@@ -5,21 +5,26 @@ import { Button } from '@astryxdesign/core/Button'
 import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from '@astryxdesign/core/SegmentedControl'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { AssignableRole } from '#/lib/perms/permissions'
+import type { Role } from '#/lib/api/types'
 import { fieldStatus, requiredEmail, submitWith } from '#/lib/forms/fields'
 import { usePermissions } from '#/hooks/use-permissions'
-import RolePickerField from './RolePickerField'
+import { WORKSPACE_MEMBER_ROLE_HELP } from '#/lib/members/role-help'
+import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import {
   FLOATING_END_DRAWER_PADDING,
   floatingEndDrawerStyle,
 } from './floating-end-drawer'
 
-/** Invitable roles. Owners join by transfer, not by invite. */
 const InviteSchema = type({
   email: requiredEmail({ required: 'Enter an email address.', invalid: 'Enter a valid email address.' }),
+  /** Invitable roles. Owners join by transfer, not by invite. */
   role: "'member' | 'admin' | 'viewer'",
 })
 
@@ -28,7 +33,7 @@ type InviteMemberDrawerProps = {
   onOpenChange: (open: boolean) => void
   workspaceName: string
   /** Throws an Error with a user-facing message when the invite is rejected. */
-  onSubmit: (email: string, role: AssignableRole) => Promise<void>
+  onSubmit: (email: string, role: Role) => Promise<void>
 }
 
 export default function InviteMemberDrawer({
@@ -40,7 +45,7 @@ export default function InviteMemberDrawer({
   // Admins may only invite members and viewers; owners may invite admins too.
   const { assignableRoles } = usePermissions()
   const form = useForm({
-    defaultValues: { email: '', role: 'member' as AssignableRole },
+    defaultValues: { email: '', role: 'member' as Role },
     validators: {
       onSubmit: InviteSchema,
       onSubmitAsync: async ({ value }) => {
@@ -112,11 +117,27 @@ export default function InviteMemberDrawer({
                 <form.Field name="role">
                   {(field) => (
                     <VStack gap={2} hAlign="stretch" width="100%">
-                      <RolePickerField
+                      <Text weight="semibold">Workspace role</Text>
+                      <SegmentedControl
+                        label="Workspace role"
                         value={field.state.value}
-                        onChange={field.handleChange}
-                        options={assignableRoles}
-                      />
+                        onChange={(value) =>
+                          field.handleChange(value as Role)
+                        }
+                        layout="fill"
+                        size="sm"
+                      >
+                        {assignableRoles.map((option) => (
+                          <SegmentedControlItem
+                            key={option}
+                            value={option}
+                            label={workspaceMemberRoleLabel(option)}
+                          />
+                        ))}
+                      </SegmentedControl>
+                      <Text type="supporting" color="secondary">
+                        {WORKSPACE_MEMBER_ROLE_HELP[field.state.value]}
+                      </Text>
                     </VStack>
                   )}
                 </form.Field>
