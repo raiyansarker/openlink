@@ -5,6 +5,7 @@ import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { BarChartIcon } from '#/components/icons/IcnMcp'
 import type { WorkspaceStats } from '#/contexts/OrganizationContext'
+import { useIsPhone } from '#/hooks/use-is-phone'
 import { formatCompactNumber } from '#/lib/format/compact-number'
 
 type DashboardOverviewMetricsProps = {
@@ -14,6 +15,8 @@ type DashboardOverviewMetricsProps = {
 export default function DashboardOverviewMetrics({
   stats,
 }: DashboardOverviewMetricsProps) {
+  // Phones: tiles pair up 2-up with tighter padding; desktop keeps the 4-up card feel.
+  const isPhone = useIsPhone()
   const metrics = [
     {
       label: 'Clicks today',
@@ -35,17 +38,21 @@ export default function DashboardOverviewMetrics({
   return (
     <VStack
       width="fill"
-      padding={3}
+      padding={isPhone ? 2 : 3}
       style={{
         border: 'var(--border-width) solid var(--color-border)',
         borderRadius: 'var(--radius-container)',
         backgroundColor: 'var(--color-background-body)',
       }}
     >
-      <Grid columns={{ minWidth: 180, max: 4 }} gap={3} width="100%">
+      <Grid
+        columns={{ minWidth: isPhone ? 150 : 180, max: 4 }}
+        gap={isPhone ? 2 : 3}
+        width="100%"
+      >
         <VStack
           gap={4}
-          padding={5}
+          padding={isPhone ? 4 : 5}
           style={{
             backgroundColor: 'var(--color-background-surface)',
             borderRadius: 'var(--radius-element)',
@@ -74,7 +81,7 @@ export default function DashboardOverviewMetrics({
           <VStack
             key={metric.label}
             gap={4}
-            padding={5}
+            padding={isPhone ? 4 : 5}
             vAlign="between"
             style={{ minWidth: 0 }}
           >

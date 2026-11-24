@@ -1,10 +1,8 @@
 import { useId, useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
-import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { Field } from '@astryxdesign/core/Field'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Icon } from '@astryxdesign/core/Icon'
-import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { TreeList } from '@astryxdesign/core/TreeList'
@@ -12,7 +10,7 @@ import type { TreeListItemData } from '@astryxdesign/core/TreeList'
 import { VStack } from '@astryxdesign/core/VStack'
 import { FolderIcon, PlusIcon } from '#/components/icons/IcnMcp'
 import FolderNameDialog from '#/components/links/FolderNameDialog'
-import { FLOATING_END_DRAWER_PADDING, floatingEndDrawerStyle } from '#/components/members/floating-end-drawer'
+import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
 import type { LinkFolder } from '#/lib/api/types'
 import { canCreateFolderIn, folderPathLabel, getChildFolders, getFolderPath } from '#/lib/links/folder-tree'
 
@@ -121,21 +119,43 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
         </Button>
       </Field>
 
-      <Drawer
+      {/* Phone: a bottom sheet; desktop: the floating right-side drawer. */}
+      <ResponsiveDetailSheet
         isOpen={isOpen}
         onOpenChange={setIsOpen}
         label="Choose a folder"
-        side="end"
+        title="Choose a folder"
+        subtitle="Where the link is filed."
         width={400}
         purpose="form"
-        padding={FLOATING_END_DRAWER_PADDING}
-        style={floatingEndDrawerStyle({ isOpen })}
+        hasFooterDivider
+        footer={
+          <HStack gap={2} hAlign={onCreateFolder ? 'between' : 'end'} vAlign="center" width="100%">
+            {onCreateFolder ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                label="New folder"
+                icon={<PlusIcon size={14} style={{ display: 'flex' }} />}
+                isDisabled={!canCreateFolderIn(folders, pending)}
+                tooltip={canCreateFolderIn(folders, pending) ? `Create a folder in ${pendingLabel}` : 'Folders cannot be nested any deeper.'}
+                onClick={() => setIsCreating(true)}
+              />
+            ) : null}
+            <HStack gap={2} hAlign="end">
+              <Button variant="ghost" size="sm" label="Cancel" onClick={() => setIsOpen(false)} />
+              <Button
+                variant="primary"
+                size="sm"
+                label="Use folder"
+                isDisabled={pending === value}
+                onClick={confirm}
+              />
+            </HStack>
+          </HStack>
+        }
       >
-        <Layout
-          header={<DrawerHeader title="Choose a folder" subtitle="Where the link is filed." onOpenChange={setIsOpen} />}
-          content={
-            <LayoutContent>
-              <VStack gap={3} hAlign="stretch" width="100%">
+        <VStack gap={3} hAlign="stretch" width="100%">
                 {folders.length > 0 ? (
                   <TextInput
                     label="Search folders"
@@ -172,37 +192,7 @@ export default function FolderPicker({ label = 'Folder', folders, value, onChang
                   <TreeList aria-label="Folders" density="compact" items={tree} />
                 )}
               </VStack>
-            </LayoutContent>
-          }
-          footer={
-            <LayoutFooter hasDivider>
-              <HStack gap={2} hAlign={onCreateFolder ? 'between' : 'end'} vAlign="center" width="100%">
-                {onCreateFolder ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    label="New folder"
-                    icon={<PlusIcon size={14} style={{ display: 'flex' }} />}
-                    isDisabled={!canCreateFolderIn(folders, pending)}
-                    tooltip={canCreateFolderIn(folders, pending) ? `Create a folder in ${pendingLabel}` : 'Folders cannot be nested any deeper.'}
-                    onClick={() => setIsCreating(true)}
-                  />
-                ) : null}
-                <HStack gap={2} hAlign="end">
-                  <Button variant="ghost" size="sm" label="Cancel" onClick={() => setIsOpen(false)} />
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    label="Use folder"
-                    isDisabled={pending === value}
-                    onClick={confirm}
-                  />
-                </HStack>
-              </HStack>
-            </LayoutFooter>
-          }
-        />
-      </Drawer>
+      </ResponsiveDetailSheet>
 
       {onCreateFolder ? (
         <FolderNameDialog

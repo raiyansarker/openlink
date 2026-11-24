@@ -128,6 +128,37 @@ body {
     top: 0;
     z-index: 2;
   }
+
+  /*
+   * Apple-style stacked form: modal nav bar pinned above (back on the left,
+   * centered title) and the primary action pinned below, over a translucent
+   * blurred surface with a hairline rule — iOS sheet chrome.
+   */
+  /* Solid panel so the chrome reads as its own layer above the canvas —
+     white above grey — instead of translucent page colour leaking through. */
+  .ol-create-navbar {
+    padding: 10px 16px !important;
+    border-bottom: 1px solid light-dark(var(--color-border), rgba(255, 255, 255, 0.11));
+    background: var(--color-background-surface) !important;
+  }
+  .ol-create-footer {
+    order: 3;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom)) !important;
+    border-top: 1px solid light-dark(var(--color-border), rgba(255, 255, 255, 0.11));
+    /* Solid panel, matching the nav bar above. */
+    background: var(--color-background-surface) !important;
+  }
+
+  /* Apple's standard content margin, with room for the sticky bars. */
+  .ol-create-form-pad {
+    padding: 16px 16px 32px !important;
+  }
+  .ol-create-aside-pad {
+    padding: 16px 16px 20px !important;
+  }
 }
 
 /* Link preview — a lasso leaves the short link, wanders, and closes around the destination. */
@@ -328,4 +359,34 @@ body {
 .astryx-list,
 .astryx-table {
   --focus-outline-offset: calc(-1 * var(--focus-outline-width));
+}
+
+/*
+ * Phone bottom sheets (ResponsiveDetailSheet): the actions bar pins to the
+ * bottom of the sheet and the buttons stack full-width, like an iOS sheet
+ * CTA. The footer nodes were authored for the desktop drawer (HStack,
+ * hug-width buttons), so the rules here override those inline styles.
+ */
+.ol-sheet-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 8px 0 0;
+  padding: 2px 0 6px;
+  /* Same surface the sheet already paints — no blur, no hairline. The
+     buttons themselves are the bar; nothing announces a footer. */
+  background: var(--color-background-popover);
+}
+.ol-sheet-footer-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+.ol-sheet-footer-actions button,
+.ol-sheet-footer-actions [role='button'],
+.ol-sheet-footer-actions a {
+  width: 100% !important;
 }

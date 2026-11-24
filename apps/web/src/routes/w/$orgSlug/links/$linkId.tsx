@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useIsPhone } from '#/hooks/use-is-phone'
 import { Section } from '@astryxdesign/core/Section'
 import LinkDetailPage from '#/components/link-detail/LinkDetailPage'
 import { LINK_DETAIL_TABS, type LinkDetailTab } from '#/lib/links/link-detail-tabs'
@@ -41,8 +42,10 @@ function LinkDetailRoute() {
       replace: true,
       resetScroll: false,
     })
+  // Desktop keeps the roomier 24px frame; phones use the shared 16px margin.
+  const isPhone = useIsPhone()
   return (
-    <Section padding={6}>
+    <Section padding={isPhone ? 4 : 6}>
       <LinkDetailPage
         linkId={linkId}
         tab={tab}

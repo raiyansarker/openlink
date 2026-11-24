@@ -5,8 +5,10 @@ import { Banner } from '@astryxdesign/core/Banner'
 import { Heading } from '@astryxdesign/core/Heading'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import { Collapsible } from '@astryxdesign/core/Collapsible'
 import { firstError } from '#/lib/forms/fields'
 import { useShortcut } from '#/hooks/use-shortcut'
+import { useMediaQuery } from '@astryxdesign/core/hooks'
 import CreateLinkShell from '#/components/create-link/CreateLinkShell'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import type { ShortLink } from '#/lib/api/types'
@@ -69,9 +71,14 @@ type CreateLinkFormProps = {
 
 const FormHeader = memo(function FormHeader({ editLink }: { editLink?: ShortLink }) {
   const { activeOrg, shortUrlFor } = useOrganization()
+  // Stacked widths carry the title in the modal nav bar; only the
+  // description stays here (Apple large-title pattern, inverted).
+  const isStacked = useMediaQuery('(max-width: 959px)')
   return (
     <VStack gap={1}>
-      <Heading level={1}>{editLink ? 'Edit link' : 'Create link'}</Heading>
+      {!isStacked ? (
+        <Heading level={1}>{editLink ? 'Edit link' : 'Create link'}</Heading>
+      ) : null}
       <Text color="secondary">
         {editLink
           ? `Changes apply to ${shortUrlFor(editLink.slug, editLink.domainId ?? null).replace(/^https?:\/\//, '')} as soon as you save.`
@@ -87,24 +94,51 @@ const SubmitErrorBanner = memo(function SubmitErrorBanner() {
   return message ? <Banner status="error" title={message} /> : null
 })
 
-/** The sections are static elements: React skips them when the root re-renders. */
+/**
+ * The sections are static elements: React skips them when the root re-renders.
+ *
+ * On stacked (phone/tablet) widths the form keeps the essentials —
+ * destination, short link, password, details — and folds the seven optional
+ * sections (targeting, tracking, social, delivery, hold, availability,
+ * advanced) behind one "More options" disclosure, Apple-style progressive
+ * disclosure. Desktop shows every section, as before.
+ */
 const FormBody = memo(function FormBody({ editLink }: { editLink?: ShortLink }) {
+  const isStacked = useMediaQuery('(max-width: 959px)')
+  const coreSections = (
+    <>
+      <DestinationSection />
+      <ShortLinkSection />
+      <PasswordSection />
+      <DetailsSection />
+    </>
+  )
+  const optionalSections = (
+    <>
+      <TargetingSection />
+      <UtmSection />
+      <SocialPreviewSection />
+      <DeliverySection />
+      <HoldSection />
+      <AvailabilitySection />
+      <AdvancedSection />
+    </>
+  )
   return (
     <VStack gap={8} hAlign="stretch" width="100%">
       <FormHeader editLink={editLink} />
       <SubmitErrorBanner />
       <VStack gap={0} hAlign="stretch" width="100%">
-        <DestinationSection />
-        <ShortLinkSection />
-        <PasswordSection />
-        <DetailsSection />
-        <TargetingSection />
-        <UtmSection />
-        <SocialPreviewSection />
-        <DeliverySection />
-        <HoldSection />
-        <AvailabilitySection />
-        <AdvancedSection />
+        {coreSections}
+        {isStacked ? (
+          <Collapsible defaultIsOpen={false} trigger="More options">
+            <VStack gap={0} hAlign="stretch" width="100%">
+              {optionalSections}
+            </VStack>
+          </Collapsible>
+        ) : (
+          optionalSections
+        )}
       </VStack>
     </VStack>
   )
@@ -244,6 +278,7 @@ export default function CreateLinkForm({
   return (
     <LinkFormContext.Provider value={context}>
       <CreateLinkShell
+        title={editLink ? 'Edit link' : 'Create link'}
         backTo={editLink ? `/w/${activeOrg.slug}/links/${editLink.id}` : linksPath}
         backLabel={editLink ? editLink.title : 'Links'}
         backSearch={editLink ? undefined : { folder: initialFolderId ?? undefined }}

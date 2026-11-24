@@ -21,7 +21,10 @@ import DomainRowMenu from '#/components/domains/DomainRowMenu'
 import DomainStatus from '#/components/domains/DomainStatus'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
+import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
+import AddDomainForm from '#/components/domains/AddDomainForm'
 import { useOrganization } from '#/contexts/OrganizationContext'
+import { useIsPhone, usePageInsetSteps } from '#/hooks/use-is-phone'
 import { usePermissions } from '#/hooks/use-permissions'
 import type { Domain } from '#/lib/api/types'
 import {
@@ -36,6 +39,10 @@ type DomainRow = Domain & Record<string, unknown>
 
 export default function DashboardDomainsPanel() {
   const { activeOrg } = useOrganization()
+  const inset = usePageInsetSteps()
+  // Phones add a domain in a rising modal sheet, not a full-page trip.
+  const isPhone = useIsPhone()
+  const [isAddOpen, setIsAddOpen] = useState(false)
   const {
     customDomains,
     detailRequestDomainId,
@@ -79,11 +86,16 @@ export default function DashboardDomainsPanel() {
     [customDomains, searchQuery, statusFilter],
   )
 
-  const goToAddDomain = () =>
+  const goToAddDomain = () => {
+    if (isPhone) {
+      setIsAddOpen(true)
+      return
+    }
     void navigate({
       to: '/w/$orgSlug/domains/new',
       params: { orgSlug: activeOrg.slug },
     })
+  }
 
   const openDomain = (domainId: string) =>
     setSheetTarget({ kind: 'custom', domainId })
@@ -103,8 +115,8 @@ export default function DashboardDomainsPanel() {
       gap={8}
       hAlign="stretch"
       width="fill"
-      paddingBlockStart={8}
-      paddingInline={8}
+      paddingBlockStart={inset.block}
+      paddingInline={inset.inline}
       paddingBlockEnd={10}
     >
       {actionError ? <Banner status="error" title={actionError} /> : null}
@@ -264,6 +276,21 @@ export default function DashboardDomainsPanel() {
           if (!open) setSheetTarget(null)
         }}
       />
+
+      {/* Phones: "Add domain" rises from the bottom instead of leaving the
+          list; the same form, just sheet-mounted. Desktop keeps the page. */}
+      {isPhone && canManageDomains ? (
+        <ResponsiveDetailSheet
+          isOpen={isAddOpen}
+          onOpenChange={setIsAddOpen}
+          label="Add domain"
+          title="Add domain"
+          width={420}
+          purpose="form"
+        >
+          <AddDomainForm onClose={() => setIsAddOpen(false)} />
+        </ResponsiveDetailSheet>
+      ) : null}
     </VStack>
   )
 }

@@ -2,9 +2,8 @@ import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { type } from 'arktype'
 import { Button } from '@astryxdesign/core/Button'
-import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
+import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
 import { HStack } from '@astryxdesign/core/HStack'
-import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import {
   SegmentedControl,
   SegmentedControlItem,
@@ -13,10 +12,6 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import ApiKeySecretField from '#/components/settings/ApiKeySecretField'
-import {
-  FLOATING_END_DRAWER_PADDING,
-  floatingEndDrawerStyle,
-} from '#/components/members/floating-end-drawer'
 import { ASSIGNABLE_WORKSPACE_ROLES as API_KEY_ASSIGNABLE_ROLES } from '#/lib/members/role-help'
 import { useOpenSession } from '#/hooks/use-open-session'
 import type { Role } from '#/lib/api/types'
@@ -35,23 +30,11 @@ type CreateApiKeyDrawerProps = {
 
 export default function CreateApiKeyDrawer(props: CreateApiKeyDrawerProps) {
   const session = useOpenSession(props.isOpen)
-  return (
-    <Drawer
-      isOpen={props.isOpen}
-      onOpenChange={props.onOpenChange}
-      label="Create API key"
-      side="end"
-      width={400}
-      purpose="form"
-      padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle({ isOpen: props.isOpen })}
-    >
-      <CreateApiKeyForm key={session} {...props} />
-    </Drawer>
-  )
+  // The form owns the panel: its title and footer depend on reveal mode.
+  return <CreateApiKeyForm key={session} {...props} />
 }
 
-function CreateApiKeyForm({ onOpenChange, onCreate }: CreateApiKeyDrawerProps) {
+function CreateApiKeyForm({ isOpen, onOpenChange, onCreate }: CreateApiKeyDrawerProps) {
   const [createdSecret, setCreatedSecret] = useState<string | null>(null)
 
   const form = useForm({
@@ -72,20 +55,62 @@ function CreateApiKeyForm({ onOpenChange, onCreate }: CreateApiKeyDrawerProps) {
   const revealMode = createdSecret != null
 
   return (
-      <Layout
-        header={
-          <DrawerHeader
-            title={revealMode ? 'Save your API key' : 'Create API key'}
-            subtitle={
-              revealMode
-                ? 'This is the only time the full key is shown.'
-                : 'Keys authenticate server-side scripts and integrations.'
-            }
-            onOpenChange={onOpenChange}
-          />
-        }
-        content={
-          <LayoutContent>
+    // Phone: a bottom sheet; desktop: the floating right-side drawer.
+    <ResponsiveDetailSheet
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      label="Create API key"
+      title={revealMode ? 'Save your API key' : 'Create API key'}
+      subtitle={
+        revealMode
+          ? 'This is the only time the full key is shown.'
+          : 'Keys authenticate server-side scripts and integrations.'
+      }
+      width={400}
+      purpose="form"
+      hasFooterDivider
+      footer={
+        <HStack gap={2} hAlign="end" width="100%" wrap="wrap">
+          {revealMode ? (
+            <Button
+              variant="primary"
+              size="sm"
+              label="Done"
+              onClick={() => onOpenChange(false)}
+            />
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                label="Cancel"
+                onClick={() => onOpenChange(false)}
+              />
+              <form.Subscribe selector={(state) => [firstError(state.errors), state.isSubmitting, state.values.name.trim() !== ''] as const}>
+                {([error, isCreating, hasName]) => (
+                  <>
+                    {error ? (
+                      <Text type="supporting" weight="medium" role="alert">
+                        {error}
+                      </Text>
+                    ) : null}
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      label="Create key"
+                      isDisabled={!hasName}
+                      isLoading={isCreating}
+                      onClick={() => void form.handleSubmit()}
+                    />
+                  </>
+                )}
+              </form.Subscribe>
+            </>
+          )}
+        </HStack>
+      }
+    >
+      <div>
             {revealMode ? (
               <VStack gap={4} hAlign="stretch" width="100%">
                 <Text color="secondary" type="supporting">
@@ -140,50 +165,7 @@ function CreateApiKeyForm({ onOpenChange, onCreate }: CreateApiKeyDrawerProps) {
                 </VStack>
               </form>
             )}
-          </LayoutContent>
-        }
-        footer={
-          <LayoutFooter hasDivider>
-            <HStack gap={2} hAlign="end" width="100%" wrap="wrap">
-              {revealMode ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  label="Done"
-                  onClick={() => onOpenChange(false)}
-                />
-              ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    label="Cancel"
-                    onClick={() => onOpenChange(false)}
-                  />
-                  <form.Subscribe selector={(state) => [firstError(state.errors), state.isSubmitting, state.values.name.trim() !== ''] as const}>
-                    {([error, isCreating, hasName]) => (
-                      <>
-                        {error ? (
-                          <Text type="supporting" weight="medium" role="alert">
-                            {error}
-                          </Text>
-                        ) : null}
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          label="Create key"
-                          isDisabled={!hasName}
-                          isLoading={isCreating}
-                          onClick={() => void form.handleSubmit()}
-                        />
-                      </>
-                    )}
-                  </form.Subscribe>
-                </>
-              )}
-            </HStack>
-          </LayoutFooter>
-        }
-      />
+      </div>
+    </ResponsiveDetailSheet>
   )
 }

@@ -1,14 +1,9 @@
 import { useState, type ReactNode } from 'react'
-import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { HStack } from '@astryxdesign/core/HStack'
-import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import ActivityActorAvatar from '#/components/activity/ActivityActorAvatar'
-import {
-  FLOATING_END_DRAWER_PADDING,
-  floatingEndDrawerStyle,
-} from '#/components/members/floating-end-drawer'
+import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
 import { ACTIVITY_CATEGORY_LABELS, ACTIVITY_SOURCE_LABELS, changeSummary } from '#/lib/activity/labels'
 import type { ActivityEvent } from '#/lib/api/types'
 import { formatSessionDate } from '#/lib/settings/session-time'
@@ -46,29 +41,18 @@ export default function ActivityDetailSheet({
   if (current && current !== event) setEvent(current)
   if (!event) return null
 
+  // Phone: a bottom sheet; desktop: the floating right-side drawer.
   return (
-    <Drawer
+    <ResponsiveDetailSheet
       isOpen={current != null}
       onOpenChange={onOpenChange}
       label="Activity details"
-      side="end"
+      title="Activity"
+      subtitle={ACTIVITY_CATEGORY_LABELS[event.category]}
       width={420}
-      hasScrim
       purpose="info"
-      padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle({ isOpen: current != null })}
     >
-      <Layout
-        header={
-          <DrawerHeader
-            title="Activity"
-            subtitle={ACTIVITY_CATEGORY_LABELS[event.category]}
-            onOpenChange={onOpenChange}
-          />
-        }
-        content={
-          <LayoutContent>
-            <VStack gap={6} hAlign="stretch" width="100%">
+      <VStack gap={6} hAlign="stretch" width="100%">
               <HStack gap={3} vAlign="start" width="100%">
                 <ActivityActorAvatar actor={event.actor} size={40} />
                 <VStack gap={0.5} hAlign="start">
@@ -103,9 +87,6 @@ export default function ActivityDetailSheet({
                 <DetailRow label="Event ID">{event.id}</DetailRow>
               </VStack>
             </VStack>
-          </LayoutContent>
-        }
-      />
-    </Drawer>
+    </ResponsiveDetailSheet>
   )
 }

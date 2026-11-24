@@ -1,27 +1,39 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { VStack } from '@astryxdesign/core/VStack'
-import { HStack } from '@astryxdesign/core/HStack'
 import { CircleCheckSolidIcon } from '#/components/icons/IcnMcp'
 import { DASHBOARD_SHELL_ACCENT } from '#/components/dashboard/layout/dashboard-shell-accent'
 
+/*
+ * The card is drawn once on a 260×128 viewBox and scales to whatever width
+ * the layout gives it — SVG keeps the art exact at every size, so nothing
+ * measures, rounds or letterboxes. The numbers below are the original design
+ * grid, before the old 0.72 shrink: the SVG *is* the scaling.
+ */
+
 const SCALE = 0.72
 
+/** Intrinsic card width (the desktop row layout); the viewBox stays fixed. */
 const OUTER_W = Math.round(260 * SCALE)
-const OUTER_H = Math.round(128 * SCALE)
-const PANEL_H = Math.round(90 * SCALE)
-const PANEL_LEFT = Math.round(40 * SCALE)
-const RADIUS_OUTER = Math.round(14 * SCALE)
-const RADIUS_PANEL = Math.round(12 * SCALE)
-const AA_SIZE = Math.round(32 * SCALE)
-const AA_PAD = Math.round(14 * SCALE)
+
+const VB_W = 260
+const VB_H = 128
+/** Panel geometry in viewBox units. Bottom corners sit past vB_H so the
+ *  frame's crop (overflow: hidden) squashes them flat, as before. */
+const PANEL = { x: 40, y: 38, w: 220, h: 90 + 12, r: 12 }
+/** The "Aa" type specimen inside a panel: pad from the panel's top-left. */
+const AA = { x: 54, y: 78, size: 32 }
 const LABEL_SIZE = Math.round(18 * SCALE)
 const LABEL_GAP = Math.round(12 * SCALE)
-const DIVIDER_W = 1
+const RADIUS_OUTER = Math.round(14 * SCALE)
 
 const LIGHT_OUTER = '#f0f0f0'
 const LIGHT_PANEL = '#ffffff'
+const LIGHT_TEXT = '#333333'
 const DARK_OUTER = '#141414'
 const DARK_PANEL = '#3d3d3d'
+const DARK_TEXT = '#f5f5f5'
+const DARK_PANEL_EDGE = 'rgba(255, 255, 255, 0.1)'
+const SYSTEM_DIVIDER = 'rgba(0, 0, 0, 0.2)'
 
 const FONT =
   'Geist Variable, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
@@ -33,136 +45,87 @@ type ThemePreviewCardProps = {
   label: string
   isSelected: boolean
   onSelect: () => void
+  /**
+   * Fill the parent's width — the phone appearance page uses this so the
+   * theme previews read as three full-width rows instead of a narrow
+   * column stuck to the left. The artwork scales fluidly; the label and
+   * checkmark stay at comfortable reading sizes.
+   */
+  fill?: boolean
 }
 
 type HalfTheme = 'light' | 'dark'
 
-function PreviewHalf({ theme, width }: { theme: HalfTheme; width: number }) {
+/**
+ * One half of the preview (a theme's outer + raised panel + "Aa").
+ * Everything is in viewBox units; `x` is where this half starts.
+ */
+function Half({ theme, x, w }: { theme: HalfTheme; x: number; w: number }) {
   const isLight = theme === 'light'
   const outerBg = isLight ? LIGHT_OUTER : DARK_OUTER
   const panelBg = isLight ? LIGHT_PANEL : DARK_PANEL
-  const textColor = isLight ? '#333333' : '#f5f5f5'
-  const panelLeft = Math.round(PANEL_LEFT * (width / OUTER_W))
-  const panelW = width - panelLeft
-
-  const panelStyle: CSSProperties = {
-    position: 'absolute',
-    left: panelLeft,
-    bottom: 0,
-    width: panelW,
-    height: PANEL_H,
-    borderRadius: `${RADIUS_PANEL}px ${RADIUS_PANEL}px ${RADIUS_PANEL}px 0`,
-    backgroundColor: panelBg,
-  }
-
-  if (!isLight) {
-    panelStyle.boxShadow = 'inset 0 0 0 1px rgba(255, 255, 255, 0.1)'
-  }
+  const textColor = isLight ? LIGHT_TEXT : DARK_TEXT
+  const panelX = x + PANEL.x
+  const panelW = Math.max(0, w - PANEL.x - 1) // −1: never touch the next half
 
   return (
-    <VStack
-      gap={0}
-      style={{
-        position: 'relative',
-        width,
-        height: OUTER_H,
-        backgroundColor: outerBg,
-        overflow: 'hidden',
-        flexShrink: 0,
-      }}
-    >
-      <VStack gap={0} hAlign="start" vAlign="start" style={panelStyle}>
-        <span
-          aria-hidden
-          style={{
-            display: 'block',
-            padding: `${AA_PAD}px ${AA_PAD}px 0`,
-            fontSize: AA_SIZE,
-            fontWeight: 400,
-            lineHeight: 1.1,
-            color: textColor,
-            fontFamily: FONT,
-          }}
-        >
-          Aa
-        </span>
-      </VStack>
-    </VStack>
-  )
-}
-
-function SinglePreview({ theme }: { theme: HalfTheme }) {
-  return (
-    <VStack
-      gap={0}
-      style={{
-        position: 'relative',
-        width: OUTER_W,
-        height: OUTER_H,
-        borderRadius: RADIUS_OUTER,
-        backgroundColor: theme === 'light' ? LIGHT_OUTER : DARK_OUTER,
-        overflow: 'hidden',
-        flexShrink: 0,
-      }}
-    >
-      <PreviewHalf theme={theme} width={OUTER_W} />
-    </VStack>
-  )
-}
-
-function SystemPreview() {
-  const halfW = Math.floor((OUTER_W - DIVIDER_W) / 2)
-
-  return (
-    <HStack
-      gap={0}
-      style={{
-        width: OUTER_W,
-        height: OUTER_H,
-        borderRadius: RADIUS_OUTER,
-        overflow: 'hidden',
-        flexShrink: 0,
-      }}
-    >
-      <PreviewHalf theme="light" width={halfW} />
-      <span
-        aria-hidden
-        style={{
-          width: DIVIDER_W,
-          height: OUTER_H,
-          flexShrink: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.2)',
-        }}
+    <g>
+      <rect x={x} y={0} width={w} height={VB_H} fill={outerBg} />
+      <rect
+        x={panelX}
+        y={PANEL.y}
+        width={panelW}
+        height={PANEL.h}
+        rx={PANEL.r}
+        fill={panelBg}
+        stroke={isLight ? undefined : DARK_PANEL_EDGE}
+        strokeWidth={1}
       />
-      <PreviewHalf theme="dark" width={halfW} />
-    </HStack>
+      <text
+        x={panelX + AA.x - PANEL.x}
+        y={AA.y}
+        fontSize={AA.size}
+        fill={textColor}
+        fontFamily={FONT}
+      >
+        Aa
+      </text>
+    </g>
   )
 }
 
+/** The 260×128 drawing: a solid theme, or light|dark halves for "system". */
 function PreviewArt({ mode }: { mode: ThemePreviewMode }) {
-  if (mode === 'system') return <SystemPreview />
-  return <SinglePreview theme={mode} />
+  if (mode === 'light') return <Half theme="light" x={0} w={VB_W} />
+  if (mode === 'dark') return <Half theme="dark" x={0} w={VB_W} />
+  return (
+    <g>
+      <Half theme="light" x={0} w={VB_W / 2} />
+      <rect x={VB_W / 2 - 0.5} y={0} width={1} height={VB_H} fill={SYSTEM_DIVIDER} />
+      <Half theme="dark" x={VB_W / 2} w={VB_W / 2} />
+    </g>
+  )
 }
 
+/** Rounded crop around the art; the selection checkmark rides on top of it. */
 function PreviewFrame({
-  children,
+  width,
   showTick,
+  children,
 }: {
-  children: ReactNode
+  width: number | '100%'
   showTick: boolean
+  children: ReactNode
 }) {
+  const frameStyle: CSSProperties = {
+    position: 'relative',
+    width,
+    borderRadius: RADIUS_OUTER,
+    overflow: 'hidden',
+    flexShrink: 0,
+  }
   return (
-    <VStack
-      gap={0}
-      className="ol-theme-card__frame"
-      style={{
-        position: 'relative',
-        width: OUTER_W,
-        height: OUTER_H,
-        borderRadius: RADIUS_OUTER,
-        flexShrink: 0,
-      }}
-    >
+    <VStack gap={0} className="ol-theme-card__frame" style={frameStyle}>
       {children}
       {showTick ? (
         <span
@@ -188,7 +151,9 @@ export default function ThemePreviewCard({
   label,
   isSelected,
   onSelect,
+  fill = false,
 }: ThemePreviewCardProps) {
+  const artWidth = fill ? '100%' : OUTER_W
   return (
     <button
       className="ol-theme-card"
@@ -205,16 +170,24 @@ export default function ThemePreviewCard({
         cursor: 'pointer',
         textAlign: 'center',
         fontFamily: 'inherit',
+        width: fill ? '100%' : undefined,
       }}
     >
       <VStack gap={0} hAlign="center" vAlign="start">
-        <PreviewFrame showTick={isSelected}>
-          <PreviewArt mode={mode} />
+        <PreviewFrame width={artWidth} showTick={isSelected}>
+          <svg
+            width={artWidth}
+            viewBox={`0 0 ${VB_W} ${VB_H}`}
+            aria-hidden
+            style={{ display: 'block' }}
+          >
+            <PreviewArt mode={mode} />
+          </svg>
         </PreviewFrame>
         <span
           style={{
             display: 'block',
-            width: OUTER_W,
+            width: artWidth,
             marginTop: LABEL_GAP,
             fontSize: LABEL_SIZE,
             lineHeight: 1.25,
