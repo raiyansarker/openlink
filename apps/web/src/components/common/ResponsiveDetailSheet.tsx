@@ -86,7 +86,17 @@ export default function ResponsiveDetailSheet({
         >
           <div
             className="ol-hide-scrollbar"
-            style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+            style={{
+              flex: 1,
+              minHeight: 0,
+              // overflow-y alone computes overflow-x to auto, and the
+              // sheet's own region scrolls 'both' — one wide row and the
+              // phone could pan sideways. Detail sheets are column
+              // documents: horizontal is always a bug, so it clips here.
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              WebkitOverflowScrolling: 'touch',
+            }}
           >
             <VStack gap={6} hAlign="stretch" width="100%">
               {children}
