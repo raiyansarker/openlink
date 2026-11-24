@@ -1,13 +1,23 @@
 import { Effect } from 'effect'
 
-import { toApiKeyDto } from '#/server/api/serializers'
+import { toApiKeyDto, toOrganizationDto } from '#/server/api/serializers'
 import { requireOrgAdminUserEffect } from '#/server/effect/access'
 import { audit } from '#/server/activity/audit'
+import { requirePrincipal } from '#/server/effect/principal'
+import { getOrganizationById } from '#/server/org/service'
 import { os } from '#/server/orpc/implement'
 
 import { createApiKey, listApiKeys, revokeApiKey, rotateApiKey, updateApiKeyRole } from './service'
 
 export const apiKeysController = {
+  getCurrentApiKey: os.apiKeys.getCurrentApiKey.effect(function* ({ errors }) {
+    // Lets a key-only client (the browser extension) learn which workspace it acts for.
+    const { apiKey } = yield* requirePrincipal
+    if (!apiKey) return yield* Effect.fail(errors.UNAUTHORIZED({ message: 'This endpoint needs an API key' }))
+    const org = yield* getOrganizationById(apiKey.organizationId)
+    if (!org) return yield* Effect.fail(errors.NOT_FOUND({ message: 'Organization not found' }))
+    return { id: apiKey.id, name: apiKey.name, role: apiKey.role, organization: toOrganizationDto(org) }
+  }),
   listApiKeys: os.apiKeys.listApiKeys.effect(function* ({ input }) {
     yield* requireOrgAdminUserEffect(input.params.organizationId)
     const rows = yield* listApiKeys(input.params.organizationId)
