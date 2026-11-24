@@ -10,7 +10,6 @@ type Inputs = InferRouterContractInputs<typeof contract>
 /** A short link. Named `ShortLink` so it never clashes with the `Link` UI components. */
 export type ShortLink = Outputs['links']['getWorkspaceLink']
 export type LinkStatus = ShortLink['status']
-export type RedirectStatus = ShortLink['redirectStatus']
 export type UtmParameters = NonNullable<ShortLink['utm']>
 export type CreateLinkBody = Inputs['links']['createWorkspaceLink']['body']
 export type UpdateLinkBody = Inputs['links']['updateWorkspaceLink']['body']

@@ -59,7 +59,10 @@ const HoldPagePicker = memo(function HoldPagePicker() {
         aria-label="Page to show"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))',
+          // Four pages, always a 2 × 2 checkerboard on every width —
+          // auto-fit squeezed third columns on phones and stretched
+          // four-across skies on desktop, both read worse than pairs.
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
           gap: 10,
         }}
       >

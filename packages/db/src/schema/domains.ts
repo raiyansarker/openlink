@@ -17,7 +17,6 @@ export const customDomain = sqliteTable(
     provider: text('provider', { enum: ['memory', 'cloudflare'] }).notNull(),
     providerDomainId: text('provider_domain_id'),
     dnsRecordsJson: text('dns_records_json').notNull().default('[]'),
-    defaultRedirectStatus: integer('default_redirect_status').notNull().default(302),
     activeAt: integer('active_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),

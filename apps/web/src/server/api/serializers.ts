@@ -71,7 +71,6 @@ type DnsRecordDto = {
   status?: 'required' | 'verified' | 'failed'
 }
 
-type RedirectCode = 301 | 302 | 307 | 308
 
 export function toDomainDto(row: typeof customDomain.$inferSelect, linkCount = 0) {
   return {
@@ -80,7 +79,6 @@ export function toDomainDto(row: typeof customDomain.$inferSelect, linkCount = 0
     hostname: row.hostname,
     readiness: row.readiness,
     dnsRecords: JSON.parse(row.dnsRecordsJson) as DnsRecordDto[],
-    defaultRedirectStatus: row.defaultRedirectStatus as RedirectCode,
     createdAt: row.createdAt.toISOString(),
     ...(row.activeAt ? { activeAt: row.activeAt.toISOString() } : {}),
     linkCount,
@@ -98,7 +96,6 @@ export function toLinkDto(row: typeof link.$inferSelect) {
     ...(row.title ? { title: row.title } : {}),
     ...(row.description ? { description: row.description } : {}),
     destinationUrl: row.destinationUrl,
-    redirectStatus: row.redirectStatus as RedirectCode,
     // Derived, so a link past its expiry or click limit reports `expired` rather than its stored status.
     status: deriveLinkStatus(row),
     enabled: row.enabled,

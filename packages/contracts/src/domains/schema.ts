@@ -18,15 +18,12 @@ export const AddDomainRequest = type({
   hostname: 'string',
 })
 
-export const RedirectStatus = type('301 | 302 | 307 | 308')
-
 export const CustomDomain = type({
   id: 'string',
   organizationId: 'string',
   hostname: 'string',
   readiness: DomainReadiness,
   dnsRecords: DnsRecordInstruction.array(),
-  'defaultRedirectStatus?': RedirectStatus,
   createdAt: 'string',
   'activeAt?': 'string',
   /** Short links on this domain. Removing the domain deletes them. */

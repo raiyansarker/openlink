@@ -132,7 +132,11 @@ const FormBody = memo(function FormBody({ editLink }: { editLink?: ShortLink }) 
         {coreSections}
         {isStacked ? (
           <Collapsible defaultIsOpen={false} trigger="More options">
-            <VStack gap={0} hAlign="stretch" width="100%">
+            {/* The gap between the disclosure and the first optional
+                section (Targeting) needs to FEEL opened — a hairline gap
+                reads like a rendering mistake, so this inner stack starts
+                with real air. */}
+            <VStack gap={0} hAlign="stretch" width="100%" style={{ paddingTop: 28 }}>
               {optionalSections}
             </VStack>
           </Collapsible>

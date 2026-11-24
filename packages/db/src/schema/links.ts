@@ -44,7 +44,6 @@ export const link = sqliteTable(
     title: text('title'),
     description: text('description'),
     destinationUrl: text('destination_url').notNull(),
-    redirectStatus: integer('redirect_status').notNull().default(302),
     status: text('status', {
       enum: ['draft', 'scheduled', 'active', 'paused', 'expired', 'disabled'],
     })

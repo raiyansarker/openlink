@@ -16,7 +16,6 @@ function row(overrides: Partial<typeof link.$inferSelect> = {}): typeof link.$in
     title: null,
     description: null,
     destinationUrl: 'https://example.com/page',
-    redirectStatus: 302,
     status: 'active',
     enabled: true,
     activateAt: null,
@@ -57,11 +56,11 @@ describe('Utm.apply', () => {
 })
 
 describe('RedirectRules.decide', () => {
-  test('active link redirects with its status and counts the click', () => {
-    expect(RedirectRules.decide(row({ redirectStatus: 301 }), { now: NOW })).toEqual({
+  test('active link redirects 302 and counts the click', () => {
+    expect(RedirectRules.decide(row(), { now: NOW })).toEqual({
       type: 'redirect',
       url: 'https://example.com/page',
-      status: 301,
+      status: 302,
       countsClick: true,
     })
   })

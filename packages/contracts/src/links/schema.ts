@@ -1,7 +1,7 @@
 import { type } from 'arktype'
 
 import { HttpUrl } from '../schema-utils'
-import { DomainIdPath, RedirectStatus } from '../domains/schema'
+import { DomainIdPath } from '../domains/schema'
 import { LinkHold, LinkPreviewImage, LinkTargeting, SocialPreview } from './delivery'
 import { OrganizationIdPath } from '../organizations/schema'
 
@@ -32,7 +32,6 @@ export const Link = type({
   'title?': 'string',
   'description?': 'string',
   destinationUrl: HttpUrl,
-  redirectStatus: RedirectStatus,
   status: LinkStatus,
   'enabled?': 'boolean',
   'activateAt?': 'string',
@@ -64,7 +63,6 @@ export const CreateLinkRequest = type({
   destinationUrl: HttpUrl,
   'title?': 'string',
   'description?': `string <= ${MAX_LINK_NOTES_LENGTH}`,
-  'redirectStatus?': RedirectStatus,
   'activateAt?': 'string',
   'expiresAt?': 'string',
   'maxClicks?': 'number.integer>=1',
@@ -93,7 +91,6 @@ export const UpdateLinkRequest = type({
   'title?': 'string',
   /** For every optional setting below, null removes it and an absent field keeps it. */
   'description?': type(`string <= ${MAX_LINK_NOTES_LENGTH}`).or('null'),
-  'redirectStatus?': RedirectStatus,
   'status?': LinkStatus,
   'enabled?': 'boolean',
   'activateAt?': 'string | null',

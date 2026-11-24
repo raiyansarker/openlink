@@ -119,11 +119,11 @@ describe('resolveRedirect', () => {
 
   test('password protected links require the right password on every visit', async () => {
     const t = setup()
-    const row = t.seed({ passwordHash: await Effect.runPromise(hashLinkPassword('s3cret')), redirectStatus: 308 })
+    const row = t.seed({ passwordHash: await Effect.runPromise(hashLinkPassword('s3cret')) })
     expect(await t.resolve({ host: 'go.example.com', slug: 'abc' })).toEqual({ type: 'password_required' })
     expect(await t.resolve({ host: 'go.example.com', slug: 'abc', password: 'wrong' })).toEqual({ type: 'password_invalid' })
     expect(t.clicks(row.id)).toBe(0)
-    // The right password goes straight on, as a 303 so even a 308 link turns the POST into a GET.
+    // The right password goes straight on, as a 303 so the POST never re-sends to the destination.
     expect(await t.resolve({ host: 'go.example.com', slug: 'abc', password: 's3cret' })).toEqual({
       type: 'redirect',
       url: 'https://example.com/dest',

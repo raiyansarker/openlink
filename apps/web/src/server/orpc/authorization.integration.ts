@@ -14,13 +14,13 @@ const org = { id: 'org-1', name: 'Workspace', slug: 'workspace', createdAt: now,
 const domain: typeof customDomain.$inferSelect = {
   id: 'domain-1', organizationId: org.id, hostname: 'go.example.com',
   readiness: 'active', provider: 'memory', providerDomainId: null,
-  dnsRecordsJson: '[]', defaultRedirectStatus: 302, activeAt: now,
+  dnsRecordsJson: '[]', activeAt: now,
   createdAt: now, updatedAt: now,
 }
 const linkRow: typeof link.$inferSelect = {
   id: 'link-1', organizationId: org.id, domainId: domain.id, slug: 'hello', folderId: null,
   alias: null, title: null, description: null, destinationUrl: 'https://example.com/',
-  redirectStatus: 302, status: 'active', enabled: true, activateAt: null,
+  status: 'active', enabled: true, activateAt: null,
   expiresAt: null, maxClicks: null, clickCount: 0, passwordHash: null,
   expiredDestinationUrl: null, fallbackDestinationUrl: null, tagsJson: '[]',
   utmJson: null, metadataJson: null, deliveryJson: null, createdByUserId: 'user-1', createdAt: now, updatedAt: now,
@@ -1020,13 +1020,13 @@ describe('links with a share-card image in the same request', () => {
   test('creating stores the image and saves it as the card, with form fields typed by the contract', async () => {
     role = 'member'
     const response = await sendForm('POST', `${orgPath}/links`, {
-      destinationUrl: 'https://example.com', slug: 'launch', redirectStatus: '301', maxClicks: '5', cloaked: 'false',
+      destinationUrl: 'https://example.com', slug: 'launch', maxClicks: '5', cloaked: 'false',
       'tags[0]': 'spring', 'socialPreview[title]': 'Launch', previewImage: card(),
     })
     expect(response.status).toBe(201)
     expect(storePreviewImage).toHaveBeenCalledWith(org.id, expect.any(Blob))
     expect(createLinkRecord).toHaveBeenCalledWith(expect.objectContaining({
-      slug: 'launch', redirectStatus: 301, maxClicks: 5, cloaked: false, tags: ['spring'],
+      slug: 'launch', maxClicks: 5, cloaked: false, tags: ['spring'],
       socialPreview: { title: 'Launch', imageUrl: '/api/media/previews/org-1/card.png' },
     }))
   })
