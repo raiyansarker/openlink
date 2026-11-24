@@ -150,11 +150,11 @@ export default function SettingsNavColumn() {
   const { organizations, status } = useWorkspaceDirectory()
   // Hide workspace sections only once we know there are none (not while loading).
   const hasNoWorkspaces = status === 'ready' && organizations.length === 0
-  // Integration and API-key settings manage the workspace itself: owners and
-  // admins only, decided by the active workspace's role.
+  // API-key settings manage the workspace itself: owners and admins only,
+  // decided by the active workspace's role.
   const activeOrg = ActiveWorkspace.pick(organizations)
   const sectionVisible = (section: SettingsWorkspaceSection) =>
-    section !== 'integrations' && section !== 'api-keys' ? true : activeOrg?.role ? isAdmin(activeOrg.role) : false
+    section !== 'api-keys' ? true : activeOrg?.role ? isAdmin(activeOrg.role) : false
   const workspaceSections = SETTINGS_WORKSPACE_SECTIONS.filter((section) => sectionVisible(section.id))
 
   const signOut = async () => {

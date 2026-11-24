@@ -84,7 +84,7 @@ bounce with an error at runtime. The general convention:
 | Members: invite, change-role, remove buttons | hidden | hidden | targets member/viewer only | all |
 | Invite role picker | — | — | member / viewer | member / viewer / admin |
 | Settings: General (name, slug, logo editing) | read-only | read-only | visible | visible |
-| Settings: Webhooks, API keys pages | hidden from nav (notice on direct URL) | hidden | visible | visible |
+| Settings: API keys page | hidden from nav (notice on direct URL) | hidden | visible | visible |
 | Transfer ownership / delete workspace | hidden | hidden | disabled + text | visible |
 
 Note the UI never *grants* anything: it only mirrors the API. A hidden button

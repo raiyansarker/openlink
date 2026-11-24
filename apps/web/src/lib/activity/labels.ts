@@ -5,7 +5,7 @@ export const ACTIVITY_CATEGORY_LABELS: Record<ActivityCategory, string> = {
   domains: 'Domains',
   members: 'Members',
   security: 'Security',
-  developers: 'API & webhooks',
+  developers: 'API keys',
 }
 
 export const ACTIVITY_SOURCE_LABELS: Record<ActivityEvent['source'], string> = {

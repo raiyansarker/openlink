@@ -118,7 +118,7 @@ function MembersBones() {
   )
 }
 
-/** API keys and webhooks: title with an action, then a table. */
+/** API keys: title with an action, then a table. */
 function ListPageBones() {
   return (
     <VStack gap={5} hAlign="stretch" width="100%">
@@ -137,7 +137,7 @@ export default function WorkspaceSettingsSkeleton({ label = 'Loading your worksp
   const page = pathname.split('/').filter(Boolean).at(-1)
   return (
     <VStack hAlign="stretch" width="100%" role="status" aria-label={label} aria-busy>
-      {page === 'members' ? <MembersBones /> : page === 'api-keys' || page === 'integrations' ? <ListPageBones /> : <GeneralBones />}
+      {page === 'members' ? <MembersBones /> : page === 'api-keys' ? <ListPageBones /> : <GeneralBones />}
     </VStack>
   )
 }
