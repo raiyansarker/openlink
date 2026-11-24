@@ -45,7 +45,8 @@ export default function OptionsApp() {
     })
   }, [checkSession])
 
-  /** Grants host access to the app (its cookies make the requests), then saves the origin. */
+  /** Grants host access to the app (its cookies make the requests), then verifies
+   * the session: signed in says connected; signed out opens the app's login page. */
   async function connect(event: FormEvent) {
     event.preventDefault()
     const normalized = normalizeOrigin(origin)
@@ -56,8 +57,18 @@ export default function OptionsApp() {
       if (!granted) return setStatus({ kind: 'error', message: 'Access to the app origin was not granted.' })
       await updateSettings((current) => ({ ...current, origin: normalized }))
       setOrigin(normalized)
-      void checkSession(normalized)
-      setStatus({ kind: 'ok', message: `Connected to ${new URL(normalized).host}.` })
+      setSession('checking')
+      try {
+        await createClient(normalized).organizations.listOrganizations()
+        setSession('signed-in')
+        setStatus({ kind: 'ok', message: `Connected to ${new URL(normalized).host}.` })
+      } catch {
+        // Connected, but the extension works through the browser's sign-in
+        // session — take the user straight to where they can create one.
+        setSession('signed-out')
+        setStatus({ kind: 'ok', message: 'Connected — finish signing in to the app in the tab that opened.' })
+        await chrome.tabs.create({ url: `${normalized}/login` })
+      }
     } catch (error) {
       setStatus({ kind: 'error', message: errorMessage(error, 'Could not save the app URL.') })
     }
