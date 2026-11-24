@@ -3,7 +3,9 @@ import { Button } from '@astryxdesign/core/Button'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import { useClipboard } from '@astryxdesign/core/hooks'
+import { useClipboard, useMediaQuery } from '@astryxdesign/core/hooks'
+import { IconButton } from '@astryxdesign/core/IconButton'
+import { CircleCheckSolidIcon, CopyIcon } from '#/components/icons/IcnMcp'
 import { useClientValue } from '#/hooks/use-client-value'
 import Favicon from '#/components/create-link/Favicon'
 import QrCode from '#/components/create-link/QrCode'
@@ -54,26 +56,62 @@ export function ShortLinkSummary({
   destination: string
 }) {
   const { copy, isCopied } = useClipboard()
+  const isStacked = useMediaQuery('(max-width: 959px)')
   return (
     <VStack gap={2} hAlign="stretch" width="100%">
       <Text type="supporting" color="secondary" maxLines={1}>
         {title}
       </Text>
-      <HStack gap={2} vAlign="center" hAlign="between" width="100%">
-        <Text
-          weight="semibold"
-          maxLines={1}
-          style={{ fontSize: 18, letterSpacing: '-0.01em', minWidth: 0 }}
-        >
-          {shortUrl.replace(/^https?:\/\//, '')}
-        </Text>
-        <Button
-          variant="secondary"
-          size="sm"
-          label={isCopied ? 'Copied' : 'Copy'}
-          onClick={() => void copy(shortUrl)}
-        />
-      </HStack>
+      {/* Stacked widths face the same squeeze as the headline above: the
+          copy action becomes a compact icon so the URL keeps the room. */}
+      {isStacked ? (
+        <HStack gap={2} vAlign="start" hAlign="between" width="100%">
+          <Text
+            weight="semibold"
+            maxLines={2}
+            style={{
+              fontSize: 16,
+              letterSpacing: '-0.01em',
+              minWidth: 0,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {shortUrl.replace(/^https?:\/\//, '')}
+          </Text>
+          <IconButton
+            variant="ghost"
+            label={isCopied ? 'Copied' : 'Copy link'}
+            icon={
+              isCopied ? (
+                <span style={{ display: 'flex', color: 'var(--openlink-brand)' }}>
+                  <CircleCheckSolidIcon size={14} />
+                </span>
+              ) : (
+                <span style={{ display: 'flex' }}>
+                  <CopyIcon size={14} />
+                </span>
+              )
+            }
+            onClick={() => void copy(shortUrl)}
+          />
+        </HStack>
+      ) : (
+        <HStack gap={2} vAlign="center" hAlign="between" width="100%">
+          <Text
+            weight="semibold"
+            maxLines={1}
+            style={{ fontSize: 18, letterSpacing: '-0.01em', minWidth: 0 }}
+          >
+            {shortUrl.replace(/^https?:\/\//, '')}
+          </Text>
+          <Button
+            variant="secondary"
+            size="sm"
+            label={isCopied ? 'Copied' : 'Copy'}
+            onClick={() => void copy(shortUrl)}
+          />
+        </HStack>
+      )}
       <HStack gap={2} vAlign="center" width="100%">
         <Favicon url={destination} size={14} />
         <Text type="supporting" color="secondary" maxLines={1} style={{ minWidth: 0 }}>
@@ -360,13 +398,51 @@ export const RouteDiagram = memo(function RouteDiagram({ destination }: { destin
 const HEADLINE_STYLE = { fontSize: 28, letterSpacing: '-0.03em', minWidth: 0 } as const
 const STATUS_STYLE = { marginTop: 6 } as const
 
-/** The short URL, big, with a Copy button. Changes only with the short URL. */
+/**
+ * The short URL, big, with a Copy button. Changes only with the short URL.
+ * Stacked (phone) widths: 28px type and a Copy button can't share this row —
+ * the URL drops a size, wraps within two lines instead of clipping, and the
+ * copy action becomes a compact icon.
+ */
 export const ShortUrlHeadline = memo(function ShortUrlHeadline({ shortUrl }: { shortUrl: string }) {
   const { copy, isCopied } = useClipboard()
+  const isStacked = useMediaQuery('(max-width: 959px)')
+  const bare = shortUrl.replace(/^https?:\/\//, '')
+
+  if (isStacked) {
+    return (
+      <HStack gap={2} vAlign="start" hAlign="between" width="100%">
+        <Text
+          weight="semibold"
+          maxLines={2}
+          style={{ ...HEADLINE_STYLE, fontSize: 19, overflowWrap: 'anywhere' }}
+        >
+          {bare}
+        </Text>
+        <IconButton
+          variant="ghost"
+          label={isCopied ? 'Copied' : 'Copy link'}
+          icon={
+            isCopied ? (
+              <span style={{ display: 'flex', color: 'var(--openlink-brand)' }}>
+                <CircleCheckSolidIcon size={16} />
+              </span>
+            ) : (
+              <span style={{ display: 'flex' }}>
+                <CopyIcon size={16} />
+              </span>
+            )
+          }
+          onClick={() => void copy(shortUrl)}
+        />
+      </HStack>
+    )
+  }
+
   return (
     <HStack gap={3} vAlign="center" hAlign="between" width="100%">
       <Text weight="semibold" maxLines={1} style={HEADLINE_STYLE}>
-        {shortUrl.replace(/^https?:\/\//, '')}
+        {bare}
       </Text>
       <Button
         variant="primary"

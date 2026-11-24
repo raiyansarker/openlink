@@ -229,6 +229,15 @@ export function CircleCheckIcon({ size = 16, ...p }: SvgProps) {
 }
 
 /** iconmcp: circle-check (solid / filled) */
+export function CopyIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" />
+      <path d="M11.5 3.5 H4.5 A1.5 1.5 0 0 0 3 5 V11.5" />
+    </svg>
+  )
+}
+
 export function CircleCheckSolidIcon({ size = 16, ...p }: SvgProps) {
   return (
     <svg
