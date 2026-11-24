@@ -46,7 +46,11 @@ type DashboardAccountMenuProps = {
 
 const sheetRowStyle: CSSProperties = {
   display: 'flex',
-  alignItems: 'center',
+  // Top-aligned, not centered: rows like "Workspace settings" carry a
+  // second line (the workspace's name), and a vertically centered icon
+  // floats between the two lines. Leading from the top keeps one-line
+  // rows unchanged and two-line rows reading as a list.
+  alignItems: 'flex-start',
   gap: 10,
   width: '100%',
   minHeight: 52,

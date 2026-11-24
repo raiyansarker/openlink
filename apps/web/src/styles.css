@@ -371,25 +371,28 @@ body {
   /* A flex sibling BELOW the sheet's scroll region (see
      ResponsiveDetailSheet) — physically pinned, so no sticky tricks, and
      transparent by design: nothing here can paint a band that mismatches
-     the sheet's own surface. The hairline is the entire footer chrome. */
+     the sheet's own surface. No divider either: the buttons ARE the
+     footer chrome, nothing announces them. */
   flex-shrink: 0;
   margin: 8px 0 0;
   padding: 10px 0 calc(12px + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--color-border);
   background: transparent;
 }
 .ol-sheet-footer-actions {
+  /* One action row: two buttons split 50/50 side by side — a lone button
+     flexes to full width. The old stacked full-width column made a
+     Cancel/Send pair taller than it needed to be. */
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: stretch !important;
-  justify-content: stretch !important;
   gap: 8px !important;
   width: 100% !important;
 }
 .ol-sheet-footer-actions button,
 .ol-sheet-footer-actions [role='button'],
 .ol-sheet-footer-actions a {
-  width: 100% !important;
+  flex: 1 1 0 !important;
+  width: auto !important;
 }
 
 /*
