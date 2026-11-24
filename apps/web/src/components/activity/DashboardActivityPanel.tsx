@@ -106,35 +106,55 @@ export default function DashboardActivityPanel({ filters, onFiltersChange }: Das
       </VStack>
 
       <VStack gap={6} hAlign="stretch" width="fill">
-        <InputGroup
-          label="Filter activity"
-          size="sm"
-          // Phones: search on its own full-width row, category picker under it.
-          style={isPhone ? { flexDirection: 'column' } : undefined}
-        >
-          <TextInput
-            label="Search activity"
-            isLabelHidden
-            size="sm"
-            placeholder="Search by person, action, or item"
-            value={draftQuery}
-            onChange={changeQuery}
-            controlStyle={
-              isPhone ? { width: '100%', minWidth: 0 } : { flex: '4 1 0', minWidth: 0, width: '80%' }
-            }
-          />
-          <Selector
-            label="Category"
-            isLabelHidden
-            variant="secondary"
-            size="sm"
-            width={isPhone ? '100%' : '20%'}
-            controlStyle={{ flex: isPhone ? '1 1 100%' : '1 0 0', minWidth: 0, width: '100%' }}
-            options={CATEGORY_OPTIONS}
-            value={filters.category}
-            onChange={(value) => onFiltersChange({ category: value as CategoryFilter })}
-          />
-        </InputGroup>
+        {isPhone ? (
+          /* InputGroup welds its children into one connected row; on a phone
+             that row has no room, so the two filters become plain stacked
+             controls — search on its own full-width line, category under it. */
+          <VStack gap={2} width="fill" hAlign="stretch" role="group" aria-label="Filter activity">
+            <TextInput
+              label="Search activity"
+              isLabelHidden
+              size="sm"
+              placeholder="Search by person, action, or item"
+              value={draftQuery}
+              onChange={changeQuery}
+              width="fill"
+            />
+            <Selector
+              label="Category"
+              isLabelHidden
+              variant="secondary"
+              size="sm"
+              width="fill"
+              options={CATEGORY_OPTIONS}
+              value={filters.category}
+              onChange={(value) => onFiltersChange({ category: value as CategoryFilter })}
+            />
+          </VStack>
+        ) : (
+          <InputGroup label="Filter activity" size="sm">
+            <TextInput
+              label="Search activity"
+              isLabelHidden
+              size="sm"
+              placeholder="Search by person, action, or item"
+              value={draftQuery}
+              onChange={changeQuery}
+              controlStyle={{ flex: '4 1 0', minWidth: 0, width: '80%' }}
+            />
+            <Selector
+              label="Category"
+              isLabelHidden
+              variant="secondary"
+              size="sm"
+              width="20%"
+              controlStyle={{ flex: '1 0 0', minWidth: 0, width: '100%' }}
+              options={CATEGORY_OPTIONS}
+              value={filters.category}
+              onChange={(value) => onFiltersChange({ category: value as CategoryFilter })}
+            />
+          </InputGroup>
+        )}
 
         {feed.isPending ? (
           <FeedSkeleton />
