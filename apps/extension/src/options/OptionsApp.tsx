@@ -8,17 +8,22 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
-import { createClient, errorMessage } from '../lib/client'
+import { createClient, errorMessage, isUnauthorized } from '../lib/client'
 import { OVERLAY_COMMAND } from '../lib/overlay'
 import { loadSettings, normalizeOrigin, originPattern, updateSettings } from '../lib/settings'
 
 type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'ok'; message: string } | { kind: 'warning'; message: string } | { kind: 'error'; message: string }
 
-/** Whether the browser holds a sign-in session for the app. */
+/** What the app said about the browser's sign-in session. */
 type Session = 'checking' | 'signed-in' | 'signed-out'
+
+/** The connected API-key workspace, for the options page's summary row. */
+type KeySummary = { name: string; role: string } | null
 
 export default function OptionsApp() {
   const [origin, setOrigin] = useState('')
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [keyWorkspace, setKeyWorkspace] = useState<KeySummary>(null)
   const [session, setSession] = useState<Session>('checking')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [shortcut, setShortcut] = useState('')
@@ -38,6 +43,7 @@ export default function OptionsApp() {
   useEffect(() => {
     void loadSettings().then((saved) => {
       setOrigin(saved.origin ?? '')
+      setKeyWorkspace(saved.apiKeyWorkspace ? { name: saved.apiKeyWorkspace.name, role: saved.apiKeyWorkspace.role } : null)
       void checkSession(saved.origin ?? '')
     })
     void chrome.commands.getAll().then((commands) => {
@@ -101,6 +107,49 @@ export default function OptionsApp() {
     }
   }
 
+  /** Connects with one of the app's API keys instead of the browser session:
+   * the endpoint names the workspace the key acts for. */
+  async function connectKey(event: FormEvent) {
+    event.preventDefault()
+    const normalized = normalizeOrigin(origin)
+    if (!normalized) return setStatus({ kind: 'error', message: 'Enter a valid http(s) URL for the app.' })
+    const secret = apiKeyInput.trim()
+    if (!secret.startsWith('sk_')) return setStatus({ kind: 'warning', message: 'OpenLink API keys start with “sk_” — create one in the app under Settings → API keys.' })
+    setStatus({ kind: 'busy' })
+    try {
+      const granted = await chrome.permissions.request({ origins: [originPattern(normalized)] })
+      if (!granted) return setStatus({ kind: 'error', message: 'Access to the app origin was not granted.' })
+      const info = await createClient(normalized, secret).apiKeys.getCurrentApiKey()
+      await updateSettings((current) => ({
+        ...current,
+        origin: normalized,
+        apiKeyWorkspace: {
+          organizationId: info.organization.id,
+          name: info.organization.name,
+          slug: info.organization.slug,
+          role: info.role,
+          apiKey: secret,
+        },
+      }))
+      setOrigin(normalized)
+      setApiKeyInput('')
+      setKeyWorkspace({ name: info.organization.name, role: info.role })
+      setStatus({ kind: 'ok', message: `Connected with an API key — ${info.organization.name} (${info.role}).` })
+    } catch (error) {
+      setStatus({
+        kind: isUnauthorized(error) ? 'warning' : 'error',
+        message: isUnauthorized(error)
+          ? 'That key was not accepted — it may be revoked. Create a fresh one in the app under Settings → API keys.'
+          : errorMessage(error, 'Could not reach the app with that key.'),
+      })
+    }
+  }
+
+  async function removeKey() {
+    await updateSettings((current) => ({ ...current, apiKeyWorkspace: undefined }))
+    setKeyWorkspace(null)
+  }
+
   const appOrigin = normalizeOrigin(origin)
 
   return (
@@ -117,7 +166,7 @@ export default function OptionsApp() {
         <VStack gap={1} hAlign="stretch">
           <Heading level={1}>OpenLink</Heading>
           <Text type="supporting">
-            Point the extension at your OpenLink app. It uses the browser's sign-in session for that app, so there is nothing to paste.
+            Point the extension at your OpenLink app. Connect with the browser's sign-in session, or paste a workspace API key below to work without signing in.
           </Text>
         </VStack>
 
@@ -125,11 +174,44 @@ export default function OptionsApp() {
           <VStack gap={4} hAlign="stretch">
             <TextInput label="App URL" type="url" placeholder="https://links.example.com" value={origin} onChange={setOrigin} width="100%" isRequired />
             <Button type="submit" variant="primary" size="lg" label="Connect" width="100%" isLoading={status.kind === 'busy'} />
+          </VStack>
+        </form>
+
+        <form onSubmit={connectKey}>
+          <VStack gap={4} hAlign="stretch">
+            <TextInput
+              label="API key (optional)"
+              type="password"
+              placeholder="sk_…"
+              value={apiKeyInput}
+              onChange={setApiKeyInput}
+              width="100%"
+              description="Work without signing in: paste a key created in the app under Settings → API keys. It names the workspace it acts for."
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              label="Connect with API key"
+              width="100%"
+              isDisabled={!apiKeyInput.trim() || status.kind === 'busy'}
+            />
             {status.kind === 'ok' && <Banner status="success" title={status.message} />}
             {status.kind === 'warning' && <Banner status="warning" title={status.message} />}
             {status.kind === 'error' && <Banner status="error" title={status.message} />}
           </VStack>
         </form>
+
+        {keyWorkspace && (
+          <HStack hAlign="between" vAlign="center" width="100%">
+            <VStack gap={0} hAlign="start">
+              <Text weight="medium">API key · {keyWorkspace.name}</Text>
+              <Text type="supporting" size="sm">
+                {keyWorkspace.role} · used instead of the browser session
+              </Text>
+            </VStack>
+            <Button variant="ghost" size="sm" label="Remove" onClick={() => void removeKey()} />
+          </HStack>
+        )}
 
         {appOrigin && (
           <VStack gap={3} hAlign="stretch" width="100%">
@@ -137,7 +219,7 @@ export default function OptionsApp() {
               <VStack gap={0} hAlign="start">
                 <Text weight="medium">{new URL(appOrigin).host}</Text>
                 <Text type="supporting" size="sm">
-                  {session === 'signed-in' ? 'Sign-in session active' : session === 'signed-out' ? 'Not signed in' : 'Checking…'}
+                  {session === 'signed-in' ? 'Sign-in session active (used when no API key is connected)' : session === 'signed-out' ? 'Not signed in' : 'Checking…'}
                 </Text>
               </VStack>
               {session === 'signed-in' ? (
