@@ -114,14 +114,18 @@ export default function SettingsShell({ children }: SettingsShellProps) {
             backgroundColor: DASHBOARD_CONTENT_PANEL_BG,
             borderTopLeftRadius: 0,
             borderTopRightRadius: 0,
+            // A slim rail for the scrollbar on both sides, so it isn't glued
+            // to the content or the screen edge; the inner block compensates
+            // to keep the same 16px visual margin.
+            paddingInline: 6,
           }}
         >
           <div
             style={{
               paddingTop: 12,
-              paddingRight: 16,
+              paddingRight: 10,
               paddingBottom: 40,
-              paddingLeft: 16,
+              paddingLeft: 10,
               textAlign: 'left',
             }}
           >

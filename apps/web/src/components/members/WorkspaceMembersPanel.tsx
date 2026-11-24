@@ -6,6 +6,7 @@ import { Button } from '@astryxdesign/core/Button'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Table, pixel, proportional } from '@astryxdesign/core/Table'
+import { useIsPhone } from '#/hooks/use-is-phone'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
@@ -109,6 +110,9 @@ export default function WorkspaceMembersPanel() {
   }
 
   const rows = filteredMembers as MemberRow[]
+  // Phones: email drops out of the table (the member sheet shows it) and role
+  // narrows, so the row and its actions fit without horizontal scrolling.
+  const isPhone = useIsPhone()
   // The whole row opens the member; only the actions menu inside it is separate.
   const rowPlugins = useMemo(
     () => ({ open: clickableRows<MemberRow>(openMemberDetail, (row) => `Open ${row.name}`) }),
@@ -173,20 +177,24 @@ export default function WorkspaceMembersPanel() {
               </HStack>
             ),
           },
-          {
-            key: 'email',
-            header: 'Email',
-            width: proportional(1.2, { minWidth: 160 }),
-            renderCell: (row) => (
-              <Text type="supporting" color="secondary" maxLines={1}>
-                {row.email}
-              </Text>
-            ),
-          },
+          ...(isPhone
+            ? []
+            : ([
+                {
+                  key: 'email',
+                  header: 'Email',
+                  width: proportional(1.2, { minWidth: 160 }),
+                  renderCell: (row: MemberRow) => (
+                    <Text type="supporting" color="secondary" maxLines={1}>
+                      {row.email}
+                    </Text>
+                  ),
+                },
+              ] as const)),
           {
             key: 'role',
             header: 'Role',
-            width: pixel(220),
+            width: pixel(isPhone ? 96 : 220),
             renderCell: (row) => (
               <Text type="supporting" color="secondary">
                 {workspaceMemberRoleLabel(row.role)}

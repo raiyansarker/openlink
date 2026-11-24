@@ -3,13 +3,12 @@ import { useNavigate } from '@tanstack/react-router'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
-import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
-import { Layout, LayoutContent } from '@astryxdesign/core/Layout'
 import { Spinner } from '@astryxdesign/core/Spinner'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
+import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
 import ActivityDetailSheet from '#/components/activity/ActivityDetailSheet'
 import { useOrganization } from '#/contexts/OrganizationContext'
 import { usePermissions } from '#/hooks/use-permissions'
@@ -19,10 +18,6 @@ import type { ActivityEvent, Role } from '#/lib/api/types'
 import type { Person } from '#/lib/members/people'
 import { formatShortDate } from '#/lib/format/short-date'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
-import {
-  FLOATING_END_DRAWER_PADDING,
-  floatingEndDrawerStyle,
-} from './floating-end-drawer'
 import MemberActivityTimeline from './MemberActivityTimeline'
 import MemberRowMenu from './MemberRowMenu'
 
@@ -80,26 +75,16 @@ export default function MemberDetailDrawer({
 
   return (
     <>
-    <Drawer
+    {/* Phone: bottom sheet; desktop: the floating right-side drawer. */}
+    <ResponsiveDetailSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       label={member?.name ?? 'Member'}
-      side="end"
+      title="Member"
       width={420}
       purpose="info"
-      padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle({ isOpen })}
     >
       {member ? (
-        <Layout
-          header={
-            <DrawerHeader
-              title="Member"
-              onOpenChange={onOpenChange}
-            />
-          }
-          content={
-            <LayoutContent>
               <VStack gap={6} hAlign="stretch" width="100%">
                 <HStack
                   hAlign="between"
@@ -195,13 +180,8 @@ export default function MemberDetailDrawer({
                   )}
                 </VStack>
               </VStack>
-            </LayoutContent>
-          }
-        />
-      ) : (
-        <Layout content={<LayoutContent>{null}</LayoutContent>} />
-      )}
-    </Drawer>
+      ) : null}
+    </ResponsiveDetailSheet>
     {/* An event's full details open over the member drawer. */}
     <ActivityDetailSheet event={openEvent} onOpenChange={(open) => !open && setOpenEvent(null)} />
     </>

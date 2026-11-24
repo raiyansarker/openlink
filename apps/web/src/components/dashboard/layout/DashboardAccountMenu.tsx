@@ -50,7 +50,9 @@ const sheetRowStyle: CSSProperties = {
   gap: 10,
   width: '100%',
   minHeight: 52,
-  padding: '10px 12px',
+  // Minimal inline inset so row text lines up with the identity block above
+  // (the icon carries what little offset remains).
+  padding: '10px 2px',
   borderRadius: 10,
   border: 'none',
   cursor: 'pointer',

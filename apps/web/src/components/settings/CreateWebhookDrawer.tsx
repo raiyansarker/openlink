@@ -1,19 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { CodeBlock } from '@astryxdesign/core/CodeBlock'
-import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
+import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
 import { HStack } from '@astryxdesign/core/HStack'
 import { InputGroup, InputGroupText } from '@astryxdesign/core/InputGroup'
-import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import ApiKeySecretField from '#/components/settings/ApiKeySecretField'
 import WebhookEventsSelector from '#/components/settings/WebhookEventsSelector'
-import {
-  FLOATING_END_DRAWER_PADDING,
-  floatingEndDrawerStyle,
-} from '#/components/members/floating-end-drawer'
 import { useOpenSession } from '#/hooks/use-open-session'
 import type { WebhookEvent, WorkspaceWebhook } from '#/data/demo/webhooks'
 import {
@@ -36,23 +31,11 @@ type CreateWebhookDrawerProps = {
 
 export default function CreateWebhookDrawer(props: CreateWebhookDrawerProps) {
   const session = useOpenSession(props.isOpen)
-  return (
-    <Drawer
-      isOpen={props.isOpen}
-      onOpenChange={props.onOpenChange}
-      label="Add webhook"
-      side="end"
-      width={420}
-      purpose="form"
-      padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle({ isOpen: props.isOpen })}
-    >
-      <CreateWebhookForm key={session} {...props} />
-    </Drawer>
-  )
+  // The form owns the panel: its title and footer depend on the reveal step.
+  return <CreateWebhookForm key={session} {...props} />
 }
 
-function CreateWebhookForm({ onOpenChange, onCreate }: CreateWebhookDrawerProps) {
+function CreateWebhookForm({ isOpen, onOpenChange, onCreate }: CreateWebhookDrawerProps) {
   const [hostAndPath, setHostAndPath] = useState('')
   const [name, setName] = useState('')
   const [events, setEvents] = useState<WebhookEvent[]>(DEFAULT_EVENTS)
@@ -89,20 +72,50 @@ function CreateWebhookForm({ onOpenChange, onCreate }: CreateWebhookDrawerProps)
   }
 
   return (
-      <Layout
-        header={
-          <DrawerHeader
-            title={isRevealStep ? `${createdName} is ready` : 'Add webhook'}
-            subtitle={
-              isRevealStep
-                ? 'Save the signing secret to verify requests.'
-                : 'OpenLink will POST signed JSON to your endpoint.'
-            }
-            onOpenChange={onOpenChange}
-          />
-        }
-        content={
-          <LayoutContent>
+    // Phone: a bottom sheet; desktop: the floating right-side drawer.
+    <ResponsiveDetailSheet
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      label="Add webhook"
+      title={isRevealStep ? `${createdName} is ready` : 'Add webhook'}
+      subtitle={
+        isRevealStep
+          ? 'Save the signing secret to verify requests.'
+          : 'OpenLink will POST signed JSON to your endpoint.'
+      }
+      width={420}
+      purpose="form"
+      hasFooterDivider
+      footer={
+        <HStack gap={2} hAlign="end" width="100%">
+          {isRevealStep ? (
+            <Button
+              variant="primary"
+              size="sm"
+              label="I've saved it"
+              onClick={() => onOpenChange(false)}
+            />
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                label="Cancel"
+                onClick={() => onOpenChange(false)}
+              />
+              <Button
+                variant="primary"
+                size="sm"
+                label="Add webhook"
+                isDisabled={!endpoint.ok || events.length === 0}
+                onClick={handleCreate}
+              />
+            </>
+          )}
+        </HStack>
+      }
+    >
+      <div>
             {isRevealStep ? (
               <ApiKeySecretField
                 label="Signing secret"
@@ -170,38 +183,7 @@ function CreateWebhookForm({ onOpenChange, onCreate }: CreateWebhookDrawerProps)
                 </VStack>
               </VStack>
             )}
-          </LayoutContent>
-        }
-        footer={
-          <LayoutFooter hasDivider>
-            <HStack gap={2} hAlign="end" width="100%">
-              {isRevealStep ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  label="I've saved it"
-                  onClick={() => onOpenChange(false)}
-                />
-              ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    label="Cancel"
-                    onClick={() => onOpenChange(false)}
-                  />
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    label="Add webhook"
-                    isDisabled={!endpoint.ok || events.length === 0}
-                    onClick={handleCreate}
-                  />
-                </>
-              )}
-            </HStack>
-          </LayoutFooter>
-        }
-      />
+      </div>
+    </ResponsiveDetailSheet>
   )
 }

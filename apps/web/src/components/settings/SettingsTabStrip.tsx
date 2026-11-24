@@ -25,8 +25,9 @@ const chipBaseStyle: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   padding: '6px 12px',
-  borderRadius: 999,
-  border: SHELL_CHROME_BORDER,
+  // Borderless, App-Store-style chips: the active state is the brand-tinted
+  // fill, not a border. Hairlines read as "sharp boxes" once focus moves around.
+  border: '1px solid transparent',
   cursor: 'pointer',
   fontFamily: 'inherit',
   fontSize: 12.5,
@@ -91,7 +92,6 @@ export default function SettingsTabStrip() {
                   ...chipBaseStyle,
                   color: active ? BRAND : SHELL_NAV_TEXT_SECONDARY,
                   backgroundColor: active ? DASHBOARD_NAV_SELECTED_BG : 'transparent',
-                  borderColor: active ? 'transparent' : SHELL_CHROME_BORDER,
                 }}
               >
                 {item.label}

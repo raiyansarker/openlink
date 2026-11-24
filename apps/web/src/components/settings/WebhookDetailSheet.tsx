@@ -2,18 +2,13 @@ import { type ReactNode, useState } from 'react'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Button } from '@astryxdesign/core/Button'
 import { Divider } from '@astryxdesign/core/Divider'
-import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
+import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
 import { HStack } from '@astryxdesign/core/HStack'
-import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { StatusDot } from '@astryxdesign/core/StatusDot'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import WebhookEventsSelector from '#/components/settings/WebhookEventsSelector'
-import {
-  FLOATING_END_DRAWER_PADDING,
-  floatingEndDrawerStyle,
-} from '#/components/members/floating-end-drawer'
 import type { WebhookEvent, WorkspaceWebhook } from '#/data/demo/webhooks'
 import { webhookStatusMeta } from '#/lib/integrations/webhook-status'
 
@@ -62,27 +57,33 @@ export default function WebhookDetailSheet({
 
   return (
     <>
-      <Drawer
+      {/* Phone: a bottom sheet; desktop: the floating right-side drawer. */}
+      <ResponsiveDetailSheet
         isOpen={current != null}
         onOpenChange={onOpenChange}
         label={webhook.name}
-        side="end"
+        title={webhook.name}
+        subtitle="Webhook endpoint"
         width={420}
-        hasScrim
-        padding={FLOATING_END_DRAWER_PADDING}
-        style={floatingEndDrawerStyle({ isOpen: current != null })}
-      >
-        <Layout
-          header={
-            <DrawerHeader
-              title={webhook.name}
-              subtitle="Webhook endpoint"
-              onOpenChange={onOpenChange}
+        hasFooterDivider
+        footer={
+          <HStack gap={2} hAlign="between" width="100%">
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Delete endpoint"
+              onClick={() => setDeleteAlertOpen(true)}
             />
-          }
-          content={
-            <LayoutContent>
-              <VStack gap={6} width="100%" hAlign="stretch">
+            <Button
+              variant="secondary"
+              size="sm"
+              label={webhook.isEnabled ? 'Pause deliveries' : 'Resume deliveries'}
+              onClick={() => onUpdate(webhook.id, { isEnabled: !webhook.isEnabled })}
+            />
+          </HStack>
+        }
+      >
+        <VStack gap={6} width="100%" hAlign="stretch">
                 <VStack gap={3} width="100%" hAlign="stretch">
                   <DetailRow label="Status">
                     <HStack gap={2} vAlign="center">
@@ -128,30 +129,7 @@ export default function WebhookDetailSheet({
                 />
 
               </VStack>
-            </LayoutContent>
-          }
-          footer={
-            <LayoutFooter hasDivider>
-              <HStack gap={2} hAlign="between" width="100%">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  label="Delete endpoint"
-                  onClick={() => setDeleteAlertOpen(true)}
-                />
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  label={webhook.isEnabled ? 'Pause deliveries' : 'Resume deliveries'}
-                  onClick={() =>
-                    onUpdate(webhook.id, { isEnabled: !webhook.isEnabled })
-                  }
-                />
-              </HStack>
-            </LayoutFooter>
-          }
-        />
-      </Drawer>
+      </ResponsiveDetailSheet>
 
       <AlertDialog
         isOpen={deleteAlertOpen}
