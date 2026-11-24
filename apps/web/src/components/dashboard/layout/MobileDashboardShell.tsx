@@ -45,13 +45,14 @@ const CAPSULE_PAD_PX = 5
  *  it reads as the row's primary action, the way iOS sizes it. */
 const PLUS_CIRCLE_PX = 54
 
-/** The shared chrome surface: solid-ish fill on a gentle backdrop blur
- *  — frosted, but 78% opaque so every ink on it stays crisp. (The blur
- *  was never the vanish-bug; the unitless lineHeight was.) */
+/** The shared chrome surface: true visible frost. The fill sits at 55% —
+ *  low enough that the 24px blur has something to show through, high
+ *  enough that the icon ink stays crisp. (The blur was never the
+ *  vanish-bug; the unitless lineHeight was.) */
 const NAV_SURFACE_STYLE: CSSProperties = {
-  backgroundColor: 'color-mix(in oklab, var(--color-background-surface) 78%, transparent)',
-  backdropFilter: 'blur(16px) saturate(1.4)',
-  WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
+  backgroundColor: 'color-mix(in oklab, var(--color-background-surface) 55%, transparent)',
+  backdropFilter: 'blur(24px) saturate(1.6)',
+  WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
   border: '1px solid var(--color-border)',
   boxShadow: '0 10px 24px rgba(0, 0, 0, 0.12)',
 }
