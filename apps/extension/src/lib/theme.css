@@ -1,0 +1,5 @@
+@import '@astryxdesign/core/reset.css';
+@import '@astryxdesign/core/astryx.css';
+@import '@astryxdesign/theme-neutral/theme.css';
+/* The web app's compiled theme, so the extension looks the same. */
+@import '../../../web/src/themes/openlink-neutral.css';

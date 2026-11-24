@@ -7,6 +7,7 @@ import {
   ApiKeyIdPath,
   CreateApiKeyRequest,
   CreatedApiKey,
+  CurrentApiKey,
   ListApiKeysResponse,
   OrganizationIdPath,
   UpdateApiKeyRequest,
@@ -55,4 +56,15 @@ export const rotateApiKey = keyOp(
   .input(type({ params: ApiKeyIdPath }))
   .output(CreatedApiKey)
 
-export const contract = { listApiKeys, createApiKey, updateApiKey, rotateApiKey, revokeApiKey } as const
+export const getCurrentApiKey = keyOp('GET', 'getCurrentApiKey', '/api-keys/current', {
+  summary: 'The calling API key and its workspace (API key only)',
+}).output(CurrentApiKey)
+
+export const contract = {
+  listApiKeys,
+  createApiKey,
+  updateApiKey,
+  rotateApiKey,
+  revokeApiKey,
+  getCurrentApiKey,
+} as const

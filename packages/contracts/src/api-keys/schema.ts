@@ -1,6 +1,6 @@
 import { type } from 'arktype'
 
-import { OrganizationIdPath, OrganizationInviteRole } from '../organizations/schema'
+import { Organization, OrganizationIdPath, OrganizationInviteRole } from '../organizations/schema'
 
 /** Keys can never be owners. */
 export const ApiKeyRole = OrganizationInviteRole
@@ -31,6 +31,14 @@ export const UpdateApiKeyRequest = type({ role: ApiKeyRole })
 export const ApiKeyIdPath = type({
   organizationId: 'string',
   keyId: 'string',
+})
+
+/** The key making the request, and the one workspace it acts for. */
+export const CurrentApiKey = type({
+  id: 'string',
+  name: 'string',
+  role: ApiKeyRole,
+  organization: Organization,
 })
 
 export { OrganizationIdPath }

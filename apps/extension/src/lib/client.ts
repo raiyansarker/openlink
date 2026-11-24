@@ -1,0 +1,49 @@
+import { createORPCClient } from '@orpc/client'
+import type { ContractRouterClient } from '@orpc/contract'
+import { OpenAPILink } from '@orpc/openapi/fetch'
+import { contract } from '@openlink/contracts'
+
+export type OpenLinkClient = ContractRouterClient<typeof contract>
+
+/**
+ * Runs the request in the background service worker, framed safely away from
+ * page contexts. Requests are authenticated by the API key they carry — no
+ * cookies are read or sent. The whole response comes back over messaging.
+ */
+async function fetchViaBackground(url: string, init: RequestInit): Promise<Response> {
+  const headers = init.headers instanceof Headers ? Object.fromEntries(init.headers.entries()) : ((init.headers ?? {}) as Record<string, string>)
+  const answer = (await chrome.runtime.sendMessage({
+    type: 'openlink-fetch',
+    url,
+    method: init.method ?? 'GET',
+    headers,
+    ...(init.body != null ? { body: typeof init.body === 'string' ? init.body : String(init.body) } : {}),
+  })) as { status: number; statusText?: string; headers?: string[][]; body: string; error?: string }
+  if (typeof answer?.status !== 'number') throw new Error('The extension process did not answer.')
+  // Zero means the request never went out (offline, bad origin).
+  if (answer.status === 0) throw new Error(answer.error || 'The request failed.')
+  return new Response(answer.body, { status: answer.status, statusText: answer.statusText, headers: new Headers((answer.headers ?? []) as [string, string][]) })
+}
+
+/** Typed client for the OpenLink API, acting as an API key's workspace:
+ * the key rides as a bearer token, and requests run through the worker
+ * bridge so every surface — popup, options, overlay — behaves the same. */
+export function createClient(origin: string, apiKey: string): OpenLinkClient {
+  const link = new OpenAPILink(contract, {
+    origin: () => origin,
+    url: '/api/v1',
+    headers: () => ({ authorization: `Bearer ${apiKey}` }),
+    fetch: (url: string, init: RequestInit) => fetchViaBackground(url, init),
+  })
+  return createORPCClient(link) as OpenLinkClient
+}
+
+export function errorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message
+  return fallback
+}
+
+export function isUnauthorized(error: unknown): boolean {
+  const e = error as { code?: string; status?: number } | null
+  return e?.code === 'UNAUTHORIZED' || e?.status === 401
+}

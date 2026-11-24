@@ -1,0 +1,138 @@
+import { OVERLAY_COMMAND, OVERLAY_MESSAGE } from './lib/overlay'
+
+type FetchRequest = {
+  type: 'openlink-fetch'
+  url: string
+  method?: string
+  headers?: Record<string, string>
+  body?: string
+}
+
+/**
+ * All OpenLink API calls run here, in the extension's own process, so framed
+ * pages (the overlay on other sites) behave exactly like the popup. Requests
+ * carry the caller's API key themselves; no cookies are read or sent, ever.
+ * The whole response comes back over messaging.
+ */
+function handleFetch(message: FetchRequest, sendResponse: (answer: Record<string, unknown>) => void): boolean {
+  void (async () => {
+    try {
+      const response = await fetch(message.url, {
+        method: message.method ?? 'GET',
+        headers: { ...(message.headers ?? {}) },
+        ...(message.body !== undefined ? { body: message.body } : {}),
+        credentials: 'omit',
+      })
+      const [body, headerEntries] = await Promise.all([response.text(), Promise.resolve([...response.headers])])
+      sendResponse({ status: response.status, statusText: response.statusText, headers: headerEntries, body })
+    } catch (error) {
+      sendResponse({ status: 0, error: error instanceof Error ? error.message : String(error) })
+    }
+  })()
+  return true
+}
+
+chrome.runtime.onMessage.addListener((message: FetchRequest, _sender, sendResponse) => {
+  if (message?.type === 'openlink-fetch') return handleFetch(message, sendResponse as (answer: Record<string, unknown>) => void)
+  return false
+})
+
+/**
+ * Runs inside the page (injected), so it must not reference anything outside itself.
+ * Adds, or removes, a floating card in the top-right corner that hosts the extension's
+ * own page in an iframe, which keeps the page's styles and scripts out of it.
+ */
+function toggleOverlay(base: string, message: string) {
+  const ID = 'openlink-overlay'
+  const existing = document.getElementById(ID) as (HTMLIFrameElement & { __cleanup?: () => void }) | null
+  if (existing) {
+    existing.__cleanup?.()
+    return
+  }
+
+  const frame = document.createElement('iframe') as HTMLIFrameElement & { __cleanup?: () => void }
+  frame.id = ID
+  frame.src = `${base}?url=${encodeURIComponent(location.href)}&title=${encodeURIComponent(document.title)}`
+  frame.setAttribute('allow', 'clipboard-write')
+  // Starts collapsed and transparent: the real height comes from the page's
+  // first report, so the card never visibly resizes after appearing.
+  frame.style.cssText = [
+    'position:fixed',
+    'top:16px',
+    'right:16px',
+    'width:380px',
+    'height:0px',
+    'max-height:calc(100vh - 32px)',
+    'border:0',
+    'border-radius:14px',
+    'box-shadow:0 0 0 1px rgba(128,128,128,.25),0 12px 40px rgba(0,0,0,.28)',
+    'z-index:2147483647',
+    'overflow:hidden',
+    'opacity:0',
+    'transition:height 140ms ease,opacity 140ms ease',
+    'color-scheme:normal',
+  ].join(';')
+
+  let shown = false
+  let revealTimeout: number | undefined
+
+  const close = () => {
+    window.clearTimeout(revealTimeout)
+    window.removeEventListener('message', onMessage)
+    document.removeEventListener('keydown', onKey, true)
+    document.removeEventListener('mousedown', onOutside, true)
+    frame.remove()
+  }
+  const onMessage = (event: MessageEvent) => {
+    if (event.source !== frame.contentWindow || event.data?.source !== message) return
+    if (event.data.type === 'close') close()
+    if (event.data.type === 'resize' && typeof event.data.height === 'number') {
+      frame.style.height = `${event.data.height}px`
+      if (!shown) {
+        shown = true
+        window.clearTimeout(revealTimeout)
+        frame.style.opacity = '1'
+      }
+    }
+  }
+  const onKey = (event: KeyboardEvent) => event.key === 'Escape' && close()
+  const onOutside = (event: MouseEvent) => event.target !== frame && close()
+
+  frame.__cleanup = close
+  window.addEventListener('message', onMessage)
+  document.addEventListener('keydown', onKey, true)
+  document.addEventListener('mousedown', onOutside, true)
+  document.documentElement.append(frame)
+  frame.focus()
+  // If the page inside never reports in (blocked or broken), remove the invisible frame.
+  revealTimeout = window.setTimeout(() => {
+    if (!shown) close()
+  }, 1500)
+}
+
+chrome.commands.onCommand.addListener(async (command) => {
+  console.info('[OpenLink] Shortcut pressed:', command)
+  if (command !== OVERLAY_COMMAND) return
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  try {
+    if (tab?.id === undefined || !chrome.scripting) throw new Error('no scripting')
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: toggleOverlay,
+      args: [chrome.runtime.getURL('overlay/index.html'), OVERLAY_MESSAGE],
+    })
+  } catch (error) {
+    // Pages the browser protects (chrome://, the web store) can't host the overlay; use the popup instead.
+    console.warn('[OpenLink] Could not show the overlay on', tab?.url, error)
+    const action = chrome.action ?? (chrome as unknown as { browserAction?: typeof chrome.action }).browserAction
+    await action?.openPopup?.().catch((popupError: unknown) => console.error('[OpenLink] Could not open the popup', popupError))
+  }
+})
+
+// Shortcuts are assigned once, at install. Log when the browser left ours unset (taken by another extension).
+chrome.runtime.onInstalled.addListener(() => {
+  void chrome.commands.getAll().then((commands) => {
+    const command = commands.find((c) => c.name === OVERLAY_COMMAND)
+    if (!command?.shortcut) console.warn('[OpenLink] No keyboard shortcut is assigned. Set one at chrome://extensions/shortcuts.')
+  })
+})
