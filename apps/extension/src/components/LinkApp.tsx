@@ -33,7 +33,7 @@ type Session =
   | { state: 'signed-out'; origin: string }
   | { state: 'signed-in-empty'; origin: string }
   | { state: 'unreachable'; origin: string; message: string }
-  | { state: 'ready'; origin: string; workspaces: ConnectedWorkspace[]; organizationId: string; initial?: LinkCache }
+  | { state: 'ready'; origin: string; workspaces: ConnectedWorkspace[]; organizationId: string; initial?: LinkCache; apiKey?: string }
 
 export type LinkAppProps = {
   /** The page being shortened: the active tab, or the page the shortcut was pressed on. */
@@ -62,6 +62,43 @@ export default function LinkApp(props: LinkAppProps) {
     const saved = await loadSettings()
     if (seq !== loadSeq.current) return
     if (!saved.origin) return apply({ state: 'unconfigured' })
+    // API-key mode: the key names its workspace, so the panel paints at once and
+    // quietly re-verifies; a revoked key removes itself and re-routes to the session flow.
+    if (saved.apiKeyWorkspace) {
+      const keyed = saved.apiKeyWorkspace
+      const cache = await loadCache()
+      if (seq !== loadSeq.current) return
+      apply({
+        state: 'ready',
+        origin: saved.origin,
+        workspaces: [keyed],
+        organizationId: keyed.organizationId,
+        apiKey: keyed.apiKey,
+        ...(cache && cache.organizationId === keyed.organizationId ? { initial: cache } : {}),
+      })
+      try {
+        const info = await createClient(saved.origin, keyed.apiKey).apiKeys.getCurrentApiKey()
+        if (seq !== loadSeq.current) return
+        // Track renames and role changes of the key's workspace.
+        if (info.organization.name !== keyed.name || info.organization.slug !== keyed.slug || info.role !== keyed.role) {
+          await updateSettings((current) => ({
+            ...current,
+            apiKeyWorkspace: { ...keyed, name: info.organization.name, slug: info.organization.slug, role: info.role },
+          }))
+          if (seq !== loadSeq.current) return
+        }
+        return
+      } catch (e) {
+        if (seq !== loadSeq.current) return
+        if (!isUnauthorized(e)) return // Unreachable now: keep the key state; the server stays the judge when it answers.
+        // The key was rejected (revoked or rotated): drop it — the settings
+        // change restarts this load through the session flow.
+        void clearCache()
+        await updateSettings((current) => ({ ...current, apiKeyWorkspace: undefined }))
+        return
+      }
+    }
+    // Session mode continues below.
     // No session cookie means signed out, immediately: no stale cache paints, no wait.
     if (!(await hasSessionCookie(saved.origin))) {
       void clearCache()
@@ -170,6 +207,7 @@ export default function LinkApp(props: LinkAppProps) {
           workspaces={session.workspaces}
           workspace={workspace}
           {...(session.initial ? { initial: session.initial } : {})}
+          {...(session.apiKey ? { apiKey: session.apiKey } : {})}
           onSelectWorkspace={(id) => void selectWorkspace(id)}
         />
       )
@@ -218,6 +256,7 @@ function Shortener({
   workspaces,
   workspace,
   initial,
+  apiKey,
   onSelectWorkspace,
   initialUrl,
   initialTitle,
@@ -228,10 +267,12 @@ function Shortener({
   workspace: ConnectedWorkspace
   /** Last shown state for this workspace; lets the form paint instantly. */
   initial?: LinkCache
+  /** Set in the API-key mode: requests act as this key's workspace. */
+  apiKey?: string
   onSelectWorkspace: (id: string) => void
 }) {
   const { organizationId } = workspace
-  const client = useMemo(() => createClient(origin), [origin])
+  const client = useMemo(() => createClient(origin, apiKey), [origin, apiKey])
 
   const [view, setView] = useState<'form' | 'folders'>('form')
   const [destinationUrl, setDestinationUrl] = useState(initialUrl)
@@ -353,9 +394,13 @@ function Shortener({
     } catch (e) {
       setError(
         isUnauthorized(e)
-          ? 'The session was not accepted. Sign in to the app again, then retry.'
+          ? apiKey
+            ? 'That API key was not accepted — it may have been revoked. Connect again in settings.'
+            : 'The session was not accepted. Sign in to the app again, then retry.'
           : errorMessage(e, 'Could not create the link.'),
       )
+      // A rejected key routes the panel back to the session flow by removing itself.
+      if (isUnauthorized(e) && apiKey) await updateSettings((current) => ({ ...current, apiKeyWorkspace: undefined }))
     } finally {
       setBusy(false)
     }
