@@ -34,8 +34,8 @@ import {
 /** The app's brand accent: active tab, active workspace, create button. */
 const BRAND = 'var(--openlink-brand)'
 
-/** The FAB hovers above the capsule: bar (72px incl. padding) + 12px offset + air. */
-const FAB_BOTTOM = 'calc(84px + env(safe-area-inset-bottom))'
+/** The FAB rides just above the capsule's top edge, aligned to its insets. */
+const FAB_BOTTOM = 'calc(82px + env(safe-area-inset-bottom))'
 
 const TABS = [
   { id: 'overview', label: 'Home', icon: <DashboardIcon size={21} strokeWidth={1.2} /> },
@@ -246,7 +246,10 @@ export default function MobileDashboardShell({
         })}
       </nav>
 
-      {/* Floating create button — link writers only */}
+      {/* Floating create button — link writers only. iOS-style glass: the
+          same frosted circle as the tab bar, with the brand colour carried
+          by the glyph instead of a filled button. Aligned to the capsule's
+          right inset, hovering just above it. */}
       {canManageLinks ? (
         <button
           className="ol-focus-ring"
@@ -255,23 +258,25 @@ export default function MobileDashboardShell({
           onClick={() => go('/create/link')}
           style={{
             position: 'absolute',
-            right: 18,
+            right: 16,
             bottom: FAB_BOTTOM,
-            width: 54,
-            height: 54,
+            width: 56,
+            height: 56,
             borderRadius: 999,
-            border: 'none',
             padding: 0,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: BRAND,
-            color: '#ffffff',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
+            backgroundColor: 'color-mix(in oklab, var(--color-background-body) 68%, transparent)',
+            backdropFilter: 'blur(24px) saturate(1.8)',
+            WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
+            border: '1px solid light-dark(rgba(15, 17, 21, 0.1), rgba(255, 255, 255, 0.14))',
+            color: BRAND,
+            boxShadow: '0 10px 32px rgba(0, 0, 0, 0.18)',
           }}
         >
-          <PlusIcon size={24} strokeWidth={1.6} />
+          <PlusIcon size={24} strokeWidth={1.8} />
         </button>
       ) : null}
 
