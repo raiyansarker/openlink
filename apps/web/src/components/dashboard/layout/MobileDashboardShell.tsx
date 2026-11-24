@@ -46,14 +46,14 @@ const CAPSULE_PAD_PX = 5
  *  it reads as the row's primary action, the way iOS sizes it. */
 const PLUS_CIRCLE_PX = 54
 
-/** The shared "liquid glass" recipe for the floating chrome: a thin tint
- *  (42% body — any more and it reads opaque over body-coloured content)
- *  floating on a heavy blur with saturation boost for the frost, capped by
- *  a hairline border and one soft shadow so the pieces lift off the page. */
+/** The shared glass recipe for the floating chrome: a majority fill
+ *  (62% body — legible over any content but still a touch see-through)
+ *  over a moderate blur with saturated frosting, capped by a hairline
+ *  border and one soft shadow so the pieces lift off the page. */
 const GLASS_STYLE: CSSProperties = {
-  backgroundColor: 'color-mix(in oklab, var(--color-background-body) 42%, transparent)',
-  backdropFilter: 'blur(30px) saturate(1.8)',
-  WebkitBackdropFilter: 'blur(30px) saturate(1.8)',
+  backgroundColor: 'color-mix(in oklab, var(--color-background-body) 62%, transparent)',
+  backdropFilter: 'blur(18px) saturate(1.5)',
+  WebkitBackdropFilter: 'blur(18px) saturate(1.5)',
   border: '1px solid light-dark(rgba(15, 17, 21, 0.1), rgba(255, 255, 255, 0.14))',
   boxShadow: '0 10px 28px rgba(0, 0, 0, 0.14)',
 }
@@ -308,11 +308,11 @@ export default function MobileDashboardShell({
             onClick={() => go('/create/link')}
             style={{
               ...GLASS_STYLE,
-              // Same frost, accent ink: the brand tint replaces the neutral
-              // fill so the circle stays see-through, matching iOS accent
-              // glass. The hairline border follows the tint.
-              backgroundColor: 'color-mix(in oklab, var(--openlink-brand) 20%, transparent)',
-              borderColor: 'color-mix(in oklab, var(--openlink-brand) 32%, transparent)',
+              // Same chill, accent ink: the brand tint replaces the neutral
+              // fill, kept as translucent as the capsule's — accent glass,
+              // not a solid button. The hairline border follows the tint.
+              backgroundColor: 'color-mix(in oklab, var(--openlink-brand) 32%, transparent)',
+              borderColor: 'color-mix(in oklab, var(--openlink-brand) 42%, transparent)',
               flexShrink: 0,
               width: PLUS_CIRCLE_PX,
               height: PLUS_CIRCLE_PX,
