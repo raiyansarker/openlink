@@ -75,12 +75,16 @@ export default function SettingsTabStrip() {
       style={{
         flexShrink: 0,
         borderBottom: SHELL_CHROME_BORDER,
-        padding: '10px 16px 12px',
+        /* No inline padding on the frame itself — x-padding here was
+           clipping the last pill before it reached the edge mid-scroll.
+           The scroll area's own inline padding gives the strip its leading
+           inset while still letting pills slide under the screen edges. */
+        padding: '10px 0 12px',
         boxSizing: 'border-box',
         backgroundColor: 'transparent',
       }}
     >
-      <ScrollableArea axis="inline" label="Settings sections" width="fill">
+      <ScrollableArea axis="inline" label="Settings sections" width="fill" paddingInline={4}>
         <HStack gap={2}>
           {items.map((item) => {
             const active = isActive(`/settings/${item.section}`)
