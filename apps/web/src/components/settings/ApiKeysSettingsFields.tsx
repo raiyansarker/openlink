@@ -183,7 +183,7 @@ export default function ApiKeysSettingsFields() {
         {keyRows.length > 0 ? (
         <VStack className="members-table" width="100%" hAlign="stretch">
           <Table<ApiKeyRow>
-            className="members-table__grid"
+            className="members-table__grid table-nowrap"
             data={keyRows}
             idKey="id"
             density="balanced"

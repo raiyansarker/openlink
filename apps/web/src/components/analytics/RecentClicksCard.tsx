@@ -67,11 +67,11 @@ export default function RecentClicksCard({ organizationId, linkId }: RecentClick
         </Text>
       ) : (
         <Table<Row>
+          className="table-nowrap"
           data={rows}
           idKey="id"
           density="compact"
           dividers="rows"
-          textOverflow="truncate"
           columns={[
             {
               key: 'occurredAt',

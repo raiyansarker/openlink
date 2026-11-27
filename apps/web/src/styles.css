@@ -42,6 +42,24 @@ body {
   background-color: light-dark(rgba(0, 0, 0, 0.22), rgba(255, 255, 255, 0.24));
 }
 
+/*
+ * Tables — cell content stays on a single line: no wrapping to a second
+ * line and no ellipsis. Columns grow to fit their content and the table
+ * scrolls horizontally inside its scroll region when wider than the
+ * container. Overrides the Astryx table's fixed layout and break-word
+ * cell styles; !important is needed because the library's stylex rules
+ * carry boosted :not(#\#) specificity.
+ */
+table.table-nowrap {
+  table-layout: auto !important;
+}
+
+.table-nowrap td,
+.table-nowrap th {
+  white-space: nowrap !important;
+  max-width: none !important;
+}
+
 /* Members table — rounded row hover (matches 9px dashboard chrome). */
 .members-table .astryx-table-row:hover .astryx-table-cell {
   background-color: var(--color-overlay-hover, rgba(0, 0, 0, 0.04));

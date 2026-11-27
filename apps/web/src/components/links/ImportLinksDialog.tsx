@@ -175,6 +175,7 @@ function ImportLinksForm({
                     {problemCount > 0 ? ` · ${problemCount} with problems (skipped)` : ''}
                   </Text>
                   <Table<Row>
+                    className="table-nowrap"
                     data={preview.rows as Row[]}
                     idKey="line"
                     density="compact"
@@ -225,7 +226,7 @@ function ImportLinksForm({
                         header: 'Status',
                         width: proportional(2, { minWidth: 160 }),
                         renderCell: (row) => (
-                          <Text type="supporting" maxLines={2}>
+                          <Text type="supporting" maxLines={1}>
                             {row.error
                               ? row.error
                               : row.unknownFolder
