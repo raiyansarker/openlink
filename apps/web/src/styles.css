@@ -67,16 +67,12 @@ table.table-nowrap {
 
 /*
  * File dropzones and pickers: border-only blue focus like every other field.
- * The library's own :focus-within border rule and the 2px accent hover ring
- * are ID-boosted stylex selectors the theme's plain rules can't beat, so
- * these carry !important.
+ * The library's :focus-within border rule is an ID-boosted stylex selector
+ * the theme's plain rule cannot beat, so this carries !important. The 2px
+ * accent ring stays on hover — that is the dropzone's hover affordance.
  */
 .astryx-file-input:focus-within {
   border-color: var(--openlink-field-focus) !important;
-  box-shadow: none !important;
-}
-
-.astryx-file-input:hover:where(:not(:disabled, [aria-disabled='true'])) {
   box-shadow: none !important;
 }
 
