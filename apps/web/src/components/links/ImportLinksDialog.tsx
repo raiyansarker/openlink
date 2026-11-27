@@ -181,6 +181,7 @@ export default function ImportLinksDialog({
                     idKey="line"
                     density="compact"
                     dividers="rows"
+                    textOverflow="truncate"
                     columns={[
                       {
                         key: 'line',
@@ -227,7 +228,7 @@ export default function ImportLinksDialog({
                         header: 'Status',
                         width: proportional(2, { minWidth: 160 }),
                         renderCell: (row) => (
-                          <Text type="supporting" maxLines={2}>
+                          <Text type="supporting" maxLines={1}>
                             {row.error
                               ? row.error
                               : row.unknownFolder

@@ -181,7 +181,7 @@ export default function ApiKeysSettingsFields() {
             idKey="id"
             density="balanced"
             dividers="rows"
-            textOverflow="wrap"
+            textOverflow="truncate"
             columns={keyColumns}
             hasHover
           />

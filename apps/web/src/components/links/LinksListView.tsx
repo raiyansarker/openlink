@@ -50,6 +50,7 @@ export default function LinksListView({
           idKey="id"
           density="balanced"
           dividers="rows"
+          textOverflow="truncate"
           hasHover
           columns={[
             {
@@ -127,14 +128,12 @@ export default function LinksListView({
               header: 'Status',
               width: pixel(140),
               renderCell: (row) => (
-                <VStack gap={0}>
-                  <Text>{linkStatusLabel(row)}</Text>
-                  {healthNeedsAttention(row.health) ? (
-                    <Text type="supporting" color="secondary">
-                      Destination broken
-                    </Text>
-                  ) : null}
-                </VStack>
+                <Text>
+                  {linkStatusLabel(row)}
+                  {healthNeedsAttention(row.health)
+                    ? ' — Destination broken'
+                    : ''}
+                </Text>
               ),
             },
             {

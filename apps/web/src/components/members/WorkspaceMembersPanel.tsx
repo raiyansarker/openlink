@@ -164,7 +164,7 @@ export default function WorkspaceMembersPanel() {
           idKey="id"
           density="balanced"
           dividers="rows"
-          textOverflow="wrap"
+          textOverflow="truncate"
           columns={[
           {
             key: 'name',

@@ -122,6 +122,7 @@ export default function IntegrationsSettingsFields() {
             idKey="id"
             density="balanced"
             dividers="rows"
+            textOverflow="truncate"
             hasHover
             columns={[
               {
