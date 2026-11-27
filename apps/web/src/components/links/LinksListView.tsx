@@ -45,6 +45,20 @@ type LinksListViewProps = Pick<ItemMenus, 'linkMenu'> & {
 
 type Row = ShortLink & Record<string, unknown>
 
+/**
+ * The toolbar's internal Section and the table's scroll wrapper both bleed to
+ * their container's edges when they are a :first-child (Astryx container
+ * bleed). Side by side in one stack, each pulls itself up 2rem into the
+ * previous element — the toolbar lands on the column headings. Zeroing the
+ * container padding on this stack turns both bleeds off; the stack's own gap
+ * provides the spacing. Only for the bulk view: the dashboard's recent-links
+ * table keeps its card-edge bleed.
+ */
+const BULK_BLEED_RESET = {
+  '--container-padding-block-start': '0px',
+  '--container-padding-block-end': '0px',
+} as React.CSSProperties
+
 export default function LinksListView({
   links,
   linkMenu,
@@ -99,7 +113,12 @@ export default function LinksListView({
   const selectedIds = [...selectionState.selectedKeys]
 
   return (
-    <VStack gap={3} hAlign="stretch" width="100%">
+    <VStack
+      gap={3}
+      hAlign="stretch"
+      width="100%"
+      style={bulkActions ? { ...BULK_BLEED_RESET } : undefined}
+    >
       {bulkActions && selectionState.hasSelection ? (
         <TableSelectionToolbar
           selection={selectionState}

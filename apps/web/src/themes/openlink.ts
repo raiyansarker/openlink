@@ -135,6 +135,15 @@ export const openlinkTheme = defineTheme({
           'light-dark(var(--color-background-surface), var(--color-background-muted))',
       },
     },
+    // The dropzone and compact file pickers follow the same border-only blue
+    // focus as every other field; the library default still draws the ring.
+    'file-input': {
+      base: {
+        ...INPUT_QUIET_FOCUS,
+        backgroundColor:
+          'light-dark(var(--color-background-surface), var(--color-background-muted))',
+      },
+    },
     // Grouped inputs (prefix + field, e.g. "https://" + hostname) round as one control.
     'input-group': {
       base: { borderRadius: INPUT_FIELD_RADIUS },

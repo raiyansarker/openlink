@@ -390,7 +390,7 @@ export default function LinksBrowser({
             </VStack>
           ) : null}
           {folderLinks.length > 0 ? (
-            <VStack gap={10} hAlign="stretch" width="100%">
+            <VStack gap={3} hAlign="stretch" width="100%">
               <Heading level={3}>Links</Heading>
               <LinksListView
                 key={currentId ?? 'root'}
