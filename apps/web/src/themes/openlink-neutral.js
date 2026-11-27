@@ -339,6 +339,17 @@ export const openlinkNeutralTheme = {
     "file-input": {
       "mode:dropzone": {
         "--color-text-secondary": "light-dark(#474747, #c6c6c6)"
+      },
+      "base": {
+        "boxShadow": "none",
+        ":hover": {
+          "boxShadow": "none"
+        },
+        ":focus-within": {
+          "boxShadow": "none",
+          "borderColor": "var(--openlink-field-focus)"
+        },
+        "backgroundColor": "light-dark(var(--color-background-surface), var(--color-background-muted))"
       }
     },
     "citation": {

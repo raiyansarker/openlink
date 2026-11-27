@@ -434,6 +434,20 @@
     --color-text-secondary: light-dark(#474747, #c6c6c6);
   }
 
+  .astryx-file-input {
+    box-shadow: none;
+    background-color: light-dark(var(--color-background-surface), var(--color-background-muted));
+  }
+
+  .astryx-file-input:hover:where(:not(:disabled,[aria-disabled="true"])) {
+    box-shadow: none;
+  }
+
+  .astryx-file-input:focus-within {
+    box-shadow: none;
+    border-color: var(--openlink-field-focus);
+  }
+
   .astryx-citation[data-variant="number"] {
     --color-text-secondary: light-dark(#474747, #c6c6c6);
   }
