@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { type } from 'arktype'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
+import { fieldStatus, requiredText, submitWith } from '#/lib/forms/fields'
+
+const FolderNameSchema = type({ name: requiredText('Enter a folder name.') })
 
 type FolderNameDialogProps = {
   isOpen: boolean
@@ -28,29 +33,27 @@ export default function FolderNameDialog({
   initialName = '',
   onSubmit,
 }: FolderNameDialogProps) {
-  const [name, setName] = useState(initialName)
-  const [error, setError] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
+  const form = useForm({
+    defaultValues: { name: initialName },
+    validators: {
+      onSubmit: FolderNameSchema,
+      // The caller's own rules (duplicates, length) run here and land on the field.
+      onSubmitAsync: async ({ value }) => {
+        try {
+          await onSubmit(value.name)
+          return undefined
+        } catch (err) {
+          return { fields: { name: err instanceof Error ? err.message : 'Something went wrong.' } }
+        }
+      },
+    },
+    onSubmit: () => onOpenChange(false),
+  })
 
   useEffect(() => {
-    if (isOpen) {
-      setName(initialName)
-      setError(null)
-    }
+    if (isOpen) form.reset({ name: initialName })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialName])
-
-  const submit = async () => {
-    if (isSaving) return
-    setIsSaving(true)
-    try {
-      await onSubmit(name)
-      onOpenChange(false)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.')
-    } finally {
-      setIsSaving(false)
-    }
-  }
 
   return (
     <Dialog
@@ -71,24 +74,23 @@ export default function FolderNameDialog({
         content={
           <LayoutContent padding={FOLDER_DIALOG_PADDING}>
             <form
-              onSubmit={(event) => {
-                event.preventDefault()
-                void submit()
-              }}
+              noValidate
+              onSubmit={submitWith(form)}
             >
-              <TextInput
-                label="Folder name"
-                placeholder="e.g. Q4 campaign"
-                value={name}
-                onChange={(value) => {
-                  setName(value)
-                  setError(null)
-                }}
-                status={error ? { type: 'error', message: error } : undefined}
-                hasAutoFocus
-                isRequired
-                width="100%"
-              />
+              <form.Field name="name">
+                {(field) => (
+                  <TextInput
+                    label="Folder name"
+                    placeholder="e.g. Q4 campaign"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    status={fieldStatus(field.state.meta.errors)}
+                    hasAutoFocus
+                    isRequired
+                    width="100%"
+                  />
+                )}
+              </form.Field>
             </form>
           </LayoutContent>
         }
@@ -100,13 +102,17 @@ export default function FolderNameDialog({
                 label="Cancel"
                 onClick={() => onOpenChange(false)}
               />
-              <Button
-                variant="primary"
-                label={submitLabel}
-                isDisabled={!name.trim()}
-                isLoading={isSaving}
-                onClick={() => void submit()}
-              />
+              <form.Subscribe selector={(state) => [state.values.name, state.isSubmitting] as const}>
+                {([name, isSubmitting]) => (
+                  <Button
+                    variant="primary"
+                    label={submitLabel}
+                    isDisabled={!name.trim()}
+                    isLoading={isSubmitting}
+                    onClick={() => void form.handleSubmit()}
+                  />
+                )}
+              </form.Subscribe>
             </HStack>
           </LayoutFooter>
         }

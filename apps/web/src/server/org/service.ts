@@ -6,24 +6,22 @@ import {
   organizationMember,
   user,
 } from '@openlink/db/schema'
+import { writeBatch } from '#/server/effect/batch'
 import { operation } from '#/server/effect/operations'
 import { Db } from '#/server/effect/services/db'
 import { Onboarding } from '#/server/auth/onboarding'
 import {
   createInviteToken,
-  findBootstrapInviteByToken,
   hashInviteToken,
   inviteEmailMatches,
 } from './invites'
 
 export {
-  InvalidBootstrapInvite,
   InvalidInvite,
   InviteEmailMismatch,
   OrganizationConflict,
 } from './errors'
 import {
-  InvalidBootstrapInvite,
   InvalidInvite,
   InviteEmailMismatch,
   OrganizationConflict,
@@ -70,61 +68,48 @@ export function getOrganizationById(organizationId: string) {
 }
 
 /**
- * Create a workspace owned by `userId`, completing their onboarding. An invite
- * token is optional; when one is given it must be a valid bootstrap invite and
- * is consumed.
+ * Create a workspace owned by `userId`, completing their onboarding. `id` is
+ * chosen by the caller so a logo can be stored under it first; `logoKey` is
+ * saved with the row.
  */
-export function createOrganizationWithBootstrapInvite(input: {
+export function createOrganizationForUser(input: {
+  id: string
   userId: string
   name: string
   slug: string
-  inviteToken?: string
+  logoKey?: string | null
 }) {
   return Effect.gen(function* () {
-    const bootstrap = input.inviteToken ? yield* findBootstrapInviteByToken(input.inviteToken) : null
-    if (input.inviteToken && !bootstrap) {
-      return yield* Effect.fail(new InvalidBootstrapInvite())
-    }
-
     const db = yield* Db
-    const id = crypto.randomUUID()
     const now = new Date()
-    const [org] = yield* operation('org.createOrganization', () =>
+    const statements = [
       db
         .insert(organization)
         .values({
-          id,
+          id: input.id,
           name: input.name,
           slug: input.slug,
+          logoKey: input.logoKey ?? null,
           createdAt: now,
           updatedAt: now,
         })
         .returning(),
-    ).pipe(
-      Effect.mapError((error) =>
-        isUniqueViolation(error.cause) ? new OrganizationConflict() : error,
-      ),
-    )
-
-    yield* operation('org.createOwnerMembership', () =>
       db.insert(organizationMember).values({
         id: crypto.randomUUID(),
-        organizationId: org!.id,
+        organizationId: input.id,
         userId: input.userId,
         role: 'owner',
         joinedAt: now,
       }),
+      Onboarding.markCompleteStatement(db, input.userId, now),
+    ]
+    // One batch: the workspace never exists without its owner, and onboarding completes with it.
+    const [created] = yield* writeBatch('org.createOrganization', statements).pipe(
+      Effect.mapError((error) =>
+        isUniqueViolation(error.cause) ? new OrganizationConflict() : error,
+      ),
     )
-    if (bootstrap) {
-      yield* operation('org.acceptBootstrapInvite', () =>
-        db
-          .update(organizationInvite)
-          .set({ acceptedAt: now })
-          .where(eq(organizationInvite.id, bootstrap.id)),
-      )
-    }
-    yield* Onboarding.markComplete(input.userId, now)
-    return org!
+    return (created as (typeof organization.$inferSelect)[])[0]!
   })
 }
 
@@ -157,30 +142,6 @@ export function createMemberInvite(input: {
         .returning(),
     )
     return { invite: invite!, token }
-  })
-}
-
-export function acceptMemberInvite(input: {
-  userId: string
-  userEmail: string
-  token: string
-}) {
-  return Effect.gen(function* () {
-    const db = yield* Db
-    const [invite] = yield* operation('org.findMemberInvite', () =>
-      db
-        .select()
-        .from(organizationInvite)
-        .where(
-          and(
-            eq(organizationInvite.tokenHash, hashInviteToken(input.token)),
-            eq(organizationInvite.kind, 'member'),
-            isNull(organizationInvite.acceptedAt),
-          ),
-        )
-        .limit(1),
-    )
-    return yield* joinFromInvite(invite, input)
   })
 }
 
@@ -240,13 +201,51 @@ export function listInvitesForEmail(email: string) {
   })
 }
 
+/**
+ * One invite, only for the address it was sent to: `pending` with what the invitee sees,
+ * `accepted` once used, or null for anything else (someone else's, revoked, declined,
+ * expired or unknown), so a caller cannot tell those apart.
+ */
+export function findInviteForEmail(input: { inviteId: string; email: string }) {
+  return Effect.gen(function* () {
+    const db = yield* Db
+    const now = new Date()
+    const [row] = yield* operation('org.findInviteForEmail', () =>
+      db
+        .select({
+          id: organizationInvite.id,
+          email: organizationInvite.email,
+          role: organizationInvite.role,
+          expiresAt: organizationInvite.expiresAt,
+          acceptedAt: organizationInvite.acceptedAt,
+          createdAt: organizationInvite.createdAt,
+          organizationId: organization.id,
+          organizationName: organization.name,
+          organizationSlug: organization.slug,
+          organizationLogoKey: organization.logoKey,
+          invitedByName: user.name,
+          invitedByImage: user.image,
+        })
+        .from(organizationInvite)
+        .innerJoin(organization, eq(organization.id, organizationInvite.organizationId))
+        .leftJoin(user, eq(user.id, organizationInvite.createdByUserId))
+        .where(and(eq(organizationInvite.id, input.inviteId), eq(organizationInvite.kind, 'member')))
+        .limit(1),
+    )
+    if (!row || !inviteEmailMatches(row.email, input.email)) return null
+    if (row.acceptedAt) return { status: 'accepted' as const }
+    if (row.expiresAt <= now) return null
+    return { status: 'pending' as const, row }
+  })
+}
+
 /** The invitee turns an invite down: it is removed, as if revoked. */
 export function declineInviteForEmail(input: { inviteId: string; userEmail: string }) {
   return Effect.gen(function* () {
     const db = yield* Db
     const [invite] = yield* operation('org.findInviteToDecline', () =>
       db
-        .select({ id: organizationInvite.id, email: organizationInvite.email, organizationId: organizationInvite.organizationId })
+        .select({ id: organizationInvite.id, email: organizationInvite.email, organizationId: organizationInvite.organizationId, expiresAt: organizationInvite.expiresAt })
         .from(organizationInvite)
         .where(
           and(
@@ -257,8 +256,8 @@ export function declineInviteForEmail(input: { inviteId: string; userEmail: stri
         )
         .limit(1),
     )
-    // Someone else's invite looks the same as a missing one.
-    if (!invite || !invite.organizationId || !inviteEmailMatches(invite.email, input.userEmail)) {
+    // Someone else's invite, or an expired one, looks the same as a missing one.
+    if (!invite || !invite.organizationId || invite.expiresAt <= new Date() || !inviteEmailMatches(invite.email, input.userEmail)) {
       return yield* Effect.fail(new InvalidInvite())
     }
     yield* operation('org.declineInvite', () => db.delete(organizationInvite).where(eq(organizationInvite.id, invite.id)))
@@ -294,25 +293,23 @@ function joinFromInvite(
         )
         .limit(1),
     )
-    if (!existingMember) {
-      yield* operation('org.createInvitedMembership', () =>
-        db.insert(organizationMember).values({
-          id: crypto.randomUUID(),
-          organizationId,
-          userId: input.userId,
-          role: invite.role,
-          joinedAt: now,
-        }),
-      )
-    }
-    yield* operation('org.acceptMemberInvite', () =>
-      db
-        .update(organizationInvite)
-        .set({ acceptedAt: now })
-        .where(eq(organizationInvite.id, invite.id)),
-    )
-    // Joining someone else's workspace also counts as finishing onboarding.
-    yield* Onboarding.markComplete(input.userId, now)
+    // One batch: the person joins, the invite is used up and onboarding completes, or none of it happens.
+    yield* writeBatch('org.acceptMemberInvite', [
+      ...(existingMember
+        ? []
+        : [
+            db.insert(organizationMember).values({
+              id: crypto.randomUUID(),
+              organizationId,
+              userId: input.userId,
+              role: invite.role,
+              joinedAt: now,
+            }),
+          ]),
+      db.update(organizationInvite).set({ acceptedAt: now }).where(eq(organizationInvite.id, invite.id)),
+      // Joining someone else's workspace also counts as finishing onboarding.
+      Onboarding.markCompleteStatement(db, input.userId, now),
+    ])
     const org = yield* getOrganizationById(organizationId)
     if (existingMember) {
       return { org: org!, member: existingMember }

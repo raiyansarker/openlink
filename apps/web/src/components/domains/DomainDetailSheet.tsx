@@ -14,7 +14,8 @@ import {
   floatingEndDrawerStyle,
 } from '#/components/members/floating-end-drawer'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
-import type { WorkspaceCustomDomain } from '#/data/demo/domains'
+import { usePermissions } from '#/hooks/use-permissions'
+import type { Domain } from '#/lib/api/types'
 import { buildDomainTimeline } from '#/lib/domains/domain-timeline'
 import { formatShortDate } from '#/lib/format/short-date'
 import DomainDnsRecordsTable from './DomainDnsRecordsTable'
@@ -33,16 +34,21 @@ type DomainDetailSheetProps = {
 }
 
 export default function DomainDetailSheet({
-  target,
+  target: current,
   onOpenChange,
 }: DomainDetailSheetProps) {
   const { getDomainById, verifyDomain, removeDomain } = useDomainsWorkspace()
+  // Members and viewers read the records and timeline; only owners and admins see the write actions.
+  const { canManageDomains } = usePermissions()
   const [removeAlertOpen, setRemoveAlertOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
+  // Keep the last domain on screen while the drawer animates closed.
+  const [target, setTarget] = useState(current)
+  if (current && current !== target) setTarget(current)
 
-  const isOpen = target != null
-  const custom: WorkspaceCustomDomain | undefined = target
+  const isOpen = current != null
+  const custom: Domain | undefined = target
     ? getDomainById(target.domainId)
     : undefined
 
@@ -81,7 +87,7 @@ export default function DomainDetailSheet({
         width={440}
         hasScrim
         padding={FLOATING_END_DRAWER_PADDING}
-        style={floatingEndDrawerStyle()}
+        style={floatingEndDrawerStyle({ isOpen })}
       >
         <Layout
           header={
@@ -118,7 +124,7 @@ export default function DomainDetailSheet({
                         domainHostname={custom.hostname}
                         records={custom.dnsRecords}
                       />
-                      {custom.readiness !== 'active' ? (
+                      {canManageDomains && custom.readiness !== 'active' ? (
                         <Button
                           variant="primary"
                           size="sm"
@@ -153,7 +159,7 @@ export default function DomainDetailSheet({
             </LayoutContent>
           }
           footer={
-            custom ? (
+            canManageDomains && custom ? (
               <LayoutFooter>
                 <HStack hAlign="start" width="100%">
                   <Button

@@ -1,4 +1,4 @@
-import type { Organization } from '#/data/demo/types'
+import type { Workspace } from '#/lib/api/types'
 import { isValidOrganizationSlug } from '#/lib/organization/slugify'
 
 /** Which workspace the user is looking at, remembered between visits. */
@@ -22,7 +22,7 @@ export class ActiveWorkspace {
    * An explicit slug must match a workspace the user belongs to (never silently
    * substituting another). Without one: the remembered workspace, else the first.
    */
-  static pick(organizations: Organization[], slug?: string | null): Organization | null {
+  static pick(organizations: Workspace[], slug?: string | null): Workspace | null {
     if (slug) return organizations.find((org) => org.slug === slug) ?? null
     const remembered = ActiveWorkspace.remembered()
     return organizations.find((org) => org.slug === remembered) ?? organizations[0] ?? null

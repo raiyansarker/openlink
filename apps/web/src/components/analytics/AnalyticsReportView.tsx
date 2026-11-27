@@ -16,10 +16,11 @@ import RhythmCard from '#/components/analytics/RhythmCard'
 import SourcesCard from '#/components/analytics/SourcesCard'
 import TechnologyCard from '#/components/analytics/TechnologyCard'
 import TopLinksCard from '#/components/analytics/TopLinksCard'
-import TrafficChart, { trafficSummary, type TrafficView } from '#/components/analytics/TrafficChart'
+import TrafficChart, { type TrafficView } from '#/components/analytics/TrafficChart'
+import { trafficSummary } from '#/lib/analytics/traffic-summary'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
-import { AnalyticsReportMapper, type AnalyticsReport } from '#/lib/analytics/report'
-import { ApiError } from '#/lib/api/error'
+import { isEmptyReport, type AnalyticsReport } from '#/lib/analytics/report'
+import { apiErrorMessage } from '#/lib/api/errors'
 
 type AnalyticsReportViewProps = {
   organizationId: string
@@ -58,13 +59,13 @@ export default function AnalyticsReportView({
     return (
       <Banner
         status="error"
-        title={ApiError.message(error, 'Analytics could not be loaded.')}
+        title={apiErrorMessage(error, 'Analytics could not be loaded.')}
         endContent={<Button variant="secondary" size="sm" label="Try again" onClick={onRetry} />}
       />
     )
   }
   if (isLoading || !report) return <AnalyticsSkeleton />
-  if (AnalyticsReportMapper.isEmpty(report)) {
+  if (isEmptyReport(report)) {
     return (
       <Card padding={8}>
         <EmptyState

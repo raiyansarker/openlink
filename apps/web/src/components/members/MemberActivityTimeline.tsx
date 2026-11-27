@@ -1,13 +1,15 @@
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
+import { Icon } from '@astryxdesign/core/Icon'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { MemberActivityEvent } from '#/data/demo/types'
+import { ACTIVITY_CATEGORY_LABELS, ACTIVITY_SOURCE_LABELS } from '#/lib/activity/labels'
+import type { ActivityEvent } from '#/lib/api/types'
 import { formatShortDate } from '#/lib/format/short-date'
 
 type ActivityDayGroup = {
   dayLabel: string
-  events: MemberActivityEvent[]
+  events: ActivityEvent[]
 }
 
 const TRACK_COLOR = 'var(--color-border-emphasized)'
@@ -32,7 +34,7 @@ function dayGroupLabel(iso: string): string {
 }
 
 function groupActivitiesByDay(
-  events: MemberActivityEvent[],
+  events: ActivityEvent[],
 ): ActivityDayGroup[] {
   const sorted = [...events].sort(
     (a, b) =>
@@ -40,7 +42,7 @@ function groupActivitiesByDay(
   )
 
   const order: string[] = []
-  const buckets = new Map<string, MemberActivityEvent[]>()
+  const buckets = new Map<string, ActivityEvent[]>()
 
   for (const event of sorted) {
     const label = dayGroupLabel(event.occurredAt)
@@ -57,6 +59,50 @@ function groupActivitiesByDay(
   }))
 }
 
+/** "Created link go/launch", from the event's phrase and target. */
+/** "Moved link **google.com**": the action as a sentence, the item in bold. */
+function EventSentence({ event }: { event: ActivityEvent }) {
+  return (
+    <Text>
+      {`${event.phrase[0]!.toUpperCase()}${event.phrase.slice(1)} `}
+      <Text weight="semibold">{event.target.label}</Text>
+    </Text>
+  )
+}
+
+/** What changed, one row per setting: old value struck through, new value after it. */
+function EventChanges({ changes }: { changes: NonNullable<ActivityEvent['changes']> }) {
+  return (
+    <VStack
+      gap={1.5}
+      hAlign="stretch"
+      width="100%"
+      style={{
+        padding: 'var(--spacing-2) var(--spacing-3)',
+        borderRadius: 'var(--radius-element)',
+        backgroundColor: 'var(--color-background-muted)',
+      }}
+    >
+      {changes.map((change) => (
+        <HStack key={change.label} gap={3} vAlign="start" width="100%">
+          <Text type="supporting" color="secondary" maxLines={1} style={{ width: 88, flexShrink: 0 }}>
+            {change.label}
+          </Text>
+          <Text type="supporting" maxLines={2} style={{ minWidth: 0 }}>
+            {change.from ? (
+              <Text type="supporting" color="secondary" style={{ textDecoration: 'line-through' }}>
+                {change.from}
+              </Text>
+            ) : null}
+            {change.from ? ' → ' : ''}
+            {change.to || '—'}
+          </Text>
+        </HStack>
+      ))}
+    </VStack>
+  )
+}
+
 function formatEventTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: 'numeric',
@@ -65,11 +111,32 @@ function formatEventTime(iso: string): string {
 }
 
 type TimelineEventNodeProps = {
-  event: MemberActivityEvent
+  event: ActivityEvent
   showConnector: boolean
+  onOpen?: (event: ActivityEvent) => void
 }
 
-function TimelineEventNode({ event, showConnector }: TimelineEventNodeProps) {
+function TimelineEventNode({ event, showConnector, onOpen }: TimelineEventNodeProps) {
+  const body = (
+    <VStack gap={1.5} hAlign="stretch" width="100%">
+      <HStack gap={2} hAlign="between" vAlign="start" width="100%">
+        <VStack gap={0.5} hAlign="start" style={{ minWidth: 0 }}>
+          <EventSentence event={event} />
+          <Text type="supporting" color="secondary">
+            {[
+              ACTIVITY_CATEGORY_LABELS[event.category],
+              ACTIVITY_SOURCE_LABELS[event.source],
+              formatEventTime(event.occurredAt),
+              ...(event.ipAddress ? [event.ipAddress] : []),
+            ].join(' · ')}
+          </Text>
+        </VStack>
+        {onOpen ? <Icon icon="chevronRight" size="sm" color="secondary" /> : null}
+      </HStack>
+      {event.changes?.length ? <EventChanges changes={event.changes} /> : null}
+    </VStack>
+  )
+
   return (
     <HStack gap={3} vAlign="stretch" width="100%">
       <VStack
@@ -106,35 +173,39 @@ function TimelineEventNode({ event, showConnector }: TimelineEventNodeProps) {
           />
         ) : null}
       </VStack>
-      <VStack gap={0.5} hAlign="start" paddingBlockEnd={showConnector ? 4 : 0}>
-        <HStack
-          hAlign="between"
-          vAlign="start"
-          gap={2}
-          width="100%"
-          wrap="wrap"
-        >
-          <Text weight="semibold">{event.title}</Text>
-          <Text type="supporting" color="secondary">
-            {formatEventTime(event.occurredAt)}
-          </Text>
-        </HStack>
-        {event.description ? (
-          <Text type="supporting" color="secondary">
-            {event.description}
-          </Text>
-        ) : null}
+      <VStack
+        gap={0}
+        hAlign="stretch"
+        paddingBlockEnd={showConnector ? 4 : 0}
+        style={{ flex: 1, minWidth: 0 }}
+      >
+        {onOpen ? (
+          // The whole event opens its full details (who, where from, event ID).
+          <button
+            type="button"
+            className="ol-focus-ring ol-timeline-event"
+            aria-label={`Open details: ${event.phrase} ${event.target.label}`}
+            onClick={() => onOpen(event)}
+          >
+            {body}
+          </button>
+        ) : (
+          body
+        )}
       </VStack>
     </HStack>
   )
 }
 
 type MemberActivityTimelineProps = {
-  events: MemberActivityEvent[]
+  events: ActivityEvent[]
+  /** Opens an event's full details; without it, events are not clickable. */
+  onOpenEvent?: (event: ActivityEvent) => void
 }
 
 export default function MemberActivityTimeline({
   events,
+  onOpenEvent,
 }: MemberActivityTimelineProps) {
   const groups = groupActivitiesByDay(events)
 
@@ -159,6 +230,7 @@ export default function MemberActivityTimeline({
                 key={event.id}
                 event={event}
                 showConnector={index < group.events.length - 1}
+                onOpen={onOpenEvent}
               />
             ))}
           </VStack>

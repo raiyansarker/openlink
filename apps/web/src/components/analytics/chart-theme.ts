@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { tooltip } from '@tanstack/charts/tooltip'
 
 /**
  * Astryx data-visualization tokens, in series order. TanStack Charts reads
@@ -45,3 +46,13 @@ export const chartHostStyle = {
   '--ts-chart-5': SERIES_COLORS[4],
   '--ts-chart-6': SERIES_COLORS[5],
 } as CSSProperties
+
+/**
+ * Charts here are read by hovering, not operated: no tab stop, no keyboard
+ * navigation, and nothing for a click to focus. (By default each chart is a
+ * focusable element with arrow-key navigation.)
+ */
+export const NO_CHART_FOCUS = { keyboard: false } as const
+
+/** Hover tooltip that follows the pointer and goes away with it. By default a click pins it in place until the next click or Esc. */
+export const HOVER_TOOLTIP = { use: tooltip, sticky: false } as const

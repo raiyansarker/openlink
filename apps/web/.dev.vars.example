@@ -1,12 +1,38 @@
+# Copy to .dev.vars for local development. Production values are set as Worker secrets/vars.
+
+# Auth
 BETTER_AUTH_SECRET=dev-only-change-me-use-openssl-rand-base64-32
-BOOTSTRAP_ORG_INVITE_TOKEN=local-bootstrap-invite-token
+BETTER_AUTH_URL=http://localhost:3000
+# Extra origins allowed to call the auth API, comma separated.
+BETTER_AUTH_TRUSTED_ORIGINS=
+# Email and password sign-in is on unless this is "false".
+EMAIL_PASSWORD_SIGN_IN=true
 
-# Invite create responses include the raw token only when this is true (keep false in production).
-# EXPOSE_INVITE_TOKENS_IN_API is set to "true" in wrangler.jsonc for local Workers dev.
+# OAuth providers switch on only when both the id and secret are set.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
 
-# Use DOMAIN_PROVIDER=cloudflare with real credentials when testing SaaS hostnames.
-# DOMAIN_PROVIDER=memory is set in wrangler.jsonc for local development.
+
+# Custom domains: "memory" needs no credentials. Use "cloudflare" with the CF_* values to test SaaS hostnames.
+DOMAIN_PROVIDER=memory
 CF_API_TOKEN=
 CF_ZONE_ID=
 CF_SAAS_CNAME_TARGET=
 CF_SAAS_CUSTOM_ORIGIN=
+
+# Email: `vite dev` sends every email to Mailtrap Local through its API on 127.0.0.1:3550
+# (`brew install mailtrap-local`, then run `mailtrap-local`). Read them at http://127.0.0.1:3550.
+# Nothing to set here. The sender is EMAIL_FROM in wrangler.jsonc (a plain var, not a secret);
+# uncomment to send from a different address locally.
+# EMAIL_FROM=OpenLink <no-reply@example.com>
+
+# Production sends through Amazon SES (API v2). Set these as Worker secrets, e.g.
+#   wrangler secret put AWS_SES_ACCESS_KEY_ID
+# Use an IAM user that may only call ses:SendEmail. EMAIL_FROM (wrangler.jsonc) must be
+# verified in AWS_SES_REGION, and the account must be out of the SES sandbox to email anyone.
+# Uncomment to try real delivery with `vite preview`.
+# AWS_SES_ACCESS_KEY_ID=
+# AWS_SES_SECRET_ACCESS_KEY=
+# AWS_SES_REGION=us-east-1

@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [main, backend]
   pull_request:
 
 concurrency:

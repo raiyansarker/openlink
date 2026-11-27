@@ -3,10 +3,12 @@ import { EmptyState } from '@astryxdesign/core/EmptyState'
 import LinksListView from '#/components/links/LinksListView'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { ShortLink } from '#/data/demo/types'
+import { usePermissions } from '#/hooks/use-permissions'
+import type { ShortLink } from '#/lib/api/types'
 
 export default function DashboardRecentLinksTable() {
   const { links, activeOrg } = useOrganization()
+  const { canManageLinks } = usePermissions()
   const navigate = useNavigate()
   const rows = [...links]
     .sort(
@@ -37,15 +39,19 @@ export default function DashboardRecentLinksTable() {
       onOpenLink={openLink}
       linkMenu={(link) => [
         { id: 'open', label: 'Open details', onClick: () => openLink(link) },
-        {
-          id: 'edit',
-          label: 'Edit',
-          onClick: () =>
-            void navigate({
-              to: '/edit/link',
-              search: { org: activeOrg.slug, link: link.id },
-            }),
-        },
+        ...(canManageLinks
+          ? [
+              {
+                id: 'edit',
+                label: 'Edit',
+                onClick: () =>
+                  void navigate({
+                    to: '/edit/link',
+                    search: { org: activeOrg.slug, link: link.id },
+                  }),
+              },
+            ]
+          : []),
       ]}
     />
   )

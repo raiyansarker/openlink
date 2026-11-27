@@ -16,13 +16,17 @@ import DomainDetailSheet, {
 } from '#/components/domains/DomainDetailSheet'
 import DomainIllustration from '#/components/domains/DomainIllustration'
 import DomainNameCell from '#/components/domains/DomainNameCell'
-import { handleDomainsTableRowClick } from '#/components/domains/domains-table-row-click'
+import { clickableRows } from '#/lib/tables/clickable-rows'
 import DomainRowMenu from '#/components/domains/DomainRowMenu'
 import DomainStatus from '#/components/domains/DomainStatus'
 import { PlusIcon } from '#/components/icons/IcnMcp'
 import { useDomainsWorkspace } from '#/contexts/DomainsWorkspaceContext'
+import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
+import AddDomainForm from '#/components/domains/AddDomainForm'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { WorkspaceCustomDomain } from '#/data/demo/domains'
+import { useIsPhone, usePageInsetSteps } from '#/hooks/use-is-phone'
+import { usePermissions } from '#/hooks/use-permissions'
+import type { Domain } from '#/lib/api/types'
 import {
   DOMAIN_STATUS_FILTER_OPTIONS,
   matchesDomainSearch,
@@ -31,10 +35,14 @@ import {
 } from '#/lib/domains/filter-options'
 import { formatShortDate } from '#/lib/format/short-date'
 
-type DomainRow = WorkspaceCustomDomain & Record<string, unknown>
+type DomainRow = Domain & Record<string, unknown>
 
 export default function DashboardDomainsPanel() {
   const { activeOrg } = useOrganization()
+  const inset = usePageInsetSteps()
+  // Phones add a domain in a rising modal sheet, not a full-page trip.
+  const isPhone = useIsPhone()
+  const [isAddOpen, setIsAddOpen] = useState(false)
   const {
     customDomains,
     detailRequestDomainId,
@@ -43,6 +51,8 @@ export default function DashboardDomainsPanel() {
     consumeDetailRequest,
   } = useDomainsWorkspace()
   const navigate = useNavigate()
+  // Members and viewers browse domains; adding and removing stay hidden for them.
+  const { canManageDomains } = usePermissions()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<DomainStatusFilter>('all')
   const [sheetTarget, setSheetTarget] = useState<DomainSheetTarget | null>(null)
@@ -76,30 +86,37 @@ export default function DashboardDomainsPanel() {
     [customDomains, searchQuery, statusFilter],
   )
 
-  const goToAddDomain = () =>
+  const goToAddDomain = () => {
+    if (isPhone) {
+      setIsAddOpen(true)
+      return
+    }
     void navigate({
       to: '/w/$orgSlug/domains/new',
       params: { orgSlug: activeOrg.slug },
     })
+  }
 
   const openDomain = (domainId: string) =>
     setSheetTarget({ kind: 'custom', domainId })
 
-  const openCustomDomain = (domain: WorkspaceCustomDomain) =>
+  const openCustomDomain = (domain: Domain) =>
     openDomain(domain.id)
 
-  const openRowAtIndex = (index: number) => {
-    const row = rows[index]
-    if (row) openDomain(row.id)
-  }
+  // Each row opens the domain's details.
+  const rowPlugins = useMemo(
+    () => ({ open: clickableRows<DomainRow>((row) => openDomain(row.id), (row) => `Open ${row.hostname}`) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
 
   return (
     <VStack
       gap={8}
       hAlign="stretch"
       width="fill"
-      paddingBlockStart={8}
-      paddingInline={8}
+      paddingBlockStart={inset.block}
+      paddingInline={inset.inline}
       paddingBlockEnd={10}
     >
       {actionError ? <Banner status="error" title={actionError} /> : null}
@@ -116,13 +133,15 @@ export default function DashboardDomainsPanel() {
             Hostnames that serve short links for {activeOrg.name}.
           </Text>
         </VStack>
-        <Button
-          variant="secondary"
-          size="sm"
-          label="Add domain"
-          icon={<PlusIcon size={14} style={{ display: 'flex' }} />}
-          onClick={goToAddDomain}
-        />
+        {canManageDomains ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            label="Add domain"
+            icon={<PlusIcon size={14} style={{ display: 'flex' }} />}
+            onClick={goToAddDomain}
+          />
+        ) : null}
       </HStack>
 
       {customDomains.length === 0 ? (
@@ -131,14 +150,20 @@ export default function DashboardDomainsPanel() {
           headingLevel={4}
           icon={<DomainIllustration state="add" width={180} />}
           title="Use your own domain"
-          description="Add a domain like go.yourbrand.com to serve your short links from it."
+          description={
+            canManageDomains
+              ? 'Add a domain like go.yourbrand.com to serve your short links from it.'
+              : 'An owner or an admin can add a domain like go.yourbrand.com to serve short links from it.'
+          }
           actions={
-            <Button
-              variant="secondary"
-              size="sm"
-              label="Add domain"
-              onClick={goToAddDomain}
-            />
+            canManageDomains ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                label="Add domain"
+                onClick={goToAddDomain}
+              />
+            ) : undefined
           }
         />
       ) : (
@@ -171,9 +196,6 @@ export default function DashboardDomainsPanel() {
             className="members-table members-table--clickable-rows"
             width="100%"
             hAlign="stretch"
-            onClick={(event) =>
-              handleDomainsTableRowClick(event, rows.length, openRowAtIndex)
-            }
           >
             <Table<DomainRow>
               className="members-table__grid"
@@ -183,6 +205,7 @@ export default function DashboardDomainsPanel() {
               dividers="rows"
               textOverflow="truncate"
               hasHover
+              plugins={rowPlugins}
               columns={[
                 {
                   key: 'hostname',
@@ -225,15 +248,16 @@ export default function DashboardDomainsPanel() {
                   header: '',
                   width: pixel(56),
                   align: 'end',
-                  renderCell: (row) => (
-                    <DomainRowMenu
-                      domain={row}
-                      onOpen={openCustomDomain}
-                      onVerify={(id) => run(() => verifyDomain(id))}
-                      // The dialog shows a failure and stays open.
-                      onRemove={removeDomain}
-                    />
-                  ),
+                  renderCell: (row) =>
+                    canManageDomains ? (
+                      <DomainRowMenu
+                        domain={row}
+                        onOpen={openCustomDomain}
+                        onVerify={(id) => run(() => verifyDomain(id))}
+                        // The dialog shows a failure and stays open.
+                        onRemove={removeDomain}
+                      />
+                    ) : null,
                 },
               ]}
             />
@@ -253,6 +277,21 @@ export default function DashboardDomainsPanel() {
           if (!open) setSheetTarget(null)
         }}
       />
+
+      {/* Phones: "Add domain" rises from the bottom instead of leaving the
+          list; the same form, just sheet-mounted. Desktop keeps the page. */}
+      {isPhone && canManageDomains ? (
+        <ResponsiveDetailSheet
+          isOpen={isAddOpen}
+          onOpenChange={setIsAddOpen}
+          label="Add domain"
+          title="Add domain"
+          width={420}
+          purpose="form"
+        >
+          <AddDomainForm onClose={() => setIsAddOpen(false)} />
+        </ResponsiveDetailSheet>
+      ) : null}
     </VStack>
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -10,7 +10,8 @@ import {
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
-import type { LinkFolder } from '#/data/demo/types'
+import { useOpenSession } from '#/hooks/use-open-session'
+import type { LinkFolder } from '#/lib/api/types'
 import type { DeleteFolderMode } from '#/lib/links/folder-tree'
 
 type DeleteFolderDialogProps = {
@@ -26,7 +27,22 @@ function plural(count: number, one: string, many: string) {
   return `${count} ${count === 1 ? one : many}`
 }
 
-export default function DeleteFolderDialog({
+export default function DeleteFolderDialog(props: DeleteFolderDialogProps) {
+  const session = useOpenSession(props.folder != null, props.folder?.id)
+  return (
+    <Dialog
+      isOpen={props.folder != null}
+      onOpenChange={props.onOpenChange}
+      purpose="required"
+      width={460}
+      padding={FOLDER_DIALOG_PADDING}
+    >
+      <DeleteFolderForm key={session} {...props} />
+    </Dialog>
+  )
+}
+
+function DeleteFolderForm({
   folder,
   contents,
   parentLabel,
@@ -36,10 +52,6 @@ export default function DeleteFolderDialog({
   const [mode, setMode] = useState<DeleteFolderMode>('move-up')
   const isEmpty = contents.folders === 0 && contents.links === 0
 
-  useEffect(() => {
-    if (folder) setMode('move-up')
-  }, [folder])
-
   const summary = `${plural(contents.links, 'link', 'links')} and ${plural(
     contents.folders,
     'subfolder',
@@ -47,13 +59,6 @@ export default function DeleteFolderDialog({
   )}`
 
   return (
-    <Dialog
-      isOpen={folder != null}
-      onOpenChange={onOpenChange}
-      purpose="required"
-      width={460}
-      padding={FOLDER_DIALOG_PADDING}
-    >
       <Layout
         header={
           <DialogHeader
@@ -119,6 +124,5 @@ export default function DeleteFolderDialog({
           </LayoutFooter>
         }
       />
-    </Dialog>
   )
 }

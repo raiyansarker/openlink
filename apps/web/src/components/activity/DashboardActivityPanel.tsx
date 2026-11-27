@@ -15,26 +15,22 @@ import { VStack } from '@astryxdesign/core/VStack'
 import ActivityActorAvatar from '#/components/activity/ActivityActorAvatar'
 import ActivityDetailSheet from '#/components/activity/ActivityDetailSheet'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import {
-  ACTIVITY_CATEGORY_LABELS,
-  type ActivityCategory,
-  type WorkspaceActivityEvent,
-} from '#/data/demo/workspace-activity'
-import { useActivityFeed, useDebouncedValue } from '#/hooks/use-activity'
+import { useIsPhone, usePageInsetSteps } from '#/hooks/use-is-phone'
+import { ACTIVITY_CATEGORY_LABELS, ACTIVITY_SOURCE_LABELS } from '#/lib/activity/labels'
+import type { ActivityEvent } from '#/lib/api/types'
+import { QUERY_DEBOUNCE_MS, useActivityFeed } from '#/hooks/use-activity'
 import { formatEventTime, groupByDay } from '#/lib/activity/group-by-day'
-import { ApiError } from '#/lib/api/error'
-
-export type CategoryFilter = 'all' | ActivityCategory
-
-export const ACTIVITY_CATEGORIES = Object.keys(ACTIVITY_CATEGORY_LABELS) as ActivityCategory[]
+import {
+  ACTIVITY_CATEGORIES,
+  type ActivityFilterState,
+  type CategoryFilter,
+} from '#/lib/activity/filters'
+import { apiErrorMessage } from '#/lib/api/errors'
 
 const CATEGORY_OPTIONS: { value: CategoryFilter; label: string }[] = [
   { value: 'all', label: 'All activity' },
   ...ACTIVITY_CATEGORIES.map((value) => ({ value, label: ACTIVITY_CATEGORY_LABELS[value] })),
 ]
-
-/** Filters as kept in the URL by the route. */
-export type ActivityFilterState = { category: CategoryFilter; q: string }
 
 type DashboardActivityPanelProps = {
   filters: ActivityFilterState
@@ -42,25 +38,31 @@ type DashboardActivityPanelProps = {
 }
 
 /** "Camille Laurent created link launch" with the people and things in bold. */
-function ActivitySentence({ event }: { event: WorkspaceActivityEvent }) {
+function ActivitySentence({ event }: { event: ActivityEvent }) {
   return (
     <Text maxLines={1}>
-      <Text weight="semibold">{event.actor.name}</Text> {event.action}{' '}
-      <Text weight="semibold">{event.target}</Text>
+      <Text weight="semibold">{event.actor.label}</Text> {event.phrase}{' '}
+      <Text weight="semibold">{event.target.label}</Text>
     </Text>
   )
 }
 
 export default function DashboardActivityPanel({ filters, onFiltersChange }: DashboardActivityPanelProps) {
   const { activeOrg } = useOrganization()
+  const inset = usePageInsetSteps()
+  const isPhone = useIsPhone()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // Typing stays instant; the URL and the server query follow once typing pauses.
   const [draftQuery, setDraftQuery] = useState(filters.q)
-  const settledQuery = useDebouncedValue(draftQuery)
-  useEffect(() => {
-    if (settledQuery !== filters.q) onFiltersChange({ q: settledQuery })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settledQuery])
+  const queryTimer = useRef<number | undefined>(undefined)
+  const changeQuery = (value: string) => {
+    setDraftQuery(value)
+    window.clearTimeout(queryTimer.current)
+    queryTimer.current = window.setTimeout(() => {
+      if (value !== filters.q) onFiltersChange({ q: value })
+    }, QUERY_DEBOUNCE_MS)
+  }
+  useEffect(() => () => window.clearTimeout(queryTimer.current), [])
 
   const feed = useActivityFeed(activeOrg.id, {
     ...(filters.category !== 'all' ? { category: filters.category } : {}),
@@ -92,8 +94,8 @@ export default function DashboardActivityPanel({ filters, onFiltersChange }: Das
       gap={8}
       hAlign="stretch"
       width="fill"
-      paddingBlockStart={8}
-      paddingInline={8}
+      paddingBlockStart={inset.block}
+      paddingInline={inset.inline}
       paddingBlockEnd={10}
     >
       <VStack gap={2} hAlign="start" width="fill">
@@ -104,35 +106,62 @@ export default function DashboardActivityPanel({ filters, onFiltersChange }: Das
       </VStack>
 
       <VStack gap={6} hAlign="stretch" width="fill">
-        <InputGroup label="Filter activity" size="sm">
-          <TextInput
-            label="Search activity"
-            isLabelHidden
-            size="sm"
-            placeholder="Search by person, action, or item"
-            value={draftQuery}
-            onChange={setDraftQuery}
-            controlStyle={{ flex: '4 1 0', minWidth: 0, width: '80%' }}
-          />
-          <Selector
-            label="Category"
-            isLabelHidden
-            variant="secondary"
-            size="sm"
-            width="20%"
-            controlStyle={{ flex: '1 0 0', minWidth: 0, width: '100%' }}
-            options={CATEGORY_OPTIONS}
-            value={filters.category}
-            onChange={(value) => onFiltersChange({ category: value as CategoryFilter })}
-          />
-        </InputGroup>
+        {isPhone ? (
+          /* InputGroup welds its children into one connected row; on a phone
+             that row has no room, so the two filters become plain stacked
+             controls — search on its own full-width line, category under it. */
+          <VStack gap={2} width="fill" hAlign="stretch" role="group" aria-label="Filter activity">
+            <TextInput
+              label="Search activity"
+              isLabelHidden
+              size="sm"
+              placeholder="Search by person, action, or item"
+              value={draftQuery}
+              onChange={changeQuery}
+              width="fill"
+            />
+            <Selector
+              label="Category"
+              isLabelHidden
+              variant="secondary"
+              size="sm"
+              width="fill"
+              options={CATEGORY_OPTIONS}
+              value={filters.category}
+              onChange={(value) => onFiltersChange({ category: value as CategoryFilter })}
+            />
+          </VStack>
+        ) : (
+          <InputGroup label="Filter activity" size="sm">
+            <TextInput
+              label="Search activity"
+              isLabelHidden
+              size="sm"
+              placeholder="Search by person, action, or item"
+              value={draftQuery}
+              onChange={changeQuery}
+              controlStyle={{ flex: '4 1 0', minWidth: 0, width: '80%' }}
+            />
+            <Selector
+              label="Category"
+              isLabelHidden
+              variant="secondary"
+              size="sm"
+              width="20%"
+              controlStyle={{ flex: '1 0 0', minWidth: 0, width: '100%' }}
+              options={CATEGORY_OPTIONS}
+              value={filters.category}
+              onChange={(value) => onFiltersChange({ category: value as CategoryFilter })}
+            />
+          </InputGroup>
+        )}
 
         {feed.isPending ? (
           <FeedSkeleton />
         ) : feed.isError && events.length === 0 ? (
           <Banner
             status="error"
-            title={ApiError.message(feed.error, 'Activity could not be loaded.')}
+            title={apiErrorMessage(feed.error, 'Activity could not be loaded.')}
             endContent={<Button variant="secondary" size="sm" label="Try again" onClick={() => void feed.refetch()} />}
           />
         ) : events.length === 0 ? (
@@ -163,7 +192,7 @@ export default function DashboardActivityPanel({ filters, onFiltersChange }: Das
                       onClick={() => setSelectedId(event.id)}
                       startContent={<ActivityActorAvatar actor={event.actor} />}
                       label={<ActivitySentence event={event} />}
-                      description={`${ACTIVITY_CATEGORY_LABELS[event.category]} · ${event.source}`}
+                      description={`${ACTIVITY_CATEGORY_LABELS[event.category]} · ${ACTIVITY_SOURCE_LABELS[event.source]}`}
                       endContent={
                         <HStack gap={2} vAlign="center">
                           <Text type="supporting" color="secondary">

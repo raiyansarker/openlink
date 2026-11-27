@@ -1,4 +1,4 @@
-import type { LinkFolder, ShortLink } from '#/data/demo/types'
+import type { LinkFolder, ShortLink } from '#/lib/api/types'
 
 /** Keeps recursion and pickers bounded. Root-level folders have depth 1. */
 export const MAX_FOLDER_DEPTH = 10
@@ -14,7 +14,7 @@ export function getChildFolders(
   folders: LinkFolder[],
   parentId: string | null,
 ): LinkFolder[] {
-  return folders.filter((f) => f.parentId === parentId).sort(byName)
+  return folders.filter((f) => (f.parentId ?? null) === parentId).sort(byName)
 }
 
 export function getLinksInFolder(
@@ -111,7 +111,7 @@ export function validateFolderName(
   const clash = folders.some(
     (f) =>
       f.id !== ignoreFolderId &&
-      f.parentId === parentId &&
+      (f.parentId ?? null) === parentId &&
       f.name.toLowerCase() === trimmed.toLowerCase(),
   )
   return clash ? 'A folder with this name already exists here.' : null
@@ -156,7 +156,7 @@ export function deleteFolderFromTree(
     const remaining = folders.filter((f) => f.id !== folderId)
     const taken = new Set(
       remaining
-        .filter((f) => f.parentId === target.parentId)
+        .filter((f) => (f.parentId ?? null) === (target.parentId ?? null))
         .map((f) => f.name.toLowerCase()),
     )
     // Re-parented children may clash with existing siblings: suffix " (n)".
@@ -172,11 +172,11 @@ export function deleteFolderFromTree(
     return {
       folders: remaining.map((f) =>
         f.parentId === folderId
-          ? { ...f, parentId: target.parentId, name: renamed.get(f.id)! }
+          ? { ...f, parentId: target.parentId ?? null, name: renamed.get(f.id)! }
           : f,
       ),
       links: links.map((l) =>
-        l.folderId === folderId ? { ...l, folderId: target.parentId } : l,
+        l.folderId === folderId ? { ...l, folderId: target.parentId ?? null } : l,
       ),
     }
   }

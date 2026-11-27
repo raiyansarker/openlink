@@ -12,6 +12,9 @@ const config = defineConfig({
   server: {
     host: '0.0.0.0'
   },
+  build: {
+    sourcemap: true
+  },
   plugins: [
     devtools({
       // react-maplibre hands every prop to MapLibre, which rejects the injected

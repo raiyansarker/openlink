@@ -2,14 +2,19 @@ import { Effect } from 'effect'
 
 import { operation } from '../effect/operations'
 import { useAuth } from '../effect/services/auth'
+import { Bindings } from '../effect/services/bindings'
+import { VerificationGate } from './verification-gate'
 
 /** The `/api/auth/*` edge: sign-in, OAuth callbacks and sign-out are Better Auth's. */
 export class AuthHandler {
-  /** Hand the untouched request to Better Auth. */
+  /** Hand the request to Better Auth, behind the pending-verification gate. */
   static handle(request: Request) {
     return Effect.gen(function* () {
       const auth = yield* useAuth
-      return yield* operation('auth.handle', () => auth.handler(request))
+      const { BETTER_AUTH_SECRET } = yield* Bindings
+      return yield* operation('auth.handle', () =>
+        VerificationGate.around(request, BETTER_AUTH_SECRET, (forwarded) => auth.handler(forwarded)),
+      )
     })
   }
 

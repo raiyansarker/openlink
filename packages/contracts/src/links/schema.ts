@@ -1,8 +1,8 @@
 import { type } from 'arktype'
 
 import { HttpUrl } from '../schema-utils'
-import { DomainIdPath, RedirectStatus } from '../domains/schema'
-import { LinkHold, LinkTargeting, SocialPreview } from './delivery'
+import { DomainIdPath } from '../domains/schema'
+import { LinkHold, LinkPreviewImage, LinkTargeting, SocialPreview } from './delivery'
 import { OrganizationIdPath } from '../organizations/schema'
 
 /** Team notes on a link (stored as its `description`). */
@@ -32,7 +32,6 @@ export const Link = type({
   'title?': 'string',
   'description?': 'string',
   destinationUrl: HttpUrl,
-  redirectStatus: RedirectStatus,
   status: LinkStatus,
   'enabled?': 'boolean',
   'activateAt?': 'string',
@@ -64,7 +63,6 @@ export const CreateLinkRequest = type({
   destinationUrl: HttpUrl,
   'title?': 'string',
   'description?': `string <= ${MAX_LINK_NOTES_LENGTH}`,
-  'redirectStatus?': RedirectStatus,
   'activateAt?': 'string',
   'expiresAt?': 'string',
   'maxClicks?': 'number.integer>=1',
@@ -78,6 +76,12 @@ export const CreateLinkRequest = type({
   'targeting?': LinkTargeting,
   'cloaked?': 'boolean',
   'socialPreview?': SocialPreview,
+  /**
+   * A share-card image stored with the link in the same request (send the body as
+   * `multipart/form-data`). It becomes `socialPreview.imageUrl`; if the link is not
+   * created, nothing is stored.
+   */
+  'previewImage?': LinkPreviewImage,
 })
 
 export const UpdateLinkRequest = type({
@@ -87,7 +91,6 @@ export const UpdateLinkRequest = type({
   'title?': 'string',
   /** For every optional setting below, null removes it and an absent field keeps it. */
   'description?': type(`string <= ${MAX_LINK_NOTES_LENGTH}`).or('null'),
-  'redirectStatus?': RedirectStatus,
   'status?': LinkStatus,
   'enabled?': 'boolean',
   'activateAt?': 'string | null',
@@ -104,6 +107,11 @@ export const UpdateLinkRequest = type({
   'targeting?': LinkTargeting.or('null'),
   'cloaked?': 'boolean',
   'socialPreview?': SocialPreview.or('null'),
+  /**
+   * A file replaces the share-card image (send the body as `multipart/form-data`); null
+   * removes it. A form body can't carry null or empty lists, so clear settings with JSON.
+   */
+  'previewImage?': LinkPreviewImage.or('null'),
 })
 
 export const LinkIdPath = type({

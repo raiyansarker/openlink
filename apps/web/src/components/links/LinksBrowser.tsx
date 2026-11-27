@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent } from 'react'
+import { useMemo, useState, type DragEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Banner } from '@astryxdesign/core/Banner'
@@ -22,8 +22,9 @@ import { ShortcutChip } from '#/components/dashboard/CreateLinkChromeButton'
 import { DRAG_MIME } from '#/components/links/links-browser-types'
 import { FolderIcon, PlusIcon } from '#/components/icons/IcnMcp'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { useKeyPress } from '#/hooks/use-key-press'
-import type { LinkFolder, ShortLink } from '#/data/demo/types'
+import { usePermissions } from '#/hooks/use-permissions'
+import { useShortcut } from '#/hooks/use-shortcut'
+import type { LinkFolder, ShortLink } from '#/lib/api/types'
 import {
   canCreateFolderIn,
   canMoveFolder,
@@ -34,6 +35,7 @@ import {
   getLinksInFolder,
 } from '#/lib/links/folder-tree'
 import { isOnHold } from '#/lib/links/create-link'
+import { linkTitle } from '#/lib/links/link-summary'
 
 type LinksBrowserProps = {
   /** Current folder id from the URL; unknown ids fall back to the root. */
@@ -62,6 +64,8 @@ export default function LinksBrowser({
     moveLinks,
   } = useOrganization()
   const navigate = useNavigate()
+  // Viewers browse and open; every write control below stays hidden for them.
+  const { canManageLinks: canEdit } = usePermissions()
 
   const currentFolder = folders.find((f) => f.id === folderId) ?? null
   const currentId = currentFolder?.id ?? null
@@ -70,7 +74,11 @@ export default function LinksBrowser({
     [folders, currentId],
   )
 
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  // The selection belongs to the folder it was made in; opening another folder drops it.
+  const [selection, setSelection] = useState<{ id: string; inFolder: string | null } | null>(null)
+  const selectedFolderId = selection?.inFolder === currentId ? selection.id : null
+  const setSelectedFolderId = (id: string | null) =>
+    setSelection(id == null ? null : { id, inFolder: currentId })
   const [breadcrumbDropKey, setBreadcrumbDropKey] = useState<string | null>(null)
   const [newFolderOpen, setNewFolderOpen] = useState(false)
   const [renaming, setRenaming] = useState<LinkFolder | null>(null)
@@ -86,9 +94,9 @@ export default function LinksBrowser({
       setActionError(err instanceof Error ? err.message : 'Something went wrong.'),
     )
   }
-  const canCreateFolderHere = canCreateFolderIn(folders, currentId)
+  const canCreateFolderHere = canEdit && canCreateFolderIn(folders, currentId)
   // "F" → new folder in the folder being viewed (like "C" for a new link).
-  useKeyPress('f', () => setNewFolderOpen(true), {
+  useShortcut('F', () => setNewFolderOpen(true), {
     isEnabled: canCreateFolderHere,
   })
 
@@ -99,10 +107,6 @@ export default function LinksBrowser({
     })
   const editLink = (linkId: string) =>
     void navigate({ to: '/edit/link', search: { org: activeOrg.slug, link: linkId } })
-
-  useEffect(() => {
-    setSelectedFolderId(null)
-  }, [currentId])
 
   const folderTiles = useMemo<FolderTile[]>(
     () =>
@@ -120,12 +124,13 @@ export default function LinksBrowser({
 
   /** Drag-and-drop move; invalid drops (cycles, same place) are ignored. */
   const dropItem = (itemKey: string, destinationId: string | null) => {
+    if (!canEdit) return
     const [kind, id] = itemKey.split(/:(.*)/s)
     if (kind === 'folder') {
       const folder = folders.find((f) => f.id === id)
       if (
         !folder ||
-        folder.parentId === destinationId ||
+        (folder.parentId ?? null) === destinationId ||
         !canMoveFolder(folders, id, destinationId)
       ) {
         return
@@ -140,66 +145,74 @@ export default function LinksBrowser({
 
   const folderMenu = (folder: LinkFolder) => [
     { id: 'open', label: 'Open', onClick: () => onOpenFolder(folder.id) },
-    { id: 'rename', label: 'Rename', onClick: () => setRenaming(folder) },
-    {
-      id: 'move',
-      label: 'Move to…',
-      onClick: () =>
-        setMoving({
-          kind: 'folder',
-          id: folder.id,
-          name: folder.name,
-          parentId: folder.parentId,
-        }),
-    },
-    { type: 'divider' as const },
-    {
-      id: 'delete',
-      label: 'Delete folder',
-      variant: 'destructive' as const,
-      onClick: () => setDeletingFolder(folder),
-    },
+    ...(canEdit
+      ? [
+          { id: 'rename', label: 'Rename', onClick: () => setRenaming(folder) },
+          {
+            id: 'move',
+            label: 'Move to…',
+            onClick: () =>
+              setMoving({
+                kind: 'folder',
+                id: folder.id,
+                name: folder.name,
+                parentId: folder.parentId ?? null,
+              }),
+          },
+          { type: 'divider' as const },
+          {
+            id: 'delete',
+            label: 'Delete folder',
+            variant: 'destructive' as const,
+            onClick: () => setDeletingFolder(folder),
+          },
+        ]
+      : []),
   ]
 
   const linkMenu = (link: ShortLink) => [
     { id: 'open', label: 'Open details', onClick: () => openLink(link.id) },
-    { id: 'edit', label: 'Edit', onClick: () => editLink(link.id) },
-    {
-      id: 'duplicate',
-      label: 'Duplicate',
-      onClick: () => run(async () => editLink((await duplicateLink(link.id)).id)),
-    },
-    { type: 'divider' as const },
-    isOnHold(link)
-      ? {
-          id: 'release',
-          label: 'Release hold',
-          onClick: () => run(() => setLinkHold(link.id, null)),
-        }
-      : {
-          id: 'hold',
-          label: 'Put on hold',
-          onClick: () =>
-            run(() => setLinkHold(link.id, { page: link.hold?.page ?? 'bad-gateway' })),
-        },
-    {
-      id: 'move',
-      label: 'Move to…',
-      onClick: () =>
-        setMoving({
-          kind: 'link',
-          id: link.id,
-          name: link.title,
-          folderId: link.folderId ?? null,
-        }),
-    },
-    { type: 'divider' as const },
-    {
-      id: 'delete',
-      label: 'Delete link',
-      variant: 'destructive' as const,
-      onClick: () => setDeletingLink(link),
-    },
+    ...(canEdit
+      ? [
+          { id: 'edit', label: 'Edit', onClick: () => editLink(link.id) },
+          {
+            id: 'duplicate',
+            label: 'Duplicate',
+            onClick: () => run(async () => editLink((await duplicateLink(link.id)).id)),
+          },
+          { type: 'divider' as const },
+          isOnHold(link)
+            ? {
+                id: 'release',
+                label: 'Release hold',
+                onClick: () => run(() => setLinkHold(link.id, null)),
+              }
+            : {
+                id: 'hold',
+                label: 'Put on hold',
+                onClick: () =>
+                  run(() => setLinkHold(link.id, { page: link.hold?.page ?? 'bad-gateway' })),
+              },
+          {
+            id: 'move',
+            label: 'Move to…',
+            onClick: () =>
+              setMoving({
+                kind: 'link',
+                id: link.id,
+                name: linkTitle(link),
+                folderId: link.folderId ?? null,
+              }),
+          },
+          { type: 'divider' as const },
+          {
+            id: 'delete',
+            label: 'Delete link',
+            variant: 'destructive' as const,
+            onClick: () => setDeletingLink(link),
+          },
+        ]
+      : []),
   ]
 
   const breadcrumbDrop = (key: string, destinationId: string | null) => ({
@@ -255,22 +268,26 @@ export default function LinksBrowser({
           ))}
         </Breadcrumbs>
         <HStack gap={2} vAlign="center">
-          <Button
-            variant="ghost"
-            size="sm"
-            label="Import CSV"
-            onClick={() => setIsImportOpen(true)}
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            label="New folder"
-            icon={<PlusIcon size={14} />}
-            endContent={<ShortcutChip>F</ShortcutChip>}
-            aria-keyshortcuts="F"
-            isDisabled={!canCreateFolderHere}
-            onClick={() => setNewFolderOpen(true)}
-          />
+          {canEdit ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                label="Import CSV"
+                onClick={() => setIsImportOpen(true)}
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                label="New folder"
+                icon={<PlusIcon size={14} />}
+                endContent={<ShortcutChip>F</ShortcutChip>}
+                aria-keyshortcuts="F"
+                isDisabled={!canCreateFolderHere}
+                onClick={() => setNewFolderOpen(true)}
+              />
+            </>
+          ) : null}
         </HStack>
       </HStack>
 
@@ -278,9 +295,11 @@ export default function LinksBrowser({
         <EmptyState
           title={currentFolder ? 'This folder is empty' : 'No links yet'}
           description={
-            currentFolder
-              ? 'Drag links or folders here, or create a subfolder to keep things tidy.'
-              : 'Create a folder to start organizing your links.'
+            !canEdit
+              ? 'Links your team adds will appear here.'
+              : currentFolder
+                ? 'Drag links or folders here, or create a subfolder to keep things tidy.'
+                : 'Create a folder to start organizing your links.'
           }
           icon={
             currentFolder ? (
@@ -290,19 +309,21 @@ export default function LinksBrowser({
             )
           }
           actions={
-            <HStack gap={2}>
-              <Button
-                variant="secondary"
-                label="Import CSV"
-                onClick={() => setIsImportOpen(true)}
-              />
-              <Button
-                variant="primary"
-                label="New folder"
-                icon={<PlusIcon size={14} />}
-                onClick={() => setNewFolderOpen(true)}
-              />
-            </HStack>
+            canEdit ? (
+              <HStack gap={2}>
+                <Button
+                  variant="secondary"
+                  label="Import CSV"
+                  onClick={() => setIsImportOpen(true)}
+                />
+                <Button
+                  variant="primary"
+                  label="New folder"
+                  icon={<PlusIcon size={14} />}
+                  onClick={() => setNewFolderOpen(true)}
+                />
+              </HStack>
+            ) : undefined
           }
         />
       ) : (

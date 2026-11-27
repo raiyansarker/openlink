@@ -20,20 +20,27 @@ export const OrganizationMembership = type({
   joinedAt: 'string',
 })
 
+/**
+ * A workspace logo: a PNG, JPEG, WebP or GIF of at most 1 MB, sent as a file
+ * field in a `multipart/form-data` body. The browser app sends a 256px WebP.
+ */
+export const OrganizationLogo = type.instanceOf(Blob)
+
 export const CreateOrganizationRequest = type({
   name: 'string',
-  slug: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-  /** Optional; a bootstrap invite is consumed when one is given. */
-  'inviteToken?': 'string',
+  /** The workspace URL. Left out, one is generated from the name and made unique. */
+  'slug?': /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+  /** Stored with the workspace in the same request; a bad image creates nothing. */
+  'logo?': OrganizationLogo,
 })
+
+/** A free workspace URL for a name, at the time of asking: `raiyans-workspace`, or with a suffix. */
+export const OrganizationSlugSuggestionQuery = type({ name: 'string <= 200' })
+export const OrganizationSlugSuggestion = type({ slug: 'string' })
 
 export const CreateOrganizationInviteRequest = type({
   email: Email,
   role: OrganizationInviteRole,
-})
-
-export const AcceptInviteRequest = type({
-  token: 'string',
 })
 
 export const OrganizationInvite = type({
@@ -42,7 +49,6 @@ export const OrganizationInvite = type({
   email: Email,
   role: OrganizationInviteRole,
   expiresAt: 'string',
-  'token?': 'string',
 })
 
 export const OrganizationIdPath = type({ organizationId: 'string' })
@@ -94,6 +100,8 @@ export const UpdateMemberRoleRequest = type({
 export const UpdateOrganizationRequest = type({
   'name?': 'string>=1',
   'slug?': /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+  /** A file replaces the logo; `null` (in a JSON body) removes it; leave it out to keep it. */
+  'logo?': OrganizationLogo.or('null'),
 })
 
 export const TransferOwnershipRequest = type({

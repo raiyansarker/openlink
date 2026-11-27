@@ -1,4 +1,7 @@
+import { useForm } from '@tanstack/react-form'
+import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { type } from 'arktype'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { VStack } from '@astryxdesign/core/VStack'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -8,16 +11,24 @@ import { TextInput } from '@astryxdesign/core/TextInput'
 import { Grid, GridSpan } from '@astryxdesign/core/Grid'
 import { Button } from '@astryxdesign/core/Button'
 import { Avatar } from '@astryxdesign/core/Avatar'
-import { Spinner } from '@astryxdesign/core/Spinner'
+import SettingsSkeleton from '#/components/settings/SettingsSkeleton'
 
 import ChangePasswordDialog from '#/components/settings/ChangePasswordDialog'
 import PasskeysSettingsBlock from '#/components/settings/PasskeysSettingsBlock'
 import DeleteAccountDialog from '#/components/settings/DeleteAccountDialog'
 import { useCurrentUser, useLinkedAccounts, useRefreshCurrentUser } from '#/hooks/use-current-user'
-import { ProfileApi, ProfileError } from '#/lib/profile/api'
 import { SquareImage } from '#/lib/media/square-image'
-import { MediaUploads } from '#/lib/media/uploads'
+import { apiErrorMessage } from '#/lib/api/errors'
+import { orpc } from '#/lib/api/orpc'
+import { fieldStatus, submitWith } from '#/lib/forms/fields'
 import { ProfileRules } from '#/lib/profile/rules'
+
+const ProfileNameSchema = type({
+  name: type('string').narrow((value, ctx) => {
+    const check = ProfileRules.name(value)
+    return check.ok || ctx.reject({ message: check.message })
+  }),
+})
 
 const PICTURE_HELP = 'PNG, JPG, WebP, or GIF up to 10 MB. We crop it to a square.'
 
@@ -82,56 +93,53 @@ export default function ProfileSettingsFields() {
   const { user, isLoading } = useCurrentUser()
   const refresh = useRefreshCurrentUser()
   const accounts = useLinkedAccounts()
+  // Name and picture both go through PATCH /me.
+  const updateProfile = useMutation(orpc.account.updateMyProfile.mutationOptions())
 
-  const [name, setName] = useState('')
-  const [nameStatus, setNameStatus] = useState<{ message: string; tone: 'error' | 'info' } | null>(null)
-  const [isSavingName, setIsSavingName] = useState(false)
+  const [nameSaved, setNameSaved] = useState(false)
   const [pictureStatus, setPictureStatus] = useState<string | null>(null)
   const [isSavingPicture, setIsSavingPicture] = useState(false)
   const [passwordNotice, setPasswordNotice] = useState<string | null>(null)
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
+  const nameForm = useForm({
+    defaultValues: { name: user?.name ?? '' },
+    validators: {
+      onSubmit: ProfileNameSchema,
+      onSubmitAsync: async ({ value }) => {
+        const check = ProfileRules.name(value.name)
+        if (!check.ok) return { fields: { name: check.message } }
+        try {
+          await updateProfile.mutateAsync({ body: { name: check.value } })
+          await refresh()
+          setNameSaved(true)
+          return undefined
+        } catch (e) {
+          return { fields: { name: apiErrorMessage(e, 'Could not save your name.') } }
+        }
+      },
+    },
+  })
+
   // Start from the saved name, and follow it if it changes elsewhere.
   useEffect(() => {
-    if (user) setName(user.name)
+    if (user) nameForm.reset({ name: user.name })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.name])
 
   if (isLoading || !user) {
-    return <Spinner size="md" label="Loading your profile…" />
-  }
-
-  const trimmed = name.trim().replace(/\s+/g, ' ')
-  const nameCheck = ProfileRules.name(name)
-  const isNameDirty = trimmed !== user.name
-
-  const saveName = async () => {
-    if (!nameCheck.ok) {
-      setNameStatus({ message: nameCheck.message, tone: 'error' })
-      return
-    }
-    setIsSavingName(true)
-    setNameStatus(null)
-    try {
-      await ProfileApi.updateProfile({ name: nameCheck.value })
-      await refresh()
-      setNameStatus({ message: 'Saved.', tone: 'info' })
-    } catch (e) {
-      setNameStatus({ message: e instanceof ProfileError ? e.message : 'Could not save your name.', tone: 'error' })
-    } finally {
-      setIsSavingName(false)
-    }
+    return <SettingsSkeleton count={4} label="Loading your profile…" />
   }
 
   const savePicture = async (image: Blob | null) => {
     setIsSavingPicture(true)
     setPictureStatus(null)
     try {
-      if (image) await MediaUploads.setAvatar(image)
-      else await MediaUploads.clearAvatar()
+      await updateProfile.mutateAsync({ body: { image } })
       await refresh()
     } catch (e) {
-      setPictureStatus(e instanceof Error ? e.message : 'Could not update your picture.')
+      setPictureStatus(apiErrorMessage(e, 'Could not update your picture.'))
     } finally {
       setIsSavingPicture(false)
     }
@@ -212,35 +220,43 @@ export default function ProfileSettingsFields() {
       <ProfileBlock title="Name" description="Shown on your profile and to people in workspaces you join.">
         <form
           style={{ width: '100%' }}
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (isNameDirty && !isSavingName) void saveName()
-          }}
+          noValidate
+          onSubmit={submitWith(nameForm)}
         >
           <VStack gap={2} hAlign="start" width="100%">
-            <TextInput
-              label="Full name"
-              size="sm"
-              width="100%"
-              value={name}
-              onChange={(value) => {
-                setName(value)
-                setNameStatus(null)
-              }}
-              autoComplete="name"
-              status={nameStatus?.tone === 'error' ? { type: 'error', message: nameStatus.message } : undefined}
-            />
-            <HStack gap={3} vAlign="center">
-              <Button
-                variant="primary"
-                size="sm"
-                type="submit"
-                label="Save"
-                isDisabled={!isNameDirty}
-                isLoading={isSavingName}
-              />
-              {nameStatus?.tone === 'info' ? <Status message={nameStatus.message} tone="info" /> : null}
-            </HStack>
+            <nameForm.Field name="name">
+              {(field) => (
+                <TextInput
+                  label="Full name"
+                  size="sm"
+                  width="100%"
+                  value={field.state.value}
+                  onChange={(value) => {
+                    setNameSaved(false)
+                    field.handleChange(value)
+                  }}
+                  autoComplete="name"
+                  status={fieldStatus(field.state.meta.errors)}
+                />
+              )}
+            </nameForm.Field>
+            <nameForm.Subscribe
+              selector={(state) => [state.values.name, state.isSubmitting] as const}
+            >
+              {([name, isSubmitting]) => (
+                <HStack gap={3} vAlign="center">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    type="submit"
+                    label="Save"
+                    isDisabled={name.trim().replace(/\s+/g, ' ') === user.name}
+                    isLoading={isSubmitting}
+                  />
+                  {nameSaved ? <Status message="Saved." tone="info" /> : null}
+                </HStack>
+              )}
+            </nameForm.Subscribe>
           </VStack>
         </form>
       </ProfileBlock>

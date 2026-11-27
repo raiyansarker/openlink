@@ -8,7 +8,7 @@ import { Effect } from 'effect'
 
 import { Db } from '#/server/effect/services/db'
 import { hashInviteToken } from '#/server/org/invites'
-import { acceptMemberInvite, createOrganizationWithBootstrapInvite } from '#/server/org/service'
+import { acceptInviteById, createOrganizationForUser } from '#/server/org/service'
 import { createTestDatabase } from '#/server/testing/sqlite'
 import { Onboarding } from './onboarding'
 
@@ -43,9 +43,9 @@ describe('Onboarding', () => {
     expect(await t.run(Onboarding.isComplete('unknown'))).toBe(false)
   })
 
-  test('creating a first workspace needs no invite token and completes onboarding', async () => {
+  test('creating a first workspace completes onboarding', async () => {
     const t = setup()
-    const org = await t.run(createOrganizationWithBootstrapInvite({ userId: 'u1', name: 'Acme', slug: 'acme' }))
+    const org = await t.run(createOrganizationForUser({ id: crypto.randomUUID(), userId: 'u1', name: 'Acme', slug: 'acme' }))
     expect(org.slug).toBe('acme')
     expect(t.onboardedAt('u1')).not.toBeNull()
     const owner = t.adapter.select().from(organizationMember).where(eq(organizationMember.userId, 'u1')).get()
@@ -53,29 +53,22 @@ describe('Onboarding', () => {
     expect(t.onboardedAt('u2')).toBeNull()
   })
 
-  test('a given token must still be valid, and nothing is written when it is not', async () => {
-    const t = setup()
-    const error = await t.flip(createOrganizationWithBootstrapInvite({ userId: 'u1', name: 'Acme', slug: 'acme', inviteToken: 'nope' }))
-    expect(error).toMatchObject({ _tag: 'InvalidBootstrapInvite' })
-    expect(t.onboardedAt('u1')).toBeNull()
-  })
-
   test('a taken slug fails without completing onboarding', async () => {
     const t = setup()
-    await t.run(createOrganizationWithBootstrapInvite({ userId: 'u1', name: 'Acme', slug: 'acme' }))
-    const error = await t.flip(createOrganizationWithBootstrapInvite({ userId: 'u2', name: 'Acme 2', slug: 'acme' }))
+    await t.run(createOrganizationForUser({ id: crypto.randomUUID(), userId: 'u1', name: 'Acme', slug: 'acme' }))
+    const error = await t.flip(createOrganizationForUser({ id: crypto.randomUUID(), userId: 'u2', name: 'Acme 2', slug: 'acme' }))
     expect(error).toMatchObject({ _tag: 'OrganizationConflict' })
     expect(t.onboardedAt('u2')).toBeNull()
   })
 
   test('joining a workspace by invite also completes onboarding', async () => {
     const t = setup()
-    const org = await t.run(createOrganizationWithBootstrapInvite({ userId: 'u1', name: 'Acme', slug: 'acme' }))
+    const org = await t.run(createOrganizationForUser({ id: crypto.randomUUID(), userId: 'u1', name: 'Acme', slug: 'acme' }))
     t.adapter.insert(organizationInvite).values({
       id: 'i1', organizationId: org.id, email: 'bob@e.test', role: 'member', tokenHash: hashInviteToken('tok'),
       kind: 'member', expiresAt: new Date('2999-01-01'), createdAt: t.now,
     }).run()
-    await t.run(acceptMemberInvite({ userId: 'u2', userEmail: 'bob@e.test', token: 'tok' }))
+    await t.run(acceptInviteById({ inviteId: 'i1', userId: 'u2', userEmail: 'bob@e.test' }))
     expect(t.onboardedAt('u2')).not.toBeNull()
   })
 })

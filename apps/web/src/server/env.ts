@@ -2,6 +2,8 @@ import { env } from 'cloudflare:workers'
 import type { AnalyticsEngineDataset, D1Database } from '@cloudflare/workers-types'
 import type { OpenLinkDomainEnv } from '@openlink/domain'
 
+import type { EmailEvent } from './email/events'
+
 export type WorkerBindings = OpenLinkDomainEnv & {
   DB: D1Database
   ANALYTICS: AnalyticsEngineDataset
@@ -9,11 +11,19 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   MEDIA: R2Bucket
   /** Caps password attempts on protected links (3 per minute per link and IP). */
   LINK_PASSWORD_LIMITER: RateLimit
+  /** Outgoing email. `EmailDispatch` starts a run per email event (`EmailWorkflow`), which builds the email from D1 and sends it. */
+  EMAIL_WORKFLOW?: Workflow<EmailEvent>
+  /** Amazon SES credentials (Worker secrets) for production email. Not needed under `vite dev`, which sends to Mailtrap Local. */
+  AWS_SES_ACCESS_KEY_ID?: string
+  AWS_SES_SECRET_ACCESS_KEY?: string
+  /** SES region, e.g. `us-east-1`. The sender identity must be verified there. */
+  AWS_SES_REGION?: string
+  /** Sender, e.g. `OpenLink <no-reply@example.com>`. Set in `wrangler.jsonc`; the address or domain must be verified in Amazon SES. */
+  EMAIL_FROM?: string
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_URL: string
   /** Extra origins allowed to call the auth API (comma separated), e.g. previews. */
   BETTER_AUTH_TRUSTED_ORIGINS?: string
-  BOOTSTRAP_ORG_INVITE_TOKEN?: string
   /** Email and password sign-in is on unless this is `"false"`. */
   EMAIL_PASSWORD_SIGN_IN?: string
   /** OAuth providers switch on only when both the id and secret are set. */
@@ -21,8 +31,6 @@ export type WorkerBindings = OpenLinkDomainEnv & {
   GOOGLE_CLIENT_SECRET?: string
   GITHUB_CLIENT_ID?: string
   GITHUB_CLIENT_SECRET?: string
-  /** When `"true"`, create-invite responses include the raw token (local dev only). */
-  EXPOSE_INVITE_TOKENS_IN_API?: string
 }
 
 export function getBindings(): WorkerBindings {

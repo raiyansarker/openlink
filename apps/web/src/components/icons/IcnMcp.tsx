@@ -229,6 +229,15 @@ export function CircleCheckIcon({ size = 16, ...p }: SvgProps) {
 }
 
 /** iconmcp: circle-check (solid / filled) */
+export function CopyIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" />
+      <path d="M11.5 3.5 H4.5 A1.5 1.5 0 0 0 3 5 V11.5" />
+    </svg>
+  )
+}
+
 export function CircleCheckSolidIcon({ size = 16, ...p }: SvgProps) {
   return (
     <svg
@@ -340,6 +349,26 @@ export function FolderIcon({ size = 16, ...p }: SvgProps) {
       <path d="M2.5 5.25 C2.5 4.284 3.284 3.5 4.25 3.5 L6.2 3.5 C6.5 3.5 6.78 3.63 6.97 3.86 L7.78 4.84 C7.97 5.07 8.25 5.2 8.55 5.2 L11.75 5.2 C12.716 5.2 13.5 5.984 13.5 6.95 L13.5 10.75 C13.5 11.716 12.716 12.5 11.75 12.5 L4.25 12.5 C3.284 12.5 2.5 11.716 2.5 10.75 Z" />
       {/* Front flap edge, separates the tab from the body */}
       <path d="M2.5 7 L13.5 7" />
+    </svg>
+  )
+}
+
+/** iconmcp: menu (three bars) */
+export function MenuIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M2.5 4.25 H13.5" />
+      <path d="M2.5 8 H13.5" />
+      <path d="M2.5 11.75 H13.5" />
+    </svg>
+  )
+}
+
+/** iconmcp: chevron-down */
+export function ChevronDownIcon({ size = 16, ...p }: SvgProps) {
+  return (
+    <svg {...base(size)} {...p}>
+      <path d="M4 6 L8 10 L12 6" />
     </svg>
   )
 }

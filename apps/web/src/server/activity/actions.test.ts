@@ -5,7 +5,7 @@ import { ACTION_DEFINITIONS, diffLink, isKnownAction, linkUpdateAction } from '.
 const now = new Date('2026-01-01T00:00:00Z')
 const row = (overrides: Partial<typeof link.$inferSelect> = {}): typeof link.$inferSelect => ({
   id: 'l1', organizationId: 'o1', domainId: 'd1', folderId: null, slug: 's', alias: null, title: null,
-  description: null, destinationUrl: 'https://example.com', redirectStatus: 302, status: 'active',
+  description: null, destinationUrl: 'https://example.com', status: 'active',
   enabled: true, activateAt: null, expiresAt: null, maxClicks: null, clickCount: 0, passwordHash: null,
   expiredDestinationUrl: null, fallbackDestinationUrl: null, tagsJson: '[]', utmJson: null,
   metadataJson: null, deliveryJson: null, createdByUserId: null, createdAt: now, updatedAt: now, ...overrides,
@@ -19,12 +19,11 @@ describe('diffLink', () => {
   test('lists changed fields with before and after values', () => {
     const changes = diffLink(
       row(),
-      row({ destinationUrl: 'https://example.com/new', title: 'Hi', redirectStatus: 301, tagsJson: '["a","b"]' }),
+      row({ destinationUrl: 'https://example.com/new', title: 'Hi', tagsJson: '["a","b"]' }),
     )
     expect(changes).toEqual([
       { label: 'Destination', from: 'https://example.com', to: 'https://example.com/new' },
       { label: 'Title', from: '—', to: 'Hi' },
-      { label: 'Redirect status', from: '302', to: '301' },
       { label: 'Tags', from: '—', to: 'a, b' },
     ])
   })

@@ -6,7 +6,10 @@ import {
   SETTINGS_USER_SECTIONS,
   SETTINGS_WORKSPACE_SECTIONS,
   type SettingsSection,
+  type SettingsWorkspaceSection,
 } from '#/lib/settings/sections'
+import { isAdmin } from '#/lib/perms/permissions'
+import { ActiveWorkspace } from '#/lib/dashboard/org-slug'
 import { SETTINGS_SECTION_ICONS } from './settings-nav-icons'
 import { LogOutIcon } from '#/components/icons/IcnMcp'
 import {
@@ -75,6 +78,7 @@ function SettingsNavLink({
   return (
     <Link
       to={to}
+      className="ol-focus-ring"
       style={{ ...navLinkBaseStyle, fontWeight: 400, color: SHELL_NAV_TEXT_SECONDARY, backgroundColor: navItemBackground(false, hovered) }}
       activeProps={{
         style: { ...navLinkBaseStyle, fontWeight: 600, color: SHELL_NAV_TEXT_PRIMARY, backgroundColor: navItemBackground(true, hovered) },
@@ -146,6 +150,12 @@ export default function SettingsNavColumn() {
   const { organizations, status } = useWorkspaceDirectory()
   // Hide workspace sections only once we know there are none (not while loading).
   const hasNoWorkspaces = status === 'ready' && organizations.length === 0
+  // API-key settings manage the workspace itself: owners and admins only,
+  // decided by the active workspace's role.
+  const activeOrg = ActiveWorkspace.pick(organizations)
+  const sectionVisible = (section: SettingsWorkspaceSection) =>
+    section !== 'api-keys' ? true : activeOrg?.role ? isAdmin(activeOrg.role) : false
+  const workspaceSections = SETTINGS_WORKSPACE_SECTIONS.filter((section) => sectionVisible(section.id))
 
   const signOut = async () => {
     try {
@@ -169,6 +179,7 @@ export default function SettingsNavColumn() {
       }}
     >
       <button
+        className="ol-focus-ring"
         type="button"
         aria-label="Back to dashboard"
         onClick={() => void navigate({ to: '/w' })}
@@ -176,12 +187,13 @@ export default function SettingsNavColumn() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
-          padding: '2px 0',
-          marginBottom: 18,
-          marginLeft: -3,
+          padding: '4px 10px 4px 6px',
+          marginBottom: 14,
+          marginLeft: -9,
           alignSelf: 'flex-start',
           border: 'none',
-          borderRadius: 0,
+          // Room and rounded corners, so the focus ring isn't a tight box on the text.
+          borderRadius: 'var(--radius-element)',
           cursor: 'pointer',
           backgroundColor: 'transparent',
           color: SHELL_NAV_TEXT_PRIMARY,
@@ -196,6 +208,7 @@ export default function SettingsNavColumn() {
       </button>
 
       <nav
+        className="focus-inset"
         style={{
           flex: 1,
           display: 'flex',
@@ -217,7 +230,7 @@ export default function SettingsNavColumn() {
 
         {!hasNoWorkspaces ? (
           <NavGroup label="Workspace">
-            {SETTINGS_WORKSPACE_SECTIONS.map((item) => (
+            {workspaceSections.map((item) => (
               <SettingsNavLink
                 key={item.id}
                 section={item.id}
@@ -230,6 +243,7 @@ export default function SettingsNavColumn() {
 
         <NavGroup label="Other">
           <button
+            className="ol-focus-ring"
             type="button"
             onClick={() => void signOut()}
             style={{

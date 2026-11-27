@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { FOLDER_BLUE } from '#/components/links/folder-colors'
@@ -17,8 +17,8 @@ export default function SocialPreviewCard({
   description,
   imageUrl,
 }: SocialPreviewCardProps) {
-  const [imageFailed, setImageFailed] = useState(false)
-  useEffect(() => setImageFailed(false), [imageUrl])
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const imageFailed = failedUrl === imageUrl
   const showImage = imageUrl && !imageFailed
 
   return (
@@ -47,7 +47,7 @@ export default function SocialPreviewCard({
           <img
             src={imageUrl}
             alt=""
-            onError={() => setImageFailed(true)}
+            onError={() => setFailedUrl(imageUrl)}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (

@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
-import type { Organization } from '#/data/demo/types'
+import { useMediaQuery } from '@astryxdesign/core/hooks'
+import type { Workspace } from '#/lib/api/types'
 import OrganizationIconRail from './OrganizationIconRail'
 import DashboardNavColumn from './DashboardNavColumn'
+import MobileDashboardShell from './MobileDashboardShell'
 import {
   DASHBOARD_CONTENT_PANEL_BG,
   DASHBOARD_CONTENT_PANEL_BORDER,
@@ -11,31 +13,46 @@ import {
 } from './dashboard-shell-colors'
 
 type ThreeColumnDashboardLayoutProps = {
-  organizations: Organization[]
+  organizations: Workspace[]
   activeOrgSlug: string
   children: ReactNode
 }
+
+/**
+ * Responsive contract:
+ *   ≥ 768px: three regions — org rail | nav column | content.
+ *   < 768px: the app shell — workspace pill + bottom tabs + create FAB
+ *            (MobileDashboardShell), swapped in by useMediaQuery here.
+ */
+const IS_PHONE = '(max-width: 767px)'
 
 export default function ThreeColumnDashboardLayout({
   organizations,
   activeOrgSlug,
   children,
 }: ThreeColumnDashboardLayoutProps) {
+  const isPhone = useMediaQuery(IS_PHONE)
+
+  if (isPhone) {
+    return (
+      <MobileDashboardShell organizations={organizations} activeOrgSlug={activeOrgSlug}>
+        {children}
+      </MobileDashboardShell>
+    )
+  }
+
   return (
     <div
       style={{
         display: 'flex',
+        flexDirection: isPhone ? 'column' : 'row',
         width: '100%',
         height: '100dvh',
         overflow: 'hidden',
         backgroundColor: DASHBOARD_SURFACE_BG,
       }}
     >
-      <OrganizationIconRail
-        organizations={organizations}
-        activeOrgSlug={activeOrgSlug}
-      />
-
+      <OrganizationIconRail organizations={organizations} activeOrgSlug={activeOrgSlug} />
       <DashboardNavColumn />
 
       <div

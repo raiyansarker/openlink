@@ -4,7 +4,7 @@ import {
   DASHBOARD_SURFACE_BG,
   SHELL_NAV_TEXT_PRIMARY,
 } from '#/components/dashboard/layout/dashboard-shell-colors'
-import { useKeyPress } from '#/hooks/use-key-press'
+import { useShortcut } from '#/hooks/use-shortcut'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 
 /** Match create-organization (~24rem). */
@@ -41,7 +41,7 @@ export default function DomainFlowShell({
   const domainsPath = WorkspaceUrl.build(orgSlug, 'domains')
   const navigate = useNavigate()
   // Escape goes back to Domains, like the back link; open menus/dialogs get it first.
-  useKeyPress('Escape', () => void navigate({ to: domainsPath }), { allowInInputs: true })
+  useShortcut('Escape', () => void navigate({ to: domainsPath }))
 
   return (
     <div
@@ -69,13 +69,16 @@ export default function DomainFlowShell({
       >
         <Link
           to={domainsPath}
+          className="ol-focus-ring"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            padding: '2px 0',
+            padding: '4px 10px 4px 6px',
+            marginLeft: -6,
             border: 'none',
-            borderRadius: 0,
+            // Room and rounded corners, so the focus ring isn't a tight box on the text.
+            borderRadius: 'var(--radius-element)',
             cursor: 'pointer',
             backgroundColor: 'transparent',
             color: SHELL_NAV_TEXT_PRIMARY,

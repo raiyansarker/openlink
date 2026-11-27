@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { type } from 'arktype'
 import { Button } from '@astryxdesign/core/Button'
-import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
+import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
 import { HStack } from '@astryxdesign/core/HStack'
-import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import {
   SegmentedControl,
   SegmentedControlItem,
@@ -11,83 +12,105 @@ import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import ApiKeySecretField from '#/components/settings/ApiKeySecretField'
-import {
-  FLOATING_END_DRAWER_PADDING,
-  floatingEndDrawerStyle,
-} from '#/components/members/floating-end-drawer'
-import { API_KEY_ASSIGNABLE_ROLES } from '#/data/demo/api-keys'
-import type { WorkspaceMemberRole } from '#/data/demo/types'
+import { ASSIGNABLE_WORKSPACE_ROLES as API_KEY_ASSIGNABLE_ROLES } from '#/lib/members/role-help'
+import { useOpenSession } from '#/hooks/use-open-session'
+import type { Role } from '#/lib/api/types'
 import { WORKSPACE_MEMBER_ROLE_HELP } from '#/lib/members/role-help'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
+import { fieldStatus, firstError, requiredText, submitWith } from '#/lib/forms/fields'
+
+const ApiKeySchema = type({ name: requiredText('Give the key a name.'), role: "'admin' | 'member' | 'viewer'" })
 
 type CreateApiKeyDrawerProps = {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   /** Creates the key on the server and resolves with its one-time secret. */
-  onCreate: (input: { name: string; role: WorkspaceMemberRole }) => Promise<string>
+  onCreate: (input: { name: string; role: Role }) => Promise<string>
 }
 
-export default function CreateApiKeyDrawer({
-  isOpen,
-  onOpenChange,
-  onCreate,
-}: CreateApiKeyDrawerProps) {
-  const [name, setName] = useState('')
-  const [role, setRole] = useState<WorkspaceMemberRole>('member')
+export default function CreateApiKeyDrawer(props: CreateApiKeyDrawerProps) {
+  const session = useOpenSession(props.isOpen)
+  // The form owns the panel: its title and footer depend on reveal mode.
+  return <CreateApiKeyForm key={session} {...props} />
+}
+
+function CreateApiKeyForm({ isOpen, onOpenChange, onCreate }: CreateApiKeyDrawerProps) {
   const [createdSecret, setCreatedSecret] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (isOpen) {
-      setName('')
-      setRole('member')
-      setCreatedSecret(null)
-    }
-  }, [isOpen])
+  const form = useForm({
+    defaultValues: { name: '', role: 'member' as Role },
+    validators: {
+      onSubmit: ApiKeySchema,
+      onSubmitAsync: async ({ value }) => {
+        try {
+          setCreatedSecret(await onCreate({ name: value.name.trim(), role: value.role }))
+          return undefined
+        } catch (e) {
+          return e instanceof Error ? e.message : 'Could not create the key.'
+        }
+      },
+    },
+  })
 
   const revealMode = createdSecret != null
 
-  const [isCreating, setIsCreating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleCreate = async () => {
-    const trimmed = name.trim()
-    if (!trimmed || isCreating) return
-    setIsCreating(true)
-    setError(null)
-    try {
-      setCreatedSecret(await onCreate({ name: trimmed, role }))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not create the key.')
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
   return (
-    <Drawer
+    // Phone: a bottom sheet; desktop: the floating right-side drawer.
+    <ResponsiveDetailSheet
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       label="Create API key"
-      side="end"
+      title={revealMode ? 'Save your API key' : 'Create API key'}
+      subtitle={
+        revealMode
+          ? 'This is the only time the full key is shown.'
+          : 'Keys authenticate server-side scripts and integrations.'
+      }
       width={400}
       purpose="form"
-      padding={FLOATING_END_DRAWER_PADDING}
-      style={floatingEndDrawerStyle()}
+      hasFooterDivider
+      footer={
+        <HStack gap={2} hAlign="end" width="100%" wrap="wrap">
+          {revealMode ? (
+            <Button
+              variant="primary"
+              size="sm"
+              label="Done"
+              onClick={() => onOpenChange(false)}
+            />
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                label="Cancel"
+                onClick={() => onOpenChange(false)}
+              />
+              <form.Subscribe selector={(state) => [firstError(state.errors), state.isSubmitting, state.values.name.trim() !== ''] as const}>
+                {([error, isCreating, hasName]) => (
+                  <>
+                    {error ? (
+                      <Text type="supporting" weight="medium" role="alert">
+                        {error}
+                      </Text>
+                    ) : null}
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      label="Create key"
+                      isDisabled={!hasName}
+                      isLoading={isCreating}
+                      onClick={() => void form.handleSubmit()}
+                    />
+                  </>
+                )}
+              </form.Subscribe>
+            </>
+          )}
+        </HStack>
+      }
     >
-      <Layout
-        header={
-          <DrawerHeader
-            title={revealMode ? 'Save your API key' : 'Create API key'}
-            subtitle={
-              revealMode
-                ? 'This is the only time the full key is shown.'
-                : 'Keys authenticate server-side scripts and integrations.'
-            }
-            onOpenChange={onOpenChange}
-          />
-        }
-        content={
-          <LayoutContent>
+      <div>
             {revealMode ? (
               <VStack gap={4} hAlign="stretch" width="100%">
                 <Text color="secondary" type="supporting">
@@ -97,81 +120,52 @@ export default function CreateApiKeyDrawer({
                 <ApiKeySecretField value={createdSecret ?? ''} />
               </VStack>
             ) : (
-              <VStack gap={6} hAlign="stretch" width="100%">
-                <TextInput
-                  label="Name"
-                  placeholder="e.g. Production"
-                  value={name}
-                  onChange={setName}
-                  description="A label to recognize this key later."
-                  isRequired
-                  hasAutoFocus
-                  width="100%"
-                />
-                <VStack gap={2} hAlign="stretch" width="100%">
-                  <Text weight="semibold">Workspace role</Text>
-                  <SegmentedControl
-                    label="Workspace role"
-                    value={role}
-                    onChange={(value) =>
-                      setRole(value as WorkspaceMemberRole)
-                    }
-                    layout="fill"
-                    size="sm"
-                  >
-                    {API_KEY_ASSIGNABLE_ROLES.map((option) => (
-                      <SegmentedControlItem
-                        key={option}
-                        value={option}
-                        label={workspaceMemberRoleLabel(option)}
+              <form noValidate onSubmit={submitWith(form)}>
+                <VStack gap={6} hAlign="stretch" width="100%">
+                  <form.Field name="name">
+                    {(field) => (
+                      <TextInput
+                        label="Name"
+                        placeholder="e.g. Production"
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        description="A label to recognize this key later."
+                        status={fieldStatus(field.state.meta.errors)}
+                        isRequired
+                        hasAutoFocus
+                        width="100%"
                       />
-                    ))}
-                  </SegmentedControl>
-                  <Text type="supporting" color="secondary">
-                    {WORKSPACE_MEMBER_ROLE_HELP[role]}
-                  </Text>
+                    )}
+                  </form.Field>
+                  <form.Field name="role">
+                    {(field) => (
+                      <VStack gap={2} hAlign="stretch" width="100%">
+                        <Text weight="semibold">Workspace role</Text>
+                        <SegmentedControl
+                          label="Workspace role"
+                          value={field.state.value}
+                          onChange={(value) => field.handleChange(value as Role)}
+                          layout="fill"
+                          size="sm"
+                        >
+                          {API_KEY_ASSIGNABLE_ROLES.map((option) => (
+                            <SegmentedControlItem
+                              key={option}
+                              value={option}
+                              label={workspaceMemberRoleLabel(option)}
+                            />
+                          ))}
+                        </SegmentedControl>
+                        <Text type="supporting" color="secondary">
+                          {WORKSPACE_MEMBER_ROLE_HELP[field.state.value]}
+                        </Text>
+                      </VStack>
+                    )}
+                  </form.Field>
                 </VStack>
-              </VStack>
+              </form>
             )}
-          </LayoutContent>
-        }
-        footer={
-          <LayoutFooter hasDivider>
-            <HStack gap={2} hAlign="end" width="100%" wrap="wrap">
-              {revealMode ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  label="Done"
-                  onClick={() => onOpenChange(false)}
-                />
-              ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    label="Cancel"
-                    onClick={() => onOpenChange(false)}
-                  />
-                  {error ? (
-                    <Text type="supporting" weight="medium" role="alert">
-                      {error}
-                    </Text>
-                  ) : null}
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    label="Create key"
-                    isDisabled={!name.trim()}
-                    isLoading={isCreating}
-                    onClick={() => void handleCreate()}
-                  />
-                </>
-              )}
-            </HStack>
-          </LayoutFooter>
-        }
-      />
-    </Drawer>
+      </div>
+    </ResponsiveDetailSheet>
   )
 }

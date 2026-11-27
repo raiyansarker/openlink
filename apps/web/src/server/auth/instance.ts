@@ -1,12 +1,16 @@
+import { waitUntil } from 'cloudflare:workers'
 import { getAuthenticatorName, passkey } from '@better-auth/passkey'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import * as schema from '@openlink/db/schema'
 import { getBindings } from '../env'
 import { getDb } from '../db'
+import { API_KEY_DISABLED_PATHS, apiKeyPlugins } from './api-keys'
+import { AuthEmails } from './emails'
 import { AuthLog } from './auth-log'
 import { AuthHooks } from './hooks'
 import { AuthOrigins } from './origins'
+import { authRateLimit } from './rate-limits'
 import { EmailPasswordSignIn, SocialProviders } from './providers'
 
 let auth: ReturnType<typeof createAuth> | undefined
@@ -15,6 +19,7 @@ let authConfigKey: string | undefined
 function createAuth() {
   const bindings = getBindings()
   const hooks = new AuthHooks(getDb, getBindings)
+  const emails = new AuthEmails(getBindings, getDb)
 
   return betterAuth({
     appName: 'OpenLink',
@@ -28,6 +33,9 @@ function createAuth() {
         account: schema.account,
         verification: schema.verification,
         passkey: schema.passkey,
+        apikey: schema.apikey,
+        // Read by the API key plugin to authorize workspace-owned keys (see api-keys.ts).
+        member: schema.organizationMember,
       },
     }),
     socialProviders: SocialProviders.config(bindings),
@@ -36,6 +44,7 @@ function createAuth() {
       accountLinking: { enabled: true },
     },
     trustedOrigins: AuthOrigins.trusted(bindings),
+    disabledPaths: API_KEY_DISABLED_PATHS,
     user: {
       // Blocked while the account still owns a workspace (see AccountPolicy).
       deleteUser: {
@@ -59,13 +68,32 @@ function createAuth() {
         create: { before: (session, context) => hooks.beforeCreateSession(session, context) },
       },
       user: {
-        create: { before: (user) => hooks.beforeCreateUser(user) },
+        create: {
+          before: (user) => hooks.beforeCreateUser(user),
+          // Email sign-ups are welcomed once they verify (below); social sign-ins arrive verified.
+          after: async (user) => {
+            if (user.emailVerified) await emails.welcome(user)
+          },
+        },
         update: { before: (update, context) => hooks.beforeUpdateUser(update, context?.path) },
       },
     },
     emailAndPassword: {
       enabled: EmailPasswordSignIn.enabled(bindings),
       minPasswordLength: 8,
+      // No session until the address is confirmed. A sign-in attempt does not re-send the link:
+      // the app sends people to /check-email, where they can ask for a new one.
+      requireEmailVerification: true,
+      // The workflow builds the link from the token Better Auth stored, so `url` is not passed on.
+      sendResetPassword: ({ user }, request) => emails.resetPassword(user, request),
+      onPasswordReset: ({ user }, request) => emails.passwordChanged(user, request),
+    },
+    emailVerification: {
+      sendOnSignUp: true,
+      autoSignInAfterVerification: true,
+      // The workflow mints a fresh link when it sends, so `url` is not passed on.
+      sendVerificationEmail: ({ user }, request) => emails.verifyEmail(user, request),
+      afterEmailVerification: (user) => emails.welcome(user),
     },
     plugins: [
       passkey({
@@ -81,9 +109,16 @@ function createAuth() {
           },
         },
       }),
+      ...apiKeyPlugins(),
     ],
+    rateLimit: authRateLimit(getDb),
     advanced: {
       cookiePrefix: 'openlink',
+      // Cloudflare sets this to the visitor's address; rate limits are keyed on it.
+      ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] },
+      // Reset and verification emails go out after the response, so how long a request
+      // takes never reveals whether the account exists (only real accounts get an email).
+      backgroundTasks: { handler: waitUntil },
     },
     logger: AuthLog.logger,
     onAPIError: { onError: AuthLog.onAPIError },

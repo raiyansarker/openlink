@@ -20,25 +20,26 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { useClipboard } from '@astryxdesign/core/hooks'
 import { QrBlock } from '#/components/create-link/LinkPreviewPanel'
 import LinkAnalyticsSection from '#/components/analytics/LinkAnalyticsSection'
-import LinkNotes, { lastNotesEdit } from '#/components/link-detail/LinkNotes'
+import LinkNotes from '#/components/link-detail/LinkNotes'
+import { lastNotesEdit } from '#/lib/links/history'
 import { useLinkHistory } from '#/hooks/use-link-history'
-import { QueryKeys } from '#/lib/api/query'
+import { orpc } from '#/lib/api/orpc'
 import LinkHistoryTimeline, { type HistoryKind } from '#/components/link-detail/LinkHistoryTimeline'
 import LinkSettingsPanel from '#/components/link-detail/LinkSettingsPanel'
 import EmptyLinksIllustration from '#/components/links/EmptyLinksIllustration'
 import MoveToFolderDialog, { type MoveSubject } from '#/components/links/MoveToFolderDialog'
 import { FolderIcon, MoreHorizontalIcon } from '#/components/icons/IcnMcp'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { ShortLink } from '#/data/demo/types'
+import { usePermissions } from '#/hooks/use-permissions'
+import type { ShortLink } from '#/lib/api/types'
 import { WorkspaceUrl } from '#/lib/dashboard/build-org-path'
 import { formatNumber } from '#/lib/analytics/format'
 import type { AnalyticsView } from '#/lib/analytics/search'
 import { isOnHold } from '#/lib/links/create-link'
 import { getFolderPath } from '#/lib/links/folder-tree'
-import { linkStatusLabel, linkStatusLine } from '#/lib/links/link-summary'
+import { linkStatusLabel, linkStatusLine, linkTargetUrl, linkTitle } from '#/lib/links/link-summary'
 
-export const LINK_DETAIL_TABS = ['analytics', 'notes', 'settings', 'history'] as const
-export type LinkDetailTab = (typeof LINK_DETAIL_TABS)[number]
+import type { LinkDetailTab } from '#/lib/links/link-detail-tabs'
 
 type LinkDetailPageProps = {
   linkId: string
@@ -69,12 +70,15 @@ function TabCount({ count }: { count: number }) {
 function LinkHeader({
   link,
   shortUrl,
+  canEdit,
   onEdit,
   onShowQr,
   menuItems,
 }: {
   link: ShortLink
   shortUrl: string
+  /** Whether the role may write this link (Edit + the more menu stay hidden otherwise). */
+  canEdit: boolean
   onEdit: () => void
   onShowQr: () => void
   menuItems: NonNullable<ComponentProps<typeof DropdownMenu>['items']>
@@ -90,7 +94,7 @@ function LinkHeader({
             {linkStatusLabel(link)}
           </Text>
           <Text type="supporting" color="secondary">
-            {link.clicks > 0 ? `${formatNumber(link.clicks)} lifetime clicks · ` : ''}
+            {link.clickCount > 0 ? `${formatNumber(link.clickCount)} lifetime clicks · ` : ''}
             {linkStatusLine(link)}
           </Text>
         </HStack>
@@ -105,29 +109,31 @@ function LinkHeader({
           rel="noopener noreferrer"
         />
         <Button variant="secondary" label="QR code" onClick={onShowQr} />
-        <Button variant="secondary" label="Edit" onClick={onEdit} />
+        {canEdit ? <Button variant="secondary" label="Edit" onClick={onEdit} /> : null}
         <Button
           variant="primary"
           label={isCopied ? 'Copied' : 'Copy link'}
           onClick={() => void copy(shortUrl)}
         />
-        <DropdownMenu
-          hasChevron={false}
-          presentation="popover"
-          placement="below"
-          alignment="end"
-          menuWidth={210}
-          renderTrigger={(triggerProps) => (
-            <IconButton
-              {...triggerProps}
-              variant="secondary"
-              label="More actions"
-              tooltip="More actions"
-              icon={<MoreHorizontalIcon size={16} />}
-            />
-          )}
-          items={menuItems}
-        />
+        {canEdit ? (
+          <DropdownMenu
+            hasChevron={false}
+            presentation="popover"
+            placement="below"
+            alignment="end"
+            menuWidth={210}
+            renderTrigger={(triggerProps) => (
+              <IconButton
+                {...triggerProps}
+                variant="secondary"
+                label="More actions"
+                tooltip="More actions"
+                icon={<MoreHorizontalIcon size={16} />}
+              />
+            )}
+            items={menuItems}
+          />
+        ) : null}
       </HStack>
     </HStack>
   )
@@ -197,6 +203,8 @@ export default function LinkDetailPage({
     shortHostFor,
     shortUrlFor,
   } = useOrganization()
+  // Viewers browse and copy; every write action below stays hidden for them.
+  const { canManageLinks: canEdit } = usePermissions()
   const [moving, setMoving] = useState<MoveSubject | null>(null)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isQrOpen, setIsQrOpen] = useState(false)
@@ -248,37 +256,41 @@ export default function LinkDetailPage({
     {
       id: 'open',
       label: 'Open destination',
-      onClick: () => void window.open(link.targetUrl, '_blank', 'noopener,noreferrer'),
+      onClick: () => void window.open(linkTargetUrl(link), '_blank', 'noopener,noreferrer'),
     },
-    {
-      id: 'hold',
-      label: held ? 'Release hold' : 'Put on hold',
-      onClick: () => run(() => setLinkHold(link.id, held ? null : { page: link.hold?.page ?? 'bad-gateway' })),
-    },
-    { type: 'divider' as const },
-    {
-      id: 'duplicate',
-      label: 'Duplicate',
-      onClick: () => run(async () => openEdit((await duplicateLink(link.id)).id)),
-    },
-    {
-      id: 'move',
-      label: 'Move to…',
-      onClick: () =>
-        setMoving({
-          kind: 'link',
-          id: link.id,
-          name: link.title,
-          folderId: link.folderId ?? null,
-        }),
-    },
-    { type: 'divider' as const },
-    {
-      id: 'delete',
-      label: 'Delete link',
-      variant: 'destructive' as const,
-      onClick: () => setIsDeleteOpen(true),
-    },
+    ...(canEdit
+      ? [
+          {
+            id: 'hold',
+            label: held ? 'Release hold' : 'Put on hold',
+            onClick: () => run(() => setLinkHold(link.id, held ? null : { page: link.hold?.page ?? 'bad-gateway' })),
+          },
+          { type: 'divider' as const },
+          {
+            id: 'duplicate',
+            label: 'Duplicate',
+            onClick: () => run(async () => openEdit((await duplicateLink(link.id)).id)),
+          },
+          {
+            id: 'move',
+            label: 'Move to…',
+            onClick: () =>
+              setMoving({
+                kind: 'link',
+                id: link.id,
+                name: linkTitle(link),
+                folderId: link.folderId ?? null,
+              }),
+          },
+          { type: 'divider' as const },
+          {
+            id: 'delete',
+            label: 'Delete link',
+            variant: 'destructive' as const,
+            onClick: () => setIsDeleteOpen(true),
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -301,6 +313,7 @@ export default function LinkDetailPage({
         <LinkHeader
           link={link}
           shortUrl={shortUrl}
+          canEdit={canEdit}
           onEdit={() => openEdit()}
           onShowQr={() => setIsQrOpen(true)}
           menuItems={menuItems}
@@ -358,9 +371,10 @@ export default function LinkDetailPage({
             <LinkNotes
               notes={link.description ?? ''}
               lastEdit={lastNotesEdit(history.events)}
+              isReadOnly={!canEdit}
               onSave={async (notes) => {
                 await saveLinkNotes(link.id, notes)
-                void queryClient.invalidateQueries({ queryKey: QueryKeys.linkHistory(activeOrg.id, link.id) })
+                void queryClient.invalidateQueries({ queryKey: orpc.links.getWorkspaceLinkHistory.key({ input: { params: { organizationId: activeOrg.id, linkId: link.id } } }) })
               }}
             />
           ) : null}

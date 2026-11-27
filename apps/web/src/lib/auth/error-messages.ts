@@ -19,6 +19,7 @@ export class AuthErrorMessages {
   /** Message for a failed email sign-in; never reveals whether the email exists. */
   static emailSignIn(error: { status?: number; code?: string } | null | undefined): string {
     if (!error) return 'Sign-in failed. Please try again.'
+    if (error.code?.toUpperCase() === 'EMAIL_NOT_VERIFIED') return 'Verify your email first. Use the link we sent you, or request a new one.'
     if (error.status === 429) return 'Too many attempts. Wait a moment and try again.'
     if (error.status && error.status >= 500) return 'Sign-in is unavailable right now. Please try again.'
     // Not a credentials problem: the request itself was refused (for example a blocked origin).
@@ -29,7 +30,7 @@ export class AuthErrorMessages {
   /** Message for a failed email sign-up. */
   static emailSignUp(error: { status?: number; code?: string; message?: string } | null | undefined): string {
     if (!error) return 'Could not create the account. Please try again.'
-    if (error.status === 429) return 'Too many attempts. Wait a moment and try again.'
+    if (error.status === 429) return 'Too many sign-ups from this network. Try again later.'
     if (error.status && error.status >= 500) return 'Sign-up is unavailable right now. Please try again.'
     const code = error.code?.toUpperCase() ?? ''
     if (code.includes('ALREADY_EXISTS') || code.includes('USER_EXISTS')) {
@@ -39,6 +40,26 @@ export class AuthErrorMessages {
     if (code.includes('PASSWORD_TOO_LONG')) return 'That password is too long.'
     if (code.includes('INVALID_EMAIL')) return 'Enter a valid email address.'
     return 'Could not create the account. Please try again.'
+  }
+
+  /**
+   * Message for a failed password-reset request. Unknown emails succeed on purpose,
+   * so only a rate limit or an outage is worth reporting.
+   */
+  static requestReset(error: { status?: number } | null | undefined): string | null {
+    if (!error) return null
+    if (error.status === 429) return 'Too many reset requests. Try again tomorrow.'
+    return 'Could not send the reset link. Please try again.'
+  }
+
+  /** Message for a failed password change from a reset link. */
+  static resetPassword(error: { status?: number; code?: string } | null | undefined): string {
+    if (error?.status === 429) return 'Too many attempts. Wait a moment and try again.'
+    const code = error?.code?.toUpperCase() ?? ''
+    if (code.includes('INVALID_TOKEN')) return 'This reset link is invalid or has expired. Request a new one.'
+    if (code.includes('PASSWORD_TOO_SHORT')) return 'Use at least 8 characters for the password.'
+    if (code.includes('PASSWORD_TOO_LONG')) return 'That password is too long.'
+    return 'Could not reset the password. Please try again.'
   }
 
   /**

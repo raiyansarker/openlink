@@ -1,21 +1,21 @@
-import type { DragEvent } from 'react'
+import { useMemo, type DragEvent } from 'react'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Table, pixel, proportional } from '@astryxdesign/core/Table'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import Favicon from '#/components/create-link/Favicon'
-import { handleDomainsTableRowClick } from '#/components/domains/domains-table-row-click'
+import { clickableRows } from '#/lib/tables/clickable-rows'
 import ItemMenuButton from '#/components/links/ItemMenuButton'
 import {
   DRAG_MIME,
   type ItemMenus,
 } from '#/components/links/links-browser-types'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import type { ShortLink } from '#/data/demo/types'
+import { usePermissions } from '#/hooks/use-permissions'
+import type { ShortLink } from '#/lib/api/types'
 import { formatCompactNumber } from '#/lib/format/compact-number'
 import { formatShortDate } from '#/lib/format/short-date'
-import { healthNeedsAttention } from '#/lib/links/demo-health'
-import { linkStatusLabel } from '#/lib/links/link-summary'
+import { linkStatusLabel, linkTargetUrl, linkTitle } from '#/lib/links/link-summary'
 import { stripUrlScheme } from '#/lib/links/strip-url-scheme'
 
 type LinksListViewProps = Pick<ItemMenus, 'linkMenu'> & {
@@ -32,19 +32,18 @@ export default function LinksListView({
   onOpenLink,
 }: LinksListViewProps) {
   const rows = links as Row[]
+  const rowPlugins = useMemo(
+    () => ({ open: clickableRows<Row>((row) => onOpenLink(row), (row) => `Open ${linkTitle(row)}`) }),
+    [onOpenLink],
+  )
   const { shortUrlFor } = useOrganization()
+  // Dragging moves a link; viewers have the menu and rows, but no drag handle.
+  const { canManageLinks } = usePermissions()
 
   return (
     <VStack gap={3} hAlign="stretch" width="100%">
-      {/* Row click opens the link; nested controls keep their own behaviour. */}
-      <div
-        onClick={(event) =>
-          handleDomainsTableRowClick(event, rows.length, (index) =>
-            onOpenLink(links[index]!),
-          )
-        }
-        style={{ cursor: 'pointer' }}
-      >
+      {/* Each row opens its link; nested controls keep their own behaviour. */}
+      <VStack hAlign="stretch" width="100%">
         <Table<Row>
           data={rows}
           idKey="id"
@@ -52,6 +51,7 @@ export default function LinksListView({
           dividers="rows"
           textOverflow="truncate"
           hasHover
+          plugins={rowPlugins}
           columns={[
             {
               key: 'title',
@@ -60,8 +60,9 @@ export default function LinksListView({
               renderCell: (row) => (
                 // Drag the name onto a folder tile or breadcrumb to move the link.
                 <span
-                  draggable
+                  draggable={canManageLinks}
                   onDragStart={(e: DragEvent) => {
+                    if (!canManageLinks) return
                     e.dataTransfer.setData(DRAG_MIME, `link:${row.id}`)
                     e.dataTransfer.effectAllowed = 'move'
                   }}
@@ -109,18 +110,18 @@ export default function LinksListView({
               renderCell: (row) => (
                 <span style={{ display: 'block', minWidth: 0, overflow: 'hidden' }}>
                   <Text type="supporting" color="secondary" maxLines={1}>
-                    {stripUrlScheme(row.targetUrl)}
+                    {stripUrlScheme(linkTargetUrl(row))}
                   </Text>
                 </span>
               ),
             },
             {
-              key: 'clicks',
+              key: 'clickCount',
               header: 'Clicks',
               width: pixel(88),
               align: 'end',
               renderCell: (row) => (
-                <Text weight="medium">{formatCompactNumber(row.clicks)}</Text>
+                <Text weight="medium">{formatCompactNumber(row.clickCount)}</Text>
               ),
             },
             {
@@ -128,12 +129,7 @@ export default function LinksListView({
               header: 'Status',
               width: pixel(140),
               renderCell: (row) => (
-                <Text>
-                  {linkStatusLabel(row)}
-                  {healthNeedsAttention(row.health)
-                    ? ' — Destination broken'
-                    : ''}
-                </Text>
+                <Text>{linkStatusLabel(row)}</Text>
               ),
             },
             {
@@ -152,13 +148,17 @@ export default function LinksListView({
               header: '',
               width: pixel(48),
               align: 'end',
-              renderCell: (row) => (
-                <ItemMenuButton label={row.title} items={linkMenu(row)} />
-              ),
+              // A lone "Open details" item repeats the row click: no menu to open.
+              renderCell: (row) => {
+                const items = linkMenu(row)
+                return items.length > 1 ? (
+                  <ItemMenuButton label={linkTitle(row)} items={items} />
+                ) : null
+              },
             },
           ]}
         />
-      </div>
+      </VStack>
     </VStack>
   )
 }

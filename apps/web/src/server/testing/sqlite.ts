@@ -29,5 +29,9 @@ export function createTestDatabase(options: { foreignKeys?: boolean } = {}) {
   const adapter = drizzle(sqlite)
   // Both drizzle adapters expose the same SQLite query builders the services use.
   const db = adapter as unknown as OpenLinkDb
+  // bun:sqlite has no `batch`; run the statements in one SQLite transaction, as D1 does,
+  // so a failing statement rolls back the ones before it.
+  ;(db as unknown as { batch: (statements: readonly { all: () => unknown }[]) => Promise<unknown[]> }).batch = (statements) =>
+    Promise.resolve().then(() => sqlite.transaction(() => statements.map((statement) => statement.all()))())
   return { sqlite, adapter, db }
 }

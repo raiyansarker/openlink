@@ -119,11 +119,11 @@ describe('resolveRedirect', () => {
 
   test('password protected links require the right password on every visit', async () => {
     const t = setup()
-    const row = t.seed({ passwordHash: await Effect.runPromise(hashLinkPassword('s3cret')), redirectStatus: 308 })
+    const row = t.seed({ passwordHash: await Effect.runPromise(hashLinkPassword('s3cret')) })
     expect(await t.resolve({ host: 'go.example.com', slug: 'abc' })).toEqual({ type: 'password_required' })
     expect(await t.resolve({ host: 'go.example.com', slug: 'abc', password: 'wrong' })).toEqual({ type: 'password_invalid' })
     expect(t.clicks(row.id)).toBe(0)
-    // The right password goes straight on, as a 303 so even a 308 link turns the POST into a GET.
+    // The right password goes straight on, as a 303 so the POST never re-sends to the destination.
     expect(await t.resolve({ host: 'go.example.com', slug: 'abc', password: 's3cret' })).toEqual({
       type: 'redirect',
       url: 'https://example.com/dest',
@@ -233,13 +233,13 @@ describe('RedirectResponses.for', () => {
     expect(await form.text()).toContain('Incorrect password')
   })
 
-  test('hold pages use their status and look like the real thing', async () => {
+  test('hold pages look like the real thing but are served as 418, so Workers Issues does not flag them', async () => {
     const gateway = RedirectResponses.for({ type: 'hold', page: 'bad-gateway' })
-    expect(gateway.status).toBe(502)
+    expect(gateway.status).toBe(418)
     expect(await gateway.text()).toContain('<center><h1>502 Bad Gateway</h1></center>')
     const maintenance = RedirectResponses.for({ type: 'hold', page: 'maintenance' })
-    expect(maintenance.status).toBe(503)
-    expect(maintenance.headers.get('retry-after')).toBe('3600')
+    expect(maintenance.status).toBe(418)
+    expect(maintenance.headers.get('retry-after')).toBeNull()
     expect(maintenance.headers.get('cache-control')).toBe('no-store')
   })
 

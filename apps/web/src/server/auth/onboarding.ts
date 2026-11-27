@@ -1,4 +1,5 @@
 import { user } from '@openlink/db/schema'
+import type { OpenLinkDb } from '@openlink/db'
 import { and, eq, isNull } from 'drizzle-orm'
 import { Effect } from 'effect'
 
@@ -21,12 +22,15 @@ export class Onboarding {
   static markComplete(userId: string, at: Date) {
     return Effect.gen(function* () {
       const db = yield* Db
-      yield* operation('onboarding.complete', () =>
-        db
-          .update(user)
-          .set({ onboardedAt: at })
-          .where(and(eq(user.id, userId), isNull(user.onboardedAt))),
-      )
+      yield* operation('onboarding.complete', () => Onboarding.markCompleteStatement(db, userId, at))
     })
+  }
+
+  /** The same write as `markComplete`, unrun, to include in a batch. */
+  static markCompleteStatement(db: OpenLinkDb, userId: string, at: Date) {
+    return db
+      .update(user)
+      .set({ onboardedAt: at })
+      .where(and(eq(user.id, userId), isNull(user.onboardedAt)))
   }
 }

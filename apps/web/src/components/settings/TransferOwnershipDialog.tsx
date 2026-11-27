@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -6,18 +6,28 @@ import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Selector } from '@astryxdesign/core/Selector'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { WorkspaceMember } from '#/data/demo/types'
+import { useOpenSession } from '#/hooks/use-open-session'
+import type { Member } from '#/lib/api/types'
 
 type TransferOwnershipDialogProps = {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   workspaceName: string
-  candidates: WorkspaceMember[]
-  onTransfer: (memberId: string) => void
+  candidates: Member[]
+  /** The new owner's user id. */
+  onTransfer: (userId: string) => void
 }
 
-export default function TransferOwnershipDialog({
-  isOpen,
+export default function TransferOwnershipDialog(props: TransferOwnershipDialogProps) {
+  const session = useOpenSession(props.isOpen)
+  return (
+    <Dialog isOpen={props.isOpen} onOpenChange={props.onOpenChange} purpose="form" width={440}>
+      <TransferForm key={session} {...props} />
+    </Dialog>
+  )
+}
+
+function TransferForm({
   onOpenChange,
   workspaceName,
   candidates,
@@ -25,18 +35,13 @@ export default function TransferOwnershipDialog({
 }: TransferOwnershipDialogProps) {
   const [memberId, setMemberId] = useState('')
 
-  useEffect(() => {
-    if (isOpen) setMemberId('')
-  }, [isOpen])
-
   const options = candidates.map((member) => ({
-    value: member.id,
+    value: member.userId,
     label: member.name,
     description: member.email,
   }))
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" width={440}>
       <Layout
         header={
           <DialogHeader
@@ -92,6 +97,5 @@ export default function TransferOwnershipDialog({
           </LayoutFooter>
         }
       />
-    </Dialog>
   )
 }

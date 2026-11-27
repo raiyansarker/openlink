@@ -2,11 +2,10 @@ import { useMemo } from 'react'
 import { defineChart } from '@tanstack/charts'
 import { pie, polar, radialArc } from '@tanstack/charts/polar'
 import { Chart } from '@tanstack/charts/react'
-import { tooltip } from '@tanstack/charts/tooltip'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import { SERIES_COLORS, chartHostStyle } from '#/components/analytics/chart-theme'
+import { HOVER_TOOLTIP, NO_CHART_FOCUS, SERIES_COLORS, chartHostStyle } from '#/components/analytics/chart-theme'
 import type { BreakdownRow } from '#/lib/analytics/report'
 import { formatDelta, formatNumber, formatPercent } from '#/lib/analytics/format'
 
@@ -41,8 +40,9 @@ export default function DeviceDonut({ rows, isComparing }: DeviceDonutProps) {
         domain: rows.map((r) => r.label),
         range: rows.map((_, i) => SERIES_COLORS[i % SERIES_COLORS.length]),
       },
+      ...NO_CHART_FOCUS,
       tooltip: {
-        use: tooltip,
+        ...HOVER_TOOLTIP,
         format: (point) =>
           `${point.datum.label}\n${formatNumber(point.datum.clicks)} clicks · ${formatPercent(point.datum.share)}`,
       },

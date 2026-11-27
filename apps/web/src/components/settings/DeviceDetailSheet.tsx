@@ -1,21 +1,16 @@
 import { useState, type ReactNode } from 'react'
 import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Button } from '@astryxdesign/core/Button'
-import { Drawer, DrawerHeader } from '@astryxdesign/core/Drawer'
 import { HStack } from '@astryxdesign/core/HStack'
-import { Layout, LayoutContent, LayoutFooter } from '@astryxdesign/core/Layout'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import DeviceLocationMap from '#/components/settings/DeviceLocationMap'
-import {
-  FLOATING_END_DRAWER_PADDING,
-  floatingEndDrawerStyle,
-} from '#/components/members/floating-end-drawer'
-import type { ActiveSession } from '#/data/demo/active-sessions'
+import ResponsiveDetailSheet from '#/components/common/ResponsiveDetailSheet'
+import type { DeviceView } from '#/lib/devices/describe'
 import { formatLastActive, formatSessionDate } from '#/lib/settings/session-time'
 
 type DeviceDetailSheetProps = {
-  session: ActiveSession | null
+  session: DeviceView | null
   onOpenChange: (open: boolean) => void
   onSignOut: (sessionId: string) => void
 }
@@ -49,30 +44,28 @@ export default function DeviceDetailSheet({
 
   return (
     <>
-      <Drawer
+      {/* Phone: a bottom sheet; desktop: the floating right-side drawer. */}
+      <ResponsiveDetailSheet
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         label={shown.name}
-        side="end"
+        title={shown.name}
+        subtitle={shown.isCurrent ? 'This device' : formatLastActive(shown.lastActiveAt)}
         width={420}
-        hasScrim
-        padding={FLOATING_END_DRAWER_PADDING}
-        style={floatingEndDrawerStyle()}
+        footer={
+          shown.isCurrent ? undefined : (
+            <HStack hAlign="end" width="100%">
+              <Button
+                variant="secondary"
+                size="sm"
+                label="Sign out this device"
+                onClick={() => setSignOutOpen(true)}
+              />
+            </HStack>
+          )
+        }
+        hasFooterDivider
       >
-        <Layout
-          header={
-            <DrawerHeader
-              title={shown.name}
-              subtitle={
-                shown.isCurrent
-                  ? 'This device'
-                  : formatLastActive(shown.lastActiveAt)
-              }
-              onOpenChange={onOpenChange}
-            />
-          }
-          content={
-            <LayoutContent>
               <VStack gap={6} hAlign="stretch" width="100%">
                 {shown.coordinates ? (
                 <VStack gap={2} hAlign="stretch" width="100%">
@@ -105,24 +98,7 @@ export default function DeviceDetailSheet({
                   </DetailRow>
                 </VStack>
               </VStack>
-            </LayoutContent>
-          }
-          footer={
-            shown.isCurrent ? undefined : (
-              <LayoutFooter hasDivider>
-                <HStack hAlign="end" width="100%">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    label="Sign out this device"
-                    onClick={() => setSignOutOpen(true)}
-                  />
-                </HStack>
-              </LayoutFooter>
-            )
-          }
-        />
-      </Drawer>
+      </ResponsiveDetailSheet>
 
       <AlertDialog
         isOpen={signOutOpen}

@@ -1,9 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useIsPhone } from '#/hooks/use-is-phone'
 import { Section } from '@astryxdesign/core/Section'
-import LinkDetailPage, {
-  LINK_DETAIL_TABS,
-  type LinkDetailTab,
-} from '#/components/link-detail/LinkDetailPage'
+import LinkDetailPage from '#/components/link-detail/LinkDetailPage'
+import { LINK_DETAIL_TABS, type LinkDetailTab } from '#/lib/links/link-detail-tabs'
 import { AnalyticsSearchParams, type AnalyticsSearch, type AnalyticsView } from '#/lib/analytics/search'
 import type { HistoryKind } from '#/components/link-detail/LinkHistoryTimeline'
 import { createPageHead } from '#/lib/page-title'
@@ -16,7 +15,6 @@ type LinkDetailSearch = Omit<AnalyticsSearch, 'link'> & {
 }
 
 export const Route = createFileRoute('/w/$orgSlug/links/$linkId')({
-  head: createPageHead('Link'),
   validateSearch: (search: Record<string, unknown>): LinkDetailSearch => ({
     tab:
       typeof search.tab === 'string' &&
@@ -28,6 +26,7 @@ export const Route = createFileRoute('/w/$orgSlug/links/$linkId')({
     // The Analytics tab's period, comparison and chart view.
     ...AnalyticsSearchParams.parse(search, { withLink: false }),
   }),
+  head: createPageHead('Link'),
   component: LinkDetailRoute,
 })
 
@@ -43,8 +42,10 @@ function LinkDetailRoute() {
       replace: true,
       resetScroll: false,
     })
+  // Desktop keeps the roomier 24px frame; phones use the shared 16px margin.
+  const isPhone = useIsPhone()
   return (
-    <Section padding={6}>
+    <Section padding={isPhone ? 4 : 6}>
       <LinkDetailPage
         linkId={linkId}
         tab={tab}

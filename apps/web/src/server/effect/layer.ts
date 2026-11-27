@@ -5,6 +5,7 @@ import { getDb } from '#/server/db'
 import { getBindings } from '#/server/env'
 import { EffectLogger } from '#/server/observability/effect-logger'
 import { CloudflareTracer } from '#/server/observability/cloudflare-tracer'
+import { EmailDispatch, EmailDispatchLive } from '#/server/email/dispatch'
 import { operation } from './operations'
 import { Auth } from './services/auth'
 import { Bindings } from './services/bindings'
@@ -37,7 +38,8 @@ export const AppLayer = Layer.mergeAll(
   BindingsLive,
   AuthLive,
   DomainClientLive,
+  EmailDispatchLive.pipe(Layer.provide(Layer.mergeAll(BindingsLive, DbLive))),
 )
 
 /** Services provided by the module-scoped runtime (per-request services are added in ApiContext). */
-export type AppServices = Db | Auth | Bindings | DomainClient
+export type AppServices = Db | Auth | Bindings | DomainClient | EmailDispatch

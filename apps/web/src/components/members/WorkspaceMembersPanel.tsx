@@ -1,68 +1,62 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { Spinner } from '@astryxdesign/core/Spinner'
+import SettingsSkeleton from '#/components/settings/SettingsSkeleton'
 import { Avatar } from '@astryxdesign/core/Avatar'
 import { Button } from '@astryxdesign/core/Button'
 import { Heading } from '@astryxdesign/core/Heading'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Table, pixel, proportional } from '@astryxdesign/core/Table'
+import { useIsPhone } from '#/hooks/use-is-phone'
 import { Text } from '@astryxdesign/core/Text'
 import { TextInput } from '@astryxdesign/core/TextInput'
 import { VStack } from '@astryxdesign/core/VStack'
 import { PlusIcon } from '#/components/icons/IcnMcp'
-import { ApiError } from '#/lib/api/error'
-import { WorkspaceMembersApi, type AssignableRole } from '#/lib/api/members'
-import { QueryKeys } from '#/lib/api/query'
-import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
+import { apiErrorMessage } from '#/lib/api/errors'
+import type { Role } from '#/lib/api/types'
+import { usePeopleMutations, useWorkspacePeople } from '#/hooks/use-members'
+import type { Person } from '#/lib/members/people'
 import { useOrganization } from '#/contexts/OrganizationContext'
+import { usePermissions } from '#/hooks/use-permissions'
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 import InviteMemberDrawer from './InviteMemberDrawer'
 import MemberDetailDrawer from './MemberDetailDrawer'
+import { clickableRows } from '#/lib/tables/clickable-rows'
 import MemberRowMenu from './MemberRowMenu'
-import MemberTableRowButton from './MemberTableRowButton'
 
-type MemberRow = WorkspaceMember & Record<string, unknown>
+type MemberRow = Person & Record<string, unknown>
 
-function matchesSearch(member: WorkspaceMember, query: string): boolean {
+function matchesSearch(person: Person, query: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true
-  return (
-    member.name.toLowerCase().includes(q) ||
-    member.email.toLowerCase().includes(q)
-  )
+  return person.name.toLowerCase().includes(q) || person.email.toLowerCase().includes(q)
 }
-
-const membersApi = new WorkspaceMembersApi()
 
 export default function WorkspaceMembersPanel() {
   const { activeOrg } = useOrganization()
-  const queryClient = useQueryClient()
+  const organizationId = activeOrg.id
   // Owners and admins manage people and see pending invites; everyone else gets a read-only list.
-  const canManage = activeOrg.role === 'owner' || activeOrg.role === 'admin'
-  const query = useQuery({
-    queryKey: [...QueryKeys.members(activeOrg.id), canManage],
-    queryFn: () => membersApi.list(activeOrg.id, { includeInvites: canManage }),
-  })
-  const members = query.data ?? []
+  const canManage = usePermissions().canManageMembers
+  const query = useWorkspacePeople(organizationId, { includeInvites: canManage })
+  const members = query.people
+  const mutations = usePeopleMutations(organizationId)
   const [actionError, setActionError] = useState<string | null>(null)
+  /**
+   * Row actions share one error line. This only wraps them for error handling:
+   * each action runs a `usePeopleMutations` mutation, which refreshes the member
+   * and invite lists itself, so nothing is invalidated here.
+   */
   const action = useMutation({
-    mutationFn: (run: () => Promise<void>) => run(),
+    mutationFn: (run: () => Promise<unknown>) => run(),
     onMutate: () => setActionError(null),
-    onError: (error) => setActionError(ApiError.message(error)),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: QueryKeys.members(activeOrg.id) }),
+    onError: (error) => setActionError(apiErrorMessage(error)),
   })
   const [searchQuery, setSearchQuery] = useState('')
-  const [detailMember, setDetailMember] = useState<WorkspaceMember | null>(null)
+  const [detailMember, setDetailMember] = useState<Person | null>(null)
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<WorkspaceMemberRole>('member')
-  const [inviteError, setInviteError] = useState<string | null>(null)
 
   useEffect(() => {
     setSearchQuery('')
     setDetailMember(null)
-    setInviteEmail('')
-    setInviteError(null)
   }, [activeOrg.id])
 
   const filteredMembers = useMemo(
@@ -71,62 +65,60 @@ export default function WorkspaceMembersPanel() {
   )
 
   const openInvite = () => {
-    setInviteRole('member')
-    setInviteEmail('')
-    setInviteError(null)
     setInviteOpen(true)
   }
 
-  const openMemberDetail = (member: WorkspaceMember) => {
+  const openMemberDetail = (member: Person) => {
     setDetailMember(member)
   }
 
-  const changeRole = (memberId: string, role: WorkspaceMemberRole) => {
-    if (role === 'owner') return
+  const changeRole = (person: Person, role: Role) => {
+    if (role === 'owner' || person.kind !== 'member') return
     action.mutate(async () => {
-      await membersApi.changeRole(activeOrg.id, memberId, role)
-      setDetailMember((prev) => (prev?.id === memberId ? { ...prev, role } : prev))
+      await mutations.changeRole.mutateAsync({ params: { organizationId, userId: person.userId }, body: { role } })
+      setDetailMember((prev) => (prev?.key === person.key ? { ...prev, role } : prev))
     })
   }
 
-  const removeMember = (memberId: string) => {
+  /** Removes a person, or cancels a pending invite. */
+  const removeMember = (person: Person) => {
     action.mutate(async () => {
-      await membersApi.remove(activeOrg.id, memberId)
-      setDetailMember((prev) => (prev?.id === memberId ? null : prev))
+      if (person.kind === 'invite') {
+        await mutations.revokeInvite.mutateAsync({ params: { organizationId, inviteId: person.inviteId } })
+      } else {
+        await mutations.remove.mutateAsync({ params: { organizationId, userId: person.userId } })
+      }
+      setDetailMember((prev) => (prev?.key === person.key ? null : prev))
     })
   }
 
-  const resendInvite = (memberId: string) => action.mutate(() => membersApi.resendInvite(activeOrg.id, memberId))
+  const resendInvite = (person: Person) => {
+    if (person.kind !== 'invite') return
+    action.mutate(() => mutations.resendInvite.mutateAsync({ params: { organizationId, inviteId: person.inviteId } }))
+  }
 
-  const submitInvite = () => {
-    const email = inviteEmail.trim().toLowerCase()
-    if (!email) {
-      setInviteError('Enter an email address.')
-      return
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setInviteError('Enter a valid email address.')
-      return
-    }
+  const submitInvite = async (email: string, role: Role) => {
     if (members.some((m) => m.email.toLowerCase() === email)) {
-      setInviteError('This email is already in the workspace.')
-      return
+      throw new Error('This email is already in the workspace.')
     }
-
-    if (inviteRole === 'owner') return
-    const role: AssignableRole = inviteRole
-    setInviteError(null)
-    membersApi
-      .invite(activeOrg.id, email, role)
-      .then(async () => {
-        await queryClient.invalidateQueries({ queryKey: QueryKeys.members(activeOrg.id) })
-        setInviteOpen(false)
-        setInviteEmail('')
-      })
-      .catch((error) => setInviteError(ApiError.message(error, 'Could not send the invite.')))
+    if (role === 'owner') return
+    try {
+      await mutations.invite.mutateAsync({ params: { organizationId }, body: { email, role } })
+    } catch (error) {
+      throw new Error(apiErrorMessage(error, 'Could not send the invite.'))
+    }
   }
 
   const rows = filteredMembers as MemberRow[]
+  // Phones: email drops out of the table (the member sheet shows it) and role
+  // narrows, so the row and its actions fit without horizontal scrolling.
+  const isPhone = useIsPhone()
+  // The whole row opens the member; only the actions menu inside it is separate.
+  const rowPlugins = useMemo(
+    () => ({ open: clickableRows<MemberRow>(openMemberDetail, (row) => `Open ${row.name}`) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
 
   return (
     <VStack gap={5} hAlign="stretch" width="100%">
@@ -157,23 +149,24 @@ export default function WorkspaceMembersPanel() {
         onChange={setSearchQuery}
       />
 
-      <VStack className="members-table" width="100%" hAlign="stretch">
+      <VStack className="members-table members-table--clickable-rows" width="100%" hAlign="stretch">
         <Table<MemberRow>
           className="members-table__grid"
           data={rows}
-          idKey="id"
+          idKey="key"
           density="balanced"
           dividers="rows"
           textOverflow="truncate"
+          plugins={rowPlugins}
           columns={[
           {
             key: 'name',
             header: 'Name',
             width: proportional(1, { minWidth: 140 }),
             renderCell: (row) => (
-              <MemberTableRowButton member={row} onOpen={openMemberDetail}>
+              <HStack gap={3} vAlign="center">
                 <Avatar
-                  src={row.avatarUrl}
+                  src={row.image}
                   name={row.name}
                   size={32}
                   tooltip={false}
@@ -181,32 +174,32 @@ export default function WorkspaceMembersPanel() {
                 <Text weight="semibold" maxLines={1}>
                   {row.name}
                 </Text>
-              </MemberTableRowButton>
+              </HStack>
             ),
           },
-          {
-            key: 'email',
-            header: 'Email',
-            width: proportional(1.2, { minWidth: 160 }),
-            renderCell: (row) => (
-              <MemberTableRowButton member={row} onOpen={openMemberDetail}>
-                <Text type="supporting" color="secondary" maxLines={1}>
-                  {row.email}
-                </Text>
-              </MemberTableRowButton>
-            ),
-          },
+          ...(isPhone
+            ? []
+            : ([
+                {
+                  key: 'email',
+                  header: 'Email',
+                  width: proportional(1.2, { minWidth: 160 }),
+                  renderCell: (row: MemberRow) => (
+                    <Text type="supporting" color="secondary" maxLines={1}>
+                      {row.email}
+                    </Text>
+                  ),
+                },
+              ] as const)),
           {
             key: 'role',
             header: 'Role',
-            width: pixel(220),
+            width: pixel(isPhone ? 96 : 220),
             renderCell: (row) => (
-              <MemberTableRowButton member={row} onOpen={openMemberDetail}>
-                <Text type="supporting" color="secondary">
-                  {workspaceMemberRoleLabel(row.role)}
-                  {row.status === 'pending' ? ' (Pending)' : ''}
-                </Text>
-              </MemberTableRowButton>
+              <Text type="supporting" color="secondary">
+                {workspaceMemberRoleLabel(row.role)}
+                {row.kind === 'invite' ? ' (Pending)' : ''}
+              </Text>
             ),
           },
           {
@@ -227,10 +220,10 @@ export default function WorkspaceMembersPanel() {
         />
       </VStack>
 
-      {query.isPending ? <Spinner size="md" label="Loading members…" /> : null}
-      {query.isError ? (
+      {query.isPending ? <SettingsSkeleton variant="rows" count={4} label="Loading members…" /> : null}
+      {query.error ? (
         <VStack gap={2} hAlign="start" role="alert">
-          <Text>{ApiError.message(query.error, 'Could not load members.')}</Text>
+          <Text>{apiErrorMessage(query.error, 'Could not load members.')}</Text>
           <Button size="sm" variant="secondary" label="Try again" onClick={() => void query.refetch()} />
         </VStack>
       ) : null}
@@ -260,11 +253,6 @@ export default function WorkspaceMembersPanel() {
         isOpen={inviteOpen}
         onOpenChange={setInviteOpen}
         workspaceName={activeOrg.name}
-        email={inviteEmail}
-        onEmailChange={setInviteEmail}
-        role={inviteRole}
-        onRoleChange={setInviteRole}
-        error={inviteError}
         onSubmit={submitInvite}
       />
     </VStack>

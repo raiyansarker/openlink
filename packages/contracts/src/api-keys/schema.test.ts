@@ -2,7 +2,7 @@ import { type } from 'arktype'
 import { describe, expect, test } from 'bun:test'
 import { ApiKey, CreateApiKeyRequest, CreatedApiKey, UpdateApiKeyRequest } from './schema'
 
-const key = { id: 'k1', organizationId: 'o1', name: 'CI', prefix: 'ol_live_8f3a', role: 'member', createdAt: '2026-01-01T00:00:00Z', lastUsedAt: null }
+const key = { id: 'k1', organizationId: 'o1', name: 'CI', prefix: 'sk_8f3a', role: 'member', createdAt: '2026-01-01T00:00:00Z', lastUsedAt: null }
 
 describe('api key schemas', () => {
   test('keys can never be owners', () => {
@@ -18,7 +18,7 @@ describe('api key schemas', () => {
 
   test('the secret appears only on the creation response', () => {
     expect(ApiKey(key)).toEqual(key)
-    expect(CreatedApiKey({ ...key, secret: 'ol_live_x' })).not.toBeInstanceOf(type.errors)
+    expect(CreatedApiKey({ ...key, secret: 'sk_x' })).not.toBeInstanceOf(type.errors)
     expect(CreatedApiKey(key)).toBeInstanceOf(type.errors)
   })
 })

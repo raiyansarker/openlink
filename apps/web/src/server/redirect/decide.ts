@@ -78,10 +78,10 @@ export class RedirectRules {
 
     if (status === 'expired') {
       const target = row.expiredDestinationUrl ?? row.fallbackDestinationUrl
-      return target ? RedirectRules.redirect(row, target, false) : { type: 'gone' }
+      return target ? RedirectRules.redirect(target, false) : { type: 'gone' }
     }
     if (status !== 'active') {
-      return row.fallbackDestinationUrl ? RedirectRules.redirect(row, row.fallbackDestinationUrl, false) : { type: 'not_found' }
+      return row.fallbackDestinationUrl ? RedirectRules.redirect(row.fallbackDestinationUrl, false) : { type: 'not_found' }
     }
 
     const delivery = LinkDelivery.fromJson(row.deliveryJson)
@@ -96,7 +96,7 @@ export class RedirectRules {
 
     const url = Utm.apply(RedirectRules.target(row, delivery, visitor), Utm.parse(row.utmJson))
     if (delivery.cloaked) return { type: 'cloak', url, title: RedirectRules.title(row), countsClick: true }
-    return RedirectRules.redirect(row, url, true)
+    return RedirectRules.redirect(url, true)
   }
 
   /** What to call the link on pages we render for it. */
@@ -120,7 +120,9 @@ export class RedirectRules {
     return byCountry?.url ?? row.destinationUrl
   }
 
-  private static redirect(row: LinkRow, url: string, countsClick: boolean): RedirectDecision {
-    return { type: 'redirect', url, status: row.redirectStatus, countsClick }
+  private static redirect(url: string, countsClick: boolean): RedirectDecision {
+    // Every short link is a 302 — temporary by design, so nothing is ever
+    // permanently cached by browsers or intermediaries.
+    return { type: 'redirect', url, status: 302, countsClick }
   }
 }

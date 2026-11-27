@@ -4,8 +4,7 @@ import { VStack } from '@astryxdesign/core/VStack'
 import { Chart } from '@tanstack/charts/react'
 import { scaleBand } from '@tanstack/charts/scales/band'
 import { scaleLinear } from '@tanstack/charts/scales/linear'
-import { tooltip } from '@tanstack/charts/tooltip'
-import { chartHostStyle } from '#/components/analytics/chart-theme'
+import { HOVER_TOOLTIP, NO_CHART_FOCUS, chartHostStyle } from '#/components/analytics/chart-theme'
 import type { BreakdownRow } from '#/lib/analytics/report'
 import {
   formatDelta,
@@ -93,8 +92,9 @@ export default function RankedBars({
         focus: 'nearest-y',
         // The tooltip already names the row; the generated ring drew a dot on every mark of it.
         focusRing: false,
+        ...NO_CHART_FOCUS,
         tooltip: {
-          use: tooltip,
+          ...HOVER_TOOLTIP,
           format: (point) => {
             const row = point.datum
             const delta = formatDelta(row.clicks, row.previousClicks)

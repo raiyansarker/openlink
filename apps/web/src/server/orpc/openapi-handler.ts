@@ -1,12 +1,18 @@
-import { OpenAPIHandler } from '@orpc/openapi/fetch'
+import { OpenAPIHandler, type OpenAPIHandlerOptions } from '@orpc/openapi/fetch'
 import { COMMON_ERROR_STATUS_MAP, ORPCError, onError } from '@orpc/server'
+import { CORSPlugin } from '@orpc/server/plugins'
+import type { StandardHandlerPlugin } from '@orpc/server/standard'
+import { ArkTypeToJsonSchemaConverter } from '@orpc/arktype'
+import { SmartCoercionHandlerPlugin } from '@orpc/json-schema'
 import { mergeStandardHeaders } from '@standard-server/core'
 import { Effect } from 'effect'
 import { operation } from '#/server/effect/operations'
 import { effectRuntime } from '#/server/effect/runtime'
 import { ServerLog } from '#/server/observability'
 import { createApiContext, type ApiContext } from './context'
+import { FormOrigin } from './form-origin'
 import { router } from './router'
+import { Bindings } from '#/server/effect/services/bindings'
 
 function withSetCookieHeaders(
   headers: Parameters<typeof mergeStandardHeaders>[0],
@@ -41,7 +47,16 @@ class ProcedureFailureLog {
   }
 }
 
-export const openApiHandler = new OpenAPIHandler<ApiContext>(router, {
+const handlerOptions = (extraPlugins: StandardHandlerPlugin<ApiContext>[] = []): OpenAPIHandlerOptions<ApiContext> => ({
+  plugins: [
+    // Public API: any origin. Credentials stay off, so cross-origin callers use `Authorization: Bearer <api key>`.
+    new CORSPlugin<ApiContext>({
+      origin: '*',
+      maxAge: 60 * 60 * 24,
+      exposeHeaders: ['retry-after'],
+    }),
+    ...extraPlugins,
+  ],
   clientInterceptors: [
     onError((error, { path, context }) => ProcedureFailureLog.record(error, path, context.request)),
   ],
@@ -74,9 +89,29 @@ export const openApiHandler = new OpenAPIHandler<ApiContext>(router, {
   ],
 })
 
+export const openApiHandler = new OpenAPIHandler<ApiContext>(router, handlerOptions())
+
+/**
+ * For requests that carry a file (`multipart/form-data`). Every form field arrives as text, so
+ * numbers and booleans are converted to what the contract expects before validation. JSON
+ * requests keep strict types and use `openApiHandler`.
+ */
+const formApiHandler = new OpenAPIHandler<ApiContext>(
+  router,
+  handlerOptions([new SmartCoercionHandlerPlugin<ApiContext>({ converters: [new ArkTypeToJsonSchemaConverter()] })]),
+)
+
+const isMultipart = (request: Request) =>
+  (request.headers.get('content-type') ?? '').toLowerCase().startsWith('multipart/form-data')
+
 /** Edge adapter: the HTTP framework consumes a Promise. */
-export const handleOpenApiRequest = (request: Request) =>
-  openApiHandler.handle(request, {
+export const handleOpenApiRequest = async (request: Request) => {
+  if (FormOrigin.needsCheck(request)) {
+    const bindings = await effectRuntime.runPromise(Effect.gen(function* () { return yield* Bindings }))
+    if (!FormOrigin.isTrusted(request, bindings)) return { matched: true as const, response: FormOrigin.response() }
+  }
+  return (isMultipart(request) ? formApiHandler : openApiHandler).handle(request, {
     prefix: '/api/v1',
     context: () => createApiContext(request),
   })
+}

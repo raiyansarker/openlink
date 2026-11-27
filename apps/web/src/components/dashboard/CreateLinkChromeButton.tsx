@@ -1,7 +1,8 @@
 import { useState, type CSSProperties } from 'react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useOrganization } from '#/contexts/OrganizationContext'
-import { useKeyPress } from '#/hooks/use-key-press'
+import { usePermissions } from '#/hooks/use-permissions'
+import { useShortcut } from '#/hooks/use-shortcut'
 import {
   SHELL_CHROME_BORDER,
   SHELL_NAV_TEXT_PRIMARY,
@@ -54,6 +55,8 @@ export default function CreateLinkChromeButton({
   const [hovered, setHovered] = useState(false)
   const navigate = useNavigate()
   const { activeOrg } = useOrganization()
+  // Viewers never see the button, and the "C" shortcut stays off for them.
+  const { canManageLinks } = usePermissions()
   // On the Links page, default to the folder being viewed (sidebar button and
   // the "C" shortcut don't get a folderId of their own).
   const viewingFolder = useRouterState({
@@ -75,13 +78,16 @@ export default function CreateLinkChromeButton({
     })
   }
 
-  useKeyPress('c', open, { isEnabled: hasShortcut })
+  useShortcut('C', open, { isEnabled: hasShortcut && canManageLinks })
+
+  if (!canManageLinks) return null
 
   const widthStyle: CSSProperties =
     layout === 'fill' ? { width: '100%' } : { width: 'auto' }
 
   return (
     <button
+      className="ol-focus-ring"
       type="button"
       onClick={open}
       aria-keyshortcuts={hasShortcut ? 'C' : undefined}

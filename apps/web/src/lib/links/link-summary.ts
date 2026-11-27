@@ -1,6 +1,6 @@
-import type { LinkFolder, ShortLink } from '#/data/demo/types'
+import type { LinkFolder, ShortLink } from '#/lib/api/types'
 import { countryName } from '#/lib/links/countries'
-import { isOnHold } from '#/lib/links/create-link'
+import { applyUtm, isOnHold } from '#/lib/links/create-link'
 import { folderPathLabel } from '#/lib/links/folder-tree'
 import { holdPageMeta } from '#/lib/links/hold-pages'
 import { linkStatusMeta } from '#/lib/links/status-meta'
@@ -30,6 +30,16 @@ export function hostOf(url: string | undefined): string {
   }
 }
 
+/** The link's title, or its back-half when it has none. */
+export function linkTitle(link: Pick<ShortLink, 'title' | 'slug'>): string {
+  return link.title || link.slug
+}
+
+/** Where the link sends people: the destination with its UTM parameters applied. */
+export function linkTargetUrl(link: Pick<ShortLink, 'destinationUrl' | 'utm'>): string {
+  return applyUtm(link.destinationUrl, link.utm)
+}
+
 /**
  * A link's status as of `now`, not as of when the list was fetched: schedules
  * start, expiry dates pass and click limits run out while the page is open.
@@ -37,7 +47,7 @@ export function hostOf(url: string | undefined): string {
 export class LinkLiveStatus {
   static isExpired(link: ShortLink, now = new Date()): boolean {
     if (link.expiresAt && new Date(link.expiresAt) <= now) return true
-    return link.maxClicks != null && link.clicks >= link.maxClicks
+    return link.maxClicks != null && link.clickCount >= link.maxClicks
   }
 
   /** Scheduled and its start time is still ahead. */
@@ -81,10 +91,7 @@ export function linkSettingsRows(
     { label: 'Folder', value: folderPathLabel(folders, link.folderId ?? null) },
     link.cloaked
       ? { label: 'Delivery', value: 'Cloaked — URL stays short' }
-      : {
-          label: 'Redirect',
-          value: `${link.redirectStatus ?? 302} ${(link.redirectStatus ?? 302) === 301 || link.redirectStatus === 308 ? 'permanent' : 'temporary'}`,
-        },
+      : { label: 'Delivery', value: '302 temporary redirect' },
   ]
   if (link.hold) {
     rows.push({
@@ -118,7 +125,7 @@ export function linkSettingsRows(
   if (link.socialPreview) rows.push({ label: 'Social preview', value: 'Custom' })
   if (link.metadata) {
     for (const [key, value] of Object.entries(link.metadata)) {
-      rows.push({ label: key, value })
+      rows.push({ label: key, value: String(value) })
     }
   }
   return rows

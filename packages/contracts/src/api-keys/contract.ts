@@ -46,4 +46,13 @@ export const revokeApiKey = keyOp('DELETE', 'revokeApiKey', '/organizations/{org
   .input(type({ params: ApiKeyIdPath }))
   .output(EmptyResponse)
 
-export const contract = { listApiKeys, createApiKey, updateApiKey, revokeApiKey } as const
+export const rotateApiKey = keyOp(
+  'POST',
+  'rotateApiKey',
+  '/organizations/{organizationId}/api-keys/{keyId}/rotate',
+  { successStatus: 201, summary: 'Replace a key with a new one of the same name and role; the new secret is shown once' },
+)
+  .input(type({ params: ApiKeyIdPath }))
+  .output(CreatedApiKey)
+
+export const contract = { listApiKeys, createApiKey, updateApiKey, rotateApiKey, revokeApiKey } as const

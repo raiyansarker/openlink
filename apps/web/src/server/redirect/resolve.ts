@@ -110,10 +110,10 @@ export function resolveRedirect(input: {
     const visitor = input.visitor ?? Visitor.ANONYMOUS
     let decision = RedirectRules.decide(row, { passwordVerified, visitor })
     if (decision.type === 'cloak' && !(yield* (input.frameable ?? FrameCheck.frameable)(decision.url))) {
-      decision = { type: 'redirect', url: decision.url, status: row.redirectStatus, countsClick: true }
+      decision = { type: 'redirect', url: decision.url, status: 302, countsClick: true }
     }
-    // The password arrived in a POST. 303 makes the browser follow with a GET, so a
-    // 307/308 link can never re-send the form (and its password) to the destination.
+    // The password arrived in a POST. 303 makes the browser follow with a GET
+    // instead of re-sending the form (and its password) to the destination.
     if (passwordVerified && decision.type === 'redirect') decision = { ...decision, status: 303 }
     if (!('countsClick' in decision) || !decision.countsClick) return decision
 

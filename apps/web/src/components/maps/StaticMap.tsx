@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Map, type MapProps } from '@vis.gl/react-maplibre'
 import { Card } from '@astryxdesign/core/Card'
 import { Center } from '@astryxdesign/core/Center'
 import { Text } from '@astryxdesign/core/Text'
+import { useClientValue } from '#/hooks/use-client-value'
 import { useResolvedColorScheme } from '#/hooks/use-resolved-color-scheme'
 import { OPENFREEMAP_STYLES, loadMapLibre } from '#/lib/maps/load-maplibre'
 
@@ -22,11 +23,10 @@ export default function StaticMap({ height, label, children, ...view }: StaticMa
   const scheme = useResolvedColorScheme()
   const [isReady, setIsReady] = useState(false)
   const [hasError, setHasError] = useState(false)
-  const [reduceMotion, setReduceMotion] = useState(false)
-
-  useEffect(() => {
-    setReduceMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  }, [])
+  const reduceMotion = useClientValue(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    false,
+  )
 
   return (
     <Card

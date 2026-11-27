@@ -7,7 +7,7 @@ import {
 import { Button } from '@astryxdesign/core/Button'
 import { HStack } from '@astryxdesign/core/HStack'
 import { useWorkspaceDirectory } from '#/contexts/WorkspaceDirectoryContext'
-import { useKeyPress } from '#/hooks/use-key-press'
+import { useShortcut } from '#/hooks/use-shortcut'
 import { AuthSession } from '#/lib/auth/client'
 
 /** Compact centered column for the create-organization form (~23–24rem). */
@@ -48,9 +48,9 @@ export default function CreateOrganizationShell({
   const showEscape = isOnboarding || hasNoWorkspaces
   // Escape goes back to the dashboard, like the back link (not during onboarding).
   const navigate = useNavigate()
-  useKeyPress('Escape', () => {
+  useShortcut('Escape', () => {
     if (!showEscape) void navigate({ to: '/w' })
-  }, { allowInInputs: true })
+  })
   const signOut = async () => {
     try {
       await AuthSession.signOut()
@@ -91,13 +91,16 @@ export default function CreateOrganizationShell({
         ) : (
           <Link
             to="/w"
+            className="ol-focus-ring"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              padding: '2px 0',
+              padding: '4px 10px 4px 6px',
+              marginLeft: -6,
               border: 'none',
-              borderRadius: 0,
+              // Room and rounded corners, so the focus ring isn't a tight box on the text.
+              borderRadius: 'var(--radius-element)',
               cursor: 'pointer',
               backgroundColor: 'transparent',
               color: SHELL_NAV_TEXT_PRIMARY,

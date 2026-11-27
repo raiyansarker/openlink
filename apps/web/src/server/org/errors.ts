@@ -1,8 +1,5 @@
 import { Data } from 'effect'
 
-export class InvalidBootstrapInvite extends Data.TaggedError(
-  'InvalidBootstrapInvite',
-)<{}> {}
 export class InvalidInvite extends Data.TaggedError('InvalidInvite')<{}> {}
 export class InviteEmailMismatch extends Data.TaggedError(
   'InviteEmailMismatch',

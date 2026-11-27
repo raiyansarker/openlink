@@ -12,10 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as CheckEmailRouteImport } from './routes/check-email'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WRouteRouteImport } from './routes/w/route'
 import { Route as ApiDocsRouteImport } from './routes/api/docs'
 import { Route as CreateLinkRouteImport } from './routes/create/link'
@@ -23,6 +27,7 @@ import { Route as CreateOrganizationRouteImport } from './routes/create/organiza
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardSplatRouteImport } from './routes/dashboard/$'
 import { Route as EditLinkRouteImport } from './routes/edit/link'
+import { Route as InviteInviteIdRouteImport } from './routes/invite/$inviteId'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as SettingsWorkspaceRouteRouteImport } from './routes/settings/_workspace/route'
 import { Route as SettingsAccountsRouteImport } from './routes/settings/accounts'
@@ -34,17 +39,14 @@ import { Route as WIndexRouteImport } from './routes/w/index'
 import { Route as WOrgSlugRouteRouteImport } from './routes/w/$orgSlug/route'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
-import { Route as ApiUploadsAvatarRouteImport } from './routes/api/uploads/avatar'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
 import { Route as SettingsWorkspaceApiKeysRouteImport } from './routes/settings/_workspace/api-keys'
 import { Route as SettingsWorkspaceGeneralRouteImport } from './routes/settings/_workspace/general'
-import { Route as SettingsWorkspaceIntegrationsRouteImport } from './routes/settings/_workspace/integrations'
 import { Route as SettingsWorkspaceMembersRouteImport } from './routes/settings/_workspace/members'
 import { Route as WOrgSlugIndexRouteImport } from './routes/w/$orgSlug/index'
 import { Route as WOrgSlugActivityRouteImport } from './routes/w/$orgSlug/activity'
 import { Route as WOrgSlugAnalyticsRouteImport } from './routes/w/$orgSlug/analytics'
 import { Route as WOrgSlugDomainsRouteRouteImport } from './routes/w/$orgSlug/domains/route'
-import { Route as WOrgSlugNotificationsRouteImport } from './routes/w/$orgSlug/notifications'
 import { Route as WOrgSlugSettingsRouteRouteImport } from './routes/w/$orgSlug/settings/route'
 import { Route as WOrgSlugDomainsIndexRouteImport } from './routes/w/$orgSlug/domains/index'
 import { Route as WOrgSlugDomainsNewRouteImport } from './routes/w/$orgSlug/domains/new'
@@ -52,8 +54,6 @@ import { Route as WOrgSlugLinksIndexRouteImport } from './routes/w/$orgSlug/link
 import { Route as WOrgSlugLinksLinkIdRouteImport } from './routes/w/$orgSlug/links/$linkId'
 import { Route as WOrgSlugSettingsIndexRouteImport } from './routes/w/$orgSlug/settings/index'
 import { Route as WOrgSlugSettingsSplatRouteImport } from './routes/w/$orgSlug/settings/$'
-import { Route as ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport } from './routes/api/uploads/organizations/$organizationId/link-preview'
-import { Route as ApiUploadsOrganizationsOrganizationIdLogoRouteImport } from './routes/api/uploads/organizations/$organizationId/logo'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +70,16 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckEmailRoute = CheckEmailRouteImport.update({
+  id: '/check-email',
+  path: '/check-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -80,6 +90,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -88,6 +103,11 @@ const SettingsRouteRoute = SettingsRouteRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WRouteRoute = WRouteRouteImport.update({
@@ -123,6 +143,11 @@ const DashboardSplatRoute = DashboardSplatRouteImport.update({
 const EditLinkRoute = EditLinkRouteImport.update({
   id: '/edit/link',
   path: '/edit/link',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteInviteIdRoute = InviteInviteIdRouteImport.update({
+  id: '/invite/$inviteId',
+  path: '/invite/$inviteId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
@@ -179,11 +204,6 @@ const ApiMediaSplatRoute = ApiMediaSplatRouteImport.update({
   path: '/api/media/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiUploadsAvatarRoute = ApiUploadsAvatarRouteImport.update({
-  id: '/api/uploads/avatar',
-  path: '/api/uploads/avatar',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
   id: '/api/v1/$',
   path: '/api/v1/$',
@@ -199,12 +219,6 @@ const SettingsWorkspaceGeneralRoute =
   SettingsWorkspaceGeneralRouteImport.update({
     id: '/general',
     path: '/general',
-    getParentRoute: () => SettingsWorkspaceRouteRoute,
-  } as any)
-const SettingsWorkspaceIntegrationsRoute =
-  SettingsWorkspaceIntegrationsRouteImport.update({
-    id: '/integrations',
-    path: '/integrations',
     getParentRoute: () => SettingsWorkspaceRouteRoute,
   } as any)
 const SettingsWorkspaceMembersRoute =
@@ -231,11 +245,6 @@ const WOrgSlugAnalyticsRoute = WOrgSlugAnalyticsRouteImport.update({
 const WOrgSlugDomainsRouteRoute = WOrgSlugDomainsRouteRouteImport.update({
   id: '/domains',
   path: '/domains',
-  getParentRoute: () => WOrgSlugRouteRoute,
-} as any)
-const WOrgSlugNotificationsRoute = WOrgSlugNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
   getParentRoute: () => WOrgSlugRouteRoute,
 } as any)
 const WOrgSlugSettingsRouteRoute = WOrgSlugSettingsRouteRouteImport.update({
@@ -273,18 +282,6 @@ const WOrgSlugSettingsSplatRoute = WOrgSlugSettingsSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => WOrgSlugSettingsRouteRoute,
 } as any)
-const ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute =
-  ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport.update({
-    id: '/api/uploads/organizations/$organizationId/link-preview',
-    path: '/api/uploads/organizations/$organizationId/link-preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiUploadsOrganizationsOrganizationIdLogoRoute =
-  ApiUploadsOrganizationsOrganizationIdLogoRouteImport.update({
-    id: '/api/uploads/organizations/$organizationId/logo',
-    path: '/api/uploads/organizations/$organizationId/logo',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -292,15 +289,20 @@ export interface FileRoutesByFullPath {
   '/w': typeof WRouteRouteWithChildren
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
+  '/check-email': typeof CheckEmailRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/w/$orgSlug': typeof WOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
+  '/invite/$inviteId': typeof InviteInviteIdRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/developers': typeof SettingsDevelopersRoute
@@ -313,15 +315,12 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
-  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/settings/api-keys': typeof SettingsWorkspaceApiKeysRoute
   '/settings/general': typeof SettingsWorkspaceGeneralRoute
-  '/settings/integrations': typeof SettingsWorkspaceIntegrationsRoute
   '/settings/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
-  '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -329,22 +328,25 @@ export interface FileRoutesByFullPath {
   '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
-  '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
-  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
+  '/check-email': typeof CheckEmailRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/settings': typeof SettingsIndexRoute
   '/api/docs': typeof ApiDocsRoute
   '/create/link': typeof CreateLinkRoute
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
+  '/invite/$inviteId': typeof InviteInviteIdRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/developers': typeof SettingsDevelopersRoute
@@ -354,15 +356,12 @@ export interface FileRoutesByTo {
   '/w': typeof WIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
-  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/settings/api-keys': typeof SettingsWorkspaceApiKeysRoute
   '/settings/general': typeof SettingsWorkspaceGeneralRoute
-  '/settings/integrations': typeof SettingsWorkspaceIntegrationsRoute
   '/settings/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
-  '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
   '/w/$orgSlug': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -370,8 +369,6 @@ export interface FileRoutesByTo {
   '/w/$orgSlug/domains': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsIndexRoute
-  '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
-  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -380,9 +377,13 @@ export interface FileRoutesById {
   '/w': typeof WRouteRouteWithChildren
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
+  '/check-email': typeof CheckEmailRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/settings/_workspace': typeof SettingsWorkspaceRouteRouteWithChildren
   '/w/$orgSlug': typeof WOrgSlugRouteRouteWithChildren
   '/api/docs': typeof ApiDocsRoute
@@ -390,6 +391,7 @@ export interface FileRoutesById {
   '/create/organization': typeof CreateOrganizationRoute
   '/dashboard/$': typeof DashboardSplatRoute
   '/edit/link': typeof EditLinkRoute
+  '/invite/$inviteId': typeof InviteInviteIdRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/developers': typeof SettingsDevelopersRoute
@@ -402,15 +404,12 @@ export interface FileRoutesById {
   '/w/$orgSlug/settings': typeof WOrgSlugSettingsRouteRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
-  '/api/uploads/avatar': typeof ApiUploadsAvatarRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/settings/_workspace/api-keys': typeof SettingsWorkspaceApiKeysRoute
   '/settings/_workspace/general': typeof SettingsWorkspaceGeneralRoute
-  '/settings/_workspace/integrations': typeof SettingsWorkspaceIntegrationsRoute
   '/settings/_workspace/members': typeof SettingsWorkspaceMembersRoute
   '/w/$orgSlug/activity': typeof WOrgSlugActivityRoute
   '/w/$orgSlug/analytics': typeof WOrgSlugAnalyticsRoute
-  '/w/$orgSlug/notifications': typeof WOrgSlugNotificationsRoute
   '/w/$orgSlug/': typeof WOrgSlugIndexRoute
   '/w/$orgSlug/domains/new': typeof WOrgSlugDomainsNewRoute
   '/w/$orgSlug/links/$linkId': typeof WOrgSlugLinksLinkIdRoute
@@ -418,8 +417,6 @@ export interface FileRoutesById {
   '/w/$orgSlug/domains/': typeof WOrgSlugDomainsIndexRoute
   '/w/$orgSlug/links/': typeof WOrgSlugLinksIndexRoute
   '/w/$orgSlug/settings/': typeof WOrgSlugSettingsIndexRoute
-  '/api/uploads/organizations/$organizationId/link-preview': typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
-  '/api/uploads/organizations/$organizationId/logo': typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -429,15 +426,20 @@ export interface FileRouteTypes {
     | '/w'
     | '/$slug'
     | '/about'
+    | '/check-email'
+    | '/forgot-password'
     | '/login'
     | '/onboarding'
+    | '/reset-password'
     | '/signup'
+    | '/verify-email'
     | '/w/$orgSlug'
     | '/api/docs'
     | '/create/link'
     | '/create/organization'
     | '/dashboard/$'
     | '/edit/link'
+    | '/invite/$inviteId'
     | '/settings/accounts'
     | '/settings/appearance'
     | '/settings/developers'
@@ -450,15 +452,12 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/settings'
     | '/api/auth/$'
     | '/api/media/$'
-    | '/api/uploads/avatar'
     | '/api/v1/$'
     | '/settings/api-keys'
     | '/settings/general'
-    | '/settings/integrations'
     | '/settings/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
-    | '/w/$orgSlug/notifications'
     | '/w/$orgSlug/'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -466,22 +465,25 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains/'
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
-    | '/api/uploads/organizations/$organizationId/link-preview'
-    | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$slug'
     | '/about'
+    | '/check-email'
+    | '/forgot-password'
     | '/login'
     | '/onboarding'
+    | '/reset-password'
     | '/signup'
+    | '/verify-email'
     | '/settings'
     | '/api/docs'
     | '/create/link'
     | '/create/organization'
     | '/dashboard/$'
     | '/edit/link'
+    | '/invite/$inviteId'
     | '/settings/accounts'
     | '/settings/appearance'
     | '/settings/developers'
@@ -491,15 +493,12 @@ export interface FileRouteTypes {
     | '/w'
     | '/api/auth/$'
     | '/api/media/$'
-    | '/api/uploads/avatar'
     | '/api/v1/$'
     | '/settings/api-keys'
     | '/settings/general'
-    | '/settings/integrations'
     | '/settings/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
-    | '/w/$orgSlug/notifications'
     | '/w/$orgSlug'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -507,8 +506,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains'
     | '/w/$orgSlug/links'
     | '/w/$orgSlug/settings'
-    | '/api/uploads/organizations/$organizationId/link-preview'
-    | '/api/uploads/organizations/$organizationId/logo'
   id:
     | '__root__'
     | '/'
@@ -516,9 +513,13 @@ export interface FileRouteTypes {
     | '/w'
     | '/$slug'
     | '/about'
+    | '/check-email'
+    | '/forgot-password'
     | '/login'
     | '/onboarding'
+    | '/reset-password'
     | '/signup'
+    | '/verify-email'
     | '/settings/_workspace'
     | '/w/$orgSlug'
     | '/api/docs'
@@ -526,6 +527,7 @@ export interface FileRouteTypes {
     | '/create/organization'
     | '/dashboard/$'
     | '/edit/link'
+    | '/invite/$inviteId'
     | '/settings/accounts'
     | '/settings/appearance'
     | '/settings/developers'
@@ -538,15 +540,12 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/settings'
     | '/api/auth/$'
     | '/api/media/$'
-    | '/api/uploads/avatar'
     | '/api/v1/$'
     | '/settings/_workspace/api-keys'
     | '/settings/_workspace/general'
-    | '/settings/_workspace/integrations'
     | '/settings/_workspace/members'
     | '/w/$orgSlug/activity'
     | '/w/$orgSlug/analytics'
-    | '/w/$orgSlug/notifications'
     | '/w/$orgSlug/'
     | '/w/$orgSlug/domains/new'
     | '/w/$orgSlug/links/$linkId'
@@ -554,8 +553,6 @@ export interface FileRouteTypes {
     | '/w/$orgSlug/domains/'
     | '/w/$orgSlug/links/'
     | '/w/$orgSlug/settings/'
-    | '/api/uploads/organizations/$organizationId/link-preview'
-    | '/api/uploads/organizations/$organizationId/logo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -564,21 +561,23 @@ export interface RootRouteChildren {
   WRouteRoute: typeof WRouteRouteWithChildren
   SlugRoute: typeof SlugRoute
   AboutRoute: typeof AboutRoute
+  CheckEmailRoute: typeof CheckEmailRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   ApiDocsRoute: typeof ApiDocsRoute
   CreateLinkRoute: typeof CreateLinkRoute
   CreateOrganizationRoute: typeof CreateOrganizationRoute
   DashboardSplatRoute: typeof DashboardSplatRoute
   EditLinkRoute: typeof EditLinkRoute
+  InviteInviteIdRoute: typeof InviteInviteIdRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiMediaSplatRoute: typeof ApiMediaSplatRoute
-  ApiUploadsAvatarRoute: typeof ApiUploadsAvatarRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
-  ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute: typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute
-  ApiUploadsOrganizationsOrganizationIdLogoRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -604,6 +603,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/check-email': {
+      id: '/check-email'
+      path: '/check-email'
+      fullPath: '/check-email'
+      preLoaderRoute: typeof CheckEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -618,6 +631,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -630,6 +650,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/w': {
@@ -679,6 +706,13 @@ declare module '@tanstack/react-router' {
       path: '/edit/link'
       fullPath: '/edit/link'
       preLoaderRoute: typeof EditLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$inviteId': {
+      id: '/invite/$inviteId'
+      path: '/invite/$inviteId'
+      fullPath: '/invite/$inviteId'
+      preLoaderRoute: typeof InviteInviteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/': {
@@ -758,13 +792,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMediaSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/uploads/avatar': {
-      id: '/api/uploads/avatar'
-      path: '/api/uploads/avatar'
-      fullPath: '/api/uploads/avatar'
-      preLoaderRoute: typeof ApiUploadsAvatarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/v1/$': {
       id: '/api/v1/$'
       path: '/api/v1/$'
@@ -784,13 +811,6 @@ declare module '@tanstack/react-router' {
       path: '/general'
       fullPath: '/settings/general'
       preLoaderRoute: typeof SettingsWorkspaceGeneralRouteImport
-      parentRoute: typeof SettingsWorkspaceRouteRoute
-    }
-    '/settings/_workspace/integrations': {
-      id: '/settings/_workspace/integrations'
-      path: '/integrations'
-      fullPath: '/settings/integrations'
-      preLoaderRoute: typeof SettingsWorkspaceIntegrationsRouteImport
       parentRoute: typeof SettingsWorkspaceRouteRoute
     }
     '/settings/_workspace/members': {
@@ -826,13 +846,6 @@ declare module '@tanstack/react-router' {
       path: '/domains'
       fullPath: '/w/$orgSlug/domains'
       preLoaderRoute: typeof WOrgSlugDomainsRouteRouteImport
-      parentRoute: typeof WOrgSlugRouteRoute
-    }
-    '/w/$orgSlug/notifications': {
-      id: '/w/$orgSlug/notifications'
-      path: '/notifications'
-      fullPath: '/w/$orgSlug/notifications'
-      preLoaderRoute: typeof WOrgSlugNotificationsRouteImport
       parentRoute: typeof WOrgSlugRouteRoute
     }
     '/w/$orgSlug/settings': {
@@ -884,27 +897,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WOrgSlugSettingsSplatRouteImport
       parentRoute: typeof WOrgSlugSettingsRouteRoute
     }
-    '/api/uploads/organizations/$organizationId/link-preview': {
-      id: '/api/uploads/organizations/$organizationId/link-preview'
-      path: '/api/uploads/organizations/$organizationId/link-preview'
-      fullPath: '/api/uploads/organizations/$organizationId/link-preview'
-      preLoaderRoute: typeof ApiUploadsOrganizationsOrganizationIdLinkPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/uploads/organizations/$organizationId/logo': {
-      id: '/api/uploads/organizations/$organizationId/logo'
-      path: '/api/uploads/organizations/$organizationId/logo'
-      fullPath: '/api/uploads/organizations/$organizationId/logo'
-      preLoaderRoute: typeof ApiUploadsOrganizationsOrganizationIdLogoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 interface SettingsWorkspaceRouteRouteChildren {
   SettingsWorkspaceApiKeysRoute: typeof SettingsWorkspaceApiKeysRoute
   SettingsWorkspaceGeneralRoute: typeof SettingsWorkspaceGeneralRoute
-  SettingsWorkspaceIntegrationsRoute: typeof SettingsWorkspaceIntegrationsRoute
   SettingsWorkspaceMembersRoute: typeof SettingsWorkspaceMembersRoute
 }
 
@@ -912,7 +910,6 @@ const SettingsWorkspaceRouteRouteChildren: SettingsWorkspaceRouteRouteChildren =
   {
     SettingsWorkspaceApiKeysRoute: SettingsWorkspaceApiKeysRoute,
     SettingsWorkspaceGeneralRoute: SettingsWorkspaceGeneralRoute,
-    SettingsWorkspaceIntegrationsRoute: SettingsWorkspaceIntegrationsRoute,
     SettingsWorkspaceMembersRoute: SettingsWorkspaceMembersRoute,
   }
 
@@ -978,7 +975,6 @@ interface WOrgSlugRouteRouteChildren {
   WOrgSlugSettingsRouteRoute: typeof WOrgSlugSettingsRouteRouteWithChildren
   WOrgSlugActivityRoute: typeof WOrgSlugActivityRoute
   WOrgSlugAnalyticsRoute: typeof WOrgSlugAnalyticsRoute
-  WOrgSlugNotificationsRoute: typeof WOrgSlugNotificationsRoute
   WOrgSlugIndexRoute: typeof WOrgSlugIndexRoute
   WOrgSlugLinksLinkIdRoute: typeof WOrgSlugLinksLinkIdRoute
   WOrgSlugLinksIndexRoute: typeof WOrgSlugLinksIndexRoute
@@ -989,7 +985,6 @@ const WOrgSlugRouteRouteChildren: WOrgSlugRouteRouteChildren = {
   WOrgSlugSettingsRouteRoute: WOrgSlugSettingsRouteRouteWithChildren,
   WOrgSlugActivityRoute: WOrgSlugActivityRoute,
   WOrgSlugAnalyticsRoute: WOrgSlugAnalyticsRoute,
-  WOrgSlugNotificationsRoute: WOrgSlugNotificationsRoute,
   WOrgSlugIndexRoute: WOrgSlugIndexRoute,
   WOrgSlugLinksLinkIdRoute: WOrgSlugLinksLinkIdRoute,
   WOrgSlugLinksIndexRoute: WOrgSlugLinksIndexRoute,
@@ -1018,23 +1013,23 @@ const rootRouteChildren: RootRouteChildren = {
   WRouteRoute: WRouteRouteWithChildren,
   SlugRoute: SlugRoute,
   AboutRoute: AboutRoute,
+  CheckEmailRoute: CheckEmailRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   ApiDocsRoute: ApiDocsRoute,
   CreateLinkRoute: CreateLinkRoute,
   CreateOrganizationRoute: CreateOrganizationRoute,
   DashboardSplatRoute: DashboardSplatRoute,
   EditLinkRoute: EditLinkRoute,
+  InviteInviteIdRoute: InviteInviteIdRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiMediaSplatRoute: ApiMediaSplatRoute,
-  ApiUploadsAvatarRoute: ApiUploadsAvatarRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
-  ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute:
-    ApiUploadsOrganizationsOrganizationIdLinkPreviewRoute,
-  ApiUploadsOrganizationsOrganizationIdLogoRoute:
-    ApiUploadsOrganizationsOrganizationIdLogoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

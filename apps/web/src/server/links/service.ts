@@ -41,7 +41,6 @@ export function createLinkRecord(input: {
   destinationUrl: string
   title?: string
   description?: string
-  redirectStatus?: number
   activateAt?: Date
   expiresAt?: Date
   maxClicks?: number
@@ -71,7 +70,6 @@ export function createLinkRecord(input: {
           title: input.title,
           description: input.description,
           destinationUrl: input.destinationUrl,
-          redirectStatus: input.redirectStatus ?? 302,
           status: input.activateAt && input.activateAt > now ? 'scheduled' : 'active',
           enabled: true,
           activateAt: input.activateAt,
@@ -182,7 +180,6 @@ export function updateLinkRecord(
           destinationUrl: input.destinationUrl ?? existing.destinationUrl,
           title: input.title ?? existing.title,
           description: Patch.value(input.description, existing.description),
-          redirectStatus: input.redirectStatus ?? existing.redirectStatus,
           status: input.status ?? existing.status,
           enabled: input.enabled ?? existing.enabled,
           activateAt: Patch.date(input.activateAt, existing.activateAt),

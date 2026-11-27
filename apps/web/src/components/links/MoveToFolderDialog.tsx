@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -7,7 +7,8 @@ import { Selector } from '@astryxdesign/core/Selector'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
-import type { LinkFolder } from '#/data/demo/types'
+import { useOpenSession } from '#/hooks/use-open-session'
+import type { LinkFolder } from '#/lib/api/types'
 import { canMoveFolder, folderPathLabel } from '#/lib/links/folder-tree'
 
 const ROOT_VALUE = '__root__'
@@ -26,7 +27,28 @@ type MoveToFolderDialogProps = {
   onMove: (subject: MoveSubject, destinationId: string | null) => void | Promise<void>
 }
 
-export default function MoveToFolderDialog({
+/** Id of the item being moved, to tell one move from the next. */
+function subjectKey(subject: MoveSubject | null): string | null {
+  if (!subject) return null
+  return subject.kind === 'links' ? subject.ids.join(',') : subject.id
+}
+
+export default function MoveToFolderDialog(props: MoveToFolderDialogProps) {
+  const session = useOpenSession(props.subject != null, subjectKey(props.subject))
+  return (
+    <Dialog
+      isOpen={props.subject != null}
+      onOpenChange={props.onOpenChange}
+      purpose="form"
+      width={460}
+      padding={FOLDER_DIALOG_PADDING}
+    >
+      <MoveToFolderForm key={session} {...props} />
+    </Dialog>
+  )
+}
+
+function MoveToFolderForm({
   subject,
   folders,
   onOpenChange,
@@ -40,13 +62,6 @@ export default function MoveToFolderDialog({
         : subject.folderId
   const [selected, setSelected] = useState(currentId ?? ROOT_VALUE)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (subject) {
-      setSelected(currentId ?? ROOT_VALUE)
-      setError(null)
-    }
-  }, [subject, currentId])
 
   const options = useMemo(() => {
     const rows = folders
@@ -81,13 +96,6 @@ export default function MoveToFolderDialog({
   }
 
   return (
-    <Dialog
-      isOpen={subject != null}
-      onOpenChange={onOpenChange}
-      purpose="form"
-      width={460}
-      padding={FOLDER_DIALOG_PADDING}
-    >
       <Layout
         header={<DialogHeader title="Move to…" onOpenChange={onOpenChange} />}
         content={
@@ -127,6 +135,5 @@ export default function MoveToFolderDialog({
           </LayoutFooter>
         }
       />
-    </Dialog>
   )
 }

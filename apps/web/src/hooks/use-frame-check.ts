@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
-import { ApiClient } from '#/lib/api/client'
-import { QueryKeys } from '#/lib/api/query'
+import { orpc } from '#/lib/api/orpc'
 
 /**
  * Whether `url` can be shown in a frame, asked once typing pauses. `null`
@@ -15,12 +14,14 @@ export function useFrameCheck(organizationId: string, url: string, enabled: bool
     return () => clearTimeout(timer)
   }, [url])
 
-  const query = useQuery({
-    queryKey: QueryKeys.frameCheck(organizationId, settled),
-    queryFn: () => ApiClient.instance.links.checkFraming({ params: { organizationId }, body: { url: settled } }),
-    enabled: enabled && settled === url && /^https?:\/\/\S+$/.test(settled),
-    staleTime: 10 * 60_000,
-    retry: false,
-  })
+  // A read, even though the procedure is a POST: the answer is cached per URL.
+  const query = useQuery(
+    orpc.links.checkFraming.queryOptions({
+      input: { params: { organizationId }, body: { url: settled } },
+      enabled: enabled && settled === url && /^https?:\/\/\S+$/.test(settled),
+      staleTime: 10 * 60_000,
+      retry: false,
+    }),
+  )
   return { frameable: query.data?.frameable ?? null, isChecking: query.isFetching }
 }

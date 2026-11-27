@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Selector } from '@astryxdesign/core/Selector'
 import { ShortUrl } from '#/lib/links/short-url'
 import { Banner } from '@astryxdesign/core/Banner'
@@ -12,7 +12,8 @@ import { Table, pixel, proportional } from '@astryxdesign/core/Table'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
 import { FOLDER_DIALOG_PADDING } from '#/components/links/dialog-spacing'
-import type { LinkFolder, ShortLink } from '#/data/demo/types'
+import { useOpenSession } from '#/hooks/use-open-session'
+import type { LinkFolder, ShortLink } from '#/lib/api/types'
 import type { CreateLinkDraft } from '#/lib/links/create-link'
 import { folderPathLabel } from '#/lib/links/folder-tree'
 import {
@@ -43,8 +44,22 @@ const APP_HOST = '__app__'
 type Row = ImportRow & Record<string, unknown>
 
 /** Upload a CSV, review every row, then create the valid ones. */
-export default function ImportLinksDialog({
-  isOpen,
+export default function ImportLinksDialog(props: ImportLinksDialogProps) {
+  const session = useOpenSession(props.isOpen)
+  return (
+    <Dialog
+      isOpen={props.isOpen}
+      onOpenChange={props.onOpenChange}
+      purpose="form"
+      width={720}
+      padding={FOLDER_DIALOG_PADDING}
+    >
+      <ImportLinksForm key={session} {...props} />
+    </Dialog>
+  )
+}
+
+function ImportLinksForm({
   onOpenChange,
   links,
   folders,
@@ -57,16 +72,6 @@ export default function ImportLinksDialog({
   const [domainChoice, setDomainChoice] = useState(APP_HOST)
   const [tooLarge, setTooLarge] = useState(false)
   const [result, setResult] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (isOpen) {
-      setFile(null)
-      setText(null)
-      setTooLarge(false)
-      setDomainChoice(APP_HOST)
-      setResult(null)
-    }
-  }, [isOpen])
 
   const domainId = domainChoice === APP_HOST ? null : domainChoice
   // Re-checked whenever the file or the domain changes: back-halves must be free on that domain.
@@ -113,13 +118,6 @@ export default function ImportLinksDialog({
   const problemCount = preview?.ok ? preview.rows.length - preview.validCount : 0
 
   return (
-    <Dialog
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      purpose="form"
-      width={720}
-      padding={FOLDER_DIALOG_PADDING}
-    >
       <Layout
         header={
           <DialogHeader
@@ -262,6 +260,5 @@ export default function ImportLinksDialog({
           </LayoutFooter>
         }
       />
-    </Dialog>
   )
 }

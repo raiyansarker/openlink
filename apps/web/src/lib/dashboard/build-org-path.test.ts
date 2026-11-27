@@ -8,7 +8,6 @@ describe('WorkspaceUrl.build', () => {
     const expected: Record<DashboardSection, string> = {
       overview: '/w/acme',
       activity: '/w/acme/activity',
-      notifications: '/w/acme/notifications',
       links: '/w/acme/links',
       analytics: '/w/acme/analytics',
       domains: '/w/acme/domains',

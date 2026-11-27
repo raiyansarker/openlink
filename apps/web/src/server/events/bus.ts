@@ -17,7 +17,7 @@ export type WorkspaceEvent<T extends WorkspaceEventType = WorkspaceEventType> = 
   data?: Readonly<Record<string, unknown>>
 }
 
-/** A consumer of workspace events (webhooks, notifications, …). Failures never reach the publisher. */
+/** A consumer of workspace events (notifications, …). Failures never reach the publisher. */
 export interface EventSink {
   readonly name: string
   deliver(event: WorkspaceEvent): Effect.Effect<void, unknown>

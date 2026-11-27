@@ -33,6 +33,12 @@ export type LinkTargeting = typeof LinkTargeting.infer
 /** An image we host (uploaded through the app) or any public HTTPS image. */
 export const PreviewImageUrl = HttpUrl.or(/^\/api\/media\/previews\/[A-Za-z0-9_-]+\/[A-Za-z0-9-]+\.(png|jpg|gif|webp)$/)
 
+/**
+ * A share-card image file: a PNG, JPEG, WebP or GIF of at most 5 MB, sent as a file field
+ * in a `multipart/form-data` body. 1200 × 630 px looks best.
+ */
+export const LinkPreviewImage = type.instanceOf(Blob)
+
 export const SocialPreview = type({
   'title?': 'string <= 120',
   'description?': 'string <= 300',
@@ -42,8 +48,6 @@ export type SocialPreview = typeof SocialPreview.infer
 
 type HoldPageCopy = {
   label: string
-  /** HTTP status the page is served with. */
-  status: 502 | 503 | 504
   heading: string
   /** Footer under the rule on web-server style pages. */
   footer?: string
@@ -56,18 +60,16 @@ type HoldPageCopy = {
 /** What each hold page says. Shared so the editor preview and the live page match. */
 export class HoldPages {
   static readonly ALL: Readonly<Record<HoldPageId, HoldPageCopy>> = {
-    'bad-gateway': { label: '502 Bad Gateway', status: 502, heading: '502 Bad Gateway', footer: 'nginx', isServerStyle: true },
+    'bad-gateway': { label: '502 Bad Gateway', heading: '502 Bad Gateway', footer: 'nginx', isServerStyle: true },
     'service-unavailable': {
       label: '503 Unavailable',
-      status: 503,
       heading: '503 Service Temporarily Unavailable',
       footer: 'nginx',
       isServerStyle: true,
     },
-    'gateway-timeout': { label: '504 Timeout', status: 504, heading: '504 Gateway Time-out', footer: 'nginx', isServerStyle: true },
+    'gateway-timeout': { label: '504 Timeout', heading: '504 Gateway Time-out', footer: 'nginx', isServerStyle: true },
     maintenance: {
       label: 'Maintenance',
-      status: 503,
       heading: 'We’ll be right back',
       body: 'This page is down for scheduled maintenance. Please try again in a little while.',
       isServerStyle: false,

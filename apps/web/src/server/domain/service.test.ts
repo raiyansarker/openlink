@@ -8,7 +8,8 @@ import type { WorkerBindings } from '#/server/env'
 import { Db } from '#/server/effect/services/db'
 import { Bindings } from '#/server/effect/services/bindings'
 import { DomainClient } from '#/server/effect/services/domain-client'
-import { registerCustomDomain, refreshCustomDomain, removeCustomDomain } from './service'
+import { DomainSdkError } from '@openlink/domain'
+import { DomainTaken, registerCustomDomain, refreshCustomDomain, removeCustomDomain } from './service'
 
 type Row = typeof customDomain.$inferSelect
 
@@ -20,6 +21,8 @@ function fixture(options: {
   fail?: string
   cause?: unknown
   provider?: 'memory' | 'cloudflare'
+  /** The hostname is already in the table when registration checks. */
+  taken?: boolean
 } = {}) {
   const calls: string[] = []
   const row = {
@@ -32,8 +35,11 @@ function fixture(options: {
     return options.fail === name ? Promise.reject(options.cause) : Promise.resolve(value)
   }
   const db = {
-    select: () => ({ from: () => ({ where: () => ({
-      limit: () => step('select', options.missing ? [] : [row]),
+    // Registration's hostname check is the only select that names its columns.
+    select: (columns?: unknown) => ({ from: () => ({ where: () => ({
+      limit: () => columns
+        ? step('check', options.taken ? [{ id: 'other-domain' }] : [])
+        : step('select', options.missing ? [] : [row]),
     }) }) }),
     insert: () => ({ values: (input: Record<string, unknown>) => {
       values = input
@@ -58,7 +64,8 @@ function fixture(options: {
   const client = {
     add: (hostname: string) => { expect(hostname).toBe('links.example.com'); return step('add', remote) },
     refresh: (hostname: string) => { expect(hostname).toBe(row.hostname); return step('refresh', remote) },
-    remove: (hostname: string) => { expect(hostname).toBe(row.hostname); return step('remove', undefined) },
+    // Removal uses the stored hostname; undoing a registration uses the provider's.
+    remove: (hostname: string) => { expect([row.hostname, remote.hostname]).toContain(hostname); return step('remove', undefined) },
   } as unknown as ReturnType<typeof createOpenLinkDomainClient>
   const provide = <A, E>(effect: Effect.Effect<A, E, Db | Bindings | DomainClient>) => effect.pipe(
     Effect.provideService(Db, db),
@@ -76,7 +83,7 @@ describe('domain service effects', () => {
     const effect = f.provide(registerCustomDomain(input))
     expect(f.calls).toEqual([])
     const row = await Effect.runPromise(effect)
-    expect(f.calls).toEqual(['add', 'insert'])
+    expect(f.calls).toEqual(['check', 'add', 'insert'])
     expect(row).toMatchObject({
       organizationId: 'org-1', hostname: 'normalized.example.com',
       readiness: 'pending', provider: 'cloudflare', providerDomainId: 'remote-1',
@@ -143,9 +150,36 @@ describe('domain service effects', () => {
     expect(f.calls).toEqual(['select', 'remove', 'delete'])
   })
 
+  test('a hostname already in the table is refused before the provider is asked', async () => {
+    const f = fixture({ taken: true })
+    const error = await Effect.runPromise(Effect.flip(f.provide(registerCustomDomain(input))))
+    expect(error).toBeInstanceOf(DomainTaken)
+    expect(f.calls).toEqual(['check'])
+  })
+
+  test('a hostname the provider says belongs elsewhere is refused without writing', async () => {
+    const f = fixture({ fail: 'add', cause: new DomainSdkError('DOMAIN_CONFLICT', 'claimed') })
+    const error = await Effect.runPromise(Effect.flip(f.provide(registerCustomDomain(input))))
+    expect(error).toBeInstanceOf(DomainTaken)
+    expect(f.calls).toEqual(['check', 'add'])
+  })
+
+  test('if the row cannot be written, the provider registration is undone', async () => {
+    const f = fixture({ fail: 'insert', cause: new Error('D1 unavailable') })
+    const error = await Effect.runPromise(Effect.flip(f.provide(registerCustomDomain(input))))
+    expect(error).toMatchObject({ _tag: 'BackendError', operation: 'domain.register.insert' })
+    expect(f.calls).toEqual(['check', 'add', 'insert', 'remove'])
+  })
+
+  test('if another workspace connected it in the meantime, its provider entry is left alone', async () => {
+    const f = fixture({ fail: 'insert', cause: new Error('UNIQUE constraint failed: custom_domain.hostname') })
+    const error = await Effect.runPromise(Effect.flip(f.provide(registerCustomDomain(input))))
+    expect(error).toBeInstanceOf(DomainTaken)
+    expect(f.calls).toEqual(['check', 'add', 'insert'])
+  })
+
   for (const [fail, operation, workflow] of [
     ['add', 'domain.register.provider', () => registerCustomDomain(input)],
-    ['insert', 'domain.register.insert', () => registerCustomDomain(input)],
     ['select', 'domain.refresh.select', () => refreshCustomDomain('domain-1')],
     ['refresh', 'domain.refresh.provider', () => refreshCustomDomain('domain-1')],
     ['update', 'domain.refresh.update', () => refreshCustomDomain('domain-1')],

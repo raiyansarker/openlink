@@ -4,6 +4,7 @@ import type { customDomain, link } from '@openlink/db/schema'
 import { Context, Effect } from 'effect'
 import type { WorkerBindings } from '../env'
 import { Bindings } from '../effect/services/bindings'
+import { EmailDispatch } from '../email/dispatch'
 import type { OrganizationRole } from '../org/permissions'
 
 // Explicitly launched by authorization.test.ts, not discovered by `bun test src`.
@@ -13,13 +14,13 @@ const org = { id: 'org-1', name: 'Workspace', slug: 'workspace', createdAt: now,
 const domain: typeof customDomain.$inferSelect = {
   id: 'domain-1', organizationId: org.id, hostname: 'go.example.com',
   readiness: 'active', provider: 'memory', providerDomainId: null,
-  dnsRecordsJson: '[]', defaultRedirectStatus: 302, activeAt: now,
+  dnsRecordsJson: '[]', activeAt: now,
   createdAt: now, updatedAt: now,
 }
 const linkRow: typeof link.$inferSelect = {
   id: 'link-1', organizationId: org.id, domainId: domain.id, slug: 'hello', folderId: null,
   alias: null, title: null, description: null, destinationUrl: 'https://example.com/',
-  redirectStatus: 302, status: 'active', enabled: true, activateAt: null,
+  status: 'active', enabled: true, activateAt: null,
   expiresAt: null, maxClicks: null, clickCount: 0, passwordHash: null,
   expiredDestinationUrl: null, fallbackDestinationUrl: null, tagsJson: '[]',
   utmJson: null, metadataJson: null, deliveryJson: null, createdByUserId: 'user-1', createdAt: now, updatedAt: now,
@@ -64,12 +65,13 @@ const deleteLinks = mock((_input: unknown) => Effect.succeed(2))
 const activityRow = { id: 'evt-1', organizationId: org.id, actorType: 'member' as const, actorUserId: 'user-1', actorLabel: 'Ada', action: 'link.created', category: 'links' as const, targetType: 'link', targetId: 'link-1', targetLabel: 'hello', source: 'dashboard' as const, detailsJson: JSON.stringify({ changes: [{ label: 'Title', from: '—', to: 'Hi' }] }), ipAddress: '203.0.113.9', createdAt: now }
 const listActivity = mock((_input: unknown) => Effect.succeed({ items: [activityRow], nextCursor: undefined as string | undefined }))
 const audit = mock((_session: unknown, _event: unknown) => Effect.void)
-const keyRow = { id: 'key-1', organizationId: org.id, name: 'CI deploy', prefix: 'ol_live_8f3a', keyHash: 'h', role: 'member' as const, createdByUserId: 'user-1', createdAt: now, lastUsedAt: null }
+const keyRow = { id: 'key-1', organizationId: org.id, name: 'CI deploy', prefix: 'sk_8f3a', role: 'member' as const, createdAt: now, lastUsedAt: null }
 let keyPrincipal: { id: string; organizationId: string; role: 'admin' | 'member' | 'viewer'; name: string } | null = null
 const authenticateApiKey = mock((_secret: string) => Effect.succeed(keyPrincipal))
 const listApiKeys = mock((_organizationId: string) => Effect.succeed([keyRow]))
-const createApiKey = mock((input: { name: string; role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ row: { ...keyRow, ...input }, secret: 'ol_live_secret-value' }))
+const createApiKey = mock((input: { name: string; role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ row: { ...keyRow, ...input }, secret: 'sk_secret-value' }))
 const updateApiKeyRole = mock((input: { role: 'admin' | 'member' | 'viewer' }) => Effect.succeed({ row: { ...keyRow, role: input.role }, previousRole: 'member' as const }))
+const rotateApiKey = mock((_input: { keyId: string }) => Effect.succeed({ row: { ...keyRow, id: 'key-2' }, secret: 'sk_rotated-value', previous: keyRow }))
 const revokeApiKey = mock((_organizationId: string, _keyId: string) => Effect.succeed(keyRow))
 const deviceRow = { id: 'sess-current', ipAddress: '203.0.113.7', userAgent: 'UA', city: 'Dhaka', country: 'BD', latitude: 23.8, longitude: 90.4, signInMethod: 'github', createdAt: now, updatedAt: now, expiresAt: now }
 const listDeviceSessions = mock((_userId: string) => Effect.succeed([deviceRow, { ...deviceRow, id: 'sess-laptop', city: null, latitude: null, longitude: null }]))
@@ -88,7 +90,6 @@ const updateLinkRecord = mock((existing: typeof linkRow, input: { title?: string
   passwordHash: input.password ? 'hashed-password' : existing.passwordHash,
 }))
 const deleteLinkRecord = mock((_linkId: string) => Effect.void)
-const acceptMemberInvite = mock((_input: unknown) => Effect.die(new Error('Unexpected invite acceptance')))
 const myInviteRow = {
   id: 'invite-9', role: 'admin' as const, expiresAt: now, createdAt: now,
   organizationId: 'org-other', organizationName: 'Other Co', organizationSlug: 'other', organizationLogoKey: null,
@@ -98,16 +99,21 @@ const listInvitesForEmail = mock((_email: string) => Effect.succeed([myInviteRow
 const acceptInviteById = mock((_input: unknown) =>
   Effect.succeed({ org: { ...org, id: 'org-other', name: 'Other Co', slug: 'other' }, member: { id: 'm-9', organizationId: 'org-other', userId: 'user-1', role: 'admin' as const, joinedAt: now } }),
 )
+const findInviteForEmail = mock((_input: unknown) => Effect.succeed<{ status: 'pending'; row: typeof myInviteRow } | { status: 'accepted' } | null>({ status: 'pending', row: myInviteRow }))
 const declineInviteForEmail = mock((_input: unknown) => Effect.succeed({ id: 'invite-9', email: 'user@example.com', organizationId: 'org-other' }))
-const createOrganizationWithBootstrapInvite = mock((_input: unknown) => Effect.die(new Error('Unexpected organization creation')))
+const createOrganizationForUser = mock((_input: unknown) => Effect.die(new Error('Unexpected organization creation')))
 const signIn = mock((_input: unknown) => Effect.die(new Error('Unexpected sign in')))
 const signUp = mock((_input: unknown) => Effect.die(new Error('Unexpected sign up')))
 const signOut = mock((_request: Request) => Effect.die(new Error('Unexpected sign out')))
 const runHealthChecks = mock(() => Effect.die(new Error('Unexpected health check')))
 // Boundary workflows are mocked, so infrastructure bindings are intentionally absent.
-const requestEffectContext = Effect.succeed(Context.make(Bindings, {
-  DOMAIN_PROVIDER: 'memory', EXPOSE_INVITE_TOKENS_IN_API: 'false',
-} as WorkerBindings))
+const testBindings = {
+  DOMAIN_PROVIDER: 'memory', BETTER_AUTH_URL: 'http://localhost',
+} as WorkerBindings
+// Email dispatch is a no-op here: the tests check authorization, not delivery.
+const requestEffectContext = Effect.succeed(
+  Context.make(Bindings, testBindings).pipe(Context.add(EmailDispatch, { send: () => Effect.void })),
+)
 
 mock.module('#/server/auth/session', () => ({ requireSession }))
 mock.module('#/server/auth/service', () => ({ signIn, signUp, signOut }))
@@ -121,8 +127,8 @@ mock.module('#/server/domain/domain-links', () => ({
 mock.module('#/server/links/service', () => ({ createLinkRecord, getLinkInDomain, getLinkInOrganization, listLinksForDomain, updateLinkRecord, deleteLinkRecord }))
 mock.module('#/server/org/service', () => ({
   createMemberInvite, getOrganizationById, listOrganizationsForUser,
-  acceptMemberInvite, createOrganizationWithBootstrapInvite,
-  listInvitesForEmail, acceptInviteById, declineInviteForEmail,
+  createOrganizationForUser,
+  listInvitesForEmail, acceptInviteById, declineInviteForEmail, findInviteForEmail,
 }))
 mock.module('#/server/org/members', () => ({
   listMembers, updateMemberRole, removeMember, transferOwnership, updateOrganization,
@@ -139,7 +145,30 @@ const summarizeTarget = mock((_input: unknown) =>
 mock.module('#/server/activity/service', () => ({ listActivity, summarizeTarget }))
 mock.module('#/server/activity/audit', () => ({ audit }))
 mock.module('#/server/apikeys/service', () => ({
-  authenticateApiKey, listApiKeys, createApiKey, updateApiKeyRole, revokeApiKey,
+  authenticateApiKey, listApiKeys, createApiKey, updateApiKeyRole, rotateApiKey, revokeApiKey,
+}))
+const updateProfile = mock((_userId: string, _input: unknown) => Effect.succeed({ name: 'User', imageUrl: '/api/media/avatars/user-1/new.webp' as string | null }))
+mock.module('#/server/account/profile', () => ({ Profile: { update: updateProfile } }))
+const sendInviteAcceptedEmail = mock((_input: unknown) => Effect.void)
+mock.module('#/server/org/invite-email', () => ({ sendInviteEmail: () => Effect.void, sendInviteAcceptedEmail }))
+// The verified-email check and per-user limit are covered in invite-guard.test.ts.
+mock.module('#/server/account/invite-guard', async () => {
+  const { requireAuthSession } = await import('#/server/effect/session')
+  return { requireInvitee: requireAuthSession.pipe(Effect.map((session) => ({ ok: true as const, session }))) }
+})
+// Share-card image storage is tested in links/preview-images.test.ts; here it only has to stay out of the way.
+const storePreviewImage = mock((_organizationId: string, _file: Blob) => Effect.succeed('/api/media/previews/org-1/card.png'))
+mock.module('#/server/links/preview-images', () => ({
+  LinkPreviewImages: {
+    store: storePreviewImage,
+    discard: () => Effect.void,
+    checkOwned: () => Effect.void,
+    withImage: (requested: unknown, _current: unknown, image: string | null | undefined) =>
+      image ? { ...(requested as object), imageUrl: image } : requested,
+    urlOf: () => null,
+    urlsOf: () => Effect.succeed([]),
+    releaseIfUnused: () => Effect.void,
+  },
 }))
 mock.module('#/server/devices/sessions', () => ({
   DeviceSessions: { list: listDeviceSessions, revoke: revokeDeviceSession, revokeOthers: revokeOtherDeviceSessions },
@@ -161,21 +190,24 @@ mock.module('#/server/analytics/report', () => ({
   AnalyticsSummaries: { build: buildSummary },
   RecentClicks: { list: listRecent },
 }))
-mock.module('#/server/effect/runtime', () => ({ requestEffectContext, effectRuntime: { runPromise: Effect.runPromise } }))
+mock.module('#/server/effect/runtime', () => ({
+  requestEffectContext,
+  effectRuntime: { runPromise: <A, E>(effect: Effect.Effect<A, E, Bindings>) => Effect.runPromise(effect.pipe(Effect.provideService(Bindings, testBindings))) },
+}))
 
 const { handleOpenApiRequest } = await import('./openapi-handler')
-const { ApiClient } = await import('#/lib/api/client')
-const { ApiError } = await import('#/lib/api/error')
+const { createApiClient } = await import('#/lib/api/orpc')
+const { apiFailure, isRetryable } = await import('#/lib/api/errors')
 
 const sideEffects = [
   createMemberInvite, registerCustomDomain, removeCustomDomain, refreshCustomDomain,
   createLinkRecord, updateLinkRecord, deleteLinkRecord,
-  acceptMemberInvite, createOrganizationWithBootstrapInvite, signIn, signUp, signOut, runHealthChecks,
+  createOrganizationForUser, signIn, signUp, signOut, runHealthChecks,
   updateMemberRole, removeMember, transferOwnership, updateOrganization, deleteOrganization,
   revokeInvite, resendInvite, createFolder, updateFolder, deleteFolder,
   moveLinks, addTagsToLinks, deleteLinks,
-  createApiKey, updateApiKeyRole, revokeApiKey, revokeDeviceSession, revokeOtherDeviceSessions,
-  acceptInviteById, declineInviteForEmail,
+  createApiKey, updateApiKeyRole, rotateApiKey, revokeApiKey, revokeDeviceSession, revokeOtherDeviceSessions,
+  acceptInviteById, declineInviteForEmail, updateProfile, storePreviewImage,
 ]
 const spies = [
   ...sideEffects, requireSession, requireOrgMembership, getDomainInOrganization,
@@ -703,7 +735,7 @@ describe('API key management', () => {
   test('the secret is returned once on creation and never when listing', async () => {
     role = 'admin'
     const created = await (await request('POST', keysPath, { name: ' CI ', role: 'viewer' })).json()
-    expect(created).toMatchObject({ secret: 'ol_live_secret-value', role: 'viewer', prefix: 'ol_live_8f3a' })
+    expect(created).toMatchObject({ secret: 'sk_secret-value', role: 'viewer', prefix: 'sk_8f3a' })
     expect(createApiKey).toHaveBeenCalledWith({ organizationId: org.id, name: 'CI', role: 'viewer', createdByUserId: 'user-1' })
     const listed = (await (await request('GET', keysPath)).json()) as { items: Record<string, unknown>[] }
     expect(JSON.stringify(listed)).not.toContain('secret')
@@ -736,8 +768,21 @@ describe('API key management', () => {
     expect(audit).toHaveBeenLastCalledWith(cookieActor, expect.objectContaining({ action: 'apikey.revoked' }))
   })
 
+  test('rotating a key returns the new secret and audits both keys', async () => {
+    role = 'admin'
+    audit.mockClear()
+    const response = await request('POST', `${keysPath}/key-1/rotate`)
+    expect(response.status).toBe(201)
+    expect(await response.json()).toMatchObject({ id: 'key-2', secret: 'sk_rotated-value' })
+    expect(rotateApiKey).toHaveBeenCalledWith({ organizationId: org.id, keyId: 'key-1', createdByUserId: 'user-1' })
+    expect(audit).toHaveBeenCalledWith(cookieActor, expect.objectContaining({ action: 'apikey.created' }))
+    expect(audit).toHaveBeenCalledWith(cookieActor, expect.objectContaining({ action: 'apikey.revoked' }))
+  })
+
   test('unknown keys are a 404', async () => {
     role = 'admin'
+    rotateApiKey.mockImplementationOnce(() => Effect.fail({ _tag: 'ApiKeyNotFound' }) as never)
+    expect((await request('POST', `${keysPath}/missing/rotate`)).status).toBe(404)
     revokeApiKey.mockImplementationOnce(() => Effect.fail({ _tag: 'ApiKeyNotFound' }) as never)
     expect((await request('DELETE', `${keysPath}/missing`)).status).toBe(404)
     updateApiKeyRole.mockImplementationOnce(() => Effect.fail({ _tag: 'ApiKeyNotFound' }) as never)
@@ -746,7 +791,7 @@ describe('API key management', () => {
 })
 
 describe('requests authenticated with an API key', () => {
-  const bearer = { authorization: 'Bearer ol_live_test-secret' }
+  const bearer = { authorization: 'Bearer sk_test-secret' }
   const asKey = (keyRole: 'admin' | 'member' | 'viewer', organizationId = org.id) => {
     keyPrincipal = { id: 'key-1', organizationId, role: keyRole, name: 'CI deploy' }
   }
@@ -756,7 +801,7 @@ describe('requests authenticated with an API key', () => {
     authenticated = false
     const response = await request('GET', `${orgPath}/members`, undefined, bearer)
     expect(response.status).toBe(200)
-    expect(authenticateApiKey).toHaveBeenCalledWith('ol_live_test-secret')
+    expect(authenticateApiKey).toHaveBeenCalledWith('sk_test-secret')
     expect(requireSession).not.toHaveBeenCalled()
     expect(requireOrgMembership).not.toHaveBeenCalled()
   })
@@ -819,9 +864,9 @@ describe('requests authenticated with an API key', () => {
     asKey('admin')
     authenticated = false
     expect((await request('GET', '/organizations', undefined, bearer)).status).toBe(401)
-    expect((await request('POST', '/organizations/invites/accept', { token: 'x' }, bearer)).status).toBe(401)
+    expect((await request('POST', '/me/invites/invite-9/accept', undefined, bearer)).status).toBe(401)
     expect(listOrganizationsForUser).not.toHaveBeenCalled()
-    expect(acceptMemberInvite).not.toHaveBeenCalled()
+    expect(acceptInviteById).not.toHaveBeenCalled()
   })
 
   test('non-OpenLink bearer tokens fall through to the cookie session', async () => {
@@ -834,8 +879,8 @@ describe('requests authenticated with an API key', () => {
 })
 
 // The real browser client against the real router: proves the two sides agree on the wire format.
-describe('frontend ApiClient against the real server', () => {
-  const client = ApiClient.create({
+describe('frontend API client against the real server', () => {
+  const client = createApiClient({
     origin: () => 'http://localhost',
     fetch: async (url, init) => {
       const result = await handleOpenApiRequest(new Request(url, init))
@@ -843,7 +888,10 @@ describe('frontend ApiClient against the real server', () => {
       return result.response
     },
   })
-  const failure = async (promise: Promise<unknown>) => ApiError.from(await promise.then(() => null, (e) => e))
+  const failure = async (promise: Promise<unknown>) => {
+    const error = await promise.then(() => null, (e) => e)
+    return { ...apiFailure(error), isRetryable: isRetryable(error) }
+  }
 
   test('parses successful, validated responses', async () => {
     role = 'viewer'
@@ -866,9 +914,9 @@ describe('frontend ApiClient against the real server', () => {
     expect(deleteLinkRecord).toHaveBeenCalledWith(linkRow.id)
   })
 
-  test('maps HTTP errors to ApiError with codes, statuses and server messages', async () => {
+  test('maps HTTP errors to codes, statuses and server messages', async () => {
     authenticated = false
-    expect(await failure(client.organizations.listOrganizations())).toMatchObject({ code: 'UNAUTHORIZED', status: 401, isUnauthorized: true })
+    expect(await failure(client.organizations.listOrganizations())).toMatchObject({ code: 'UNAUTHORIZED', status: 401 })
     authenticated = true
     role = null
     expect(await failure(client.organizations.getOrganization({ params: { organizationId: org.id } }))).toMatchObject({
@@ -892,7 +940,7 @@ describe('frontend ApiClient against the real server', () => {
   })
 })
 
-describe('your invites (notifications)', () => {
+describe('your invites', () => {
   test('lists invites sent to your signed-in email, with workspace and sender', async () => {
     role = null
     const response = await request('GET', '/me/invites')
@@ -907,11 +955,29 @@ describe('your invites (notifications)', () => {
     })
   })
 
+  test('one invite: pending with its details, accepted as a bare status, anything else 404', async () => {
+    role = null
+    const pending = await request('GET', '/me/invites/invite-9')
+    expect(pending.status).toBe(200)
+    expect(findInviteForEmail).toHaveBeenCalledWith({ inviteId: 'invite-9', email: 'user@example.com' })
+    expect(await pending.json()).toMatchObject({ status: 'pending', invite: { id: 'invite-9', organization: { name: 'Other Co' } } })
+
+    findInviteForEmail.mockImplementationOnce(() => Effect.succeed({ status: 'accepted' as const }))
+    const accepted = await request('GET', '/me/invites/invite-9')
+    expect(await accepted.json()).toEqual({ status: 'accepted' })
+
+    findInviteForEmail.mockImplementationOnce(() => Effect.succeed(null))
+    const missing = await request('GET', '/me/invites/invite-x')
+    expect(missing.status).toBe(404)
+    expect(await missing.text()).not.toContain('invite-x')
+  })
+
   test('accepting joins the workspace by invite id and records it there', async () => {
     role = null
     const response = await request('POST', '/me/invites/invite-9/accept')
     expect(response.status).toBe(200)
     expect(acceptInviteById).toHaveBeenCalledWith({ inviteId: 'invite-9', userId: 'user-1', userEmail: 'user@example.com' })
+    expect(sendInviteAcceptedEmail).toHaveBeenCalledWith({ inviteId: 'invite-9', memberUserId: 'user-1', ip: null })
     expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ organizationId: 'org-other', action: 'member.joined' }))
   })
 
@@ -933,13 +999,106 @@ describe('your invites (notifications)', () => {
 
   test('signed-out callers and API keys get nothing', async () => {
     authenticated = false
-    for (const [method, path] of [['GET', '/me/invites'], ['POST', '/me/invites/i/accept'], ['DELETE', '/me/invites/i']] as const) {
+    for (const [method, path] of [['GET', '/me/invites'], ['GET', '/me/invites/i'], ['POST', '/me/invites/i/accept'], ['DELETE', '/me/invites/i']] as const) {
       expect((await request(method, path)).status).toBe(401)
     }
     keyPrincipal = { id: 'key-1', organizationId: org.id, role: 'admin', name: 'CI' }
-    expect((await request('GET', '/me/invites', undefined, { authorization: 'Bearer ol_live_x' })).status).toBe(401)
+    expect((await request('GET', '/me/invites', undefined, { authorization: 'Bearer sk_x' })).status).toBe(401)
     expect(listInvitesForEmail).not.toHaveBeenCalled()
     expect(acceptInviteById).not.toHaveBeenCalled()
+  })
+})
+
+describe('links with a share-card image in the same request', () => {
+  const sendForm = (method: string, path: string, fields: Record<string, string | Blob>, origin = 'http://localhost') => {
+    const form = new FormData()
+    for (const [key, value] of Object.entries(fields)) form.append(key, value)
+    return handleOpenApiRequest(new Request(`http://localhost/api/v1${path}`, { method, body: form, headers: { origin } })).then((result) => result.response!)
+  }
+  const card = () => new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' })
+
+  test('creating stores the image and saves it as the card, with form fields typed by the contract', async () => {
+    role = 'member'
+    const response = await sendForm('POST', `${orgPath}/links`, {
+      destinationUrl: 'https://example.com', slug: 'launch', maxClicks: '5', cloaked: 'false',
+      'tags[0]': 'spring', 'socialPreview[title]': 'Launch', previewImage: card(),
+    })
+    expect(response.status).toBe(201)
+    expect(storePreviewImage).toHaveBeenCalledWith(org.id, expect.any(Blob))
+    expect(createLinkRecord).toHaveBeenCalledWith(expect.objectContaining({
+      slug: 'launch', maxClicks: 5, cloaked: false, tags: ['spring'],
+      socialPreview: { title: 'Launch', imageUrl: '/api/media/previews/org-1/card.png' },
+    }))
+  })
+
+  test('updating with a file replaces the image in the same PATCH', async () => {
+    role = 'member'
+    const response = await sendForm('PATCH', `${orgPath}/links/${linkRow.id}`, { title: 'New title', previewImage: card() })
+    expect(response.status).toBe(200)
+    expect(updateLinkRecord).toHaveBeenCalledWith(linkRow, expect.objectContaining({
+      title: 'New title', socialPreview: { imageUrl: '/api/media/previews/org-1/card.png' },
+    }))
+  })
+
+  test('JSON bodies keep strict types: a number sent as text is refused', async () => {
+    role = 'member'
+    const response = await request('POST', `${orgPath}/links`, { destinationUrl: 'https://example.com', maxClicks: '5' })
+    expect(response.status).toBe(400)
+    expect(createLinkRecord).not.toHaveBeenCalled()
+  })
+
+  test('viewers cannot store images, and a form from another site is blocked', async () => {
+    role = 'viewer'
+    expect((await sendForm('POST', `${orgPath}/links`, { destinationUrl: 'https://example.com', previewImage: card() })).status).toBe(403)
+    role = 'member'
+    expect((await sendForm('POST', `${orgPath}/links`, { destinationUrl: 'https://example.com', previewImage: card() }, 'https://evil.example')).status).toBe(403)
+    expect(storePreviewImage).not.toHaveBeenCalled()
+  })
+})
+
+describe('your profile (PATCH /me)', () => {
+  const profileForm = (origin = 'http://localhost') => {
+    const form = new FormData()
+    form.append('name', 'Ada Lovelace')
+    form.append('image', new Blob([new Uint8Array([0x52, 0x49, 0x46, 0x46])], { type: 'image/webp' }), 'p.webp')
+    return { method: 'PATCH', body: form, headers: { origin } }
+  }
+  const send = (init: { method: string; body?: FormData; headers?: Record<string, string> }) =>
+    handleOpenApiRequest(new Request('http://localhost/api/v1/me', init)).then((result) => result.response!)
+
+  test('name and picture arrive together in one multipart request', async () => {
+    const response = await send(profileForm())
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ name: 'User', imageUrl: '/api/media/avatars/user-1/new.webp' })
+    expect(updateProfile).toHaveBeenCalledWith('user-1', { name: 'Ada Lovelace', image: expect.any(Blob) })
+  })
+
+  test('null removes the picture over JSON', async () => {
+    updateProfile.mockImplementationOnce(() => Effect.succeed({ name: 'User', imageUrl: null }))
+    const response = await request('PATCH', '/me', { image: null })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ name: 'User' })
+    expect(updateProfile).toHaveBeenCalledWith('user-1', { image: null })
+  })
+
+  test('a refused name or image is a 400', async () => {
+    updateProfile.mockImplementationOnce(() => Effect.fail({ _tag: 'ProfileFieldRejected', message: 'Enter your name.' }) as never)
+    const response = await request('PATCH', '/me', { name: ' ' })
+    expect(response.status).toBe(400)
+    expect(((await response.json()) as { message: string }).message).toBe('Enter your name.')
+  })
+
+  test('a form posted from another site is blocked before anything runs', async () => {
+    expect((await send(profileForm('https://evil.example'))).status).toBe(403)
+    expect(updateProfile).not.toHaveBeenCalled()
+  })
+
+  test('signed-out callers and API keys cannot change a profile', async () => {
+    authenticated = false
+    expect((await request('PATCH', '/me', { name: 'X' })).status).toBe(401)
+    keyPrincipal = { id: 'key-1', organizationId: org.id, role: 'admin', name: 'CI' }
+    expect((await request('PATCH', '/me', { name: 'X' }, { authorization: 'Bearer sk_x' })).status).toBe(401)
+    expect(updateProfile).not.toHaveBeenCalled()
   })
 })
 
@@ -981,7 +1140,7 @@ describe('device sessions', () => {
       expect((await request(method, path)).status).toBe(401)
     }
     keyPrincipal = { id: 'key-1', organizationId: org.id, role: 'admin', name: 'CI' }
-    expect((await request('POST', '/me/sessions/revoke-others', undefined, { authorization: 'Bearer ol_live_x' })).status).toBe(401)
+    expect((await request('POST', '/me/sessions/revoke-others', undefined, { authorization: 'Bearer sk_x' })).status).toBe(401)
     expect(revokeOtherDeviceSessions).not.toHaveBeenCalled()
     expect(listDeviceSessions).not.toHaveBeenCalled()
   })
@@ -1060,39 +1219,24 @@ describe('workspace links (app host by default)', () => {
 // catchTags matches structural tags; do not load real service modules just for error constructors.
 const typedFailures = [
   {
-    name: 'invalid bootstrap invite', workflow: createOrganizationWithBootstrapInvite,
-    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invalid-token' },
-    tag: 'InvalidBootstrapInvite', status: 403, code: 'FORBIDDEN', message: 'Invalid or expired bootstrap invite token',
-  },
-  {
-    name: 'organization conflict', workflow: createOrganizationWithBootstrapInvite,
-    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invite-token' },
+    name: 'organization conflict', workflow: createOrganizationForUser,
+    path: '/organizations', body: { name: org.name, slug: org.slug },
     tag: 'OrganizationConflict', status: 409, code: 'CONFLICT', message: 'Unable to create organization',
   },
   {
-    name: 'organization backend failure', workflow: createOrganizationWithBootstrapInvite,
-    path: '/organizations', body: { name: org.name, slug: org.slug, inviteToken: 'invite-token' },
+    name: 'organization backend failure', workflow: createOrganizationForUser,
+    path: '/organizations', body: { name: org.name, slug: org.slug },
     tag: 'BackendError', status: 409, code: 'CONFLICT', message: 'Unable to create organization',
-  },
-  {
-    name: 'invite email mismatch', workflow: acceptMemberInvite,
-    path: '/organizations/invites/accept', body: { token: 'invite-token' },
-    tag: 'InviteEmailMismatch', status: 403, code: 'FORBIDDEN', message: 'This invite was sent to a different email address',
-  },
-  {
-    name: 'invalid invite', workflow: acceptMemberInvite,
-    path: '/organizations/invites/accept', body: { token: 'invalid-token' },
-    tag: 'InvalidInvite', status: 400, code: 'BAD_REQUEST', message: 'Invalid or expired invite',
-  },
-  {
-    name: 'invite backend failure', workflow: acceptMemberInvite,
-    path: '/organizations/invites/accept', body: { token: 'invite-token' },
-    tag: 'BackendError', status: 400, code: 'BAD_REQUEST', message: 'Invalid or expired invite',
   },
   {
     name: 'domain backend failure', workflow: registerCustomDomain,
     path: domainsPath, body: { hostname: domain.hostname },
     tag: 'BackendError', status: 400, code: 'BAD_REQUEST', message: 'Unable to register domain',
+  },
+  {
+    name: 'domain already connected', workflow: registerCustomDomain,
+    path: domainsPath, body: { hostname: domain.hostname },
+    tag: 'DomainTaken', status: 409, code: 'CONFLICT', message: 'That domain is already connected to a workspace',
   },
   {
     name: 'slug conflict', workflow: createLinkRecord,

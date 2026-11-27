@@ -1,4 +1,4 @@
-import type { ShortLink } from '#/data/demo/types'
+import type { ShortLink } from '#/lib/api/types'
 
 export type LinkExportFormat = 'csv' | 'json'
 
@@ -6,10 +6,9 @@ const CSV_COLUMNS = [
   'id',
   'slug',
   'title',
-  'targetUrl',
+  'destinationUrl',
   'status',
-  'clicks',
-  'uniqueClicks',
+  'clickCount',
   'tags',
   'createdAt',
 ] as const

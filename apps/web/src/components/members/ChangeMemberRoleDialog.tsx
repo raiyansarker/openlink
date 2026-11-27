@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@astryxdesign/core/Button'
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog'
 import { HStack } from '@astryxdesign/core/HStack'
@@ -9,7 +9,10 @@ import {
 } from '@astryxdesign/core/SegmentedControl'
 import { Text } from '@astryxdesign/core/Text'
 import { VStack } from '@astryxdesign/core/VStack'
-import type { WorkspaceMember, WorkspaceMemberRole } from '#/data/demo/types'
+import { useOpenSession } from '#/hooks/use-open-session'
+import { usePermissions } from '#/hooks/use-permissions'
+import type { Role } from '#/lib/api/types'
+import type { Person } from '#/lib/members/people'
 import {
   ASSIGNABLE_WORKSPACE_ROLES,
   WORKSPACE_MEMBER_ROLE_HELP,
@@ -17,50 +20,58 @@ import {
 import { workspaceMemberRoleLabel } from '#/lib/members/role-label'
 
 type ChangeMemberRoleDialogProps = {
-  member: WorkspaceMember
+  member: Person
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: (memberId: string, role: WorkspaceMemberRole) => void
+  onConfirm: (member: Person, role: Role) => void
 }
 
-function defaultAssignableRole(member: WorkspaceMember): WorkspaceMemberRole {
+function defaultAssignableRole(member: Person): Role {
   if (member.role === 'owner') return 'admin'
   if (ASSIGNABLE_WORKSPACE_ROLES.includes(member.role)) return member.role
   return 'member'
 }
 
-export default function ChangeMemberRoleDialog({
+export default function ChangeMemberRoleDialog(props: ChangeMemberRoleDialogProps) {
+  const session = useOpenSession(props.isOpen, props.member.key)
+  return (
+    <Dialog
+      isOpen={props.isOpen}
+      onOpenChange={props.onOpenChange}
+      purpose="form"
+      width={400}
+    >
+      <ChangeMemberRoleForm key={session} {...props} />
+    </Dialog>
+  )
+}
+
+function ChangeMemberRoleForm({
   member,
-  isOpen,
   onOpenChange,
   onConfirm,
 }: ChangeMemberRoleDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<WorkspaceMemberRole>(
+  const [selectedRole, setSelectedRole] = useState<Role>(() =>
     defaultAssignableRole(member),
   )
-
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedRole(defaultAssignableRole(member))
-    }
-  }, [isOpen, member])
+  // Admins may only offer the roles they can hand out (member, viewer);
+  // owners offer every assignable role. The member's current role always stays
+  // in the list so the control keeps a valid value.
+  const { assignableRoles } = usePermissions()
+  const options = Array.from(new Set([...assignableRoles, member.role])).filter(
+    (role) => role !== 'owner',
+  )
 
   const unchanged = selectedRole === member.role
 
   const handleSave = () => {
     if (!unchanged) {
-      onConfirm(member.id, selectedRole)
+      onConfirm(member, selectedRole)
     }
     onOpenChange(false)
   }
 
   return (
-    <Dialog
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      purpose="form"
-      width={400}
-    >
       <Layout
         header={
           <DialogHeader title="Change role" onOpenChange={onOpenChange} />
@@ -77,11 +88,11 @@ export default function ChangeMemberRoleDialog({
                   label="Workspace role"
                   value={selectedRole}
                   onChange={(value) =>
-                    setSelectedRole(value as WorkspaceMemberRole)
+                    setSelectedRole(value as Role)
                   }
                   layout="fill"
                 >
-                  {ASSIGNABLE_WORKSPACE_ROLES.map((option) => (
+                  {options.map((option) => (
                     <SegmentedControlItem
                       key={option}
                       value={option}
@@ -115,6 +126,5 @@ export default function ChangeMemberRoleDialog({
           </LayoutFooter>
         }
       />
-    </Dialog>
   )
 }
