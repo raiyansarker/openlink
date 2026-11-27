@@ -151,12 +151,12 @@ export default function WorkspaceMembersPanel() {
 
       <VStack className="members-table members-table--clickable-rows" width="100%" hAlign="stretch">
         <Table<MemberRow>
-          className="members-table__grid"
+          className="members-table__grid table-nowrap"
           data={rows}
           idKey="key"
           density="balanced"
           dividers="rows"
-          textOverflow="truncate"
+          textOverflow="wrap"
           plugins={rowPlugins}
           columns={[
           {

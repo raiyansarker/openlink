@@ -175,11 +175,11 @@ function ImportLinksForm({
                     {problemCount > 0 ? ` · ${problemCount} with problems (skipped)` : ''}
                   </Text>
                   <Table<Row>
+                    className="table-nowrap"
                     data={preview.rows as Row[]}
                     idKey="line"
                     density="compact"
                     dividers="rows"
-                    textOverflow="truncate"
                     columns={[
                       {
                         key: 'line',

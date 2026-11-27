@@ -198,12 +198,11 @@ export default function DashboardDomainsPanel() {
             hAlign="stretch"
           >
             <Table<DomainRow>
-              className="members-table__grid"
+              className="members-table__grid table-nowrap"
               data={rows}
               idKey="id"
               density="balanced"
               dividers="rows"
-              textOverflow="truncate"
               hasHover
               plugins={rowPlugins}
               columns={[

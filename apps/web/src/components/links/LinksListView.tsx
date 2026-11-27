@@ -47,9 +47,9 @@ export default function LinksListView({
         <Table<Row>
           data={rows}
           idKey="id"
+          className="table-nowrap"
           density="balanced"
           dividers="rows"
-          textOverflow="truncate"
           hasHover
           plugins={rowPlugins}
           columns={[
@@ -83,7 +83,7 @@ export default function LinksListView({
                       <Favicon url={row.destinationUrl ?? row.targetUrl} size={16} />
                     </span>
                     <VStack gap={1} style={{ minWidth: 0, flex: '1 1 0', overflow: 'hidden' }}>
-                      <Text weight="semibold" maxLines={1}>
+                      <Text weight="semibold">
                         {row.title}
                       </Text>
                     </VStack>
@@ -97,7 +97,7 @@ export default function LinksListView({
               width: proportional(2, { minWidth: 160 }),
               renderCell: (row) => (
                 <span style={{ display: 'block', minWidth: 0, overflow: 'hidden' }}>
-                  <Text type="supporting" color="secondary" maxLines={1}>
+                  <Text type="supporting" color="secondary">
                     {shortUrlFor(row.slug, row.domainId).replace(/^https?:\/\//, '')}
                   </Text>
                 </span>
@@ -109,7 +109,7 @@ export default function LinksListView({
               width: proportional(2, { minWidth: 160 }),
               renderCell: (row) => (
                 <span style={{ display: 'block', minWidth: 0, overflow: 'hidden' }}>
-                  <Text type="supporting" color="secondary" maxLines={1}>
+                  <Text type="supporting" color="secondary">
                     {stripUrlScheme(linkTargetUrl(row))}
                   </Text>
                 </span>
