@@ -76,6 +76,20 @@ table.table-nowrap {
   box-shadow: none !important;
 }
 
+/*
+ * Calendar (date/time picker): the today marker and the keyboard-focused day
+ * follow the blue field focus instead of the library's gray inset ring and
+ * orange outline, which the ID-boosted stylex rules would otherwise keep.
+ */
+.astryx-calendar-day[aria-current='date'] {
+  box-shadow: inset 0 0 0 1px var(--openlink-field-focus) !important;
+}
+
+.astryx-calendar-day:focus-visible {
+  outline: none !important;
+  box-shadow: inset 0 0 0 1px var(--openlink-field-focus) !important;
+}
+
 .members-table .astryx-table-row:hover .astryx-table-cell:first-child {
   border-top-left-radius: 9px;
   border-bottom-left-radius: 9px;
