@@ -4,6 +4,7 @@ import { AlertDialog } from '@astryxdesign/core/AlertDialog'
 import { Banner } from '@astryxdesign/core/Banner'
 import { BreadcrumbItem, Breadcrumbs } from '@astryxdesign/core/Breadcrumbs'
 import { Button } from '@astryxdesign/core/Button'
+import { DropdownMenu, type DropdownMenuOption } from '@astryxdesign/core/DropdownMenu'
 import { EmptyState } from '@astryxdesign/core/EmptyState'
 import { HStack } from '@astryxdesign/core/HStack'
 import { Heading } from '@astryxdesign/core/Heading'
@@ -139,6 +140,28 @@ export default function LinksBrowser({
       ),
     [links, currentId],
   )
+
+  /** One CSV menu: import for managers, export whenever there is anything to export. */
+  const csvMenuItems: DropdownMenuOption[] = [
+    ...(canEdit
+      ? [
+          {
+            id: 'import',
+            label: 'Import links…',
+            onClick: () => setIsImportOpen(true),
+          },
+        ]
+      : []),
+    ...(folderLinks.length > 0
+      ? [
+          {
+            id: 'export',
+            label: 'Export links…',
+            onClick: exportCsv,
+          },
+        ]
+      : []),
+  ]
 
   /** Drag-and-drop move; invalid drops (cycles, same place) are ignored. */
   const dropItem = (itemKey: string, destinationId: string | null) => {
@@ -286,32 +309,27 @@ export default function LinksBrowser({
           ))}
         </Breadcrumbs>
         <HStack gap={2} vAlign="center">
-          {canEdit ? (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                label="Import CSV"
-                onClick={() => setIsImportOpen(true)}
-              />
-              <Button
-                variant="secondary"
-                size="sm"
-                label="New folder"
-                icon={<PlusIcon size={14} />}
-                endContent={<ShortcutChip>F</ShortcutChip>}
-                aria-keyshortcuts="F"
-                isDisabled={!canCreateFolderHere}
-                onClick={() => setNewFolderOpen(true)}
-              />
-            </>
+          {csvMenuItems.length > 0 ? (
+            <DropdownMenu
+              presentation="popover"
+              placement="below"
+              alignment="end"
+              menuWidth={180}
+              hasChevron
+              button={{ label: 'CSV', variant: 'ghost', size: 'sm' }}
+              items={csvMenuItems}
+            />
           ) : null}
-          {folderLinks.length > 0 ? (
+          {canEdit ? (
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
-              label="Export CSV"
-              onClick={exportCsv}
+              label="New folder"
+              icon={<PlusIcon size={14} />}
+              endContent={<ShortcutChip>F</ShortcutChip>}
+              aria-keyshortcuts="F"
+              isDisabled={!canCreateFolderHere}
+              onClick={() => setNewFolderOpen(true)}
             />
           ) : null}
         </HStack>
@@ -337,10 +355,14 @@ export default function LinksBrowser({
           actions={
             canEdit ? (
               <HStack gap={2}>
-                <Button
-                  variant="secondary"
-                  label="Import CSV"
-                  onClick={() => setIsImportOpen(true)}
+                <DropdownMenu
+                  presentation="popover"
+                  placement="below"
+                  alignment="end"
+                  menuWidth={180}
+                  hasChevron
+                  button={{ label: 'CSV', variant: 'secondary' }}
+                  items={csvMenuItems}
                 />
                 <Button
                   variant="primary"
