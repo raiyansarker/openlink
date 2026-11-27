@@ -25,6 +25,7 @@ import { useOrganization } from '#/contexts/OrganizationContext'
 import { usePermissions } from '#/hooks/use-permissions'
 import { useShortcut } from '#/hooks/use-shortcut'
 import type { LinkFolder, ShortLink } from '#/lib/api/types'
+import { exportFileName, linksToCsv } from '#/lib/links/export-links'
 import {
   canCreateFolderIn,
   canMoveFolder,
@@ -62,6 +63,8 @@ export default function LinksBrowser({
     createLink,
     duplicateLink,
     moveLinks,
+    deleteLinks,
+    shortUrlFor,
   } = useOrganization()
   const navigate = useNavigate()
   // Viewers browse and open; every write control below stays hidden for them.
@@ -85,6 +88,7 @@ export default function LinksBrowser({
   const [moving, setMoving] = useState<MoveSubject | null>(null)
   const [deletingFolder, setDeletingFolder] = useState<LinkFolder | null>(null)
   const [deletingLink, setDeletingLink] = useState<ShortLink | null>(null)
+  const [deletingLinks, setDeletingLinks] = useState<string[] | null>(null)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   /** Runs an action from a menu or drop, showing its failure above the list. */
@@ -107,6 +111,20 @@ export default function LinksBrowser({
     })
   const editLink = (linkId: string) =>
     void navigate({ to: '/edit/link', search: { org: activeOrg.slug, link: linkId } })
+
+  /** Downloads the folder's links as CSV (available to viewers too — read-only). */
+  const exportCsv = () => {
+    const csv = linksToCsv(folderLinks, {
+      shortUrlFor: (link) => shortUrlFor(link.slug, link.domainId),
+    })
+    const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = exportFileName(activeOrg.slug)
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
 
   const folderTiles = useMemo<FolderTile[]>(
     () =>
@@ -288,6 +306,14 @@ export default function LinksBrowser({
               />
             </>
           ) : null}
+          {folderLinks.length > 0 ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Export CSV"
+              onClick={exportCsv}
+            />
+          ) : null}
         </HStack>
       </HStack>
 
@@ -349,6 +375,20 @@ export default function LinksBrowser({
                 links={folderLinks}
                 linkMenu={linkMenu}
                 onOpenLink={(link) => openLink(link.id)}
+                bulkActions={
+                  canEdit
+                    ? {
+                        onMove: (ids) =>
+                          setMoving({
+                            kind: 'links',
+                            ids,
+                            name: `${ids.length} ${ids.length === 1 ? 'link' : 'links'}`,
+                            folderId: currentId,
+                          }),
+                        onDelete: (ids) => setDeletingLinks(ids),
+                      }
+                    : undefined
+                }
               />
             </VStack>
           ) : null}
@@ -432,6 +472,21 @@ export default function LinksBrowser({
             run(() => deleteLink(id))
           }
           setDeletingLink(null)
+        }}
+      />
+      <AlertDialog
+        isOpen={deletingLinks != null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingLinks(null)
+        }}
+        title={`Delete ${deletingLinks?.length ?? 0} links?`}
+        description="The short URLs stop working immediately. This cannot be undone."
+        actionLabel="Delete links"
+        actionVariant="destructive"
+        onAction={() => {
+          const ids = deletingLinks ?? []
+          if (ids.length > 0) run(() => deleteLinks(ids))
+          setDeletingLinks(null)
         }}
       />
     </VStack>
